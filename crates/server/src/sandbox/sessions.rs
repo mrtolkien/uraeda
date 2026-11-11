@@ -1,6 +1,7 @@
 //! The sandbox's sessions, written in its data folder's store as the runner leaves a finished
-//! turn: the sample chats of `fixtures/sandbox/chats.json`, finished, failed, stopped, and stopped
-//! by a usage limit; and on demand a chat of 20,000 messages, for the frame benchmarks.
+//! turn: the sample chats of `fixtures/sandbox/chats.json`, finished, failed, stopped, stopped by
+//! a usage limit, and one whose action auto mode blocked, which offers a change; and on demand a
+//! chat of 20,000 messages, for the frame benchmarks.
 
 use std::time::{Duration, SystemTime};
 

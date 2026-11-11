@@ -38,6 +38,9 @@ const PAGES: Record<string, { address: string; words: string }> = {
   edit: { address: "/r/realistic/edit/specs/CONSTITUTION.md", words: "Core Principles" },
   settings: { address: "/r/sample/settings/appearance", words: "Catppuccin Mocha" },
   new: { address: "/r/sample/new?kind=feature", words: "Git listener process" },
+  sessions: { address: "/r/sample/sessions", words: "Add a dark theme" },
+  "session-id": { address: "/r/sample/sessions/gone", words: "No such session" },
+  session: { address: "/r/sample/f/2026-10-19-dark-mode/session", words: "Dark mode" },
   missing: { address: "/r/sample/nowhere", words: "nowhere" },
 };
 

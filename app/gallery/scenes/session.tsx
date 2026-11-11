@@ -1,6 +1,6 @@
-// The three scenes `just frames` times, drawn with the library as a session's transcript will be:
-// a `VirtualList` of 20,000 messages, each a row of its kind, and the reply being written as a
-// growing `Reply` at its end.
+// The three scenes `just frames` times, drawn as a session's transcript is: a `VirtualList` of
+// 20,000 messages, each the session's own row (`screens/session/Rows.tsx`), and the reply being
+// written as the last row, a growing `Reply`.
 //
 // - `streaming`: the reply grows by a few characters a frame, as an agent's does, and a message
 //   comes every second; the list follows its end.
@@ -9,11 +9,13 @@
 // - `glass`: the same scroll under a bar of glass, a raised surface over what scrolls, as a
 //   session's header once stuck.
 //
-// A scene feeds itself: the gallery has no server. The session screen (task 43) feeds its list from
-// the client store, as `app/store/README.md` says.
-import { type Accessor, cleanup, signal, View } from "nsh";
+// A scene feeds itself, a fixture of the same shape as the server's pages: the gallery has no
+// server. The session screen feeds the same rows from the client store (`screens/session/pages.ts`).
+import { cleanup, signal, View } from "nsh";
+import { type Entry, type Feed } from "../../screens/session/pages";
+import { type RowHands, TranscriptRow } from "../../screens/session/Rows";
+import type { Item } from "../../store/protocol";
 import { Icon, Kbd, Text } from "../../ui/controls";
-import { Reply } from "../../ui/document";
 import { createCursor, VirtualList, type VirtualListRef } from "../../ui/lists";
 import { Surface } from "../../ui/surfaces";
 import { tokens } from "../../ui/tokens";
@@ -36,64 +38,91 @@ const SAID = [
   "The frames of the glass bar over the transcript stay under the budget in software, at the 99th percentile.",
 ] as const;
 
-/** What a row of the transcript draws for a kind: its mark, its mark's colour, and its words. */
-const KINDS = [
-  { icon: "chevron-right", ink: "ink", mark: "action", tool: false },
-  { icon: "circle-dot", ink: "quiet", mark: "quiet", tool: false },
-  { icon: "circle-dot", ink: "quiet", mark: "quiet", tool: false },
-  { icon: TOOLS[0][0], ink: "quiet", mark: "context", tool: true },
-  { icon: TOOLS[1][0], ink: "quiet", mark: "context", tool: true },
-  { icon: TOOLS[2][0], ink: "quiet", mark: "context", tool: true },
-] as const;
-
 /**
- * A message of the transcript, by its number: the human's, the agent's words, or a tool's call.
- * One structure for every kind, whose bindings change with it: Native Shell recycles a list's
- * cells whatever their kind, and a row that swapped its views for another kind made them again at
- * each bind, 200 views a frame while scrolling fast.
+ * A message of the transcript, by its number, as the server's `TurnLog` gives it: the human's,
+ * the agent's words, or a tool's call, in turn. The scene draws them with the session's own rows
+ * (`screens/session/Rows.tsx`), fed by this fixture in place of the client store.
  */
-function Message(props: { id: Accessor<string> }) {
-  const at = () => Number(props.id());
-  const kind = () => KINDS[at() % KINDS.length]!;
-  const words = () =>
-    kind().tool ? TOOLS[(at() % KINDS.length) - 3]![1] : `${SAID[at() % SAID.length]} (${at()})`;
-  const time = () => `14:${String(Math.floor(at() / 60) % 60).padStart(2, "0")}`;
-  return (
-    <View
-      style={{
-        alignItems: "flex-start",
-        flexDirection: "row",
-        gap: 8,
-        minHeight: tokens.space.row,
-        paddingHorizontal: tokens.space.panePadding,
-        paddingVertical: 2,
-      }}
-    >
-      <Icon
-        colour={
-          kind().mark === "action"
-            ? tokens.role.action
-            : kind().mark === "context"
-              ? tokens.role.context
-              : tokens.role.inkFaint
-        }
-        name={kind().icon}
-        style={{ marginTop: 4 }}
-      />
-      <Text
-        font={kind().tool ? "code" : "body"}
-        lines={kind().tool ? 1 : undefined}
-        style={{ flex: 1, minWidth: 0 }}
-        tone={kind().ink}
-      >
-        {words()}
-      </Text>
-      <Text size="under" tone="faint">
-        {time()}
-      </Text>
-    </View>
-  );
+function itemOf(at: number): Item {
+  const id = String(at);
+  switch (at % 6) {
+    case 0:
+      return {
+        at: Date.UTC(2026, 10, 12, 14, at % 60),
+        id,
+        images: [],
+        kind: "message",
+        message: id,
+        opening: null,
+        origin: "human",
+        read: true,
+        text: `${SAID[at % SAID.length]} (${at})`,
+      };
+    case 1:
+    case 2:
+      return { id, kind: "text", streaming: false, text: `${SAID[at % SAID.length]} (${at})` };
+    default: {
+      const [, call] = TOOLS[(at % 6) - 3]!;
+      const space = call.indexOf(" ");
+      return {
+        call: id,
+        durationMs: 1200,
+        id,
+        kind: "tool",
+        name: call.slice(0, space),
+        output: null,
+        parent: null,
+        status: "completed",
+        subagent: null,
+        target: call.slice(space + 1),
+        toolKind: "execute",
+      };
+    }
+  }
 }
+
+/** What a row of the scene stands for: an item of the fixture, or the reply being written. */
+function feedOf(rows: () => ReadonlyArray<{ id: string }>, reply: () => string): Feed {
+  const entries = new Map<string, Entry>();
+  return {
+    entry: (row) => {
+      let entry = entries.get(row);
+      if (entry === undefined) {
+        const item: Item =
+          row === REPLYING
+            ? { id: row, kind: "text", streaming: true, text: "" }
+            : itemOf(Number(row));
+        const words = () => ("text" in item && item.text !== null ? item.text : "");
+        entry = {
+          item: () => item,
+          kind: "item",
+          text: row === REPLYING ? reply : words,
+          turn: "scene",
+        };
+        entries.set(row, entry);
+      }
+      return entry;
+    },
+    rows,
+    shown: () => {},
+  };
+}
+
+/** What the rows ask of the session: a chat at rest, with nothing to allow. */
+const HANDS: RowHands = {
+  allowable: () => 0,
+  canTakeBack: () => false,
+  folder: () => null,
+  kind: () => "chat",
+  offerTurn: () => undefined,
+  repo: "gallery",
+  select: () => {},
+  lit: () => false,
+  selected: () => false,
+  session: "scene",
+  takeBack: async () => null,
+  working: () => true,
+};
 
 const REPLY_SECTIONS = 20;
 
@@ -199,6 +228,7 @@ export function scene(name: Scene) {
     items.set([...now.slice(0, -1), { id: String(now.length) }, now[now.length - 1]!]);
   };
   const reply = streaming ? streams(more) : signal("");
+  const feed = feedOf(items, reply);
   if (!streaming) sweep(() => list);
   return (
     <View style={{ flex: 1 }} testID={`scene-${name}`}>
@@ -207,13 +237,7 @@ export function scene(name: Scene) {
         follow={streaming}
         framed={false}
         ref={(made) => (list = made)}
-        row={(id) => (
-          <If when={id() === REPLYING} else={<Message id={id} />}>
-            <View style={{ paddingHorizontal: tokens.space.panePadding, paddingVertical: 6 }}>
-              <Reply align="start" text={reply} />
-            </View>
-          </If>
-        )}
+        row={(id) => <TranscriptRow feed={feed} hands={HANDS} id={id} />}
         rowHeight={30}
       />
       <If when={name === "glass"}>

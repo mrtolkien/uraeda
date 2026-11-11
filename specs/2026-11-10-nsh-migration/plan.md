@@ -2714,12 +2714,31 @@ Follows [what every screen task does](#what-every-screen-task-does).
   with the real transcript's rows, then run `just frames streaming` and `just frames scrolling` on
   its 20,000 messages. Expected: at most 8.3 ms at the 99th percentile.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): sessions`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 118 tests passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): sessions`.
+
+**As built** (rulings T43.1 to T43.10):
+
+- `app/screens/session/`: `index.tsx` (the panes and the places), `place.ts`, `pages.ts` (the window
+  of pages), `Transcript.tsx` (the pane), `Rows.tsx` (a row), `Head.tsx` (the head and the banners),
+  `Composer.tsx`, `Permission.tsx`, `Offer.tsx` with `offers.ts`, `SessionsPage.tsx`, `attach.ts`,
+  `words.ts`, and `session.test.tsx`.
+- **The panes**: `session-transcript` (main) and `sessions-list` (side), with
+  `SessionArgs = { repo, session, folder, fresh }`, `session` "" for a feature's latest. The pages
+  `sessions`, `session-id`, and `session` (with `?new`).
+- **For task 44**: `import { addSessionPanes, sessionIdOf, type SessionArgs } from "../session"`,
+  then `addSessionPanes((args) => [activity(args), ...])` at its module's top level: its panes
+  follow the list in the side stack on every page of a session. `sessionIdOf(args)()` is the
+  session's id, `undefined` while its feature is read, `null` before its first message.
+- **For the gallery**: `just frames streaming` and `just frames scrolling` draw `TranscriptRow` over
+  a fixture `Feed` of the server's items' shape (`app/gallery/scenes/session.tsx`).
+- `VirtualList` gains `onShown(first, last)`.
+- **The extra step** (T43.10), in software: `streaming` at most 5.64 ms at the 99th percentile;
+  `scrolling` at most 12.54 ms, over the stand-in's 10.04 ms by the Markdown of each message.
 
 ## Task 44: Session panels and runs
 

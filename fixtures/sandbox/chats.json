@@ -134,6 +134,21 @@
      "ok": false
     }
    ]
+  },
+  {
+   "text": "Run the tests, then tidy the imports",
+   "script": [
+    {
+     "type": "text",
+     "text": "Auto mode blocked the test command, so I could not run the tests. Tidying the imports is a code change, which goes in a change of its own:\n\n```uraeda-offer change\n# Tidy the imports\n\nSort the imports of `src/`, and remove the ones nothing uses.\n```"
+    },
+    {
+     "type": "denial",
+     "tool": "Bash",
+     "target": "npm test",
+     "rule": "Bash(npm test)"
+    }
+   ]
   }
  ]
 }

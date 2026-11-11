@@ -22,6 +22,7 @@ import "./feature/panes";
 import "./file/panes";
 // Task 42: Rounds and reviews.
 // Task 43: Sessions.
+import "./session";
 // Task 44: Session panels and runs.
 // Task 45: Decisions.
 import "./decisions";

@@ -9,8 +9,8 @@
 // layout shell's `k` to the pane's tabs.
 //
 // A keyboard-first app shows where the keys go before any is pressed: while the keys work where
-// the list is (its pane has the focus), a list with no cursor puts it on its first row, without
-// scrolling. A pointer user meets a quiet bar there; a pane at rest keeps its cursor, unlit.
+// the list is (its pane has the focus), a list with no cursor puts it on its first row, or its last
+// for a list that opens at its end (a transcript), without scrolling. A pointer user meets a quiet bar there; a pane at rest keeps its cursor, unlit.
 import { effect, untracked } from "nsh";
 import { type KeySpec, keysWorkHere, registerKey } from "../keys/registry";
 import type { Cursor } from "./cursor";
@@ -22,6 +22,8 @@ export type ListKeysOptions = {
   openLabel?: string;
   /** Whether the keys are on beside the scope's own: off while the list is hidden. */
   when?: () => boolean;
+  /** The row the cursor starts on while it has none: the first, or the last for a transcript. */
+  start?: "first" | "last";
 };
 
 /** What a key's `run` answers: nothing when it did something, `false` to pass the key on. */
@@ -31,7 +33,8 @@ export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
   const when = options.when;
   const works = keysWorkHere();
   effect(() => {
-    const first = cursor.items()[0];
+    const items = cursor.items();
+    const first = options.start === "last" ? items.at(-1) : items[0];
     if (first !== undefined && cursor.at() === undefined && works() && (when?.() ?? true)) {
       untracked(() => cursor.set(first.id));
     }

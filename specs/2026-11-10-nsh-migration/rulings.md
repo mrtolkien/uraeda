@@ -6632,3 +6632,156 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: one approve button, the review's, as the task asks; a second one here would be a
   second component to keep right.
 - **Where**: `app/screens/file/{Reader,panes}.tsx`.
+## T43.1: A session is one pane, its conversation, and the sessions' list sits beside it
+
+- **Decision**: a session's place is the pane `session-transcript` in the main stack, its head, its
+  conversation, its banners, and its composer, one pane as the composer belongs to the conversation;
+  then `sessions-list` in the side stack; then what other screens add with
+  `addSessionPanes((args) => [...])` from `app/screens/session/place.ts`, at their module's top
+  level. All three pages of a session, `/sessions/<id>`, `/f/<folder>/session`, and
+  `/f/<folder>/session?new`, place the same panes with one `SessionArgs`
+  `{ repo, session, folder, fresh }`, `session` "" for a feature's latest, which `sessionIdOf(args)`
+  reads from the record `Feature`. `/sessions` places the list alone, in the main stack: Enter or a
+  press opens a session, whose page keeps the list beside it.
+- **Rationale**: the old screen drew its own side column; panes give the session's panels (task 44)
+  their tabs, keys, and folds from the frame, and a feature's session page is the same place, so
+  nothing is drawn twice. The list beside the conversation is "the session beside it when there is
+  room" turned around: the conversation is what a session page is for, and it gets the width.
+- **If wrong**: `/sessions` can place the first session's conversation beside the list, as the
+  decisions place the constitution, by redirecting the cursor's moves.
+- **Where**: `app/screens/session/{index.tsx,place.ts}`.
+
+## T43.2: The transcript reads a window of pages, and keeps what it read until it is far
+
+- **Decision**: `transcriptFeed` (`app/screens/session/pages.ts`) holds a `Turn` for each turn and a
+  `TurnLog` for each page of the rows within two screens of those shown (at least 40 rows either
+  way), and always the last turn and its last page. A turn not read is one row, `turn`; a page not
+  read is one row, `turn#page`; an item is `turn/item#turn#page`, so a row says which page reads it.
+  What was read stays read until the rows shown are six screens from it: a page that becomes 100
+  rows pushes its neighbours away, and a window that let them go at once would read them again and
+  again. The window is an effect that writes the keys read, as the list's shown rows and the rows
+  change; the records are held by one computation of those keys, and let go after the store's grace.
+  `VirtualList` gains `onShown(first, last)`, the rows wholly shown (R171's list says which).
+- **Rationale**: the store's README designed it so; the row id carries the page because an item's id
+  is its place in its turn, not its page, and the row must read its own page's signals. A session of
+  10,000 turns lists 10,000 ids, each one row until read: the list knows its length at once, and a
+  fling far up reads only where it stops.
+- **If wrong**: the window is `MARGIN` and `KEPT` in `pages.ts`.
+- **Where**: `app/screens/session/pages.ts`, `app/ui/lists/VirtualList.tsx`.
+
+## T43.3: A transcript row is a line that binds and a body made once for its row
+
+- **Decision**: every row of the transcript is one structure (`Rows.tsx`): a line, whose icon,
+  words, and time bind to the row, for a tool's call, a thought, the runner's notice, or a part not
+  read yet; and a body, made by an `Each` keyed by the row's id, for what has words of its own: a
+  message, the agent's text, or a blocked action. A cell reused for a call binds again; one reused
+  for a text makes its body again. A text whole when its row is drawn is a `Document` of its tree,
+  read with `markdownTree` once per row and kept for the 2,000 latest rows; a text that streams is a
+  `Reply`. Each tool call is one quiet line, the command or path in the code font, its time at the
+  end; a sub-agent's own calls and thoughts are left to the Activity (task 44). The list is not
+  framed: the row draws its selection itself, a fill and the bar of light at its left edge, as `Row`
+  does, and fills the list's width, so its words wrap on a phone.
+- **Rationale**: R239's rule. `Reply` keeps its splitter's state per reply: a reply bound to another
+  row of a longer text would have read on from where the first left. A whole text split again at
+  each bind cost a native call and a parse per row in a fling: its tree, kept, costs neither. The
+  old screen folded each stretch of calls into one recap line, which linked to the Activity: one
+  line per call reads as the agent works, and the Activity, which task 44 builds, keeps the
+  stretches. `Row` lays its children in a row: inside it, a card and a long line kept their own
+  width and ran past a phone's edge.
+- **Where**: `app/screens/session/Rows.tsx`.
+
+## T43.4: An offer's kind is told by its body, and starting it is its card's button
+
+- **Decision**: the core's tree keeps a fence's first word only, `uraeda-offer`: a block of that
+  language is an offer, a change's when its body opens with `# `, its proposal's title, else a
+  feature's, as the offer's grammar shapes them. The card has its buttons while it is the session's
+  live offer: in its last turn, once that turn ended, moving that kind of session (a chat to a
+  change, a change to a feature), and not closed with "Not now". "Start the change" is a tube, not
+  the view's main action, or `Ctrl+Enter` in its proposal's field, never Enter; the slug field takes
+  what is typed, or the title's. Once it moved, the session's page says where it went, with the way
+  there (rule 9). `c` opens the same card, empty, for a chat, as the old "…" did.
+- **Rationale**: changing the core's tree to keep the whole info string reaches every reader of a
+  workflow file; the grammar already tells the two bodies apart.
+- **If wrong**: `Block.language` keeps the info string whole, and `offerOf` reads its second word.
+- **Where**: `app/screens/session/{offers.ts,Offer.tsx}`.
+
+## T43.5: A blocked action is allowed by its card's button or `a`, never by a press on its row
+
+- **Decision**: the card reads "The agent wanted to run X", its state "Blocked by auto mode", and
+  why or what allowing does. "Allow and retry" is `session.allow`, "Allow all (N)" from two is
+  `session.allowAll`: the server's two actions, which the plan's words "allow once, allow always"
+  stood for. Neither shows while the agent works, as allowing reopens its process: the card says to
+  wait. With the card's row selected, `a` allows and `A` allows all.
+- **Rationale**: a list's press runs its `onOpen` (R170): a tap on the card would have spent the
+  agent's time (rule 2). The transcript has no `onOpen`; a press only selects.
+- **Where**: `app/screens/session/{Permission,Transcript}.tsx`.
+
+## T43.6: A message leaves the composer at once, is sent once, and comes back when refused
+
+- **Decision**: Enter sends (the library's `Composer`); the draft empties at once (rule 6), and a
+  send already on its way takes no second. A refusal puts the text and the images back, with the
+  server's words under the field. While the agent works, the composer says whether the message joins
+  its turn (the runtime's `steer`) or goes once it ends. Images are kept by the server as they come,
+  by the paperclip (`Picker`), `Ctrl+V`, or a drop on the pane (the inbox's helpers), and Send waits
+  for them. `S` stops the agent or its wait, declared only while there is one, and the Stop button
+  shows then. A draft is kept on the device by its session, without `unsavedText`, whose
+  `LeaveGuard` would ask before every leave of a page with a draft. `i` takes the composer.
+- **Seen failing**: with the draft emptied only once the server answered and no guard, nothing
+  failed: the second Enter came after the field emptied. With one Enter sending twice, "a message
+  typed during a reply is sent once" failed with `expected 2 to be 1`.
+- **Where**: `app/screens/session/Composer.tsx`.
+
+## T43.7: What the old session screen did that this one leaves, and to whom
+
+- **Decision**: left, each with its reason: the hand-over's workflow message and the recommended
+  message (`?continue=`, "Start the agent", task 38's start); `?ask=` quotes and story comments
+  (task 49's stories); the start's steps drawn where the transcript will be (task 38); recap lines
+  and the Activity at a stretch (T43.3, task 44); the session's rename in place and "Drop the
+  change…" (a later pass: rename needs a dialog, drop is the feature page's); the effort picker of a
+  running session, `m` (task 38's run picker, whose component it is); `#turn-<id>` and the scroll
+  place kept by Back (a transcript opens at its newest message, the rule of this task); the reply's
+  frame on a done turn's last text; the announcer for screen readers.
+- **Where**: `app/screens/session/`.
+
+## T43.8: What the session's tests found of the driver
+
+- **Decision**: three things the tests now work around, each said where it is done:
+  - `app.value` reads the driver's own input, which the field's editor does not empty when its
+    `value` changes: the composer is checked by what was sent, not by what the input holds.
+  - Enter right after `app.type`'s last key can reach the field before the field's last change
+    reaches the screen, and send what it held before: the tests wait for the field to hold the text.
+    A person who types and presses Enter within a frame loses nothing: the text stays.
+  - Whether a list is at its end is not on screen while it does not scroll: the list's "follows" is
+    only heard from its scroll. `app.scroll(list, 1)` refuses at the end, "it is at N of N": with
+    the list's anchor removed, "a streaming reply stays in view" failed with
+    `expected ["Part 2",false,false] to equal ["Part 2",true,false]`; before that check it passed.
+- **Where**: `app/screens/session/session.test.tsx`.
+
+## T43.9: The sandbox's `sample` has a seventh chat, with a blocked action and an offer
+
+- **Decision**: "Run the tests, then tidy the imports": its reply offers a change, and auto mode
+  blocked `npm test`, with the rule `Bash(npm test)`: the permission card and the offer's card are
+  seen and used there. R231's "six chats" are seven.
+- **Where**: `fixtures/sandbox/chats.json`, `crates/server/src/sandbox/sessions.rs`.
+
+## T43.10: The transcript's frames, in software: streaming meets 8.3 ms, a fling does not
+
+- **Decision**: measured with `just frames`, once each on the final code, on the hidden display,
+  which draws in software (R131), at 1400 by 800, 30 s each, the machine's load 1 to 4 (other
+  agents' builds had held it near 20 to 30 before: each run waited for it to fall under 5):
+
+  | Scene       | Median | p95     | p99     | Worst    | Main thread, a second's mean                   |
+  | ----------- | ------ | ------- | ------- | -------- | ---------------------------------------------- |
+  | `streaming` | ≤ 3.28 | ≤ 4.74  | ≤ 5.64  | 6.21 ms  | paint 0.67, drain 0.23, layout 0.54; 11 items  |
+  | `scrolling` | ≤ 9.59 | ≤ 11.08 | ≤ 12.54 | 14.50 ms | paint 2.60, drain 1.75, layout 1.40; 159 items |
+
+  Streaming is under the stand-in's 6.03 ms. The fling, 900 points a frame, is over the stand-in's
+  10.04 ms, which was over 8.3 ms already (R239). Why, found by drawing each message's body as one
+  `Text` for one run: 10.71 ms at p99, 99 items, the stand-in's cost. The rest is the Markdown each
+  message is: a document's measure, its blocks' views, made again at each bind. On the way down from
+  13.71 ms: the list's `Row` wrapper dropped (13.06), a whole text's tree kept per row in place of a
+  split at each bind (12.78, JavaScript 3.1 to 2.5 ms), the text's own wrapper view dropped (12.54).
+
+- **If wrong**: the frames on a GPU are task 53's. Next to try there: a document of one paragraph
+  drawn as its one text, without its measure's and blocks' views.
+- **Where**: `app/screens/session/Rows.tsx`, `app/gallery/scenes/session.tsx`.

@@ -59,6 +59,11 @@ export type VirtualListProps = {
   onOffset?: (offset: number) => void;
   /** The row's own action: `Enter`, and a press. */
   onOpen?: (id: string) => void;
+  /**
+   * Hears which rows are wholly shown, by index, as they change: a transcript reads the pages
+   * around them. `first` is -1 while none is.
+   */
+  onShown?: (first: number, last: number) => void;
   openLabel?: string;
   ref?: (list: VirtualListRef) => void;
   /** Draws a row's content: read `id()` where it is used, as the cell is reused. */
@@ -88,7 +93,11 @@ export function VirtualList(props: VirtualListProps) {
   };
 
   if (props.keys !== false) {
-    listKeys(cursor, { onOpen: props.onOpen, openLabel: props.openLabel });
+    listKeys(cursor, {
+      onOpen: props.onOpen,
+      openLabel: props.openLabel,
+      start: props.follow === true ? "last" : "first",
+    });
   }
 
   const show = (id: string) => {
@@ -169,6 +178,7 @@ export function VirtualList(props: VirtualListProps) {
           last = Math.max(last, token.index);
         }
         shown = { first, last };
+        props.onShown?.(last === -1 ? -1 : first, last);
       }}
       ref={(node: ListRef) => {
         list = node;
