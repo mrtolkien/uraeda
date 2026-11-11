@@ -1552,7 +1552,7 @@ gotchas: each is a bug the Node code met.
       `runner/manager.rs` and `runner/send.rs` among them, which this task grew by 2 and 9 lines.
 - [x] **Step 5: Commit**: `feat(nsh-migration): scheduled jobs`.
 
-As built (rulings T63.1 to T63.7):
+As built (rulings R189 to R195):
 
 - The record `Jobs { repo }`: `{ enabled, jobs, problem, timeZone }`, each job
   `{ name, index, prompt, scheduleText, schedule, repositories, on, reportOnly, agent, model, effort, problem, next: { at, why, text }, last, history }`,

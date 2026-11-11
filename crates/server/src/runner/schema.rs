@@ -113,9 +113,9 @@ const ACCOUNT: &str = "ALTER TABLE sessions ADD COLUMN account TEXT;";
 /// repository, and a time is what stops two ticks, two servers, or a clock set back from
 /// starting it twice. It is plain, not partial: an insert's `ON CONFLICT` cannot use a partial
 /// index, and SQLite counts each null as distinct, so runs by hand, whose `due` is null, never
-/// conflict.
+/// conflict. It creates only what is missing: see [`steps_taken`].
 const JOB_RUNS: &str = "
-CREATE TABLE job_runs (
+CREATE TABLE IF NOT EXISTS job_runs (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   job          TEXT NOT NULL,
   repository   TEXT NOT NULL,
@@ -130,8 +130,8 @@ CREATE TABLE job_runs (
   blocked_by   TEXT,
   error        TEXT
 ) STRICT;
-CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
-CREATE INDEX job_runs_session ON job_runs (session);
+CREATE UNIQUE INDEX IF NOT EXISTS job_runs_due ON job_runs (job, repository, due);
+CREATE INDEX IF NOT EXISTS job_runs_session ON job_runs (session);
 ";
 
 /// The schema's steps, in order: the store's number is how many it has taken.
@@ -147,10 +147,29 @@ pub(super) fn found(db: &Connection) -> rusqlite::Result<u32> {
     db.query_row("PRAGMA user_version", [], |row| row.get(0))
 }
 
+/// How many steps a store has taken. The scheduled jobs and the accounts were built at the same
+/// time, each as the third step: a store at 3 with no session's account was written with the
+/// jobs' runs as its third step, and takes the account's step, then the jobs' one, which creates
+/// nothing it already has.
+fn steps_taken(db: &Connection) -> rusqlite::Result<usize> {
+    let applied = found(db)? as usize;
+    let has_account = || {
+        db.query_row(
+            "SELECT count(*) FROM pragma_table_info('sessions') WHERE name = 'account'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+    };
+    if applied == 3 && has_account()? == 0 {
+        return Ok(2);
+    }
+    Ok(applied)
+}
+
 /// Applies the steps a store lacks, in one transaction: all of them, or none.
 pub(super) fn migrate(db: &mut Connection) -> rusqlite::Result<()> {
     let transaction = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-    let applied = found(&transaction)? as usize;
+    let applied = steps_taken(&transaction)?;
     for step in STEPS.iter().skip(applied) {
         transaction.execute_batch(step)?;
     }

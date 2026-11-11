@@ -190,6 +190,36 @@ fn a_store_written_before_its_lines_were_numbered_reads_by_the_same_pages() {
     assert_eq!(store.page_of(turn, added.seq).unwrap(), Some(1));
 }
 
+// The accounts and the scheduled jobs were built at the same time, each as the store's third
+// step: a store written with the jobs' runs as its third, and no session's account, takes the
+// account's step and keeps its runs, to the same schema as any other.
+#[test]
+fn a_store_whose_third_step_was_the_jobs_runs_reaches_the_same_schema() {
+    let folder = TempDir::new().unwrap();
+    let (store, turn) = started(&folder);
+    written(&store, turn);
+    store.close();
+    let file = folder.path().join(FILE);
+    let db = Connection::open(&file).unwrap();
+    db.execute_batch(
+        "ALTER TABLE sessions DROP COLUMN account;
+         INSERT INTO job_runs (job, repository, due, at, trigger, outcome)
+           VALUES ('Dependencies', '/repo', 1, 1, 'schedule', 'skipped');
+         PRAGMA user_version = 3;",
+    )
+    .unwrap();
+    drop(db);
+
+    let store = Store::open(folder.path()).expect("the store, brought up to this schema");
+    store.close();
+    let db = Connection::open(&file).unwrap();
+    let count = |sql: &str| db.query_row(sql, [], |row| row.get::<_, i64>(0)).unwrap();
+    assert_eq!(count("PRAGMA user_version"), 4);
+    let account = "SELECT count(*) FROM pragma_table_info('sessions') WHERE name = 'account'";
+    assert_eq!(count(account), 1, "the account's column");
+    assert_eq!(count("SELECT count(*) FROM job_runs"), 1, "the run is kept");
+}
+
 // How long a reply of 20,000 pieces takes from the agent to a subscriber, whole: what task 53
 // measures against a frame. Run it by hand:
 // `cargo nextest run -p uraeda-server --test sessions --run-ignored only long_reply`.

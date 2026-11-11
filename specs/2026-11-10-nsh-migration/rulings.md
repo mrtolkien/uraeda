@@ -4413,7 +4413,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the split is one commit after the wave's merge, by module.
 - **Where**: [`structure.rs`](/crates/cli/tests/structure.rs).
 
-## T63.1: The minute between two starts is on the server's clock
+## R189: The minute between two starts is on the server's clock
 
 - **Decision**: the scheduler keeps no sleeping queue. A look (every 30 seconds, after each change
   of the settings file, and after each `jobs.*` write) queues the times due, then starts the queue's
@@ -4427,7 +4427,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a run due with others starts at the wake, within a second of its minute.
 - **Where**: [`jobs/scheduler.rs`](/crates/server/src/jobs/scheduler.rs).
 
-## T63.2: The offers' grammar is in the core
+## R190: The offers' grammar is in the core
 
 - **Decision**: `uraeda_core::offers` holds the grammar of an offer block (`last_offer`, which the
   card draws, `ending_offer`, which a job's acceptance reads, at column 0 only, and
@@ -4436,7 +4436,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: parsing lives in the core (the stack decision), and one rule serves both readers.
 - **Where**: [`offers.rs`](/crates/core/src/offers.rs).
 
-## T63.3: The jobs' actions answer nothing, and "Run now" its session
+## R191: The jobs' actions answer nothing, and "Run now" its session
 
 - **Decision**: `Jobs { repo }` is a live record: `jobs.add`, `jobs.update`, `jobs.setOn`, and
   `jobs.remove` answer `()`, as the settings' writes do, and `jobs.runNow` answers
@@ -4446,7 +4446,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`protocol/src/jobs.rs`](/crates/protocol/src/jobs.rs),
   [`records/jobs.rs`](/crates/server/src/records/jobs.rs).
 
-## T63.4: A job's run is a chat whose message is the workflow's
+## R192: A job's run is a chat whose message is the workflow's
 
 - **Decision**: `send::Message` gains `job`, the line a run's turn opens with: the turn is a chat (a
   chat has no step to continue), and its message's origin is the workflow's, so "the human wrote in
@@ -4459,7 +4459,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`records/sessions/actions.rs`](/crates/server/src/records/sessions/actions.rs),
   [`jobs/accept.rs`](/crates/server/src/jobs/accept.rs).
 
-## T63.5: `--no-scheduled-jobs` is an option of the server
+## R193: `--no-scheduled-jobs` is an option of the server
 
 - **Decision**: `Options::no_scheduled_jobs`, set by `ura serve --no-scheduled-jobs`, wins over
   `URAEDA_SCHEDULED_JOBS` and `[runs] scheduled_jobs`, and the setting says its source is the flag.
@@ -4467,7 +4467,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`start.rs`](/crates/server/src/start.rs),
   [`settings.rs`](/crates/server/src/records/workspace/settings.rs).
 
-## T63.6: The job runs' table, and its import
+## R194: The job runs' table, and its import
 
 - **Decision**: the store's fourth schema step, after the accounts' third (R181 to R186), adds
   `job_runs`, as Node's: one row per run, skipped time, or failed start, a plain unique index on
@@ -4481,7 +4481,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`job_runs.rs`](/crates/server/src/runner/job_runs.rs),
   [`import/old/jobs.rs`](/crates/server/src/runner/import/old/jobs.rs).
 
-## T63.7: What of the record is not ported
+## R195: What of the record is not ported
 
 - **Decision**: a session whose job's offer was refused does not show the attention "The change
   could not start by itself." of Node's session status: the refusal is kept, and shown on the run in
@@ -4490,3 +4490,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   (task 65) shows the refusal with the run.
 - **If wrong**: a reason `change-refused` in `StatusReason`, read from `Store::job_run_of` in
   `runner/reads.rs`, the turn the refusal names still the session's latest.
+
+## R196: A store whose third step was the jobs' runs takes the account's step
+
+- **Decision**: tasks 62 and 63 each added the store's third schema step, the accounts' column and
+  `job_runs`. Merged, the account is the third and the jobs' runs the fourth. A store at 3 with no
+  `sessions.account` was written by the jobs' version alone: it is read as at 2, so it takes the
+  account's step, then the jobs' step, which creates its table and indexes only if missing. Either
+  version's store reaches the same schema, its runs kept.
+- **Rationale**: such stores exist (the task's worktree, its sandbox), and without this one would
+  fail to open with "table job_runs already exists". The check is one query, at the open.
+- **If wrong**: drop `steps_taken` and the `IF NOT EXISTS` once no such store is left; nothing else
+  reads them.
+- **Where**: [`schema.rs`](/crates/server/src/runner/schema.rs),
+  [`pages.rs`](/crates/server/tests/sessions/pages.rs).
