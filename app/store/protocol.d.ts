@@ -694,6 +694,219 @@ row: number, };
 export type ErrorCode = "not-signed-in" | "bad-message" | "unknown-record" | "unknown-action" | "bad-args" | "bad-input" | "refused" | "conflict" | "hook" | "internal";
 
 /**
+ * What an extension's action answered.
+ */
+export type ExtensionAction = { output: JsonValue, };
+
+/**
+ * A problem of an extension: the file it is in, from its folder, and its line when known.
+ */
+export type ExtensionProblem = { 
+/**
+ * `extension.toml`, `config.toml`, a file of its code, or empty for the folder itself.
+ */
+file: string, 
+/**
+ * From 1: null for the whole file.
+ */
+line: number | null, message: string, };
+
+/**
+ * A record an extension registered: its value, or why it could not be read. It is read again
+ * when the extension says it changed, and when the extension loads again.
+ */
+export type ExtensionRecord = { 
+/**
+ * What the extension's read gave: null with an `error`.
+ */
+value: JsonValue, 
+/**
+ * Why there is no value: the extension is off here, has no such record, threw, or did not
+ * answer in 10 seconds.
+ */
+error: string | null, };
+
+/**
+ * Which record of an extension: in a repository, by the extension's name and the record's.
+ */
+export type ExtensionRecordArgs = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, extension: string, 
+/**
+ * The record's name, as the extension registered it.
+ */
+name: string, };
+
+/**
+ * An extension, as the settings page and its own page read it.
+ */
+export type ExtensionRow = { 
+/**
+ * Its name, which names the row in a change.
+ */
+id: string, 
+/**
+ * Its folder's name.
+ */
+name: string, title: string, description: string, 
+/**
+ * Its own version, as its manifest says.
+ */
+version: string, 
+/**
+ * The extension API it is built for.
+ */
+api: number, 
+/**
+ * A name of the app's icon set, or empty.
+ */
+icon: string, isBuiltIn: boolean, 
+/**
+ * Whether it reloads on save: a folder linked or written in place.
+ */
+isLinked: boolean, 
+/**
+ * Where `ura` installed it from.
+ */
+source: ExtensionSource | null, 
+/**
+ * Whether it is on in every repository.
+ */
+onAll: boolean, 
+/**
+ * The repositories it is on in, by name, when not `onAll`: none when it is off.
+ */
+on: Array<string>, state: ExtensionState, 
+/**
+ * The session whose turn a reload waits for, by its title.
+ */
+waitingFor: string | null, 
+/**
+ * The version of its running page, which a client loads again as it changes: null without
+ * a page.
+ */
+pageVersion: number | null, 
+/**
+ * Its problems: its manifest's and its settings', then its code's, then its page's.
+ */
+problems: Array<ExtensionProblem>, 
+/**
+ * The settings its manifest declares.
+ */
+settings: Array<ExtensionSetting>, 
+/**
+ * Its settings for every repository, as an object, defaults filled in.
+ */
+values: JsonValue, 
+/**
+ * Its settings in the repository asked for, `{}` where it is off; `values` for the settings
+ * page. What its own page reads.
+ */
+valuesHere: JsonValue, 
+/**
+ * The values set for one repository only, by repository, for the settings page; `{}` when a
+ * repository was asked for.
+ */
+repositoryValues: JsonValue, };
+
+/**
+ * A setting an extension's manifest declares.
+ */
+export type ExtensionSetting = { key: string, 
+/**
+ * `bool`, `integer`, `string`, or `list`, a list of strings.
+ */
+kind: string, default: JsonValue, label: string, help: string, };
+
+/**
+ * Where `ura` installed an extension from.
+ */
+export type ExtensionSource = { url: string, commit: string, 
+/**
+ * The branch or tag `ura extension update` follows.
+ */
+gitRef: string, };
+
+/**
+ * Where an extension is: running, off, turned off by a problem, or waiting to reload.
+ */
+export type ExtensionState = "on" | "off" | "broken" | "waiting";
+
+/**
+ * Every extension: the built-in ones first, then the owner's, by name.
+ */
+export type Extensions = { 
+/**
+ * The extension API this server runs.
+ */
+api: number, 
+/**
+ * The owner's extensions folder, the home folder written `~`, with a `/` last.
+ */
+folder: string, extensions: Array<ExtensionRow>, };
+
+/**
+ * Runs an action an extension registered, in a repository it is on in.
+ */
+export type ExtensionsAct = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, extension: string, 
+/**
+ * The action's name, as the extension registered it.
+ */
+name: string, input: JsonValue, };
+
+/**
+ * Which reading of the extensions: a repository's, or the settings page's.
+ */
+export type ExtensionsArgs = { 
+/**
+ * The repository's name in the list, whose settings each row's `valuesHere` holds: null for
+ * the settings page, which reads every repository's.
+ */
+repo: string | null, };
+
+/**
+ * A problem an extension's page met in a client, kept with the extension's own until its
+ * page's next version.
+ */
+export type ExtensionsReportPageProblem = { name: string, 
+/**
+ * The page's version the client runs: a report for another than the current one is dropped.
+ */
+version: number, message: string, };
+
+/**
+ * Writes where an extension is on, a built-in one's too: every repository, or the ones named.
+ */
+export type ExtensionsSetOn = { name: string, 
+/**
+ * On in every repository: `on` is then left unread.
+ */
+onAll: boolean, 
+/**
+ * The repositories it is on in, by name: none turns it off.
+ */
+on: Array<string>, };
+
+/**
+ * Writes a setting of an extension, for one repository or for every one.
+ */
+export type ExtensionsSetSetting = { name: string, 
+/**
+ * The repository's name, or null for every repository.
+ */
+repository: string | null, key: string, 
+/**
+ * Null removes the value: the one for every repository, or the default, applies again.
+ */
+value: JsonValue, };
+
+/**
  * A feature or a change, by its folder. Its value is `null` when no feature has that folder.
  */
 export type Feature = { 
@@ -4829,6 +5042,8 @@ export type Records = {
   Buffer: { args: BufferArgs; value: Buffer };
   ConflictFile: { args: ConflictFileArgs; value: ConflictFile };
   Devices: { args: null; value: Devices };
+  ExtensionRecord: { args: ExtensionRecordArgs; value: ExtensionRecord };
+  Extensions: { args: ExtensionsArgs; value: Extensions };
   Feature: { args: ItemArgs; value: Feature | null };
   FolderSuggestions: { args: FolderSuggestionsArgs; value: FolderSuggestions };
   GitCommit: { args: GitCommitArgs; value: GitCommit };
@@ -4873,6 +5088,10 @@ export type Actions = {
   "defaultRound.submit": { input: DefaultRoundSubmit; output: null };
   "devices.rename": { input: DevicesRename; output: null };
   "devices.revoke": { input: DevicesRevoke; output: null };
+  "extensions.act": { input: ExtensionsAct; output: ExtensionAction };
+  "extensions.reportPageProblem": { input: ExtensionsReportPageProblem; output: null };
+  "extensions.setOn": { input: ExtensionsSetOn; output: null };
+  "extensions.setSetting": { input: ExtensionsSetSetting; output: null };
   "feature.drop": { input: FeatureDrop; output: Dropped };
   "feature.fixLinks": { input: FeatureFixLinks; output: null };
   "feature.promote": { input: FeaturePromote; output: PromotedView };

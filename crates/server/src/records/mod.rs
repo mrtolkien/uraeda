@@ -29,11 +29,12 @@
 //!   file watcher: `FILES_CHANGED` for a repository's files, `CONFIG_CHANGED` for the config
 //!   folder's; and to [`WRITTEN`], for the server's own writes.
 
+mod extensions;
 mod features;
 mod git;
 mod previews;
 mod views;
-mod watch;
+pub(crate) mod watch;
 mod workspace;
 pub(crate) mod writing;
 
@@ -55,6 +56,7 @@ const DOMAINS: &[Register] = &[
     writing::register,
     git::register,
     previews::register,
+    extensions::register,
 ];
 
 /// What a domain says once the server wrote to a repository: it gets the bus and the

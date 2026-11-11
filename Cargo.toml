@@ -107,6 +107,8 @@ rusqlite = { version = "0.40.2", default-features = false, features = [
 ] }
 # The previews' story warmer scans a page's scripts and a module's imports. The lockfile held it.
 regex = "1"
+# QuickJS, the engine NSH runs pages in: the VM of the extensions' server parts (ruling R4).
+rquickjs = { version = "0.14.0", default-features = false, features = ["std", "array-buffer"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
@@ -122,6 +124,8 @@ ts-rs = { version = "12.0.1", features = ["serde-json-impl"] }
 usvg = { version = "0.46", default-features = false, features = ["text"] }
 # A fetched address's host, for the rule that allows it. The lockfile held it.
 url = "2"
+# The extensions' `fetch`: the lockfile held it, for NSH's own.
+ureq = "3.5"
 uraeda-app = { path = "crates/app" }
 uraeda-compile = { path = "crates/compile" }
 uraeda-core = { path = "crates/core" }

@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 use ts_rs::TS;
 
 use crate::devices::{Devices, DevicesRename, DevicesRevoke};
+use crate::extensions;
 use crate::features;
 use crate::git::{
     ConflictFile, GitAbort, GitClean, GitCommit, GitCommitStaged, GitContinue, GitDiff, GitDiscard,
@@ -130,7 +131,9 @@ fn add(kind: &str, entries: &mut Vec<Entry>, entry: Entry) {
 /// own function below.
 #[must_use]
 pub fn catalog() -> Catalog {
-    let domains = [devices, workspace, features, writing, git, previews];
+    let domains = [
+        devices, workspace, features, writing, git, previews, extensions,
+    ];
     domains
         .into_iter()
         .fold(Catalog::new(), |catalog, domain| domain(catalog))
@@ -287,4 +290,16 @@ fn previews(catalog: Catalog) -> Catalog {
         .record::<Story>()
         .record::<StoryHref>()
         .action::<PreviewRestart>()
+}
+
+/// Extensions (task 17): an extension's own records and actions are named as it loads, and
+/// are all `ExtensionRecord` and `extensions.act`.
+fn extensions(catalog: Catalog) -> Catalog {
+    catalog
+        .record::<extensions::Extensions>()
+        .record::<extensions::ExtensionRecord>()
+        .action::<extensions::ExtensionsAct>()
+        .action::<extensions::ExtensionsReportPageProblem>()
+        .action::<extensions::ExtensionsSetOn>()
+        .action::<extensions::ExtensionsSetSetting>()
 }

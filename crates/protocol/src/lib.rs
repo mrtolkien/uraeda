@@ -6,6 +6,7 @@
 mod change;
 mod devices;
 mod diff;
+mod extensions;
 mod features;
 mod git;
 mod message;
@@ -19,6 +20,7 @@ mod writing;
 pub use change::{ApplyError, Op, Path, apply, get};
 pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
 pub use diff::diff;
+pub use extensions::*;
 pub use features::*;
 pub use git::{
     ConflictFile, ConflictFileArgs, GitAbort, GitClean, GitCommit, GitCommitArgs, GitCommitFile,

@@ -4,7 +4,7 @@
 //! server, inside `vm`, and in the page, so both have one module runner and no module cache that
 //! keeps an old version alive.
 //!
-//! Linked only into the Node binding, never into `ura`.
+//! Linked into the Node binding, and into the server, whose VM runs an extension's server files.
 
 mod modules;
 

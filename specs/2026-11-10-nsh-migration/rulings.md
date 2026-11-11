@@ -2311,3 +2311,162 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   switch, or its own stand-ins. Codex's runtime needs its stand-in in the same folder (task 14).
 - **Where**: task 13, `crates/server/src/runtimes/{mod,claude}.rs`,
   `crates/server/tests/support/mod.rs`, `crates/server/tests/claude/real.rs`. Tasks 14, 15, and 20.
+
+## R107: An extension's records and actions are two names of the catalog, keyed at run time
+
+- **Decision**: an extension names its records and actions as it loads, so none is an entry of the
+  catalog. Three records and four actions serve them all.
+  - `ExtensionRecord { repo, extension, name }` is any record an extension registered. Its value is
+    `{ value, error }`: the JSON the extension's read gave, or why there is none, in band. The
+    extension is off there, has no such record, threw, or did not answer in 10 seconds. A
+    subscription stays open through a broken version, and gets the value once a save fixes it.
+  - `extensions.act { repo, extension, name, input }` runs any action, and answers
+    `ExtensionAction { output }`. `ExtensionAction` is that output's type: fate's record of that
+    name was an answer read once, and nothing subscribes to it.
+  - `Extensions { repo }` is every extension, the built-in ones first: `repo` is a repository's
+    name, whose settings each row's `valuesHere` holds, or null for the settings page, which gets
+    `repositoryValues`. Settings cross as JSON objects, where fate sent JSON as text.
+  - `extensions.setOn { name, onAll, on }`,
+    `extensions.setSetting { name, repository, key, value }`, and
+    `extensions.reportPageProblem { name, version, message }` answer null. The first two read the
+    extensions again before they answer, so a read after the answer shows the change (R48).
+  - Dropped from the row: `keys`, which the page filled in, and `docs` of the record: where the
+    API's documentation is belongs to task 51, which rewrites it.
+  - `pageVersion` is null, and a page's report is dropped, until task 19 sets an entry's `page`.
+- **Rationale**: the catalog is the client's types, made at build time. A page knows its extension's
+  names, and the server finds the VM by the extension's name.
+- **If wrong**: a record that fails with an `error` of the protocol, in place of the in-band one,
+  ends its subscriptions: a page would subscribe again after each save.
+- **Where**: task 17, `crates/protocol/src/extensions.rs`,
+  `crates/server/src/records/extensions.rs`. Tasks 19, 20, 34, 48, and 51.
+
+## R108: One VM per loaded version, on a thread of its own, run in pieces with limits
+
+- **Decision**: `extensions/vm.rs` is the only code that touches QuickJS.
+  - A version of an extension is one VM, one thread named `vm:<name>`, which owns the engine, the
+    timers, and the calls waiting for an answer. A reload stops it and starts another: nothing of an
+    unloaded version can run, so the Node API's "this version was unloaded" check is gone.
+  - Code runs in pieces: one command of the server's, or one timer, with the promise jobs it leaves.
+    A piece has 2 seconds for the activation, and 10 after it, enforced by the engine's interrupt
+    handler. A caller waits 10 seconds for an answer, then is told `no answer in 10 s` while the
+    call goes on.
+  - The engine has 256 MB of memory and 1 MB of stack, on a thread with 8 MB: an allocation or a
+    call past them throws in the extension, and reaches no stack of the server's.
+  - The VM ends, and its extension is `broken` with what it threw, for a piece cut off, a timer's or
+    a process line's callback that throws, a rejection nothing handles, and a panic under its code,
+    which is caught at the thread's edge. A record's or an action's throw is that call's error
+    alone, and an event handler's is printed.
+  - `Vm::stop` sets a flag the interrupt handler reads, so it ends code that never returns, and
+    waits at most 5 seconds for the thread. `Server::stop` stops every VM that way.
+- **Rationale**: the Node server ran every extension on its own thread, where a loop after an
+  `await` hung the server. A thread per VM lets a call block, and a flag stop it.
+- **How it was checked**: without the interrupt handler,
+  `an_extension_that_never_returns_is_cut_off` fails after 10 s on "waiting for endless to be
+  broken", and `stopping_the_server_leaves_no_vm_work_behind` on
+  `a VM's thread is left: ["vm:busy"]`. Without the catch at the thread's edge,
+  `a_panic_under_an_extensions_code_ends_its_vm_alone_and_says_why` fails: the thread panics, and
+  nothing says why.
+- **If wrong**: the limits are `ACTIVATION`, `CALL`, `MEMORY`, and `STACK` of `extensions/vm.rs`. A
+  rejection handled only in a later piece breaks its extension, as it ended a Node process.
+- **Where**: task 17, `crates/server/src/extensions/{vm.rs,vm/machine.rs}`.
+
+## R109: The server API is rebuilt over one host function, in four modules of the VM
+
+- **Decision**: `api = 1` keeps its methods, `record`, `action`, `route`, `on`, `runtime`,
+  `settings`, `repositories`, and `log`, with these changes, and no path from the Node API.
+  - No `node:` module, and no Hono: an import of one is a compile problem that says what to use.
+    Server code imports `uraeda/server` for types, `uraeda:fs`, `uraeda:process`, and its own files.
+  - A route's handler gets `(request, repository)`, the request with `method`, `path`, `query`,
+    `headers`, and `text()`, `json()`, `bytes()`, and answers a `Response`, a text, or a value sent
+    as JSON. The VM has `fetch`, `Response`, `Headers`, `TextEncoder`, `TextDecoder`, `console`,
+    `setTimeout`, `setInterval`, and `queueMicrotask`. There is no `setImmediate`.
+  - An extension registers one runtime, and its `models`, `version`, and `reviewMessage` may answer
+    a promise.
+  - The VM gets seven natives, of which `call(op, json)` is the only way to the server. The API is
+    JavaScript over it: `api/guard.js`, `web.js`, `modules.js`, and `prelude.js`, each a module
+    whose default export takes the natives and the parts before it. `api.rs` serves the operations.
+  - The declarations are `crates/server/src/extensions/api/server.d.ts`, with a `tsconfig.json`
+    beside it that leaves the DOM's types out. `fixtures/extensions/tsconfig.json` checks the
+    fixtures against it: `tsc -p fixtures/extensions` passes.
+- **Rationale**: one string function keeps the engine's surface small enough to replace (R4), and
+  the API readable as the JavaScript an extension's author debugs against.
+- **If wrong**: bytes cross as base64 in JSON, which costs a large file two copies.
+- **Where**: task 17, `crates/server/src/extensions/api/`, `api.rs`. Task 51 documents it, and
+  rewrites `examples/extensions/wiki/`, which is still the Node API's.
+
+## R110: What an extension can touch
+
+- **Decision**: an extension's server code runs with the owner's rights, as it did in Node's `vm`:
+  where it comes from is the guard (the extensions decision). It reaches the machine through three
+  doors, and the server through the API alone.
+  - `uraeda:fs`: any absolute path the owner can read or write, whole files and folders: read,
+    write, append, list, stat, make a folder, remove, rename. Each call runs on the VM's own thread.
+    A path that is neither a file nor a folder, as a pipe, is refused: reading one could hold the
+    thread for ever.
+  - `uraeda:process`: any command, as a `runtimes::Child` (R100): in the server's environment, the
+    config folder's `.env` included, leading its own process group, in the extension's folder unless
+    it names another. Its stdout comes by lines, the blank ones left out, and its stdin takes JSON
+    lines.
+  - `fetch`: any address, from the server, within 30 seconds and 64 MB, the whole answer at once.
+  - Of the server: its own records, actions, routes, and runtime, the events of the repositories it
+    is on in, its settings, and the list of those repositories with their paths. It holds no handle
+    on the server's state, another extension's VM, the sessions' store, or sign-in.
+  - Everything it starts is its VM's: timers, processes, requests, its runtime, and its runtime's
+    processes. They are released when the VM ends, however it ends. A process still running is asked
+    to end, and killed 5 seconds later; a request's answer is dropped.
+- **Rationale**: the brief asks for the reach Node gave, and no more. Node gave every built-in
+  module: these three are what the example and the runtimes use of them.
+- **How it was checked**: with the processes forgotten as a VM ends,
+  `a_saved_server_ts_replaces_the_running_one_without_a_restart` fails on
+  `the unloaded version's command is gone`, and `an_extension_that_never_returns_is_cut_off` finds
+  the command left.
+- **If wrong**: an extension that needs a socket, or a stream it writes text to, has no door yet.
+- **Where**: task 17, `crates/server/src/extensions/{fs,process,fetch}.rs`. Task 51.
+
+## R111: The loader is one thread, and loads in the background of the server's start
+
+- **Decision**: `extensions/loader.rs` holds every extension's state, changed by one thread.
+  - It reads the config folder through the core, `<config>/extensions/`, and no other path.
+  - The first read is asked as the server mounts, and not waited for: a broken extension's 2 seconds
+    hold no start. A record read before its extension loaded says so, and is read again.
+  - An extension loads again when its manifest, where it is on, or its settings change, and when the
+    watcher saw one of its files change. A version that does not compile leaves the one before it
+    running, with the problem. A broken one stays so until then.
+  - `extensions::hold(shared, name, title)` holds an extension's reloads while a session works on
+    its runtime: it is `waiting`, `waitingFor` the title, until the hold is dropped.
+  - `run/extensions-status.json` is written in this server's data folder after each change, as the
+    Node server writes its own, and removed as the server stops.
+  - Built-in extensions are listed and never loaded: their server parts are Rust, registered through
+    the same contracts, as `runtimes::register`. One of `claude`, `codex`, and `fake` with no
+    runtime registered shows `off`.
+- **How it was checked**: with the listed repositories' folders read as config folders,
+  `an_extension_in_a_repositorys_folder_is_never_loaded` lists `echo`.
+- **If wrong**: `ura extension list` reads the Node server's data folder until task 61.
+- **Where**: task 17, `crates/server/src/extensions/{mod,loader,graph,status}.rs`. Tasks 15 and 19.
+
+## R112: The extensions' folders are watched from `extensions/watch.rs`, with the one watcher's files
+
+- **Decision**: three lines join the one watcher's lists (R93): `FILES_CHANGED`, which sends
+  `step-reached` and `commit-landed`; `CONFIG_CHANGED`, which reads the extensions again; and
+  `REPOSITORY_LEFT`. The extensions folder and each extension's own folders are watched with the
+  watcher's `files::watch`, made `pub(crate)`, from `extensions/watch.rs`.
+  - `turn-ended` and `session-started` are the sessions': task 15 says them with
+    `extensions::emit(shared, &Happened::..)`.
+- **Rationale**: which folders are watched follows what is loaded, a file's folder and the folders
+  an import was looked for in, so they fit no list written in advance.
+- **Where**: task 17, `crates/server/src/extensions/{watch,events}.rs`, `records/watch.rs`.
+
+## R113: A runtime in a VM is a proxy, and its process's events cross one at a time
+
+- **Decision**: `api.runtime(..)` registers a `Runtime` under the extension's name
+  (`runtimes::register`), removed as the VM ends.
+  - Each of its methods is a call into the VM, on the caller's blocking thread, bounded at 10
+    seconds, 5 for `version`. `open` that fails or is late gives a process whose `exit` says why.
+  - A process's methods tell the VM, and wait for nothing. Its events are read from the extension's
+    async iterable and written on the stream one at a time. One that is no agent's event, the
+    runner's `message`, `denial`, and `allowed` included, is refused.
+  - As the VM ends, every stream still open ends with an `exit` that has no code (R98).
+  - `extensions::skills(shared, repository)` gives `Options::skills`: the `skills/` folder of each
+    of the owner's extensions on there.
+- **Where**: task 17, `crates/server/src/extensions/runtime.rs`, and the test
+  `an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension`. Task 15.

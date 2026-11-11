@@ -7,7 +7,7 @@
 //! gone, no longer is, and the domains that start or stop something with a repository are told,
 //! through the two other lists below. They all stop with the server.
 
-mod files;
+pub(crate) mod files;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -18,7 +18,7 @@ use uraeda_core::watch::{Changes, Watcher, watch};
 
 use self::files::Target;
 use super::workspace::{self, repositories};
-use super::{features, git, previews, writing};
+use super::{extensions, features, git, previews, writing};
 use crate::Failure;
 use crate::live::locked;
 use crate::shared::Shared;
@@ -32,11 +32,16 @@ const FILES_CHANGED: &[fn(&Shared, &str, &Changes)] = &[
     writing::files_changed,
     git::files_changed,
     previews::files_changed,
+    extensions::files_changed,
 ];
 
 /// What a domain does when the config folder changed: the settings file, or a theme file. One
 /// line per domain.
-const CONFIG_CHANGED: &[fn(&Shared)] = &[workspace::config_changed, features::config_changed];
+const CONFIG_CHANGED: &[fn(&Shared)] = &[
+    workspace::config_changed,
+    features::config_changed,
+    extensions::config_changed,
+];
 
 /// What a domain does when a repository joins the list once the server runs, or its folder
 /// comes back: it gets the repository's name. One line per domain.
@@ -44,7 +49,8 @@ const REPOSITORY_JOINED: &[fn(&Shared, &str)] = &[git::repository_joined];
 
 /// What a domain does when a repository leaves the list, or its folder goes: it gets the
 /// repository's name. One line per domain.
-const REPOSITORY_LEFT: &[fn(&Shared, &str)] = &[previews::repository_left];
+const REPOSITORY_LEFT: &[fn(&Shared, &str)] =
+    &[previews::repository_left, extensions::repository_left];
 
 /// The list's file, in the data folder.
 const LIST: &str = "repositories.json";

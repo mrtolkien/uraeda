@@ -21,6 +21,7 @@
 
 mod clock;
 mod env;
+pub mod extensions;
 mod files;
 pub mod guard;
 mod handoff;
@@ -79,6 +80,7 @@ const DOMAINS: &[Mount] = &[
     files::mount,
     mcp::mount,
     preview::mount,
+    extensions::mount,
 ];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with

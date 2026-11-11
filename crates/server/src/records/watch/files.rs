@@ -28,27 +28,27 @@ const LONGEST: Duration = Duration::from_secs(1);
 const MOST_LINKS: usize = 40;
 
 /// What to watch: a file, or a folder with its entries.
-pub(super) struct Target {
+pub(crate) struct Target {
     path: PathBuf,
     entries: bool,
 }
 
 impl Target {
     /// A file: its making, its changes, and its removal.
-    pub(super) fn file(path: PathBuf) -> Target {
+    pub(crate) fn file(path: PathBuf) -> Target {
         let entries = false;
         Target { path, entries }
     }
 
     /// A folder, and every entry of it.
-    pub(super) fn folder(path: PathBuf) -> Target {
+    pub(crate) fn folder(path: PathBuf) -> Target {
         let entries = true;
         Target { path, entries }
     }
 }
 
 /// A running watch: it stops when dropped.
-pub(super) struct Watch {
+pub(crate) struct Watch {
     _watcher: Arc<Mutex<RecommendedWatcher>>,
 }
 
@@ -58,7 +58,7 @@ pub(super) struct Watch {
 /// # Errors
 ///
 /// When the system gives no watcher.
-pub(super) fn watch(
+pub(crate) fn watch(
     targets: Vec<Target>,
     on_change: impl Fn() + Send + 'static,
 ) -> Result<Watch, notify::Error> {

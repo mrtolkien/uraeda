@@ -1143,38 +1143,62 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Files:**
 
-- Create: `crates/server/src/extensions/{mod,loader,vm,api,watch}.rs`,
-  `crates/server/src/records/extensions.rs`
-- Test: `crates/server/tests/extensions_vm.rs`, `fixtures/extensions/`
+- Create:
+  `crates/server/src/extensions/{mod,loader,graph,vm,api,runtime,process,fs,fetch,events,routes,status,watch}.rs`,
+  `extensions/vm/machine.rs`, `extensions/api/{guard,web,modules,prelude}.js`,
+  `extensions/api/server.d.ts`, `crates/server/src/records/extensions.rs`,
+  `crates/protocol/src/extensions.rs`
+- Test: `crates/server/tests/extensions_vm.rs`, `extensions_vm/{broken,reach}.rs`,
+  `fixtures/extensions/`
 
 **Interfaces:**
 
-- Consumes: `Registry`, `Bus` (6); `Runtime` (12); `compileModule` in
+- Consumes: `Registry`, `Bus` (6); `Runtime` (12); `compile` of
   [`crates/compile/`](/crates/compile/).
-- Produces:
+- Produces (rulings R107 to R113):
   - The server API, for `server.ts`: `record`, `action`, `route`, `on`, `runtime`, `settings`,
     `repositories`, `log`, as today, and `uraeda:process`, `uraeda:fs`, `fetch` in place of `node:`
-    imports.
-  - Records Extensions, ExtensionRecord, ExtensionAction; actions `extensions.act`, `setOn`,
-    `setSetting`, `reportPageProblem`.
+    imports. Its declarations are [`server.d.ts`](/crates/server/src/extensions/api/server.d.ts).
+  - Records `Extensions { repo }`, with `repo` null for the settings page, and
+    `ExtensionRecord { repo, extension, name }`, whose value is `{ value, error }`. Actions
+    `extensions.act { repo, extension, name, input }`, which answers `ExtensionAction { output }`,
+    and `extensions.setOn`, `setSetting`, and `reportPageProblem`, which answer null.
+    `ExtensionAction` is that output, and no record.
+  - Routes `/x/{extension}/{*path}` and `/r/{name}/x/{extension}/{*path}`, closed like every route.
+  - In `uraeda_server::extensions`: `skills(shared, repository)`, a session's `Options::skills`;
+    `emit(shared, &Happened::..)`, for the sessions' `turn-ended` and `session-started`;
+    `hold(shared, name, title)`, a session at work on an extension's runtime, whose reload waits;
+    `settings(shared, name, repository)` and `is_on(shared, name, repository)`, a built-in's too.
+  - For task 19, marked `TASK 19:`: an entry's `page`, which `Extensions` shows as `pageVersion` and
+    `extensions.reportPageProblem` checks, set where `Loader::load` compiles the server's files, and
+    the page's folders in `extensions/watch.rs`.
   - `extension.toml` keeps `api = 1`: the API is rewritten in place, with no second version and no
     path from the old one. An extension written for the Node server fails to load, as any broken
     extension does.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `an extension's record and action answer through the protocol`.
   - `a saved server.ts replaces the running one, without a restart`.
   - `an extension that throws at load leaves the others running`, and one
     `that never returns is cut off`: within 2 s at activation, 10 s in a call, as today.
   - `stopping the server leaves no VM work behind`: no timer, child process, or thread of a VM
     remains.
-  - Breaks to make: let a VM's panic unwind into the server; forget a VM's child process on unload.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, with `rquickjs`, one VM per extension, each on its own thread with a
+  - Also: `an extension in a repository's folder is never loaded`;
+    `the settings page's actions reload an extension and turn it off`;
+    `an extension reaches files, commands, and the web through Uraeda's modules`;
+    `an extension's runtime runs a turn and leaves with its extension`;
+    `a repository's events reach the extensions that listen`;
+    `a runtime's reload waits for the session at work on it`; and, in the VM's own file,
+    `a panic under an extension's code ends its VM alone, and says why`.
+  - Breaks to make: let a VM's panic unwind into the server; forget a VM's child process on unload;
+    no interrupt handler; an extension loaded from a repository's folder.
+- [ ] **Step 2: Run them**. Expected: FAIL. Not run in that order: the tests were written once the
+      VM answered, and each was seen failing through its break.
+- [x] **Step 3: Implement**, with `rquickjs`, one VM per extension, each on its own thread with a
       memory limit and an interrupt handler for time. Compile TypeScript with `crates/compile`. An
       extension loads only from the config folder; the loader's test for that rule is ported.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): extensions' server parts, in a VM`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): extensions' server parts, in a VM`.
 
 ## Task 18: Previews
 

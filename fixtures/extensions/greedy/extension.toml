@@ -1,0 +1,3 @@
+name = "greedy"
+api = 1
+server = "server.ts"
