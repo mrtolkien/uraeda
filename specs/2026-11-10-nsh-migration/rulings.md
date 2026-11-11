@@ -6164,3 +6164,25 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   built again. A pull of `sample` still stops on the priorities' conflict, seen on the hidden
   display.
 - **Where**: `crates/server/src/sandbox/{origin,sample}.rs`, `crates/server/src/sandbox.rs`.
+
+## T48.1: An option left to the agent's default is sent empty, and the server stores that default
+
+- **Decision**: a pick's `model` or `effort` sent as `""` means "the agent's own default".
+  `settings::options::left_to_agents` turns it into what is stored, before the core checks it: over
+  a fallback that sets that value on the same agent (a feature's own options over the settings'),
+  the default the agent's model list gives now; anywhere else, and while the agent says no default,
+  nothing. A reviewer's is always nothing, as the reviewers are stored whole. It runs in
+  `settings.setRunOptions` (over no fallback), and in every store of a feature's options
+  (`features::options::keep`), its start's check, and `over`.
+- **Rationale**: stored options only add values over what they are read over, so "the agent's
+  default" left unset would run on the settings' model. The web UI's `toStored` stored the default
+  in the client; the UI holds no workflow logic (task 64's audit, R228), so the rule is the
+  server's, and the client only says what the human picked. An empty text names no model or effort,
+  so it needs no second field in the protocol.
+- **Alternatives considered**: the client sending the whole map, and the server diffing it against
+  the fallback as `toStored` did, which changes what `feature.setRunOptions` takes for tasks 38 and
+  44; a separate flag per value, which doubles the run options' fields.
+- **Seen failing**: `an_option_left_to_the_agents_default_is_stored_as_that_default`, with the rule
+  out of `keep`: the plan step kept `model: ""`.
+- **Where**: `crates/server/src/records/workspace/settings/options.rs`,
+  `crates/server/src/records/features/options.rs`, `crates/protocol/src/shared/run_options.rs`.

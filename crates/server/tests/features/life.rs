@@ -426,3 +426,66 @@ async fn a_done_features_moved_link_is_fixed_without_a_commit() {
         json!([])
     );
 }
+
+#[tokio::test]
+async fn an_option_left_to_the_agents_default_is_stored_as_that_default() {
+    use std::sync::Arc;
+    use uraeda_server::runtimes::{self, Runtimes, fake::Fake};
+
+    let repo = fixture_repo(REPO);
+    // The settings run the build on the fake's small model: a feature that leaves the build's
+    // model to the agent's own default would run on that model if nothing were stored.
+    let settings = "[runs.steps.build]\nagent = \"fake\"\nmodel = \"fake-small\"\n";
+    let setup = super::support::setup().config("config.toml", settings);
+    let server = setup.folder(repo.path()).start().await;
+    let registered = runtimes::register(server.shared(), "fake", Arc::new(Fake::new()));
+    drop(registered.expect("the fake registers"));
+    let runtimes = server.shared().get::<Runtimes>();
+    let listed = tokio::task::spawn_blocking(move || runtimes.refresh_models(&["fake"]));
+    listed.await.expect("the fake's models are listed");
+
+    // An empty model or effort is the agent's own default.
+    let steps = json!([
+        { "step": "build", "model": "" },
+        { "step": "plan", "agent": "fake", "model": "", "effort": "" },
+    ]);
+    let options = json!({ "steps": steps });
+    done(
+        &server,
+        "feature.setRunOptions",
+        json!({ "folder": HUMAN, "options": options }),
+    )
+    .await;
+    done(
+        &server,
+        "settings.setRunOptions",
+        json!({ "options": { "steps": [{ "step": "spec", "agent": "fake", "model": "" }] } }),
+    )
+    .await;
+
+    let feature = of_item(&server, "Feature", HUMAN).await;
+    let own = &feature["runOptions"]["own"]["steps"];
+    // Over the settings' model, the fake's default is stored; where the settings set nothing,
+    // nothing is.
+    let picked = |step: &Value| {
+        (
+            step["step"].clone(),
+            step["model"].clone(),
+            step["effort"].clone(),
+        )
+    };
+    assert_eq!(picked(&own[0]), (json!("plan"), Value::Null, Value::Null));
+    assert_eq!(
+        picked(&own[1]),
+        (json!("build"), json!("fake-big"), Value::Null)
+    );
+    let merged = &feature["runOptions"]["merged"]["steps"];
+    let build = merged
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|step| step["step"] == "build");
+    assert_eq!(build.unwrap()["model"], "fake-big");
+    let config = std::fs::read_to_string(server.config_dir().join("config.toml")).unwrap();
+    assert!(!config.contains("model = \"\""), "{config}");
+}

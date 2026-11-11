@@ -127,7 +127,7 @@ fn planned(
     let store = shared.get::<options::Store>();
     let kept = start.options.is_some();
     if let Some(options) = start.options {
-        store.set(&root, &planned.folder, options)?;
+        options::keep(shared, &root, &planned.folder, options)?;
     }
     let word = match start.kind {
         Kind::Feature => "feature",
@@ -313,9 +313,8 @@ fn first_run(shared: &Shared, repo: &str, options: Option<RunOptions>) -> impl T
     let (shared, repo) = (shared.clone(), repo.to_owned());
     move |started: &StartedView| {
         let folder = &started.folder;
-        let store = shared.get::<options::Store>();
         if let (Some(options), Ok(root)) = (options, repositories::path(&shared, &repo))
-            && let Err(fault) = store.set(&root, folder, options)
+            && let Err(fault) = options::keep(&shared, &root, folder, options)
         {
             let why = fault.message();
             eprintln!("uraeda: {folder} started, but its run options were not kept: {why}");
@@ -427,7 +426,7 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
     // Options the store would refuse, or whose build step no new session could run on, are
     // refused before the change starts.
     if let Some(options) = &input.options {
-        options::check(options.clone())?;
+        options::check(call.shared(), options.clone())?;
         check_build(call.shared(), &input.repo, options)?;
     }
     let typed = Typed {

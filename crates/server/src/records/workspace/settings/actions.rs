@@ -59,8 +59,13 @@ pub(super) fn register(registry: &Registry) {
     registry.action::<SettingsSetPort>(|call, input| {
         write(call, |dir| core::set_port(dir, &input.port))
     });
+    // The settings' options are read over none: an option left to the agent's default is
+    // left out.
     registry.action::<SettingsSetRunOptions>(|call, input| {
-        let options = options::given(input.options);
+        let runtimes = call.shared().get::<crate::runtimes::Runtimes>();
+        let fallback = core::RunOptions::default();
+        let options = options::left_to_agents(input.options, &fallback, &runtimes);
+        let options = options::given(options);
         write(call, |dir| core::set_run_options(dir, &options))
     });
     registry.action::<SettingsSetSingleKeyShortcuts>(|call, input| {

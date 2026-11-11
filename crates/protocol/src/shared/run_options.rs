@@ -28,9 +28,10 @@ pub struct StepOptions {
     pub step: String,
     /// The agent's runtime, like `claude` or `codex`.
     pub agent: Option<String>,
-    /// A model the agent lists.
+    /// A model the agent lists. Sent empty, the agent's own default: kept as that default
+    /// where the options read under these set another model on the same agent.
     pub model: Option<String>,
-    /// An effort the model takes.
+    /// An effort the model takes. Sent empty, the agent's own default, as a model is.
     pub effort: Option<String>,
     /// Whether the step starts a clean session.
     pub new_session: Option<bool>,
@@ -42,9 +43,10 @@ pub struct StepOptions {
 pub struct RunPick {
     /// The agent's runtime.
     pub agent: Option<String>,
-    /// A model the agent lists.
+    /// A model the agent lists. Sent empty, the agent's own default: kept as that default
+    /// where the options read under these set another model on the same agent.
     pub model: Option<String>,
-    /// An effort the model takes.
+    /// An effort the model takes. Sent empty, the agent's own default, as a model is.
     pub effort: Option<String>,
 }
 
@@ -54,9 +56,10 @@ pub struct RunPick {
 pub struct ReviewerOptions {
     /// An agent reviewer's runtime: none on a command reviewer.
     pub agent: Option<String>,
-    /// A model the agent lists.
+    /// A model the agent lists. Sent empty, the agent's own default: left out, as the
+    /// reviewers are kept whole.
     pub model: Option<String>,
-    /// An effort the model takes.
+    /// An effort the model takes. Sent empty, the agent's own default, as a model is.
     pub effort: Option<String>,
     /// Text added to the review's prompt.
     pub instructions: Option<String>,

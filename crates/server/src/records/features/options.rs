@@ -13,8 +13,9 @@ use uraeda_protocol::{RunOptions, RunPick, StepOptions};
 use crate::live::Fault;
 use crate::records::settings::{
     self,
-    options::{given, sent},
+    options::{given, left_to_agents, sent},
 };
+use crate::runtimes::Runtimes;
 use crate::shared::Shared;
 
 /// The file's name, in the data folder.
@@ -142,15 +143,37 @@ fn defaults(shared: &Shared) -> core::RunOptions {
     given(settings::current(shared).runs.options)
 }
 
+/// Keeps a feature's own options, as a client sends them: a model or an effort left to the
+/// agent's own default is kept as that default where the settings set another
+/// (`left_to_agents`).
+///
+/// # Errors
+///
+/// As [`Store::set`].
+pub(super) fn keep(
+    shared: &Shared,
+    root: &Path,
+    folder: &str,
+    options: RunOptions,
+) -> Result<(), Fault> {
+    let options = over_settings(shared, options);
+    shared.get::<Store>().set(root, folder, options)
+}
+
+/// Options a client sends, as kept over the settings' as they are now.
+fn over_settings(shared: &Shared, options: RunOptions) -> RunOptions {
+    left_to_agents(options, &defaults(shared), &shared.get::<Runtimes>())
+}
+
 /// Options checked and normalized as the store keeps them, over the settings' as they are now:
 /// what a feature with those options would run on, for options not kept yet. Options the store
 /// would refuse set nothing.
 pub(super) fn over(shared: &Shared, options: RunOptions) -> core::RunOptions {
-    let own = normalized(options).unwrap_or_default();
+    let own = normalized(over_settings(shared, options)).unwrap_or_default();
     core::merge_run_options(&defaults(shared), &given(own))
 }
 
 /// Refuses run options the store would refuse, before anything is written for them.
-pub(super) fn check(options: RunOptions) -> Result<(), Fault> {
-    normalized(options).map(|_| ())
+pub(super) fn check(shared: &Shared, options: RunOptions) -> Result<(), Fault> {
+    normalized(over_settings(shared, options)).map(|_| ())
 }

@@ -79,8 +79,7 @@ fn set_run_options(call: &Call, input: FeatureSetRunOptions) -> Result<(), Fault
     let repository = repositories::find(shared, &input.repo)?;
     // A folder that is no change's or feature's keeps no options.
     api::read_feature(&repository.path, &input.folder)?;
-    let store = shared.get::<options::Store>();
-    store.set(&repository.path, &input.folder, input.options)?;
+    options::keep(shared, &repository.path, &input.folder, input.options)?;
     changed::feature(call.bus(), &input.repo, &input.folder);
     Ok(())
 }

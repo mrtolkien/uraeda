@@ -4089,11 +4089,12 @@ export type ReviewerOptions = {
  */
 agent: string | null, 
 /**
- * A model the agent lists.
+ * A model the agent lists. Sent empty, the agent's own default: left out, as the
+ * reviewers are kept whole.
  */
 model: string | null, 
 /**
- * An effort the model takes.
+ * An effort the model takes. Sent empty, the agent's own default, as a model is.
  */
 effort: string | null, 
 /**
@@ -4220,11 +4221,12 @@ export type RunPick = {
  */
 agent: string | null, 
 /**
- * A model the agent lists.
+ * A model the agent lists. Sent empty, the agent's own default: kept as that default
+ * where the options read under these set another model on the same agent.
  */
 model: string | null, 
 /**
- * An effort the model takes.
+ * An effort the model takes. Sent empty, the agent's own default, as a model is.
  */
 effort: string | null, };
 
@@ -5341,11 +5343,12 @@ step: string,
  */
 agent: string | null, 
 /**
- * A model the agent lists.
+ * A model the agent lists. Sent empty, the agent's own default: kept as that default
+ * where the options read under these set another model on the same agent.
  */
 model: string | null, 
 /**
- * An effort the model takes.
+ * An effort the model takes. Sent empty, the agent's own default, as a model is.
  */
 effort: string | null, 
 /**
