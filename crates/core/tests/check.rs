@@ -679,6 +679,26 @@ fn plan_review_on_any_tier() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+/// Break caught: a task with no checkbox, which nothing tracks, read as done at once.
+#[test]
+fn a_task_of_a_plan_needs_a_step() {
+    let example = Example::new();
+    let plan = format!("{FEATURE}/plan.md");
+    let text = example.read(&plan);
+    let line = text.lines().count() + 2;
+    example.write(
+        &plan,
+        &format!("{text}\n## Task 6: Clean up\n\nRemove the old menu.\n"),
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        [format!(
+            "{plan}:{line}: Task 6 has no step: write its steps as checkboxes, \"- [ ]\""
+        )]
+    );
+}
+
 #[test]
 fn a_proposal_needs_no_frontmatter() {
     let example = Example::new();

@@ -16,9 +16,9 @@ those the human listed. Another model means another session.
 
 - A session MUST keep the agent and the model it started with, its automatic runs included. Checked
   by the runner's tests.
-- A session MUST keep the account it started on, until a usage limit refuses its run: it then MUST
-  move to another listed account with room that can resume its conversation, and stay when there is
-  none. Checked by the runner's tests.
+- A session whose run a usage limit refuses MUST move to another listed account with room that can
+  resume its conversation; otherwise it keeps the account it started on. Checked by the runner's
+  tests.
 - A new session MUST start on the model and effort the human picked for it, where it starts or in
   the run options of its step or role, else on the agent's own defaults. Checked by the runner's
   tests.
@@ -31,13 +31,10 @@ those the human listed. Another model means another session.
 ## Why
 
 A model that changes during a session would surprise the human, and a feature's runs would land on a
-model nobody picked for them. Effort changes cost and depth as much as the model, but keeps the
-conversation and the model, so the human tunes it as the work goes, or per step. Without a pick, the
-agent's defaults already express the human's preference. An account that changes re-reads the
-conversation uncached, so a session moves only when a limit refuses its run: waiting for the reset
-costs hours, and most often the same uncached read, as the cache lasts an hour at most. History:
-[Multi-accounts](../done/2026-11-10-multi-accounts.md), which kept a refused run on its account,
-changed on 2026-11-11 at the human's request.
+model nobody picked for them. Effort keeps the conversation and the model, so the human tunes it as
+the work goes. An account that changes re-reads the conversation uncached, so a session moves only
+when a limit refuses its run: waiting for the reset costs hours, and the same read. History:
+[Multi-accounts](../done/2026-11-10-multi-accounts.md), changed on 2026-11-11.
 
 ## Alternatives considered
 

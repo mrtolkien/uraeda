@@ -276,7 +276,8 @@ the contracts in the format the project already uses for them.
 ## Task structure
 
 Every task follows this structure. The steps are checkboxes: the implementation step checks them in
-the task's commit, which is how any agent knows how far the work went.
+the task's commit, which is how any agent knows how far the work went. A task with no checkbox is
+never done, and `ura check` reports it.
 
 ````markdown
 ## Task N: [Component or deliverable]

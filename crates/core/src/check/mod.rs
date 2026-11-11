@@ -397,6 +397,24 @@ fn check_texts(
     }
 }
 
+/// A plan's task with no checkbox step: nothing tracks it, so it could never read as done.
+fn check_task_steps(file: &File<'_>, problems: &mut Vec<Problem>) {
+    let doc = crate::files::document::parse(file.text, "");
+    for task in crate::files::items::tasks(&doc) {
+        if task.total == 0 {
+            let line = doc.blocks[task.heading_block as usize].start_line as usize;
+            problems.push(file.problem(
+                Some(line),
+                "plan.steps",
+                format!(
+                    "Task {} has no step: write its steps as checkboxes, \"- [ ]\"",
+                    task.number
+                ),
+            ));
+        }
+    }
+}
+
 fn check_file(file: &File<'_>) -> Vec<Problem> {
     let mut problems = Vec::new();
     let front = values::check_frontmatter(file, &mut problems);
@@ -417,6 +435,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
         Checked::Decision | Checked::PreviewDecision => {
             decision::check_decision(file, &mut problems);
         }
+        Checked::Workflow(FileKind::Plan) => check_task_steps(file, &mut problems),
         _ => {}
     }
     if file.kind == Checked::Record {

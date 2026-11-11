@@ -217,6 +217,13 @@ pub struct TaskItem {
     pub total: u32,
 }
 
+impl TaskItem {
+    /// Whether every step is checked. A task with no step is never done: nothing tracks it.
+    pub fn is_done(&self) -> bool {
+        self.total > 0 && self.done >= self.total
+    }
+}
+
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

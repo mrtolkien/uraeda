@@ -372,12 +372,12 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         _ => return Step::none(),
     }
     let tasks = plan::tasks(plan_text, &feature.path);
-    let Some(unchecked) = tasks.iter().find(|task| task.done < task.total) else {
+    let Some(unchecked) = tasks.iter().find(|task| !task.is_done()) else {
         return after_the_last_step(pull_request, StepName::FinalReview, "implementation");
     };
     // Done at the tip, or on its task branch before it is merged.
     let done = |task: &&TaskItem| {
-        task.done >= task.total
+        task.is_done()
             || feature
                 .task_branch_done
                 .contains(&(task.number, task.title.clone()))
@@ -402,7 +402,7 @@ pub fn building(feature: &Feature) -> bool {
         && matches!(status(FileKind::Plan), Some("approved" | "auto-approved"))
         && plan::tasks(feature.text("plan.md").unwrap_or_default(), &feature.path)
             .iter()
-            .any(|task| task.done < task.total)
+            .any(|task| !task.is_done())
 }
 
 fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: &str) -> Step {

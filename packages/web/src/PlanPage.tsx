@@ -152,7 +152,7 @@ function planEntries(
       id: sectionId(heading),
       label: task ? `${task.number} ${task.title}` : (heading.heading ?? ""),
       last: lastLine(ids, heading),
-      ...(task ? { state: task.done === task.total ? "done" : "open" } : {}),
+      ...(task ? { state: task.total > 0 && task.done === task.total ? "done" : "open" } : {}),
     })),
   ];
   const counts = new Map<string, number>();

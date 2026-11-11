@@ -29,6 +29,7 @@ import { StatusMark } from "../StatusMark.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import { useContributions } from "../extensions/useContributions.ts";
 import type { Run } from "./activityRuns.ts";
+import { AgentCall, useAgentCall } from "./AgentCall.tsx";
 import { CallTarget, LineCharsRoom } from "./CallTarget.tsx";
 import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./stretches.ts";
 
@@ -225,6 +226,8 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
   // A thought's head says it all; a call's target, or a sub-agent's description, goes under it.
   const target = item.kind === "thought" ? undefined : wordsOf(item, view).label;
   const head = <RowHead item={item} live={live} view={view} />;
+  // A `run_agent` call names its sub-session, a link to it, in place of its task's words.
+  const sub = useAgentCall(item);
   return (
     <ListItem
       isSelected={marked}
@@ -234,7 +237,7 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
             <Collapsible isOpen={isOpen} onOpenChange={open} trigger={head}>
               {isOpen ? (
                 <VStack gap={1}>
-                  {target !== undefined && <CallTarget isWhole label={target} />}
+                  {target !== undefined && !sub && <CallTarget isWhole label={target} />}
                   {fold()}
                 </VStack>
               ) : null}
@@ -242,8 +245,13 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
           ) : (
             head
           )}
-          {target !== undefined && !(fold && isOpen) && (
-            <CallTarget label={target} onWhole={fold ? () => open(true) : undefined} />
+          {sub ? (
+            <AgentCall sub={sub} />
+          ) : (
+            target !== undefined &&
+            !(fold && isOpen) && (
+              <CallTarget label={target} onWhole={fold ? () => open(true) : undefined} />
+            )
           )}
         </span>
       }

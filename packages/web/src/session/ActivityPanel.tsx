@@ -35,6 +35,7 @@ import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
 import { walkOf, type WalkRead, type Window } from "./ActivityWalk.tsx";
 import { drawnRows, rowCount, type Run, runsOf } from "./activityRuns.ts";
 import { RowList, rowWeight } from "./ActivityRows.tsx";
+import { SubSessionsOf } from "./AgentCall.tsx";
 import { Section } from "./Section.tsx";
 import { STRETCH_PARAMETER } from "./stretches.ts";
 import { Empty } from "../layout/Empty.tsx";
@@ -489,7 +490,9 @@ function Activity({ session }: { session: string }) {
 export function ActivityPanel({ session }: { session: string }) {
   return (
     <Section>
-      <Activity session={session} />
+      <SubSessionsOf session={session}>
+        <Activity session={session} />
+      </SubSessionsOf>
     </Section>
   );
 }

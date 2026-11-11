@@ -709,19 +709,20 @@ escalates each git write and network command, and the transcript shows the revie
 "Automatic review approved (risk: low): …". It gets the skill as one more skill folder. See the
 [agents](../specs/decisions/agents.md) decision. A workflow session gets Uraeda's MCP server,
 `uraeda`, with two tools: `run_agent`, which runs one task in a sub-session, and `review`, which
-runs the reviewers and commits their findings. Its token is in the process's environment,
-`URAEDA_MCP_TOKEN`, and holds only while that process runs. Claude Code's `Agent`, `Task`,
-`Workflow`, and `TeamCreate` tools are disallowed there. Codex runs on a copy of its model catalog
-with every model's sub-agents disabled. The copy is written to `codex-catalog/` in the data folder
-as the session opens, and your Codex home stays untouched. When it cannot be written, Codex runs on
-its own catalog, and the session says its own sub-agents may run. Each extension of yours on in the
-repository adds its `skills/` folder the same way, as one more plugin, `ext-<name>`, for Claude
-Code. The skill holds the workflow for any agent, and names Uraeda's tools and the run's stop, never
-the web UI. The server adds the web UI's own instructions to every session, in
-[`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
-shows of the agent's messages, and where your extensions folder and their documentation are. A
-session may write in your extensions folder, Codex's after its reviewer approves each write, so
-asking it for a change to Uraeda gives you an extension.
+runs the reviewers and commits their findings. In the Activity, a `run_agent` call shows its
+sub-session on one line: its state, its task as a link to its page, its model, and how long it ran.
+Its token is in the process's environment, `URAEDA_MCP_TOKEN`, and holds only while that process
+runs. Claude Code's `Agent`, `Task`, `Workflow`, and `TeamCreate` tools are disallowed there. Codex
+runs on a copy of its model catalog with every model's sub-agents disabled. The copy is written to
+`codex-catalog/` in the data folder as the session opens, and your Codex home stays untouched. When
+it cannot be written, Codex runs on its own catalog, and the session says its own sub-agents may
+run. Each extension of yours on in the repository adds its `skills/` folder the same way, as one
+more plugin, `ext-<name>`, for Claude Code. The skill holds the workflow for any agent, and names
+Uraeda's tools and the run's stop, never the web UI. The server adds the web UI's own instructions
+to every session, in [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers'
+cards, and what it shows of the agent's messages, and where your extensions folder and their
+documentation are. A session may write in your extensions folder, Codex's after its reviewer
+approves each write, so asking it for a change to Uraeda gives you an extension.
 
 ### Several Claude Code accounts
 

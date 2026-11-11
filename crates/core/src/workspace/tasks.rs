@@ -50,7 +50,7 @@ impl Reading<'_> {
                 let task = plan::tasks(&text, path)
                     .into_iter()
                     .find(|task| task.number == number)?;
-                (task.done >= task.total).then_some((number, task.title))
+                task.is_done().then_some((number, task.title))
             })
             .collect()
     }

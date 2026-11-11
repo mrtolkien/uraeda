@@ -34,7 +34,7 @@ export function SectionPane({ drawing, section }: { drawing: Drawing; section: P
   const badge = (
     <Badge
       label={`${task.done}/${task.total}`}
-      variant={task.done === task.total ? "success" : "neutral"}
+      variant={task.total > 0 && task.done === task.total ? "success" : "neutral"}
     />
   );
   return (
