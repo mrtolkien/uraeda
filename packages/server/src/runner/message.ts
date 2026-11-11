@@ -358,14 +358,18 @@ const TARGETS = ["command", "file_path", "url", "pattern", "path"];
 const PATHS = ["file_path", "path"];
 
 /**
- * What a tool call acts on, for its log line: its command, file, URL, or pattern. A file under
+ * What a tool call acts on, for its log line: its command, file, URL, pattern, or task. A file under
  * `cwd`, the session's directory, is relative to it.
  */
 export function toolTarget(
-  _name: string,
+  name: string,
   input: Record<string, unknown>,
   cwd?: string,
 ): string | undefined {
+  // Uraeda's own `run_agent`: the task its implementer builds, which names its sub-session.
+  if (name.endsWith("__run_agent") && typeof input.task === "string") {
+    return input.task;
+  }
   for (const key of TARGETS) {
     const value = input[key];
     if (typeof value !== "string") {

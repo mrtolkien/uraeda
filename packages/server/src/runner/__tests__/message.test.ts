@@ -19,6 +19,7 @@ test.each<[string, Record<string, unknown>, string | undefined]>([
   ["Grep", { path: "src", pattern: "TODO" }, "TODO"],
   ["Glob", { path: "src" }, "src"],
   ["TodoWrite", { todos: [] }, undefined],
+  ["mcp__uraeda__run_agent", { prompt: "Build it", task: "Task 4", worktree: "/w" }, "Task 4"],
 ])("the target of %s %o", (name, input, target) => expect(toolTarget(name, input)).toBe(target));
 
 test.each<[string, Record<string, unknown>, string | undefined]>([

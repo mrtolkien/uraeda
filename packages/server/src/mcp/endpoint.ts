@@ -155,7 +155,12 @@ function respond(
     case "tools/list":
       return context.json(
         result(id, {
+          // `readOnlyHint` is what lets an agent run several calls of a turn at once: Claude Code
+          // runs a tool without it one call after another, so a wave's implementers ran in turn.
+          // None of the tools changes the caller's own checkout: an implementer works in its
+          // task's worktree, and a review changes nothing.
           tools: tools.map(({ description, inputSchema, name }) => ({
+            annotations: { readOnlyHint: true },
             description,
             inputSchema,
             name,

@@ -60,6 +60,32 @@ const messages = (text: string) =>
     .filter((line) => line.startsWith("data: "))
     .map((line) => JSON.parse(line.slice("data: ".length)));
 
+// Break caught: a tool listed without the hint, which Claude Code then runs one call at a time, so
+// a wave's implementers ran in turn.
+test("every tool is listed as one an agent may call several times at once", async () => {
+  const tokens = new McpTokens();
+  const { app } = await testApp(undefined, {
+    mcp: { tokens, tools: [heldTool().tool] },
+    signIn: true,
+  });
+  const token = tokens.issue("session-1");
+
+  const response = await app.request(
+    url,
+    post(`Bearer ${token}`, { id: 1, method: "tools/list", params: {} }),
+  );
+
+  const { result } = (await response.json()) as { result: { tools: Array<object> } };
+  expect(result.tools).toEqual([
+    {
+      annotations: { readOnlyHint: true },
+      description: "Waits for the test.",
+      inputSchema: { type: "object" },
+      name: "wait",
+    },
+  ]);
+});
+
 // US3 more 1, SC-003. Break caught: progress sent only at the start, the interval a single timeout.
 test("a long call reports progress every 30 seconds", async () => {
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
