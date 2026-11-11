@@ -7,7 +7,8 @@ import { openPicker } from "./pickers";
 import { PLACES } from "./places";
 import { back, device, navigate } from "../../store";
 import { type KeySpec, registerKey } from "../../ui/keys";
-import { applyFonts, DEFAULT_THEME_CHOICE } from "../../ui/theme";
+import { chooseMode, themeChoice } from "../settings/look";
+import { applyFonts } from "../../ui/theme";
 import { FONT_ROLES } from "../../ui/tokens";
 
 /** The mode after each: the system's, then light, then dark, then the system's again. */
@@ -40,10 +41,7 @@ function lookKeys(): KeySpec[] {
       icon: "palette",
       keys: "space u m",
       label: "Mode",
-      run: () => {
-        const choice = device.get("theme") ?? DEFAULT_THEME_CHOICE;
-        device.set("theme", { ...choice, mode: NEXT[choice.mode] });
-      },
+      run: () => chooseMode(NEXT[themeChoice().mode]),
     },
     { icon: "palette", keys: "space u t", label: "Theme…", run: () => openPicker("themes") },
     ...FONT_ROLES.map(({ label, role }) => ({

@@ -6186,3 +6186,71 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   out of `keep`: the plan step kept `model: ""`.
 - **Where**: `crates/server/src/records/workspace/settings/options.rs`,
   `crates/server/src/records/features/options.rs`, `crates/protocol/src/shared/run_options.rs`.
+
+## T48.2: Settings are a category pane and an index pane, and `/settings` is the index
+
+- **Decision**: `settings-category({ category })` in the main stack, the page's subject, and
+  `settings-index` in the side stack: the search across every setting, then the seven categories,
+  each with a line of what it holds. `/settings` alone places the index in the main stack, as a
+  phone's first screen. The categories go in the order of what is changed most: Appearance, Fonts,
+  Keyboard, Runs, Extensions, Sign-in, Server. Moving between categories is navigation, so Back
+  returns to the last one, its row and the search kept in the visit.
+- **Rationale**: the old page was one long form that scrolled to a section. As panes, a category
+  reads at the width it needs, the runs' map (task 44) has room, and the index works the same as a
+  side pane wide and as a tile on a phone, with no tab bar of the screen's own. Tabs of seven panes
+  would have moved order with the route, as the first main pane is the subject.
+- **Where**: `app/screens/settings/panes.tsx`, `Index.tsx`, `categories.ts`.
+
+## T48.3: Every setting is one `SettingRow`, on one cursor, and Enter changes it
+
+- **Decision**: `SettingRow` draws every setting, an extension's too: its icon and name, what it
+  does, where its value comes from ("Set in config.toml", "The default, on", "Set by --port for this
+  run: 4400. The file's value applies without it.", "Kept on this device"), its control, and the
+  server's refusal under it with `Under`; wide, the control at the row's end, narrow, under the
+  words, the icon and the name a head line. A category's rows share one cursor (`SettingRows`): `j`
+  `k` move it, Enter does the row's act, a switch flipped, a select opened, the theme picker opened.
+  `Select` gains `opener`, which gives a screen what opens it, as a press does. An extension's
+  settings are rows inside its row, out of the cursor (`Unlisted`).
+- **Rationale**: on GTK a pane's controls take no Tab focus outside an overlay, so the cursor is how
+  the keys reach every control (rule 5); one row keeps every refusal, source, and help where the
+  human looks for them (R166, rules 6 and 8).
+- **Test**: `a setting refused by the server goes back, and says why under itself`, by the keys, on
+  the row with a switch whose server refuses. With the row's `Under` given no refusal, it failed:
+  the words were not on screen.
+- **Where**: `app/screens/settings/Row.tsx`, `app/ui/controls/Select.tsx`.
+
+## T48.4: A list's `g g` yields to the shell's Git
+
+- **Decision**: `listKeys` declares `g g` as a fallback: the shell's `g g` goes to Git on every
+  page, and `Home` is a list's first row.
+- **Rationale**: the first list drawn in a pane threw "A key means two things: "g g" is bound twice,
+  to Git and to first row", and the frame drew nothing. Of the two, the place key is the one the
+  status line and the rail teach, and it means the same everywhere.
+- **If wrong**: the place of Git takes another key, and the list gets `g g` back.
+- **Where**: `app/ui/lists/keys.ts`.
+
+## T48.5: The device's look is picked in one place, and the keyboard's settings are followed app-wide
+
+- **Decision**: `app/screens/settings/look.ts` holds `chooseMode`, `chooseTheme`, and `chooseFont`;
+  the leader's `Space u m`, `Space u t`, and `Space u f` call them, and the settings too. A theme
+  picked from the leader shows its mode; one picked in the settings keeps the mode, as each mode has
+  its own row. Each theme is drawn in its own colours by `ThemeSample` (`app/ui/lists/`, gallery
+  Cards), the one component that draws a theme's colours. `FollowKeyboard`, drawn by the frame,
+  writes the single-key shortcuts and Vim mode in force into the keys' store and the fields.
+- **Rationale**: nothing followed the keyboard's settings after the shell's task: they said "the
+  shell writes it", and no code did. The Vim commands are kept in the file, and the row says the
+  app's Vim does not run them yet: the Vim layer has no mappings.
+- **Where**: `app/screens/settings/look.ts`, `follow.tsx`,
+  `app/screens/shell/{Frame,keys,pickers}.tsx`.
+
+## T48.6: Sign-in lists the paired devices, and says how to pair; no sign-out rows
+
+- **Decision**: each paired device is a card, with when it paired and was last seen, "This device"
+  for the one whose token the app holds, Rename in place, and Revoke after a second press, whose
+  banner says it is locked out at once. Pairing another is `ura pair` on the server's machine,
+  worded as it prints. The old "Sign out" and "Sign out everywhere" go: a paired app signs in by its
+  token, and revoking a device is its sign-out.
+- **Rationale**: no action makes a pairing code from a client; adding one would put a door into the
+  server from any signed-in client, beyond this task. A browser's sign-out returns with the web
+  build (task 56).
+- **Where**: `app/screens/settings/SignIn.tsx`.

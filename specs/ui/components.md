@@ -38,6 +38,8 @@ Lists, [`app/ui/lists/`](/app/ui/lists/) (gallery [Lists](/app/gallery/lists/)):
 - Rows of one fact: `List`, or `VirtualList` past a screen of rows, each row a `Line`; the cursor is
   `createCursor`, its keys `listKeys`.
 - A thing of several facts: `Card`; a choice among such things: `SelectableCard`.
+- A theme to choose, drawn in its own colours: `ThemeSample`, the one component that draws a theme's
+  colours rather than the tokens'.
 - Columns: `Table`; nesting: `Tree` with `treeRows`; a part that folds: `Collapsible`; an order the
   human sets: `DragOrder`; nothing to show: `Empty`, which says why and what to do.
 

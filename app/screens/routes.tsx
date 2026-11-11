@@ -26,6 +26,7 @@ import "./decisions";
 import "./git/panes";
 // Task 47: Editors.
 // Task 48: Settings.
+import "./settings";
 // Task 49: Previews.
 // Task 50: Notifications, undo, and writes.
 // Task 51: Built-in extensions, and extension places.

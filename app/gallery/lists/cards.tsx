@@ -3,8 +3,8 @@
 import { View } from "nsh";
 import { Page, Part } from "../parts";
 import { Text } from "../../ui/controls";
-import { Card, SelectableCard } from "../../ui/lists";
-import { tokens } from "../../ui/tokens";
+import { Card, SelectableCard, ThemeSample } from "../../ui/lists";
+import { DEFAULT_THEMES, tokens } from "../../ui/tokens";
 
 const nothing = () => {};
 
@@ -109,6 +109,12 @@ export function cards(narrow: boolean) {
             title="A pull request's review"
             words="No pull request is open in this repository."
           />
+        </View>
+      </Part>
+      <Part narrow={narrow} title="Theme sample">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          <ThemeSample name="Catppuccin Mocha" picked roles={DEFAULT_THEMES.dark.roles} />
+          <ThemeSample name="Catppuccin Latte" note="yours" roles={DEFAULT_THEMES.light.roles} />
         </View>
       </Part>
     </Page>

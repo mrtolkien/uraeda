@@ -14,6 +14,7 @@ import { PLACES, placeOfPage } from "./places";
 import { Sidebar, UsageBar } from "./Sidebar";
 import { Branch, modeSlot, StatusEnd } from "./Status";
 import "../routes";
+import { FollowKeyboard } from "../settings/follow";
 import { firstRun, missingFolder, unknownRepository } from "../repository/panes";
 import { call, device, navigate, record, redirect, route, setServerZone } from "../../store";
 import { type Place, placeOf, Stacks } from "../../ui/layout";
@@ -106,6 +107,7 @@ export function Frame() {
   return (
     <>
       <ShellKeys />
+      <FollowKeyboard />
       <Stacks
         place={place()}
         rail={{

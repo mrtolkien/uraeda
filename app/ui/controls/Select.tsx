@@ -22,6 +22,8 @@ export type SelectProps<Value extends string> = PressProps & {
   onChange: (next: Value) => void;
   /** Open as it is drawn: the gallery's. */
   open?: boolean;
+  /** Gets what opens it, as a press does: a row's Enter, where the screen's keys open it. */
+  opener?: (open: () => void) => void;
   options: ReadonlyArray<Option<Value>>;
   pending?: boolean;
   /** What it shows while nothing is chosen. */
@@ -68,6 +70,7 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
     press.focus();
     isOpen.set(true);
   });
+  props.opener?.(() => press.press());
   const chosen = () => props.options.find((option) => option.value === props.value);
   const close = () => isOpen.set(false);
   const pick = (at: number) => {

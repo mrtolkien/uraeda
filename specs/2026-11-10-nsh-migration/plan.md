@@ -2813,12 +2813,28 @@ Follows [what every screen task does](#what-every-screen-task-does).
   refusal puts it back and shows under it.
 - **Tests:** none.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): settings`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names: none; one the briefs allow,
+      `a setting refused by the server goes back, and says why under itself`.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 103 passed;
+      `just task uraeda-server uraeda-protocol`: 319 passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): settings`.
+
+**As built** (rulings T48.1 to T48.6):
+
+- `app/screens/settings/`: the panes `settings-category({ category })` (main) and `settings-index`
+  (side; main alone at `/settings`), each category a module, every setting one `SettingRow` on one
+  cursor (`Row.tsx`: `SettingRow`, `SettingRows`, `Unlisted`, `fromWords`). Task 44 puts the run map
+  under the row "How each step runs", marked `TASK 44:` in `Runs.tsx`.
+- `look.ts`: `chooseMode`, `chooseTheme`, `chooseFont`, `themeChoice`, `fontPicked`, which the
+  shell's leader keys and pickers call. `follow.tsx`: `FollowKeyboard`, drawn by the frame.
+- `app/ui/lists/ThemeSample.tsx`, a theme in its own colours; `Select`'s `opener`; a list's `g g` is
+  a fallback, the shell's Git first.
+- The server: a run option's model or effort sent as `""` is the agent's own default, stored as that
+  default over a fallback that sets one on the same agent (`settings::options::left_to_agents`): the
+  run map (task 44) sends `""` for "the agent's default".
 
 ## Task 49: Previews
 

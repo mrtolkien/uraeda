@@ -22,5 +22,6 @@ export { moved, wentWords } from "./order";
 export { Bar, Row, type RowProps, rowHeight } from "./Row";
 export { SelectableCard, type SelectableCardProps } from "./SelectableCard";
 export { type Column, Table, type TableProps } from "./Table";
+export { ThemeSample, type ThemeSampleProps } from "./ThemeSample";
 export { Tree, type TreeNode, type TreeProps, type TreeRow, treeRows } from "./Tree";
 export { VirtualList, type VirtualListProps, type VirtualListRef } from "./VirtualList";

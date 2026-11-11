@@ -5,7 +5,7 @@
 import { colorScheme, signal } from "nsh";
 import { device, navigate, record } from "../../store";
 import { KeyPicker, type PickerItem } from "../../ui/keys";
-import { applyFonts, DEFAULT_THEME_CHOICE } from "../../ui/theme";
+import { chooseFont, chooseTheme } from "../settings/look";
 import { FONTS, type FontRole } from "../../ui/tokens";
 
 export type PickerKind =
@@ -29,11 +29,7 @@ function rows(kind: PickerKind, repo: string | undefined): Row[] {
     const picked = device.get("fonts") ?? {};
     return FONTS.map((font) => ({
       aside: picked[kind.font] === font.id ? "in use" : undefined,
-      go: () => {
-        const next = { ...picked, [kind.font]: font.id };
-        device.set("fonts", next);
-        applyFonts(next);
-      },
+      go: () => chooseFont(kind.font, font.id),
       id: font.id,
       title: font.label,
     }));
@@ -50,11 +46,7 @@ function rows(kind: PickerKind, repo: string | undefined): Row[] {
     case "themes":
       return (record("Themes", null)()?.themes ?? []).map((theme) => ({
         aside: theme.mode,
-        go: () => {
-          const choice = device.get("theme") ?? DEFAULT_THEME_CHOICE;
-          const mode = theme.mode === "light" ? "light" : "dark";
-          device.set("theme", { ...choice, [mode]: theme.id, mode });
-        },
+        go: () => chooseTheme(theme, true),
         id: `${theme.mode} ${theme.id}`,
         title: theme.name,
       }));
