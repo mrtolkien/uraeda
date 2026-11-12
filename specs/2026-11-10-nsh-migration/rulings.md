@@ -7787,7 +7787,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/parity.toml`, `crates/app/tests/parity.rs`. Task 61 deletes `old_pages()`
   and the two checks that read it.
 
-## T90.1: Asking the agent opens the feature's session beside, the point quoted in its composer
+## R403: Asking the agent opens the feature's session beside, the point quoted in its composer
 
 - **Decision**: "Ask the agent" on a round's question (`s`), a settled point, and a part of a spec
   or a plan under review (`s` at the review's cursor) writes `About <what> of <path>:` and the
@@ -7807,7 +7807,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/file/Reader.tsx`, `app/screens/review/Comment.tsx`; the test
   `app/screens/round/ask.test.tsx`.
 
-## T90.2: The errands' messages are the server's record `ErrandMessage`
+## R404: The errands' messages are the server's record `ErrandMessage`
 
 - **Decision**: the messages an agent is asked with outside a feature's steps, postponing a feature
   or a change and writing or applying the decisions check, are the record `ErrandMessage`
@@ -7822,7 +7822,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/protocol/src/features/messages.rs`,
   `crates/server/src/records/features/messages.rs`, the test `errand_message_answers_its_shape`.
 
-## T90.3: Postpone sits beside Drop, and asks first with its message
+## R405: Postpone sits beside Drop, and asks first with its message
 
 - **Decision**: "Postpone the feature…" (or the change) is a quiet button beside Drop at the foot of
   the feature's Overview, drawn only while the feature has a branch to close. It opens a dialog that
@@ -7833,7 +7833,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   press (rule 2). The dialog is the deliberate step, as Drop's is.
 - **Where**: `app/screens/feature/Postpone.tsx`, `Overview.tsx`.
 
-## T90.4: The decisions check's errands go through the continue dialog, as a chat
+## R406: The decisions check's errands go through the continue dialog, as a chat
 
 - **Decision**: "Review with AI" (while no check is on the default branch: the check's page, and the
   head of the decisions' list) and "Apply the answers" (once the check is answered: its page) open
@@ -7847,7 +7847,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/decisions/Errand.tsx`, `Check.tsx`, `List.tsx`,
   `app/screens/runs/ContinueDialog.tsx`.
 
-## T90.5: Pick mode is the story's pick script, in mockups too, and a pick is a review comment
+## R407: Pick mode is the story's pick script, in mockups too, and a pick is a review comment
 
 - **Decision**: a review comment on a story or a mockup is a comment on the spec's block that shows
   it, as the old embed and mockup page wrote it; a pick adds the element to its start
@@ -7870,7 +7870,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `specComment.ts`, `MockupPage.tsx`, `StoryPage.tsx`, `app/screens/file/Reader.tsx`,
   `app/screens/review/`.
 
-## T90.6: A preview's Full screen is the frame's zoom of its pane, asked by the pane
+## R408: A preview's Full screen is the frame's zoom of its pane, asked by the pane
 
 - **Decision**: a story's or a mockup's own page has Full screen (`f`, and its button beside the
   width), which zooms its pane over the window, focused, and puts it back: `zoomer()` in
@@ -7881,7 +7881,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   reviewing a desktop mockup looks for it.
 - **Where**: `app/ui/layout/here.ts`, `frame.ts`, `app/screens/preview/LiveFrame.tsx`.
 
-## T90.7: A proposal's nested lines are an outline in its pane, the inbox's stay in its file
+## R409: A proposal's nested lines are an outline in its pane, the inbox's stay in its file
 
 - **Decision**: the proposal's pane lists its nested lines (`ProposalItem.children`) as an outline,
   each row indented by its depth, with the keys of the old outliner: `>` and `<` indent and outdent,
@@ -7894,7 +7894,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   week.
 - **Where**: `app/screens/proposal/Nested.tsx`, `ProposalPane.tsx`.
 
-## T90.8: Native Shell announces: the toasts and a session's agent speak through it
+## R410: Native Shell announces: the toasts and a session's agent speak through it
 
 - **Decision**: NSH 0.4.0 has `announce(message)` (`nsh`), which GTK speaks with
   `gtk_accessible_announce`, and the prop `accessibilityLiveRegion`: R337's "no live region to speak

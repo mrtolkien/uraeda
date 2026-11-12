@@ -2577,7 +2577,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   the feature page's continue, which replaced its plain start.
 - `app/screens/images.ts` holds every screen's image helpers, with `attachToFile` and `keepForChat`.
   `LeaveGuard` resolves its answer now (R322).
-- A proposal's nested lines (T90.7): `Nested.tsx`, an outline over `proposals.outline` in the
+- A proposal's nested lines (R409): `Nested.tsx`, an outline over `proposals.outline` in the
   proposal's pane.
 
 ## Task 39: Inbox and triage
@@ -2651,8 +2651,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   and a mockup by `page: "mockup"`: task 41 declares their panes.
 - Keys: `n` the next action (Overview), `m` and `f` its folds, `S` a new session, `Enter` on a card,
   a step's file, or a decision. Git's go key became `g c` (R288).
-- "Postpone the feature…" (`Postpone.tsx`, T90.3) beside Drop, over the record `ErrandMessage`
-  (T90.2): a dialog with the message, then the feature's latest session.
+- "Postpone the feature…" (`Postpone.tsx`, R405) beside Drop, over the record `ErrandMessage`
+  (R404): a dialog with the message, then the feature's latest session.
 
 ## Task 41: Workflow files
 
@@ -2731,8 +2731,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - `app/screens/review/`: `reviewMark`, `reviewable`, `CommentField`, `Verdict`, `Given`, and the
   reader's cursor (`J` `K`, `c`, a press). `app/screens/round/NextRun.tsx` is the agent's next run
   on a button, opening the continue dialog.
-- Asking the agent (T90.1): `useAsk(repo, folder)` (`app/screens/session/ask.ts`) puts a quote at
-  the start of the feature's session draft and opens `sessionBeside` beside the pane, its composer
+- Asking the agent (R403): `useAsk(repo, folder)` (`app/screens/session/ask.ts`) puts a quote at the
+  start of the feature's session draft and opens `sessionBeside` beside the pane, its composer
   focused; a feature's round asks on a question (`s`, a button) and on a settled point, the reader
   on the part at the review's cursor (`s`), and each comment field has "Ask the agent instead".
 - The device keeps `round.at:<repo>\n<id>`. `SelectableCard` takes `children`; `app/ui/document`
@@ -2862,7 +2862,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - The redirect R126 left: a branch with no such decision opens `/decisions/<name>`, in the visit.
 - The order is the device's `decisions.sort`. The check's question cards are task 42's, where
   `Check.tsx` is marked `TASK 42:`; "Review with AI" is not built (R292), and came back with "Apply
-  the answers" in `Errand.tsx` (T90.4): `useErrand`, `ErrandButton`, over `ErrandMessage`.
+  the answers" in `Errand.tsx` (R406): `useErrand`, `ErrandButton`, over `ErrandMessage`.
 - `listKeys` bound no `g g` (R293), back since the join of tasks 40 to 48; the icon `cable` joins
   `app/ui/controls/icons/lucide.ts`.
 
@@ -3019,12 +3019,11 @@ Follows [what every screen task does](#what-every-screen-task-does).
   for it, and counts a frame's request as a view.
 - The sandbox's "sample" has `2026-10-20-sidebar-resize`, with three stories, a mockup, and the fake
   Storybook of `fixtures/preview/serve.mjs`.
-- Pick mode and comments (T90.5): `LiveFrame`'s `comment(picked?)` adds Comment (`c`) and, once the
+- Pick mode and comments (R407): `LiveFrame`'s `comment(picked?)` adds Comment (`c`) and, once the
   page's pick script is ready, "Pick an element" (`p`); `StoryEmbed` and `MockupEmbed` take
   `comment: { on, open(about) }`; a preview's page comments through `useSpecComment`
   (`specComment.ts`). A mockup asked with `uraeda-pick` gets the pick script from the server.
-- Full screen (T90.6): `f` on a preview's page zooms its pane, through `zoomer()` of
-  `app/ui/layout`.
+- Full screen (R408): `f` on a preview's page zooms its pane, through `zoomer()` of `app/ui/layout`.
 
 ## Task 50: Notifications, undo, and writes
 
@@ -3329,9 +3328,16 @@ can become a full pane, as in a tiling window manager.
   on an older version; `agent.refreshModels` as a picker shows. `app/screens/NameDialog.tsx` is the
   one name dialog.
 - Actions of the protocol no screen calls: `inbox.drop`, `inbox.outline`, `inbox.place`,
-  `inbox.intoProposalLine`, `proposals.drop`, `proposals.outline`, `settled.edit`,
-  `defaultRound.retry`, `settings.editHost` (each a `left` line); `change.fromNote`,
+  `inbox.intoProposalLine`, `proposals.drop` (each a `left` line); `change.fromNote`,
   `priorities.commit`, `priorities.discard`, and `session.new`, which no old screen called either.
+- The fixes after it (rulings R403 to R410) brought back the rest a person would miss, a commit
+  each: Ask the agent, beside (`useAsk`); Postpone, over the new record `ErrandMessage`; "Review
+  with AI" and "Apply the answers" on the decisions check, through `ContinueDialog` with
+  `folder: null`; pick mode and comments on previews (`?uraeda-pick`); Full screen (`zoomer()`); a
+  settled comment's edit; Retry of a default round's commit; a host name's edit; `#turn-<id>`; the
+  cursor on what an undo brought back (`broughtBack`); a proposal's nested lines; the screen
+  reader's `say`. `[[left]]` now holds 20 brought back, 4 left (none a person misses: the inbox's
+  outliner, Recent, the New page's `/`, a done reply's frame), and 14 replaced.
 
 **Phase 2: the web build.** The same app in a browser, served by `ura serve`, then the removal of
 the React UI and the Node server. Read NSH's web pages before each task:

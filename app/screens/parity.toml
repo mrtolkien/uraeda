@@ -11,7 +11,8 @@
 # test's read of `routeTable.ts`, and keep this list and its checks.
 #
 # `[[left]]`: what the old screens did that the screens of tasks 36 to 51 and 65 did not, from their
-# commits and rulings, most used first: `brought-back` by task 55 (where it is `now`), `replaced` by
+# commits and rulings, most used first: `brought-back` by task 55 and its fixes (T90, where it is
+# `now`), `replaced` by
 # something the rewrite does otherwise (`now`), or `left`, with what bringing it back `needs` and
 # whether a person will miss it (`missed`).
 
@@ -50,7 +51,7 @@ missing = { path = "any other path", page = "missing", screen = "app/screens/she
 moved = { path = "/chats/<id>, /chats/new, /changes/new, /commit", dropped = "no page any more: the old addresses parse to the pages they moved to (`app/store/routes.ts`: a session, the New page, the Git page), so no page redirects them (task 24)" }
 first-run = { path = "none: the React UI set it when the server listed no repository", dropped = "a state, not an address: the frame draws its first-run pane when the server lists no repository (`app/screens/repository/`, task 36, R251)" }
 
-# --- Brought back by task 55 ---------------------------------------------------------------------
+# --- Brought back by task 55 and T90 ---------------------------------------------------------------------
 
 [[left]]
 what = "Continue all, with the runs it continues named"
