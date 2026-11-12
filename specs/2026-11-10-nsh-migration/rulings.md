@@ -8378,3 +8378,30 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   both are bounded by the network's own timeouts: named here for the next review.
 - **If wrong**: a warm-up that must go on past a stop does not exist: the next start warms again.
 - **Where**: `crates/server/src/preview/ahead.rs`; `crates/server/tests/preview.rs`.
+
+## T88.2: The app owns one server at a time, and waits for it outside its lock
+
+- **Decision**: `Local` (`crates/app/src/server_start.rs`) holds the server the app started under a
+  lock taken only to read or to swap its handle. A start's wait for an answer, and a stop's wait for
+  an end, are outside it, and a start gives up once the app closes. The app has at most one server
+  of its own: one that runs and does not answer is waited for, by this call and by the next, and
+  none starts before it ended and was reaped. Its end before it ever answered is a start that
+  failed; after it answered, a server that stopped while the app is open, which the app starts
+  again. `LocalOptions` takes the two waits, `start_wait` and `stop_wait`, `START` and `STOP` in the
+  app.
+- **Rationale**: both reviews' findings are right. `ensure` held the lock through its wait of up to
+  60 s, and `stop` and `running` take it: the window closed during the first start hung until the
+  start gave up. And a server alive that did not answer was replaced by a second `ura serve`, its
+  handle dropped, which does not end a process: no longer the app's to stop, and two servers started
+  on one data folder. Seen on the code the reviews read, with the two waits added to it alone:
+  `the_app_closes_at_once_while_its_server_starts` hung on the lock until the test runner cut it,
+  and `a_server_slow_to_answer_is_waited_for_again_and_never_replaced` counted 2 starts for 1.
+- **Alternatives considered**: stopping a server that does not answer within the wait, then starting
+  another. Rejected: the first start of a machine with many repositories may pass the minute, and
+  each "Try again" would start it over, never to end; and a server killed because one question went
+  unanswered may be landing a commit. Waited for, the slow one is found by the next try, and the one
+  that never answers is said so, with the way out: closing the app stops it.
+- **If wrong**: a server that hangs for good needs the app closed and opened to be replaced. A
+  second wait, after which it is stopped, would go in `ensure`, where the first one ends.
+- **Where**: `crates/app/src/server_start.rs`; `crates/app/tests/host/stand_in.rs`, with the
+  stand-in of `ura`, `crates/app/tests/host/ura-stand-in`.

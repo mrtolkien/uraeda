@@ -17,6 +17,8 @@ mod display;
 mod machine;
 #[path = "host/secret_service.rs"]
 mod secret_service;
+#[path = "host/stand_in.rs"]
+mod stand_in;
 
 use std::ffi::OsString;
 use std::fs;
@@ -26,7 +28,7 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use uraeda_app::host::{Host, Pairing, Target};
-use uraeda_app::server_start::{Local, LocalOptions, Running};
+use uraeda_app::server_start::{Local, LocalOptions, Running, START, STOP};
 
 /// `ura`, built for these tests in a target folder of its own, `target/host-tests/`: in the
 /// workspace's, a build of `uraeda-cli` alone resolves the features of the crates it shares with
@@ -93,13 +95,20 @@ impl Folders {
 
     /// The app's way to the server of the data folder `data`.
     fn local(&self, data: &str) -> Local {
-        Local::new(LocalOptions {
+        Local::new(self.options(data))
+    }
+
+    /// How the app reaches the server of the data folder `data`, with the app's own waits.
+    fn options(&self, data: &str) -> LocalOptions {
+        LocalOptions {
             ura: ura(),
             data_dir: self.path(data),
             port: Some(0),
             folder: self.path("here"),
             environment: self.environment(),
-        })
+            start_wait: START,
+            stop_wait: STOP,
+        }
     }
 
     /// `ura serve` on the data folder `data`, started by the test, as the owner would.
@@ -148,7 +157,7 @@ fn crash(pid: u32) {
     wait_until("the server's process ends", || !runs(pid));
 }
 
-fn wait_until(what: &str, done: impl Fn() -> bool) {
+fn wait_until(what: &str, mut done: impl FnMut() -> bool) {
     let started = Instant::now();
     while !done() {
         assert!(

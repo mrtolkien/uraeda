@@ -11,7 +11,7 @@ use nsh_platform_linux::{AppOptions, AppSource, AssetBase, Bundle, Limits};
 use serde_json::json;
 
 use super::{Host, Pairing, Target};
-use crate::server_start::{Local, LocalOptions};
+use crate::server_start::{Local, LocalOptions, START, STOP};
 
 const USAGE: &str = "\
 Usage: uraeda [--server <address>] [--data-dir <folder>] [--port <port>] [--ura <command>]
@@ -176,6 +176,8 @@ fn target(args: &Args, beside: Option<PathBuf>) -> Target {
         port: args.port,
         folder: here,
         environment: Vec::new(),
+        start_wait: START,
+        stop_wait: STOP,
     }))
 }
 
