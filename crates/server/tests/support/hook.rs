@@ -19,9 +19,12 @@ impl Hook {
         fs::create_dir_all(&folder).expect("the hook's folder");
         let at = |name: &str| folder.join(name).display().to_string();
         let (gate, refuse, log) = (at("gate"), at("refuse"), at("log"));
+        // A test that ends without letting it go takes its folder with it: the hook ends too,
+        // where it waited forever, a process left behind on the machine.
+        let folder_shown = folder.display().to_string();
         repo.set_hook(&format!(
             "echo \"start $(git diff --cached --name-only | tr '\\n' ' ')\" >> \"{log}\"\n\
-             while [ ! -e \"{gate}\" ]; do sleep 0.02; done\n\
+             while [ ! -e \"{gate}\" ] && [ -d \"{folder_shown}\" ]; do sleep 0.02; done\n\
              sleep 0.05\n\
              echo end >> \"{log}\"\n\
              if [ -e \"{refuse}\" ]; then echo \"lint: 1 problem\"; exit 1; fi"
