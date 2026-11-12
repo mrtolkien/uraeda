@@ -26,7 +26,7 @@ import { type CaretTrail, TextEditor, type VimStatus } from "uraeda/native";
 import { Under } from "../controls";
 import { keysOn, pressKeys } from "../keys/registry";
 import { strokeOf } from "../keys/token";
-import { focusStop, Well } from "../surfaces";
+import { focusAsked, focusStop, Well } from "../surfaces";
 import { interaction } from "../timing";
 import { alpha, tokens } from "../tokens";
 import { Trail, trails } from "./Trail";
@@ -141,6 +141,24 @@ const ownerKeys = computed(() => {
   }
   return keys;
 });
+
+/** The editor's ref, whose focus says it was asked for (`focusAsked`): GTK's own is not. */
+function asking(node: TextFieldRef): TextFieldRef {
+  const asked =
+    <A extends unknown[]>(take: (...args: A) => void) =>
+    (...args: A) => {
+      focusAsked();
+      take(...args);
+    };
+  return {
+    blur: () => node.blur(),
+    focus: asked(() => node.focus()),
+    goToLine: asked((line: number) => node.goToLine(line)),
+    insert: (text) => node.insert(text),
+    press: (stroke) => node.press(stroke),
+    resume: asked(() => node.resume()),
+  };
+}
 
 /** The token of the key an owner hears in a field, by its keystroke. */
 const owner = (stroke: string) => ownerKeys().get(stroke);
@@ -273,11 +291,12 @@ export function TextField(props: TextFieldProps) {
               props.readOnly === true || props.disabled === true || props.shown !== undefined
             }
             ref={(node: TextFieldRef) => {
-              editor = node;
-              props.ref?.(node);
+              editor = asking(node);
+              props.ref?.(editor);
               if (props.autoFocus === true && props.disabled !== true) {
                 // Once the editor inside is made: on GTK a field takes no focus by itself.
-                setTimeout(() => node.focus(), 0);
+                const made = editor;
+                setTimeout(() => made.focus(), 0);
               }
             }}
             styles={styles()}

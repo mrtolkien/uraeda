@@ -4,8 +4,8 @@
 // opens, gives it back where it was as it closes, and a dialog keeps Tab among its own stops.
 import { type Accessor, cleanup, context, Keyboard, signal, untracked } from "nsh";
 
-/** What takes the keyboard focus: a field, or a view that takes presses. */
-export type Focusable = { focus(): void };
+/** What takes the keyboard focus: a field, or a view that takes presses; a field gives it up. */
+export type Focusable = { focus(): void; blur?(): void };
 
 type Stop = {
   isThere: boolean;
@@ -31,6 +31,25 @@ export const StopsContext = context<Stops | null>(null);
  */
 const holder = signal<Stop | null>(null);
 const heldNow = () => untracked(holder);
+
+/** When an overlay that the page's keys had before it closed last, and when a focus was asked. */
+let closedAt = 0;
+let askedAt = 0;
+
+/** How long after an overlay closes a field's focus that nobody asked for is GTK's own. */
+const STRAY = 500;
+
+/** Says the app asks a field for the focus: a ref's `focus`, never GTK's choice. */
+export const focusAsked = () => {
+  askedAt = Date.now();
+};
+
+/**
+ * Whether a focus that just came is GTK's: as an overlay's field goes with the focus, GTK gives
+ * it to the window's next field, the page's first, which then took every key typed after it,
+ * while the page's keys had it before the overlay opened. Unasked, it is given back at once.
+ */
+const stray = () => askedAt < closedAt && Date.now() - closedAt < STRAY;
 
 /**
  * Says a field or a control can take the focus. Called as its component renders, with what gives
@@ -80,7 +99,13 @@ export function focusStop(
         holder.set(null);
       }
     },
-    onFocus: () => holder.set(stop),
+    onFocus: () => {
+      if (stray()) {
+        node()?.blur?.();
+        return;
+      }
+      holder.set(stop);
+    },
   };
 }
 
@@ -99,6 +124,7 @@ export function takeFocus(stops: Stops): () => void {
       return;
     }
     Keyboard.dismiss();
+    if (before === null) closedAt = Date.now();
     if (before !== null && before.isThere) {
       before.node()?.focus();
     }

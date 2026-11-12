@@ -6,7 +6,7 @@ export { Pane, type PaneProps, type PaneTab } from "./Pane";
 export { Surface, type SurfaceProps } from "./Surface";
 export { Well, type WellProps } from "./Well";
 export { Dialog, type DialogProps } from "./Dialog";
-export { focusStop, type Focusable } from "./focus";
+export { focusAsked, focusStop, type Focusable } from "./focus";
 export { Overlay, type OverlayProps } from "./Overlay";
 export { Popover, type PopoverProps } from "./Popover";
 export { Sheet, type SheetProps } from "./Sheet";
