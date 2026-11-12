@@ -15,7 +15,7 @@ use split::{Growing, Splitter};
 /// The core's document tree of `text`, as JSON, in the shape of the protocol's `Document`. Links
 /// are read from the repository's top level.
 pub(crate) fn tree(text: &str) -> String {
-    let document = uraeda_core::files::document::parse(text, "");
+    let document = uraeda_text::document::parse(text, "");
     serde_json::to_string(&document).expect("a document is JSON")
 }
 

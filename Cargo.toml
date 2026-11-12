@@ -44,7 +44,13 @@ clap_complete = { version = "=4.6.11", features = ["unstable-dynamic"] }
 crossbeam-channel = "0.5.15"
 futures-util = "0.3"
 getrandom = "0.4"
+# A file of the web build held compressed alone, inflated for a client that takes no encoding.
+# The lockfile held it.
+flate2 = "1.1"
 gif = "0.14.2"
+# The lines' diff of a patch, without git: the crate gix compares blobs with, which the lockfile
+# holds already.
+gix-imara-diff = "0.3.1"
 gix = { version = "0.89", default-features = false, features = ["sha1", "revision", "status"] }
 http-body-util = "0.1"
 # axum's own HTTP, named for the one request a second start sends the first.

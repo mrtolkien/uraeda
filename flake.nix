@@ -63,6 +63,33 @@
           dontStrip = true;
         });
 
+      # The C compiler of the web build: Native Shell's `zlib` module links zstd's C library into
+      # the WebAssembly module. The dev shell's `clang` is Nix's wrapper, which hardens every
+      # object for this machine with a flag WebAssembly refuses, so this is clang itself, told
+      # where its own headers are.
+      wasmClangFor =
+        pkgs:
+        let
+          clang = pkgs.llvmPackages.clang-unwrapped;
+        in
+        pkgs.writeShellScript "wasm-clang" ''
+          exec ${clang}/bin/clang -resource-dir ${clang.lib}/lib/clang/${pkgs.lib.versions.major clang.version} "$@"
+        '';
+
+      # The headless browser of the web build's tests and pictures: Chromium, the one nixpkgs
+      # pins for Playwright, driven over the DevTools protocol, by `nsh test --target web` and
+      # by `crates/server/tests/browser.rs`. `web-browser` runs it, so no path names its
+      # revision.
+      webBrowserFor =
+        pkgs:
+        pkgs.writeShellScriptBin "web-browser" ''
+          for chrome in ${pkgs.playwright-driver.browsers}/chromium-*/chrome-linux*/chrome; do
+            exec "$chrome" "$@"
+          done
+          echo "web-browser: no Chromium in ${pkgs.playwright-driver.browsers}" >&2
+          exit 1
+        '';
+
       # The AppImage's runtime, the program at the head of every AppImage that mounts the image
       # appended to it: a static build, which needs no FUSE library on the machine. `just package`
       # writes the AppImage as this runtime followed by the app's squashfs image, as appimagetool
@@ -178,6 +205,10 @@
               xdotool
               # `just package`: the binaries made to run outside Nix, the icons rendered from
               # their vector source, the desktop entry checked, and the AppImage's image.
+              # The web build: its browser, for its tests and its pictures, and brotli, which
+              # compresses the page and the fonts Native Shell leaves as they are.
+              (webBrowserFor pkgs)
+              brotli
               patchelf
               resvg
               desktop-file-utils
@@ -210,6 +241,9 @@
           URAEDA_APPIMAGE_RUNTIME = pkgs.lib.optionalString (
             pkgs.stdenv.hostPlatform.system == "x86_64-linux"
           ) "${appimageRuntimeFor pkgs}";
+          # The web build's C code, zstd's: a clang and an archiver that write WebAssembly objects.
+          CC_wasm32_unknown_unknown = "${wasmClangFor pkgs}";
+          AR_wasm32_unknown_unknown = "${pkgs.llvmPackages.llvm}/bin/llvm-ar";
           # QuickJS' bindings are generated with libclang.
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
           # `nsh check` runs this TypeScript, the version NSH pins, and downloads none.

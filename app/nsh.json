@@ -6,6 +6,7 @@
   "minRuntime": "0.5.0",
   "rust": "../crates/app",
   "theme": "theme.json",
+  "web": { "base": "/" },
   "capabilities": {
     "network": {
       "hosts": ["*"]

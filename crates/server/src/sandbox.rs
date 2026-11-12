@@ -289,7 +289,8 @@ pub fn options(
     let bin = sandbox.folder.join("bin").to_string_lossy().into_owned();
     let mut environment: Vec<(String, String)> = environment
         .into_iter()
-        .filter(|(name, _)| !name.starts_with("URAEDA_"))
+        // The web build to serve is the checkout's own, never the owner's data.
+        .filter(|(name, _)| !name.starts_with("URAEDA_") || name == "URAEDA_WEB_BUILD")
         .collect();
     let path = environment.iter_mut().find(|(name, _)| name == "PATH");
     match path {

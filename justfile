@@ -106,6 +106,22 @@ app *args:
 package:
     {{ heavy }} scripts/package.sh
 
+# The app for a browser, in `target/web/`: Native Shell's static site of `app/`, with the app's
+# Rust as WebAssembly, the page's first paint, and every file compressed (`scripts/web-build.sh`).
+# Then what a first load weighs, against its limit. `ura serve` serves it: a server started with
+# `URAEDA_WEB_BUILD=target/web`, and an `ura` built with it set, as `just package` builds it.
+web-build:
+    {{ heavy }} scripts/web-build.sh
+    URAEDA_WEB_BUILD="$PWD/target/web" cargo test -q -p uraeda-server --test web -- --ignored --nocapture the_first_load
+
+# The web build in a real browser, the dev shell's headless Chromium, over a sandbox that serves
+# `target/web/`: it signs in with the access key, opens the home page, and takes its pictures,
+# in both themes, at a desktop's and a phone's size, in `target/shots/web/`
+# (`crates/server/tests/browser.rs`). After `just web-build`.
+web-test *args:
+    mkdir -p target/shots/web
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/web" {{ isolated }} cargo nextest run -p uraeda-server -E 'binary(browser)' --run-ignored only --no-capture "$@"
+
 # A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
 # fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
 # `pairing`, `refused`, `stopped`, `starting`, or `states` for all four. Each in both themes, 1400

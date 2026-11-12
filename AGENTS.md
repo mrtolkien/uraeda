@@ -63,6 +63,8 @@ editing it.
   - `lsp/` (`uraeda-lsp`): the `ura lsp` language server
   - `protocol/` (`uraeda-protocol`): the messages between the Rust server and its clients
   - `server/` (`uraeda-server`): the Rust server, everything `ura serve` does
+  - `text/` (`uraeda-text`): what is read in a text alone, the document tree, links, and patches,
+    which the core re-exports and the app's web build takes without the core
   - `vim/` (`uraeda-vim`): the Vim layer, a state machine from keys to editor commands
   - `app/` (`uraeda-app`): the app's native module `uraeda/native`, its native components, and the
     Linux host
@@ -208,6 +210,13 @@ Running it here:
   stood in for on its `PATH`. `just app-dev` runs the TSX with hot reload over a sandbox already
   running at 4420. A screen's pictures are `just app-shots <route>`, `/r/sample/inbox`, on a fresh
   sandbox, in `target/shots/app/`.
+- **The app in a browser is `just web-build`**, which writes `target/web/`: NSH's static site of
+  `app/`, with `crates/app` compiled to WebAssembly, so that crate and what it depends on must build
+  for `wasm32-unknown-unknown`. `ura serve` serves the build it was compiled with
+  (`URAEDA_WEB_BUILD`, as `just package` sets it), or the folder that variable names as it starts:
+  `URAEDA_WEB_BUILD=$PWD/target/web just sandbox --no-app`. `just web-test` opens it in the dev
+  shell's headless Chromium, `web-browser`, signs in, and writes its pictures in
+  `target/shots/web/`. No other check builds the web app.
 - `vp run sandbox` still serves the old web UI over the old sandbox, in `.sandbox/`, until the
   migration removes it (task 61): the new app's is `just sandbox`.
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:

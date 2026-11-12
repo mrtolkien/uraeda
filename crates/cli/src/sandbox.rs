@@ -66,7 +66,7 @@ pub fn run(args: Args) -> Result<ExitCode, String> {
         environment,
     );
     eprintln!("ura: the sandbox's folder is {}", built.folder.display());
-    match uraeda_server::run(options) {
+    match uraeda_server::run(options, false) {
         Ok(()) => Ok(ExitCode::SUCCESS),
         Err(handed @ NotStarted::HandedOver { .. }) => {
             println!("{handed}");

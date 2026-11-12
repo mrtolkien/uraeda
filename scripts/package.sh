@@ -39,6 +39,10 @@ scripts/nsh.sh build --release -o "$package/lib/nsh"
 rm -f "$package/lib/nsh/bundle.js" "$package/lib/nsh/bundle.js.map"
 printf '{"name":"Uraeda","id":"%s","version":"%s"}\n' "$id" "$version" > "$package/lib/nsh/app.json"
 
+echo "package: the app for a browser, which ura holds"
+scripts/web-build.sh
+export URAEDA_WEB_BUILD=$root/target/web
+
 # The newest glibc the binaries may need: Ubuntu 24.04's, the first release with GTK 4.14.
 floor=2.39
 echo "package: uraeda and ura, profile $profile, for glibc $floor"

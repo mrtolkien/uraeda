@@ -4,16 +4,17 @@ use std::io;
 
 use tokio::signal::unix::{Signal, SignalKind, signal};
 
-use crate::{NotStarted, Options, Server, sign_in};
+use crate::{NotStarted, Options, Server, browser, sign_in};
 
 /// Runs a server until the process gets SIGHUP, as from a closed terminal, SIGINT, or SIGTERM,
 /// then stops it. It prints its address once it listens, and the access key when this start made
-/// it, the only time it is shown.
+/// it, the only time it is shown. With `opens`, a person's start at a terminal, it then opens
+/// the app in the owner's browser, where the settings and the desktop allow: see [`browser`].
 ///
 /// # Errors
 ///
 /// [`NotStarted`], as [`Server::start`].
-pub fn run(options: Options) -> Result<(), NotStarted> {
+pub fn run(options: Options, opens: bool) -> Result<(), NotStarted> {
     let failed = |error: io::Error| NotStarted::Failed(error.to_string());
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -27,6 +28,9 @@ pub fn run(options: Options) -> Result<(), NotStarted> {
         let key = sign_in::first_key(server.shared());
         let key = key.map(|key| sign_in::key_lines(&key)).unwrap_or_default();
         print!("Uraeda server on {}\n{key}", server.address());
+        if opens {
+            browser::open_at_start(&server);
+        }
         signals.next().await;
         // A second signal does not wait for the work that stops.
         tokio::spawn(async move {

@@ -9635,6 +9635,7 @@ dependencies = [
  "two-face",
  "uraeda-core",
  "uraeda-protocol",
+ "uraeda-text",
  "uraeda-vim",
  "ureq",
  "usvg 0.46.0",
@@ -9738,6 +9739,7 @@ version = "1.4.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
+ "flate2",
  "futures-util",
  "getrandom 0.4.3",
  "http-body-util",
@@ -9781,6 +9783,7 @@ dependencies = [
 name = "uraeda-text"
 version = "1.4.0"
 dependencies = [
+ "gix-imara-diff",
  "napi",
  "napi-build",
  "napi-derive",

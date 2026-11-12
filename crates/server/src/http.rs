@@ -3,11 +3,12 @@
 pub(crate) mod foreign;
 pub(crate) mod open;
 pub(crate) mod socket;
+pub(crate) mod web;
 
 use axum::Router;
 use axum::extract::Request;
+use axum::http::HeaderValue;
 use axum::http::header::X_FRAME_OPTIONS;
-use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::Response;
 use axum::routing::MethodRouter;
@@ -37,13 +38,15 @@ impl Routes {
     }
 }
 
-/// The server's router: the mounted routes, and no other path, behind the rules every request
-/// passes, the guard first, then the session check. Every answer, a refusal's included, says
+/// The server's router: the mounted routes, and the app's web build at every other path, behind
+/// the rules every request passes, the guard first, then the session check. Every answer, a refusal's included, says
 /// who may frame it. A rule for every request is a layer here, the last one outermost.
 pub(crate) fn router(shared: &Shared, routes: Routes) -> Router {
+    // What no route takes is the app's: a file of its web build, or its page.
+    shared.provide(std::sync::Arc::new(web::Web::load(shared, routes.paths())));
     routes
         .router
-        .fallback(|| async { (StatusCode::NOT_FOUND, "Not found") })
+        .fallback(web::answer)
         .layer(middleware::from_fn_with_state(
             shared.clone(),
             sign_in::layer,

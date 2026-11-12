@@ -207,6 +207,9 @@ enum Command {
         /// Start no scheduled job at its times, whatever the settings say; "Run now" still works
         #[arg(long)]
         no_scheduled_jobs: bool,
+        /// Do not open the app in the browser, whatever the settings say
+        #[arg(long)]
+        no_open: bool,
     },
     /// Run the server over sample projects and a fake agent, without sign-in, for Uraeda's own
     /// development: from a checkout of Uraeda, until it is stopped
@@ -292,7 +295,8 @@ fn main() -> ExitCode {
             port,
             data_dir,
             no_scheduled_jobs,
-        } => serve::run(port, data_dir, no_scheduled_jobs),
+            no_open,
+        } => serve::run(port, data_dir, no_scheduled_jobs, no_open),
         Command::Sandbox(args) => sandbox::run(args),
         Command::Pair { data_dir } => pair::run(data_dir),
         Command::ImportSessions {

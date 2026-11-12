@@ -21,7 +21,14 @@ default = ["host"]
 # The Linux host's native component `uraeda.extension`, which runs an extension's page in a view
 # of its own. The server takes the module list of `uraeda/native` alone, without GTK.
 # The Linux host, `uraeda`, and its server start and secret store (`host.rs`, `server_start.rs`).
-host = ["dep:libc", "dep:nsh-engine", "dep:nsh-platform-linux", "dep:tokio", "dep:ureq"]
+host = [
+  "dep:libc",
+  "dep:nsh-engine",
+  "dep:nsh-platform-linux",
+  "dep:tokio",
+  "dep:ureq",
+  "dep:uraeda-core",
+]
 
 [dependencies]
 nsh-base.workspace = true
@@ -30,20 +37,27 @@ serde.workspace = true
 serde_json.workspace = true
 # Code blocks' colours, with the syntaxes NSH's editor reads: `highlight.rs`.
 syntect.workspace = true
-two-face.workspace = true
-# The document tree of a reply's finished blocks, read by the core's parser: `reply.rs`.
-uraeda-core.workspace = true
-# Diagrams, drawn in Rust as a picture of shapes: `diagram.rs`.
-base64.workspace = true
-merman.workspace = true
-merman-export.workspace = true
-usvg.workspace = true
+# The document tree of a reply's finished blocks and a file's outline, and an editor's patch:
+# `reply.rs`, `editing.rs`. The readers of a text alone, and not the core, whose git and image
+# code does not build for the web.
+uraeda-text.workspace = true
 # Times in the server's zone, with the system's time zone database: `time.rs`.
 jiff.workspace = true
 # The names of an extension page's host channel.
 uraeda-protocol.workspace = true
 # The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.
 uraeda-vim.workspace = true
+
+# What the web build leaves out of its WebAssembly, which every first load carries.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Diagrams, drawn in Rust as a picture of shapes: `diagram/draw.rs`. In a browser the server
+# draws them.
+base64.workspace = true
+merman.workspace = true
+merman-export.workspace = true
+usvg.workspace = true
+# The syntaxes themselves: in a browser, a file Native Shell's page fetches when a block needs it.
+two-face.workspace = true
 
 # `extension_view.rs`: an extension's page, fetched whole from the server, verified under its key,
 # and run in a GTK view of its own.
@@ -57,6 +71,8 @@ ureq = { workspace = true, optional = true }
 libc = { workspace = true, optional = true }
 # The desktop's notifications are answered on a thread of their own (`notify.rs`).
 tokio = { workspace = true, optional = true }
+# The host's own data folder, where it keeps this machine's server (`host/window.rs`).
+uraeda-core = { workspace = true, optional = true }
 
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
 # text out of a build without `declarations`.
@@ -64,6 +80,7 @@ tokio = { workspace = true, optional = true }
 nsh-core = { workspace = true, features = ["declarations"] }
 # `tests/theme.rs` measures the shipped themes, which the core reads, from a temporary folder.
 tempfile.workspace = true
+uraeda-core.workspace = true
 # `tests/parity.rs` reads the screens' parity list, `app/screens/parity.toml`.
 toml_edit.workspace = true
 

@@ -1,5 +1,6 @@
 //! `ura serve`: runs Uraeda's server on this machine, until it is stopped.
 
+use std::io::IsTerminal as _;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -8,11 +9,14 @@ use uraeda_server::{Clock, DEFAULT_PORT, NotStarted, Options, default_data_dir};
 
 /// Runs the server on `port`, with its files in `data_dir`, and the repository of the current
 /// folder in its list. When this data folder's server already runs, it gets the folder instead,
-/// and its address is printed. `no_scheduled_jobs` starts no job at its times.
+/// and its address is printed. `no_scheduled_jobs` starts no job at its times. A start typed at a
+/// terminal opens the app in the browser, unless `no_open` or the settings say otherwise: one
+/// whose output is read by a program, as the Linux app's, a service's, or a script's, opens none.
 pub fn run(
     port: Option<u16>,
     data_dir: Option<PathBuf>,
     no_scheduled_jobs: bool,
+    no_open: bool,
 ) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let options = Options {
@@ -27,7 +31,8 @@ pub fn run(
         no_scheduled_jobs,
         sandbox: None,
     };
-    match uraeda_server::run(options) {
+    let opens = !no_open && std::io::stdout().is_terminal();
+    match uraeda_server::run(options, opens) {
         Ok(()) => Ok(ExitCode::SUCCESS),
         Err(handed @ NotStarted::HandedOver { .. }) => {
             println!("{handed}");

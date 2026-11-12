@@ -12,7 +12,7 @@
 mod tests;
 
 use nsh_core::prelude::*;
-use uraeda_core::files::document::{self, BlockKind};
+use uraeda_text::document::{self, BlockKind};
 
 /// A conflict's block, as the editor's bar names it.
 #[derive(Clone, Debug, Default, PartialEq, Eq, JsObject)]
@@ -62,7 +62,7 @@ impl Editing {
 
     /// The unified patch from `before` to `after`, the file at `path`: `Diff` draws it.
     pub(crate) fn text_patch(path: String, before: String, after: String) -> String {
-        uraeda_core::git::text_patch(&path, &before, &after)
+        uraeda_text::patch::text_patch(&path, &before, &after)
     }
 
     /// The headings of the Markdown text `text`, in order, as the document's reader finds them:

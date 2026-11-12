@@ -1,6 +1,6 @@
 [package]
 name = "uraeda-text"
-description = "What Uraeda reads in a text alone: a Markdown file's document tree, its links, and its stories."
+description = "What Uraeda reads in a text alone: a Markdown file's document tree, its links, its stories, and the patch between two texts."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -15,6 +15,8 @@ doctest = false
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
+# The lines' diff of a patch: gitoxide's copy of imara-diff, which gix compares blobs with.
+gix-imara-diff.workspace = true
 napi = { workspace = true, optional = true }
 napi-derive = { workspace = true, optional = true }
 pulldown-cmark.workspace = true

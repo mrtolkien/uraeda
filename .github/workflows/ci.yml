@@ -84,6 +84,24 @@ jobs:
           git status --porcelain
           test -z "$(git status --porcelain)"
 
+  web:
+    runs-on: ubuntu-latest
+    # Its first run builds Native Shell's engine and the app's Rust for WebAssembly.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Build the web app
+        # The app for a browser, as `ura serve` serves it, then what a first load weighs.
+        run: nix develop --command just web-build
+      - name: Open it in a browser
+        # The dev shell's headless Chromium signs in and opens the home page.
+        run: nix develop --command just web-test
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
   release:
     runs-on: ubuntu-latest
     # The Linux app's package builds the app's crates in release, from a cold cache at first.

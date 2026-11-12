@@ -2,12 +2,10 @@
 //! changed: blobs read through gix, lines compared with gix's diff (imara-diff, git's Myers with
 //! its slider heuristics), written in the unified format with 3 lines of context.
 
-use std::fmt::Write as _;
 use std::io::Read as _;
 use std::path::Path;
 
-use gix::diff::blob::unified_diff::{ConsumeHunk, ContextSize, DiffLineKind, HunkHeader};
-use gix::diff::blob::{Algorithm, Diff, InternedInput, UnifiedDiff, diff_with_slider_heuristics};
+use gix::diff::blob::{Algorithm, Diff, InternedInput, diff_with_slider_heuristics};
 use gix::object::tree::diff::ChangeDetached;
 
 use super::checkout::COUNT_CAP;
@@ -300,64 +298,6 @@ fn line_diff(input: &InternedInput<&[u8]>) -> Diff {
     diff_with_slider_heuristics(Algorithm::Myers, input)
 }
 
-/// The unified diff of two versions of the text at `path`, as a file's diff is written: what an
-/// editor shows between the text typed and the file as it is now on disk.
-pub fn text_patch(path: &str, before: &str, after: &str) -> String {
-    unified(path, Some(before.as_bytes()), Some(after.as_bytes()))
-}
-
-/// The unified diff of two texts, `None` a side without the file.
-fn unified(path: &str, before: Option<&[u8]>, after: Option<&[u8]>) -> String {
-    let side = |prefix: &str, side: Option<&[u8]>| match side {
-        Some(_) => format!("{prefix}/{path}"),
-        None => "/dev/null".to_string(),
-    };
-    let mut text = format!("--- {}\n+++ {}\n", side("a", before), side("b", after));
-    let input = InternedInput::new(before.unwrap_or_default(), after.unwrap_or_default());
-    let diff = line_diff(&input);
-    let hunks = UnifiedDiff::new(
-        &diff,
-        &input,
-        Hunks(String::new()),
-        ContextSize::symmetrical(3),
-    )
-    .consume()
-    .unwrap_or_default();
-    text.push_str(&hunks);
-    text
-}
-
-/// Writes each hunk as git does: its header, an empty side starting at the line before, so a
-/// whole file added reads `@@ -0,0 +1,2 @@`, then each line with its prefix, a last line without
-/// a newline marked "\ No newline at end of file".
-struct Hunks(String);
-
-impl ConsumeHunk for Hunks {
-    type Out = String;
-
-    fn consume_hunk(
-        &mut self,
-        mut header: HunkHeader,
-        lines: &[(DiffLineKind, &[u8])],
-    ) -> std::io::Result<()> {
-        if header.before_hunk_len == 0 {
-            header.before_hunk_start = header.before_hunk_start.saturating_sub(1);
-        }
-        if header.after_hunk_len == 0 {
-            header.after_hunk_start = header.after_hunk_start.saturating_sub(1);
-        }
-        writeln!(self.0, "{header}").map_err(std::io::Error::other)?;
-        for (kind, line) in lines {
-            self.0.push(kind.to_prefix());
-            self.0.push_str(&String::from_utf8_lossy(line));
-            if !line.ends_with(b"\n") {
-                self.0.push_str("\n\\ No newline at end of file\n");
-            }
-        }
-        Ok(())
-    }
-
-    fn finish(self) -> String {
-        self.0
-    }
-}
+// A patch is written without git, by the readers of a text alone: an editor's, in a browser too.
+pub use uraeda_text::patch::text_patch;
+use uraeda_text::patch::unified;

@@ -8730,3 +8730,206 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/new/NewPane.tsx`, `new.test.tsx`; `app/store/routes.ts`,
   `app/screens/shell/Writes.tsx`; `app/extensions/host.tsx`, `extensions.test.tsx`,
   `docs/extensions.md`.
+
+## R442: The readers of a text alone are a crate, and a patch is written without gix
+
+- **Decision**: a new crate, `uraeda-text` (`crates/text/`), holds what Uraeda reads in a text with
+  no file system and no git: the document tree, the Markdown parts the workflow relies on, story
+  links, the link resolver, and the unified patch between two texts. The core holds them at the
+  paths they had: `uraeda_core::files::{document, markdown, stories}`,
+  `uraeda_core::workspace::resolve`, `uraeda_core::git::text_patch`. The app's native module takes
+  `uraeda-text`, and the core only for its Linux host.
+  - The move is a commit of its own, before the task's.
+  - The patch is written over `gix-imara-diff`, the crate gix compares blobs with, which the
+    lockfile held: git's Myers with its slider heuristics, then hunks with 3 lines of context,
+    written here in place of gix-diff's `UnifiedDiff`. The core's file diffs go through the same
+    writer, so there is one.
+- **Rationale**: the first web build failed there, as the plan's task 31 feared: the core brings
+  `gix`, whose `gix-sec` does not compile for `wasm32-unknown-unknown`, and `libwebp-sys`, whose C
+  does not either. Of the whole graph of the app's module, those two alone failed, both through the
+  core. A crate's dependencies are checked by Cargo, where a `cfg` wall inside the core would break
+  at the first `use crate::git` in a reader.
+- **If wrong**: the core's tests of a file's diff (`crates/core/tests/git_diff.rs`) passed unchanged
+  on the new writer, an empty side and a last line without a newline included.
+- **Where**: `crates/text/`, `crates/core/src/{files/mod.rs,workspace.rs,git/diff.rs}`,
+  `crates/app/Cargo.toml`.
+
+## R443: What of `uraeda/native` runs in a browser, and what does not
+
+- **Decision**: the app's Rust crate is compiled into the web build's one WebAssembly module, beside
+  Native Shell's engine, and the TSX runs on the browser's own JavaScript engine. Each part of
+  `uraeda/native`, found with a build, then seen in Chromium:
+
+  | Part                                  | In a browser                                                                                                                             |
+  | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+  | The Vim bridge and `TextEditor`       | Runs: `uraeda-vim` is pure, and the editor is NSH's.                                                                                     |
+  | Themes and colour mixing              | Runs.                                                                                                                                    |
+  | The reply splitter and Markdown trees | Runs, on `uraeda-text`.                                                                                                                  |
+  | Conflicts, outlines, the text patch   | Runs, on `uraeda-text`.                                                                                                                  |
+  | The patch reader                      | Runs.                                                                                                                                    |
+  | Time zone conversion                  | Runs: `jiff` bundles its time zone database there.                                                                                       |
+  | The bundled fonts                     | Run: NSH publishes the crate's `assets/`.                                                                                                |
+  | Highlighting                          | Runs, with the syntaxes as a file: NSH's own `nsh-syntaxes.<hash>.bin`, the same set, fetched at the first block (`runtime_data::load`). |
+  | Diagrams                              | Not drawn: `diagramPicture` fails, and the source shows. Task 57 gives its web form.                                                     |
+  | Notifications                         | A stub that fails, as on any platform but the Linux host. Task 57.                                                                       |
+  | The extension view                    | Absent: a native component of the Linux host. Task 58.                                                                                   |
+  | The secret store, the host channel    | Absent, and not needed: the browser keeps the session's cookie (R447).                                                                   |
+  - Two helpers of NSH do not exist there. `blocking`, a thread: `crate::apart::apart` runs the work
+    on one where there is one, and at once in a browser. Merman's deadline, a clock.
+  - Diagrams are left out by `cfg`, with their dependencies: Merman, `usvg`, and their fonts are 7.7
+    MB of the module, 3 MB compressed, which every first load would carry for a picture few pages
+    show. Their web form asks the server, which links the same drawing
+    (`uraeda_app::diagram::picture`): an action or a route, in task 57.
+
+- **Rationale**: the plan named this as the task's main risk. Measured with a linker map
+  (`target/web-size.map`): of 18.7 MB, Merman's crates were 5.5 MB of code, `usvg` and its fonts 1
+  MB, the syntaxes a blob of 0.92 MB that NSH already serves as a file.
+- **Where**: `crates/app/src/{apart.rs,diagram.rs,diagram/draw.rs,highlight.rs}`,
+  `crates/app/Cargo.toml`.
+
+## R444: `ura` holds the web build it was compiled with, and a server may read a folder instead
+
+- **Decision**: `just web-build` writes `target/web/`. The server's build script embeds the folder
+  `URAEDA_WEB_BUILD` names as `ura` is compiled, and nothing when it names none: no feature, and no
+  build of the server ever needs the web build. A server started with `URAEDA_WEB_BUILD` in its
+  environment serves that folder in place of what it holds.
+  - `just check`, `just task`, and every test build without it. The server's tests read a stand-in
+    folder. An `ura` without it answers a page that says so, and how to build it.
+  - `just package` builds it first and compiles `ura` with it. The release builds it once, on Linux
+    (`build-web.yml`, a `plan-jobs` job of cargo-dist), and each platform's build of `ura` takes it
+    (`.github/build-setup.yml`): `nsh` runs on x86_64 Linux only. A build script that is given a
+    folder without `index.html` fails, so no release ships without it by a slip.
+  - A file with a gzip form is embedded compressed alone, brotli and gzip, and inflated for the rare
+    client that takes no encoding: `ura` grows by 11.7 MB, not 24.
+  - The flake's own package, `nix run`, builds `ura` without it: its sandbox has no `nsh`.
+- **Rationale**: the task asked that a release hold no loose file, and that no other build wait for
+  the web app, which takes minutes. One variable for both uses lets a build just made be served
+  without compiling `ura` again, as `just web-test` does.
+- **Where**: `crates/server/{build.rs,src/http/web.rs}`, `scripts/{web-build.sh,package.sh}`,
+  `justfile`, `dist-workspace.toml`, `.github/`.
+
+## R445: The first load is 5.0 MB, not 3: what holds it, and what brings it under
+
+- **Decision**: the plan's test `the first load is at most 3 MB` is
+  `the_first_load_is_within_its_limit`, against 5.1 MB: what the build weighs, which only goes down.
+  3 MB stays the goal, for task 60. Measured on the build, compressed with brotli, and in Chromium,
+  on the wire:
+
+  | Part                                                 | Before this task's cuts | Now     |
+  | ---------------------------------------------------- | ----------------------- | ------- |
+  | `nsh.<hash>.wasm`, NSH's engine and the app's Rust   | 5.41 MB                 | 2.36 MB |
+  | Monaspace Neon, five `.otf` files                    | 1.79 MB, as they are    | 1.02 MB |
+  | The eight other families, 30 `.woff2` files          | 1.34 MB                 | 1.34 MB |
+  | The TSX, NSH's page script and its modules, the page | 0.27 MB                 | 0.27 MB |
+  | All, before the first frame                          | 8.8 MB                  | 5.0 MB  |
+  - A first visit also fetches the syntaxes, 0.80 MB, after the first frame: NSH's editor asks for
+    them as it mounts, and every page with a field mounts one. Chromium counted 5.77 MB in 54
+    requests for the sign-in page.
+  - Cut here: diagrams out of the module (R443), the syntaxes out of it, and the `.otf` files
+    compressed by the build script, which NSH leaves as they are.
+
+- **What holds it**: the fonts are 2.4 MB, and NSH fetches every font of the crate's `assets/`
+  before the first frame, since its engine reads a font's bytes at once when it registers it. The
+  module is 2.4 MB, of which NSH's own share for a TSX app is 1 MB by its documentation.
+- **What brings it under 3 MB**, proposed to task 60, not built:
+  - Fonts on demand: only Monaspace Neon Regular before the first frame, 0.2 MB, and each other
+    weight and family with a chunk that registers it when a device picks it (`font("asset:/…")` in a
+    module loaded by `import()`, which NSH's page fetches with that chunk). That alone gives 2.8 MB.
+  - Screens as chunks: the app imports every screen from its entry, so NSH links every part of
+    `nsh/base` into the first module, and makes no side module. A screen loaded by `import()` moves
+    the editor, the diff, and the shaders' compiler, `naga`, 0.66 MB of code, behind the first
+    screen.
+  - A plain field that asks for no syntaxes.
+- **Rationale**: the task said not to raise the limit silently. Fonts on demand change how the theme
+  registers fonts on every platform, which is more than this task's.
+- **Where**: `crates/server/tests/web.rs`, `scripts/web-build.sh`.
+
+## R446: The page answers what a browser opens and no route takes; a server's path never does
+
+- **Decision**: the router's fallback serves the web build. A path of the build is its file. Any
+  other `GET` that asks for a page, `Accept: text/html`, gets the app's page, unless its path is the
+  server's. Everything else gets 404: a module of an older build, a `fetch`, a write.
+  - A path is the server's when it starts as a mounted route does, up to that route's first
+    parameter, the repository's name aside: `/session/…`, `/mcp/…`, `/extensions/…`, `/x/…`,
+    `/r/<name>/raw`, `/r/<name>/preview`. `/r/<name>/inbox` is the app's, though the server has
+    `/r/<name>/inbox/note-image`. The list is read from the routes, so a new route needs no line.
+  - `/sessions` is the server's (`DELETE`): the app writes `/r/<name>/sessions`.
+  - A file whose name holds its hash is `immutable` for a year. The page and the manifest are
+    `no-cache`, with a tag.
+  - The session check already let pass what no route matches: nothing else became open.
+- **The policy**: the page carries a `Content-Security-Policy`: its own origin for everything,
+  `connect-src 'self'`, frames and workers of its own origin and `blob:`, which leaves room for an
+  extension's player (task 58), pictures also from `https:`, as a document's links name them, and
+  `frame-ancestors 'self'`.
+  - Scripts written in the page are allowed, `'unsafe-inline'`. Tried first with a hash for each of
+    the page's own: NSH's runtime writes the import map of the app's frame as a script in that
+    frame, and Chromium refused it, "Failed to resolve module specifier nsh". Worth an upstream
+    report: a nonce the page gives the player would close it.
+- **Where**: `crates/server/src/http/{web.rs,web/policy.rs}`, `crates/server/tests/web.rs`.
+
+## R447: A browser signs in on a page of its own, by the session's cookie
+
+- **Decision**: in a browser the app mounts `app/web/Web.tsx`, not the shell's root directly. It
+  asks `GET /session`, shows `SignIn` when the browser has no session, which sends the access key to
+  `POST /session`, then mounts the shell's `Root` with a host whose server is the page's own origin
+  and asks for no token: the cookie goes with the WebSocket's request, and the `hello` says
+  `cookie`. A session the server ended brings the sign-in page back, with the reason.
+  - The page's own address opens its route at the start, so a reload or a shared address works.
+    Following the route as it changes, and Back, are task 57's.
+  - A pairing code is not taken: it makes a device's token, which a page would keep where any script
+    reads it. The cookie is `HttpOnly`.
+  - `GET /session` answers 401 to a browser not signed in, which its console notes: the contract's
+    answer, left as it is.
+- **Rationale**: the shell's files are another fixer's while this task runs, and a browser's sign-in
+  is a different errand from pairing a device: one field, the key, and other words.
+- **Where**: `app/App.tsx`, `app/web/{Web.tsx,SignIn.tsx,host.ts}`.
+
+## R448: The headless browser is the dev shell's Chromium, driven over DevTools from Rust
+
+- **Decision**: `web-browser`, in the dev shell, runs the Chromium nixpkgs pins for Playwright,
+  which the flake already held: nothing new is downloaded. `crates/server/tests/browser/cdp.rs`
+  drives it over the DevTools protocol, with the WebSocket client the tests had: a page's size, a
+  phone's touch screen, the theme's mode, the processor slowed (`slow(4)`, for task 60), keys, the
+  page's text, pictures, what each request weighed, and what the console said. `just web-test` runs
+  `crates/server/tests/browser.rs` on the real build, over a sandbox with sign-in: 8 s. No `node`.
+  - `nsh test --target web --browser "$(command -v web-browser)"` runs the app's own `*.test.tsx` in
+    the same Chromium, on NSH's development page. It does not load the page `ura` serves, so it
+    checks neither the policy, nor the cookie, nor what is sent.
+- **Rationale**: the task asked for a browser that takes a phone's size and a slowed processor,
+  driven without `node`. What only a served page shows is the reason for a driver of our own.
+- **Where**: `flake.nix`, `justfile`, `crates/server/tests/{browser.rs,browser/cdp.rs}`.
+
+## R449: `ura serve` opens the browser for a start typed at a terminal
+
+- **Decision**: a start opens the app in the owner's browser when its output is a terminal, the
+  setting `open_browser` is not off, and a desktop can show one: never over SSH, and on Linux only
+  with a display, as the Node server's `browser.ts`. `--no-open` turns it off for one start.
+  - The one-time sign-in link is written in a page of the data folder that only the owner reads,
+    `open.html`, and the opener is given that page: a link on a command line is read by every user
+    of the machine.
+  - A start by the Linux app, a service, or a script has no terminal, and opens none: the app starts
+    its server without a flag.
+- **Where**: `crates/server/src/{browser.rs,run.rs}`, `crates/cli/src/{main.rs,serve.rs}`.
+
+## R450: The web pictures against GTK's
+
+- **Decision**: seen in `target/shots/web/`, beside `target/shots/app/r-sample--*`: the home page in
+  both themes at 1400 and at 390 by 844, the sign-in page, and the inbox by its address. It is the
+  same app: the same panes, cards, fonts, glow, backdrop wash, and status line.
+  - Each pane's tab shows its menu, `…`, in the browser, where the GTK pictures show none.
+  - The sidebar has no "Hello": an extension's place needs its page (task 58).
+  - The first frame shows the empty states, "The inbox is empty", before the records come.
+  - A device keeps the theme it showed last, so a browser that showed dark stays dark when the
+    system turns light, as on GTK.
+  - Not looked at: glass over moving content, web views, a session, diagrams, and code.
+- **Where**: `target/shots/web/`.
+
+## R451: One test failed once while the machine was loaded
+
+- **Decision**: `a_page_fetched_after_its_place_closed_never_runs`
+  (`crates/app/tests/extensions.rs`) failed once, "a page ran after its place closed", 3 for 2, in a
+  run of `just task` over five crates at a load of 17, beside other builds. Run again with the whole
+  of `just task`, it passed. Nothing was changed.
+- **Rationale**: the plan's rule for a failure of timing under load. The test draws in a GTK window,
+  and touches nothing this task changed.
+- **Where**: `crates/app/tests/extensions.rs`.

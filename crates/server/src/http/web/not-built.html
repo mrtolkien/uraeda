@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Uraeda</title>
+    <style>
+      html {
+        background: #f7f4ee;
+        color: #2b2620;
+        font:
+          16px/1.5 ui-monospace,
+          "SF Mono",
+          Menlo,
+          Consolas,
+          monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        html {
+          background: #16130f;
+          color: #e9e2d6;
+        }
+      }
+      main {
+        margin: 20vh auto 0;
+        max-width: 34rem;
+        padding: 0 1.5rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      code {
+        font: inherit;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>This ura was built without the web app</h1>
+      <p>
+        The server runs, and the Linux app and paired devices reach it. Only the app's pages for a
+        browser are missing from this build.
+      </p>
+      <p>
+        In a checkout of Uraeda, <code>just web-build</code> makes them in <code>target/web</code>.
+        Then start the server with <code>URAEDA_WEB_BUILD=target/web</code> to serve that folder, or
+        build <code>ura</code> with it set, as <code>just package</code> does, to hold them.
+      </p>
+      <p>A released ura holds them already.</p>
+    </main>
+  </body>
+</html>

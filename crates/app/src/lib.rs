@@ -2,6 +2,7 @@
 //! app's native components, and the Linux host.
 
 mod about;
+mod apart;
 pub mod diagram;
 mod editing;
 #[cfg(all(target_os = "linux", feature = "host"))]

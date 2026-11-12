@@ -19,6 +19,7 @@
 //! A rule every request passes, as the guard, is a layer in `http::router`. A process the server
 //! runs starts from `shared.environment().command(..)`. A time is `shared.now()`.
 
+pub mod browser;
 mod clock;
 mod env;
 pub mod extensions;

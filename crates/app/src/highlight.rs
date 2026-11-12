@@ -23,10 +23,39 @@ pub struct CodeRun {
     pub role: String,
 }
 
-/// bat's syntaxes, read once, on the first block with a language: tens of milliseconds.
+/// bat's syntaxes, read once.
+static SYNTAXES: OnceLock<SyntaxSet> = OnceLock::new();
+
+/// bat's syntaxes, read on the first block with a language, in tens of milliseconds: the app
+/// holds them, but in a browser.
+#[cfg(not(target_arch = "wasm32"))]
 fn syntaxes() -> &'static SyntaxSet {
-    static SYNTAXES: OnceLock<SyntaxSet> = OnceLock::new();
     SYNTAXES.get_or_init(two_face::syntax::extra_newlines)
+}
+
+/// bat's syntaxes, once [`fetched`]: none before, and every block is plain.
+#[cfg(target_arch = "wasm32")]
+fn syntaxes() -> &'static SyntaxSet {
+    static NONE: OnceLock<SyntaxSet> = OnceLock::new();
+    SYNTAXES
+        .get()
+        .unwrap_or_else(|| NONE.get_or_init(SyntaxSet::new))
+}
+
+/// In a browser the syntaxes are a file of their own, 0.9 MB that no first load carries: the one
+/// Native Shell's editor reads, the same set, which its page fetches at the first block with a
+/// language. Without it, as offline, a block keeps its own colour.
+#[cfg(target_arch = "wasm32")]
+async fn fetched() {
+    if SYNTAXES.get().is_some() {
+        return;
+    }
+    let Some(bytes) = nsh_core::runtime_data::load("syntaxes").await else {
+        return;
+    };
+    if let Ok(set) = syntect::dumps::from_uncompressed_data(&bytes) {
+        let _ = SYNTAXES.set(set);
+    }
 }
 
 /// The syntax of a fence's language, by its extension or its name, or the other names fences use.
@@ -120,14 +149,14 @@ pub(crate) struct Highlight;
 impl Highlight {
     /// The runs of a finished code block, `code` in `language` as its fence names it, each in one
     /// of the theme's `syntax-*` roles, which together hold the code whole. Read once per block,
-    /// on a thread of its own: the first block with a language reads the syntaxes, in tens of
+    /// on a thread of its own where there is one: the first block with a language reads the syntaxes, in tens of
     /// milliseconds, and a long block takes as many.
     pub(crate) async fn highlight_code(
         code: String,
         language: String,
     ) -> Result<Vec<CodeRun>, String> {
-        blocking(move || runs(&language, &code))
-            .await
-            .map_err(|error| error.to_string())
+        #[cfg(target_arch = "wasm32")]
+        fetched().await;
+        crate::apart::apart(move || runs(&language, &code)).await
     }
 }
