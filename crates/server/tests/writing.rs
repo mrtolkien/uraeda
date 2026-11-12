@@ -4,7 +4,7 @@
 
 #[path = "writing/fixture.rs"]
 mod fixture;
-mod support;
+use crate::support;
 
 use std::fs;
 use std::path::PathBuf;

@@ -17,7 +17,7 @@ retries = 2
 # Each browser test starts a Chromium of its own: sixteen at once made a tap land before its
 # page was drawn. Four run at a time.
 [[profile.default.overrides]]
-filter = "package(uraeda-server) & binary(browser)"
+filter = "package(uraeda-server) & binary(tests) & test(/^browser::/)"
 test-group = "browsers"
 
 [test-groups]

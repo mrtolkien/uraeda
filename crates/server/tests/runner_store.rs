@@ -5,7 +5,7 @@
 //! store wrote, and which is frozen since that store went: see `fixtures/runner/README.md`.
 //! Each test imports a copy of it, in a temporary folder.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -122,8 +122,8 @@ with two short messages each. Both spend a little of the account's plan, and onl
 for:
 
 ```sh
-cargo nextest run -p uraeda-server --test claude --run-ignored only real --no-capture
-cargo nextest run -p uraeda-server --test codex --run-ignored only real --no-capture
+cargo nextest run -p uraeda-server -E 'test(/^claude::real::/)' --run-ignored only --no-capture
+cargo nextest run -p uraeda-server -E 'test(/^codex::real::/)' --run-ignored only --no-capture
 ```
 
 ## The README's screenshots

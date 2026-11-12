@@ -7,7 +7,7 @@ use std::path::Path;
 use serde_json::{Value, json};
 use uraeda_server::runtimes::{Options, Outgoing, SentImage, Tools, When};
 
-use crate::stage::{
+use super::stage::{
     CONTROLS, SILENT, Stage, args, each_of, message, next, options, rest, stage, staged, stdin,
     values_of, written,
 };

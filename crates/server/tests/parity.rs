@@ -5,7 +5,7 @@
 //! went: this test read them from that code until then, and failed on a name without a line and
 //! on a line of no name. What stays checked is each line's new name.
 
-mod support;
+use crate::support;
 
 use std::collections::{BTreeMap, BTreeSet};
 

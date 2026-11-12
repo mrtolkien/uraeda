@@ -3,7 +3,7 @@
 //! starts the change it offers and only then, a job is never read from a repository, and the
 //! server's stop. Time moves by setting the clock and ticking: nothing sleeps.
 
-mod support;
+use crate::support;
 
 use std::sync::Arc;
 use std::time::SystemTime;

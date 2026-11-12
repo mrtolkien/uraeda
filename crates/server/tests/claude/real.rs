@@ -1,7 +1,7 @@
 //! The check of the runtime against this machine's `claude`, signed in. It is ignored: run it by
 //! hand, after a Claude Code upgrade, or when runs break.
 //!
-//!   nix develop -c cargo nextest run -p uraeda-server --test claude --run-ignored only real
+//!   nix develop -c cargo nextest run -p uraeda-server -E 'test(/^claude::real::/)' --run-ignored only
 //!
 //! It uses the owner's account, and costs a few cents: two short messages on Sonnet at a low
 //! effort, in a temporary folder outside any repository, with no tool asked for. It starts the
@@ -18,7 +18,7 @@ use tempfile::TempDir;
 use uraeda_server::runtimes::{Options, Runtime, Runtimes};
 use uraeda_server::{Clock, Options as Start, Server};
 
-use crate::stage::{message, options};
+use super::stage::{message, options};
 
 /// This process's environment, without what a `claude` gives the commands it runs.
 fn environment() -> Vec<(String, String)> {

@@ -4,7 +4,7 @@
 //! The tests' record is `Counter`, registered on a running server and declared nowhere else: a
 //! count, changed by the action `counter.add`, and a tape, a text that grows.
 
-mod support;
+use crate::support;
 
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, mpsc};

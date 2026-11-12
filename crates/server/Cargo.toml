@@ -6,6 +6,8 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+# One program holds every integration test: `tests/main.rs`.
+autotests = false
 
 # cargo-nextest does not run doctests, and the crate has none.
 [lib]
@@ -24,6 +26,12 @@ name = "fake-codex"
 path = "tests/bin/fake_codex.rs"
 test = false
 doc = false
+
+# Every integration test, in one program: each program linked the whole crate and what it depends
+# on, about 400 MB each, so a cold build of the workspace's tests passed what a CI runner has free.
+[[test]]
+name = "tests"
+path = "tests/main.rs"
 
 [dependencies]
 axum.workspace = true

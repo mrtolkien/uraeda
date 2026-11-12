@@ -1,6 +1,6 @@
 //! `POST /diagram`: the picture of a diagram for the app in a browser, which draws none itself.
 
-mod support;
+use crate::support;
 
 use serde_json::json;
 

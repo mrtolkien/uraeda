@@ -1,7 +1,7 @@
 //! The server's skeleton: the handshake at `/live`, the guard every request passes, the second
 //! start's handoff, and where secrets come from.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::net::TcpListener;

@@ -6,7 +6,7 @@
 //! test's server, which answers `gh pr list` with the JSON recorded in its folder, and writes
 //! down where it ran and what it was asked.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;

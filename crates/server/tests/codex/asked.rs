@@ -8,7 +8,7 @@ use std::path::Path;
 use serde_json::{Value, json};
 use uraeda_server::runtimes::{Options, Runtimes, SentImage, Tools};
 
-use crate::stage::{Stage, message, options, params, stage, staged, until, written};
+use super::stage::{Stage, message, options, params, stage, staged, until, written};
 
 /// The arguments a session's stand-in was started with.
 fn argv(dir: &Path) -> Value {
@@ -295,7 +295,7 @@ async fn a_messages_images_are_local_images() {
     process.close();
     until(&mut events, "exit").await;
 
-    let turns = crate::stage::requests(&dir).into_iter();
+    let turns = super::stage::requests(&dir).into_iter();
     let inputs: Vec<Value> = turns
         .filter(|line| line["method"] == "turn/start")
         .map(|line| line["params"]["input"].clone())
@@ -383,7 +383,7 @@ async fn the_built_in_lists_codexs_models_and_says_its_version() {
     stage.stop().await;
 
     // Nothing configured: the model marked default, and its default effort.
-    let stage = crate::stage::stage(json!({ "config": { "model": null } })).await;
+    let stage = super::stage::stage(json!({ "config": { "model": null } })).await;
     let (_, models) = checked(&stage).await;
     let defaults = json!({ "effort": "medium", "model": "gpt-6.1-sol" });
     assert_eq!(models.expect("a list")["defaults"], defaults);

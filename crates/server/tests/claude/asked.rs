@@ -11,8 +11,8 @@ use uraeda_protocol::{ModelDefaults, ModelList};
 use uraeda_server::runner::Denial;
 use uraeda_server::runtimes::{ReviewAsk, RuntimeError, Runtimes};
 
-use crate::process::controlled;
-use crate::stage::{REPLAY, SILENT, stage, staged, stdin};
+use super::process::controlled;
+use super::stage::{REPLAY, SILENT, stage, staged, stdin};
 use crate::support;
 
 #[tokio::test]
@@ -287,7 +287,7 @@ async fn the_models_are_listed_by_a_short_process_which_is_closed() {
         .expect("Claude Code lists its models");
     assert_eq!(serde_json::to_value(listed).unwrap(), expected);
     // In the home folder, with no message sent, so no usage is spent, and no transcript kept.
-    assert_eq!(crate::stage::args(&stage.home), MODELS_ARGS);
+    assert_eq!(super::stage::args(&stage.home), MODELS_ARGS);
     let asked: Vec<Value> = stdin(&stage.home)
         .into_iter()
         .map(|line| line["request"].clone())

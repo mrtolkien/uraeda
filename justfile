@@ -114,7 +114,7 @@ package:
 # `URAEDA_WEB_BUILD=target/web`, and an `ura` built with it set, as `just package` builds it.
 web-build:
     {{ heavy }} scripts/web-build.sh
-    URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test web -- --ignored --nocapture the_first_load
+    URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test tests -- --ignored --nocapture web::the_first_load
 
 # The web build in a real browser, the dev shell's headless Chromium, over a sandbox that serves
 # `target/web/`: it signs in with the access key, opens the home page, and takes its pictures,
@@ -122,7 +122,7 @@ web-build:
 # (`crates/server/tests/browser.rs`). After `just web-build`.
 web-test *args:
     mkdir -p target/shots/web
-    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/web" {{ isolated }} cargo nextest run -p uraeda-server -E 'binary(browser)' --run-ignored only --no-capture "$@"
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/web" {{ isolated }} cargo nextest run -p uraeda-server -E 'test(/^browser::/)' --run-ignored only --no-capture "$@"
 
 # The phone in a browser, for the eye: every page and the states a phone meets (sheets, menus, the
 # keyboard up, a toast, a long transcript, a diff), at 390 by 844 with touch, an iPhone's safe area,
@@ -132,7 +132,7 @@ web-test *args:
 # holds `spec`. After `just web-build`. A tool, never a check.
 web-shots word="":
     rm -rf target/shots/phone && mkdir -p target/shots/phone
-    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/phone" URAEDA_PHONE_SHOTS=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact phone::phone_pictures
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/phone" URAEDA_PHONE_SHOTS=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test tests -- --ignored --nocapture --exact browser::phone::phone_pictures
 
 # A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
 # fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
@@ -210,7 +210,7 @@ bench-navigation on="gpu":
 # A benchmark of the web build, over a sandbox that serves `target/web/`.
 [private]
 _bench-web what on test:
-    URAEDA_BENCH="{{ what }}" {{ if on == "web-profile" { "URAEDA_BENCH_PROFILE=1" } else { "" } }} URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact {{ test }} 2>&1 | tee "target/bench-web-$(echo '{{ what }}' | tr ' ' -).log"
+    URAEDA_BENCH="{{ what }}" {{ if on == "web-profile" { "URAEDA_BENCH_PROFILE=1" } else { "" } }} URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test tests -- --ignored --nocapture --exact browser::{{ test }} 2>&1 | tee "target/bench-web-$(echo '{{ what }}' | tr ' ' -).log"
 
 # The whole app to review, on sample projects with a fake agent and no sign-in: the server, `ura
 # sandbox`, at http://127.0.0.1:4420, its state in `.sandbox/` until `just sandbox --reset`,

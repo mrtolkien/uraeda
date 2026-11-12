@@ -1,7 +1,7 @@
 //! The agents' MCP endpoint, `/mcp`: who may call it, the protocol it speaks, and how a call of a
 //! tool runs, reports progress, and stops.
 
-mod support;
+use crate::support;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};

@@ -1,7 +1,7 @@
 //! The files a client reads and sends as bytes: a repository's raw files, mockups, and images,
 //! the chat's images of the data folder, and the uploads.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::io::{Read, Write};

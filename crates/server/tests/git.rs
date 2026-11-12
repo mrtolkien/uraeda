@@ -2,7 +2,7 @@
 //! answers its shape, and each write shows in a later read. A remote is a bare repository beside
 //! the test's own, never a real one.
 
-mod support;
+use crate::support;
 #[path = "../../core/tests/common/texts.rs"]
 mod texts;
 

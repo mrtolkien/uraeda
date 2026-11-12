@@ -2,7 +2,7 @@
 //! key or a one-time link; a paired device's token; the routes open without either; and what the
 //! sign-in file holds.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;

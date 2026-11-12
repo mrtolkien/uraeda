@@ -10298,3 +10298,24 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/git/CommitBox.tsx`; the tests
   `in a release build, a key that means two things is named, and the first binding kept` and
   `c writes the message of the group the cursor is in, as the cursor crosses groups`.
+## T194.1: One integration-test program per crate, for the server and the app
+
+- **Decision**: `crates/server/tests/` and `crates/app/tests/` are each one program,
+  `tests/main.rs`, named `tests`, with `autotests = false` in the crate's manifest: every file of
+  `tests/` is a module of it, under its own name, and the server's `support/` is the module they
+  share. A test is selected by its module, `-E 'test(/^browser::/)'`, where it was `-E
+  'binary(browser)'`: nextest's `browsers` group, the outside checks' retries (each filter also
+  names the program, `binary(tests)`, as a unit test of `src/browser.rs` is named `browser::` too),
+  the recipes, and the toolchain's test of the retries name the modules. A check re-run on the
+  hidden display is started by its whole name, its module's before it. The files did not move: only
+  `mod support;` became `use crate::support;`, and a folder's `crate::stage` became `super::stage`.
+- **Rationale**: each program linked the whole server, about 415 MB: the server's 25 programs
+  were 10.4 GB of `target/` once built, the app's ten their share again, and every change to the
+  server linked them all. A cold build of the workspace's tests passed what a CI runner has free.
+  nextest still runs each test in a process of its own, so nothing a test sets reaches another.
+- **If wrong**: a test file added to `tests/` and not declared in `main.rs` would never build:
+  `every_test_file_is_a_module_of_this_program`, in each `main.rs`, fails, naming the file and the
+  line to add.
+- **Where**: `crates/server/tests/main.rs`, `crates/app/tests/main.rs`, both crates'
+  `Cargo.toml`, `.config/nextest.toml`, `justfile`, `crates/xtask/tests/toolchain.rs`,
+  `crates/app/tests/outside/display.rs`.

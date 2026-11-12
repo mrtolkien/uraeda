@@ -158,7 +158,7 @@ fn a_transcript_reads_by_pages_each_with_what_later_changed_its_lines() {
 
 // How long a reply of 20,000 pieces takes from the agent to a subscriber, whole: what task 53
 // measures against a frame. Run it by hand:
-// `cargo nextest run -p uraeda-server --test sessions --run-ignored only long_reply`.
+// `cargo nextest run -p uraeda-server -E 'test(/a_long_reply/)' --run-ignored only`.
 #[tokio::test]
 #[ignore = "a measure, run by hand"]
 async fn a_long_reply_of_20000_pieces_streams_to_a_subscriber() {

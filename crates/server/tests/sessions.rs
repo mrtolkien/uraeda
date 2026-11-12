@@ -4,7 +4,7 @@
 //! blocked action allowed, the agents a workflow run starts, the restart's sweep, and a process
 //! that does not answer.
 
-mod support;
+use crate::support;
 
 #[path = "sessions/agents.rs"]
 mod agents;

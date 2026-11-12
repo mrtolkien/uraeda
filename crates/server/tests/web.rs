@@ -3,7 +3,7 @@
 //! weighs. The server's tests read a small stand-in build, a folder `URAEDA_WEB_BUILD` names; the
 //! last test measures the real one, and `just web-build` runs it.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::io::Write as _;

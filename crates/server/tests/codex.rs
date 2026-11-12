@@ -13,7 +13,7 @@ mod process;
 mod real;
 #[path = "codex/stage.rs"]
 mod stage;
-mod support;
+use crate::support;
 
 use std::fs;
 use std::path::{Path, PathBuf};

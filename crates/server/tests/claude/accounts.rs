@@ -4,7 +4,7 @@
 
 use std::fs;
 
-use crate::stage::{options, rest, staged};
+use super::stage::{options, rest, staged};
 use uraeda_server::runtimes::{Account, AccountState, Options};
 
 /// A stand-in that writes the folder it was given, answers `auth status` signed out for a

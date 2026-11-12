@@ -15,7 +15,7 @@ mod process;
 mod real;
 #[path = "claude/stage.rs"]
 mod stage;
-mod support;
+use crate::support;
 
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -5,7 +5,7 @@
 //! `uraeda_server::sandbox::storybook`, built beside them as the program `fake-storybook`: no
 //! test runs a real Storybook, or a package manager.
 
-mod support;
+use crate::support;
 
 use std::collections::HashMap;
 use std::fs;

@@ -3,7 +3,7 @@
 //! pick's rule row by row is the unit test of `runtimes/accounts.rs`; Claude Code's folders are
 //! in `claude/accounts.rs`.
 
-mod support;
+use crate::support;
 
 use std::sync::Arc;
 

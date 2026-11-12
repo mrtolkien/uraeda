@@ -10,7 +10,7 @@
 mod broken;
 #[path = "extensions_vm/reach.rs"]
 mod reach;
-mod support;
+use crate::support;
 
 use std::fs;
 use std::path::Path;

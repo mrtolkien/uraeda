@@ -2,7 +2,7 @@
 //! workspace, what needs the human, the settings, and the themes, each read in its shape, written
 //! by its actions, and followed as its files change on disk.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::time::Duration;

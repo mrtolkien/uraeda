@@ -7,7 +7,7 @@
 //! verification; a build's number only grows; a build that fails keeps the last package; the
 //! key that signs stays in the data folder; and a page is built from its own folder only.
 
-mod support;
+use crate::support;
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt as _;

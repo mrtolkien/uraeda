@@ -7,7 +7,7 @@
 
 #[path = "runtimes/child.rs"]
 mod child;
-mod support;
+use crate::support;
 
 use std::path::PathBuf;
 use std::sync::Arc;

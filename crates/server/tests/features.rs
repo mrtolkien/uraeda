@@ -3,7 +3,7 @@
 //! changes, and the workflow's messages, each read in its shape; and each action that writes git
 //! or a stored file, on what a later read and the files show.
 
-mod support;
+use crate::support;
 
 #[path = "features/inbox.rs"]
 mod inbox;

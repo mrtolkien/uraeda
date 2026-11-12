@@ -1,7 +1,7 @@
 //! The one check against the real `codex`, run by hand: it uses the machine's `codex` and its
 //! owner's account, for two short messages that ask for no command.
 //!
-//!   cargo nextest run -p uraeda-server --test codex --run-ignored only real --no-capture
+//!   cargo nextest run -p uraeda-server -E 'test(/^codex::real::/)' --run-ignored only --no-capture
 //!
 //! Codex gets the sandbox the runtime asks for, `workspace-write`, in a session's folder that
 //! is temporary and outside any repository.
@@ -14,7 +14,7 @@ use serde_json::Value;
 use tempfile::TempDir;
 use uraeda_server::runtimes::{Options, Runtimes};
 
-use crate::stage::{message, options, until};
+use super::stage::{message, options, until};
 use crate::support;
 
 /// The machine's `codex`, as the test's own `PATH` finds it.

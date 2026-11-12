@@ -1,7 +1,7 @@
 //! `ura sandbox`: the server over the sample projects and the fake agent, without sign-in, its
 //! state kept until a reset builds it again, as the sandbox decision says.
 
-mod support;
+use crate::support;
 
 use std::collections::BTreeSet;
 use std::fs;

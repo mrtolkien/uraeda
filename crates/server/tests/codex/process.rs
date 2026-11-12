@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use uraeda_server::runtimes::codex::codex;
 use uraeda_server::runtimes::{Options, ReviewAsk, Runtime};
 
-use crate::stage::{message, open_on, options, params, requests, stage, steer, until, written};
+use super::stage::{message, open_on, options, params, requests, stage, steer, until, written};
 
 /// The methods the stand-in read, in order.
 fn methods(dir: &Path) -> Vec<String> {
@@ -369,7 +369,7 @@ async fn a_process_closed_while_its_thread_fails_to_start_ends() {
 #[tokio::test]
 async fn a_codex_that_is_not_installed_is_an_exit_that_says_so() {
     let config = "[extensions.codex]\ncommand = \"no-such-codex-command\"\n";
-    let stage = crate::stage::staged(json!({}), |setup| setup.config("config.toml", config)).await;
+    let stage = super::stage::staged(json!({}), |setup| setup.config("config.toml", config)).await;
     let dir = stage.session_dir();
     let mut process = stage.open(options(&dir)).await;
     let mut events = process.events();
