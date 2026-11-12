@@ -146,6 +146,8 @@ export function ConflictEditor(props: { path: string; repo: string }) {
         <Button
           disabled={hasMarkers(text.text()) || !text.dirty()}
           icon="save"
+          // Heard in the pane too: `1` `2` `3` take a block with the focus out of the text.
+          keys="mod+Enter"
           label="Save"
           onPress={save}
           pending={pending()}
