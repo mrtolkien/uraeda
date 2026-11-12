@@ -39,17 +39,17 @@ could run. History: [Image attachments](../done/2026-10-13-image-attachments.md)
 ## Alternatives considered
 
 - An image library in the server: out of reach of `ura lsp`, the editors' language server, which
-  runs without Node.
+  runs without the server.
 - Images outside git, or in Git LFS: links break elsewhere, or every clone needs LFS.
 
 ## Consequences
 
 - Every attached image stays in git history: a screenshot of a secret needs a history rewrite.
-- Building `ura` and the Node binding needs a C compiler.
+- Building `ura` needs a C compiler.
 - Chat images are lost with Uraeda's data folder, like chat transcripts.
 
 ## Applies to
 
-- [`crates/core/`](/crates/core/) and its callers: the [server](/packages/server/), the
-  [binding](/packages/binding/), and [`ura lsp`](/crates/lsp/)
+- [`crates/core/`](/crates/core/) and its callers: the [server](/crates/server/) and
+  [`ura lsp`](/crates/lsp/)
 - Every folder under `specs/` that holds images, and the [skill](/skills/uraeda/SKILL.md)'s layout

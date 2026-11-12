@@ -55,14 +55,14 @@ history of its own, a sub-agent's included. History:
 
 - The server parses each agent's events itself, and Codex's protocol is labelled experimental, so a
   new version of either agent can break its runtime.
-- Without an agent installed and signed in, the web UI only commits.
+- Without an agent installed and signed in, the app only commits.
 - Several sessions share one worktree, so only one of them works at a time, but for a run's
   sub-agents, which work beside it.
 - A branch that changes the skill runs with the server's copy of the skill, not its own.
 
 ## Applies to
 
-- [`packages/server/src/runner/`](/packages/server/src/runner/), the runtimes built in and those of
+- [`crates/server/src/runtimes/`](/crates/server/src/runtimes/), the runtimes built in and those of
   extensions, and every feature that starts, follows, or stops an agent: the chat, benchmarks,
   notifications, and other agents' runtimes
 

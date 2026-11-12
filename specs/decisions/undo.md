@@ -51,5 +51,5 @@ human's commits stay theirs. History: [Global undo](../done/2026-11-07-global-un
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), and every feature that adds or changes a write the human makes
+- [`app/`](/app/), and every feature that adds or changes a write the human makes
 - [`crates/core/`](/crates/core/)'s writes to the inbox, the priorities, proposals, and comments

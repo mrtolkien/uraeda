@@ -63,7 +63,7 @@ one that is stuck, so it is asked first. History:
 
 ## Applies to
 
-- [`packages/server/src/runner/`](/packages/server/src/runner/), the settings in
+- [`crates/server/src/runner/`](/crates/server/src/runner/), the settings in
   [`crates/core/`](/crates/core/), and every feature that starts, follows, schedules, or stops an
   agent's run
 - The skill's guidance on background work, in [`skills/uraeda/`](/skills/uraeda/)

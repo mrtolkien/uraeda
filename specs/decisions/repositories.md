@@ -29,7 +29,7 @@ through the Rust core.
 
 ## Why
 
-One web UI serves several repositories, and the list is data a human or an agent edits by hand. The
+One server serves several repositories, and the list is data a human or an agent edits by hand. The
 CLI's `ura add` and the server both write it, so the core owns it. Addresses carry a readable name
 rather than the machine's paths, so links can be read and shared. History:
 [Multi-repo server](../done/2026-10-13-multi-repo-server.md).
@@ -42,7 +42,7 @@ rather than the machine's paths, so links can be read and shared. History:
 
 ## Consequences
 
-- `ura add`, the web UI, and hand edits change one list a running server follows; two writes at once
+- `ura add`, the app, and hand edits change one list a running server follows; two writes at once
   can lose one.
 - A name stays as it was added, so links keep working; renaming by hand breaks them.
 - Anyone signed in can add any repository of the machine, and run agents in it.
@@ -50,6 +50,5 @@ rather than the machine's paths, so links can be read and shared. History:
 ## Applies to
 
 - [`crates/core/`](/crates/core/), [`crates/cli/`](/crates/cli/), and
-  [`packages/server/`](/packages/server/), and every feature that reads or writes Uraeda's data
-  folder
-- [`packages/web/`](/packages/web/), and every feature that adds a page, a link, or a file route
+  [`crates/server/`](/crates/server/), and every feature that reads or writes Uraeda's data folder
+- [`app/`](/app/), and every feature that adds a page, a link, or a file route

@@ -15,7 +15,7 @@ what the reader needs where they need it.
 
 - The README MUST hold only what a newcomer needs to understand Uraeda, see it, install it, and
   start, linking to the rest.
-- The README MUST present Uraeda as a workflow first, then the CLI that enforces it, then the web UI
+- The README MUST present Uraeda as a workflow first, then the CLI that enforces it, then the app
   that drives it.
 - The README's install MUST stay a few commands, with every other way to install in `INSTALL.md`.
 - Reference for users, such as settings, sign-in, and the CLI's commands, MUST live in pages under

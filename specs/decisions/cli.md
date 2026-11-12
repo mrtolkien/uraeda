@@ -41,7 +41,7 @@ fixed size cap each dependency must fit under. History: [CLI core](../done/2026-
 ## Consequences
 
 - The skill keeps its full length, and each command change is a skill change, reviewed together.
-- Runners and the web UI read stable JSON.
+- Runners and the app read stable JSON.
 - The binary grows with each dependency the human accepts, and review keeps it small.
 
 ## Applies to

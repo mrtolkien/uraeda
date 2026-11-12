@@ -44,5 +44,5 @@ History: [Redesign interface](../done/2026-10-16-redesign-interface.md).
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/) and [`packages/server/`](/packages/server/), and every feature
-  that tells the human something happened: notifications, the tab's title, and a later Web Push
+- [`app/`](/app/) and [`crates/server/`](/crates/server/), and every feature that tells the human
+  something happened: notifications, the tab's title, and a later Web Push

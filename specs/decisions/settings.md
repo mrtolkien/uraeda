@@ -7,8 +7,8 @@ icon: settings
 # Settings
 
 Uraeda's settings live in one TOML file that a human edits, backs up, and keeps in their dotfiles.
-The web UI writes the same file without losing a hand edit. A flag or an environment variable
-overrides a setting for one run, and settings stay apart from Uraeda's data and secrets.
+The app writes the same file without losing a hand edit. A flag or an environment variable overrides
+a setting for one run, and settings stay apart from Uraeda's data and secrets.
 
 ## Rules
 
@@ -25,7 +25,7 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
   default. Checked by the server's tests.
 - A flag or an environment variable MUST NOT be written into the file. Checked by the server's
   tests.
-- A setting changed in the web UI MUST apply at once when it can, the page saying otherwise when it
+- A setting changed in the app MUST apply at once when it can, the page saying otherwise when it
   applies.
 
 ## Why
@@ -50,6 +50,6 @@ repository restyles the UI. A flag overrides for one run. History:
 
 ## Applies to
 
-- [`crates/core/`](/crates/core/), [`packages/server/`](/packages/server/),
-  [`packages/web/`](/packages/web/), and every feature that adds a setting, a flag, an environment
-  variable, or a file in Uraeda's data or config folder
+- [`crates/core/`](/crates/core/), [`crates/server/`](/crates/server/), [`app/`](/app/), and every
+  feature that adds a setting, a flag, an environment variable, or a file in Uraeda's data or config
+  folder

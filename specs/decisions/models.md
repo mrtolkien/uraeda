@@ -54,5 +54,5 @@ when a limit refuses its run: waiting for the reset costs hours, and the same re
 
 ## Applies to
 
-- [`packages/server/src/runner/`](/packages/server/src/runner/), the runtimes built in and those of
+- [`crates/server/src/runtimes/`](/crates/server/src/runtimes/), the runtimes built in and those of
   extensions, and every view or feature that starts a session

@@ -6,7 +6,7 @@ icon: layout-panel-left
 
 # UI layout
 
-Every layout choice in the web UI serves one goal first: the human reads and understands what is on
+Every layout choice in the app serves one goal first: the human reads and understands what is on
 screen. The UI adapts to the window's width, in three width classes, not to the device, and each
 view takes the shape and the width that read best for what it holds. The rules below give way to
 that goal when a view's spec says why.
@@ -53,4 +53,4 @@ every edge where the eye expects it. History: [Panes size](../done/2026-10-30-pa
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), and every feature that adds or changes a view
+- [`app/`](/app/), and every feature that adds or changes a view

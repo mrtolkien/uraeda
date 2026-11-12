@@ -45,7 +45,7 @@ an agent updates them faster than Uraeda could keep old APIs. History:
 - Format changes stay small: one reader, one template, no versions.
 - A branch in flight when a format changes fails `ura check` until it catches up with the default
   branch, and the agent running its next step rewrites its files.
-- A repository is unreadable to the web UI after an upgrade, until an agent rewrites its files.
+- A repository is unreadable to the app after an upgrade, until an agent rewrites its files.
 - Records in `specs/done/` are not converted: they are history, read by humans.
 
 ## Applies to
@@ -53,5 +53,5 @@ an agent updates them faster than Uraeda could keep old APIs. History:
 - The skill's [templates](/skills/uraeda/assets/templates/) and
   [examples](/skills/uraeda/assets/example/), the core's parsers and checks in
   [`crates/core/`](/crates/core/), and every feature that changes a workflow file's format
-- The extension API, in [`packages/server/`](/packages/server/) and
-  [`packages/web/`](/packages/web/)
+- The extension API, in [`crates/server/src/extensions/`](/crates/server/src/extensions/) and
+  [`app/extensions/`](/app/extensions/)

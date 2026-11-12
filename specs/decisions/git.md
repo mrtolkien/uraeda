@@ -35,7 +35,7 @@ it for them: committing is the human's act.
 ## Why
 
 Reads are most of what the tools do, and gix does them in process; it runs no hooks, so writes go
-through `git`, as the user would. The web UI writes on every branch from one checkout, so it never
+through `git`, as the user would. The app writes on every branch from one checkout, so it never
 switches branches. Cleanup waits for the human, since a lost commit cannot come back. Commits wait
 too: the Git page shows what a commit holds before it lands. Branches add files rather than edit
 shared ones, so parallel work merges without conflict. History:
@@ -44,7 +44,7 @@ shared ones, so parallel work merges without conflict. History:
 ## Alternatives considered
 
 - The system `git` for everything: a process, and text to parse, for every read.
-- Switching the user's checkout to write: abandoned when the web UI had to write on every branch.
+- Switching the user's checkout to write: abandoned when the app had to write on every branch.
 - Committing an edit as it is saved: it skips the Git page, where the human sees what a commit
   holds.
 

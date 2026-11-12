@@ -43,7 +43,7 @@ pages "should simply ALL DRAW in 100ms", with no pending bar. History:
 
 - The browser keeping data on disk across reloads: a new dependency, and a first frame that may show
   data a moment old.
-- The benchmark in `vp run ready`: browser timings in every push, varying with the machine.
+- The benchmark in `just ready`: timings in every push, varying with the machine.
 
 ## Consequences
 
