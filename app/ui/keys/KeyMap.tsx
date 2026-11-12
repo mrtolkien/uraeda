@@ -28,9 +28,14 @@ function Row(props: { row: KeyRow }) {
           )}
         </Each>
       </View>
-      <If when={props.row.icon !== undefined && isIconName(props.row.icon) ? props.row.icon : null}>
-        {(name) => <Icon name={name()} />}
-      </If>
+      {/* The icon's place is kept on every row, so the actions' words start on one column. */}
+      <View style={{ width: tokens.control.icon }}>
+        <If
+          when={props.row.icon !== undefined && isIconName(props.row.icon) ? props.row.icon : null}
+        >
+          {(name) => <Icon name={name()} />}
+        </If>
+      </View>
       <Text>{props.row.label}</Text>
     </View>
   );
