@@ -4,8 +4,9 @@
 import { Image, openUrl, signal, Text, type TextStyle } from "nsh";
 import type { Span, SpanImage } from "../../store/protocol";
 import { Icon, type IconName } from "../controls/Icon";
+import { focusAsked, focusStop } from "../surfaces/focus";
 import { tokens } from "../tokens";
-import { DocumentContext } from "./context";
+import { BlockShown, DocumentContext } from "./context";
 import { prose } from "./look";
 
 /** A target the system opens: a web address, or another scheme's. */
@@ -52,6 +53,26 @@ function stays(span: Span): boolean {
   return link.path !== null || link.story !== null || link.target.startsWith("#") || link.wiki;
 }
 
+/**
+ * A link that leads somewhere is a stop of the pane's focus: Tab reaches it, its block comes into
+ * sight, and Enter follows it. Words of a line have no view to ring, so the focus is drawn as the
+ * link's tint under them.
+ */
+function linkStop(press: () => void) {
+  const show = BlockShown();
+  const stop = focusStop(
+    () => ({
+      focus: () => {
+        focusAsked();
+        stop.onFocus();
+        show?.();
+      },
+    }),
+    { press },
+  );
+  return stop;
+}
+
 /** A link's words: pressable where it leads somewhere. */
 export function Linked(props: { span: Span; text: string }) {
   const hands = DocumentContext();
@@ -62,6 +83,7 @@ export function Linked(props: { span: Span; text: string }) {
     if (stays(props.span)) hands.onLink?.(link);
     else if (outside(link.target)) void openUrl(link.target);
   };
+  const stop = goes ? linkStop(press) : undefined;
   return (
     <Text
       role={goes ? "link" : undefined}
@@ -69,6 +91,7 @@ export function Linked(props: { span: Span; text: string }) {
       style={[
         marked(props.span),
         goes ? { color: tokens.role.link, textDecorationLine: "underline" } : {},
+        stop?.focused() === true ? { backgroundColor: tokens.control.tint(tokens.role.link) } : {},
       ]}
     >
       {props.text}

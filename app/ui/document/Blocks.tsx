@@ -1,13 +1,14 @@
 // A document tree's blocks, each drawn as its kind, in the order the core read them. The tree is
 // the core's: the client walks it, and never reads Markdown. Prose keeps its measure; code,
 // tables, and diagrams may take the width to the document's right edge.
-import { type JSX, Text, View } from "nsh";
+import { type JSX, Text, View, type ViewRef } from "nsh";
 import type { Block, Document as Tree, Span } from "../../store/protocol";
 import { Divider } from "../controls";
+import { RevealContext } from "../layout/here";
 import { Bar } from "../lists/Row";
 import { Callout, Quote } from "./Callout";
 import { Code } from "./Code";
-import { DocumentContext } from "./context";
+import { BlockShown, DocumentContext } from "./context";
 import { Diagram } from "./Diagram";
 import { Pictured, pictureAlone } from "./Picture";
 import { List } from "./List";
@@ -93,23 +94,31 @@ export function BlockView(props: { block: Block; first: boolean; read: Read }) {
   const mark = hands.mark?.(block);
   const top = block.parent === null;
   const air = block.kind === "heading" && !props.first ? (HEADING_AIR[block.level ?? 2] ?? 6) : 0;
+  const reveal = RevealContext();
+  let view: ViewRef | undefined;
+  const shown = () => {
+    if (view !== undefined) reveal?.(view);
+  };
   return (
-    <View
-      style={{
-        marginTop: (props.first ? 0 : BLOCK_GAP) + air,
-        maxWidth: PROSE.has(block.kind) ? measure() : undefined,
-      }}
-      onPress={top && hands.onPress !== undefined ? () => hands.onPress?.(block) : undefined}
-      testID={`block-${block.id}`}
-    >
-      <If when={top && hands.selected?.(block) === true}>
-        <View style={{ bottom: 0, left: -10, position: "absolute", top: 0, width: 2 }}>
-          <Bar />
-        </View>
-      </If>
-      {own ?? <Kind block={block} read={props.read} />}
-      {mark}
-    </View>
+    <BlockShown.Provider value={shown}>
+      <View
+        ref={(made: ViewRef) => (view = made)}
+        style={{
+          marginTop: (props.first ? 0 : BLOCK_GAP) + air,
+          maxWidth: PROSE.has(block.kind) ? measure() : undefined,
+        }}
+        onPress={top && hands.onPress !== undefined ? () => hands.onPress?.(block) : undefined}
+        testID={`block-${block.id}`}
+      >
+        <If when={top && hands.selected?.(block) === true}>
+          <View style={{ bottom: 0, left: -10, position: "absolute", top: 0, width: 2 }}>
+            <Bar />
+          </View>
+        </If>
+        {own ?? <Kind block={block} read={props.read} />}
+        {mark}
+      </View>
+    </BlockShown.Provider>
   );
 }
 

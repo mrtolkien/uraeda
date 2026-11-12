@@ -41,3 +41,9 @@ export type Shared = DocumentHands & {
 };
 
 export const DocumentContext = context<Shared>({ inset: () => 0, width: () => 0 });
+
+/**
+ * Brings the block around the caller into sight in the pane that scrolls: a link Tab reaches,
+ * which as words of a line has no view of its own to show. None outside a block.
+ */
+export const BlockShown = context<(() => void) | null>(null);

@@ -67,3 +67,13 @@ test("a control a pointer pressed away leaves the pane's keys working", async ()
   await andEnter(app, "j");
   expect(said(app)).toMatch(/^Said: once, opened [ab]$/);
 });
+
+test("Tab reaches a document's links, and Enter follows the one it reached", async () => {
+  const app = await page();
+  // Into the side stack, whose document's link comes before its button.
+  await app.keyboard.press("l");
+  await andEnter(app, "tab");
+  expect(said(app)).toBe("Said: followed #guide");
+  await andEnter(app, "tab");
+  expect(said(app)).toBe("Said: followed #guide, aside");
+});
