@@ -11,8 +11,8 @@ import {
   sameArrangement,
 } from "./arrangement";
 import { arrive } from "./arrival";
-import { besideWanted } from "./here";
-import { type Layout, layoutOf, type Place, sync } from "./layout";
+import { besideWanted, zoomWanted } from "./here";
+import { focus, type Layout, layoutOf, type Place, stackOf, sync, zoom } from "./layout";
 import type { Mover } from "./moveKeys";
 import { placeBeside } from "./moves";
 import { device, type DeviceKeys } from "../../store/device";
@@ -101,6 +101,17 @@ export function frameState(place: () => Place, narrow: () => boolean) {
     untracked(() => {
       besideWanted.set(null);
       mover.move(placeBeside(layout(), wanted.pane, wanted.from ?? undefined));
+    });
+  });
+  // A pane asked to be zoomed, or back: it takes the focus as it zooms.
+  effect(() => {
+    const wanted = zoomWanted();
+    if (wanted === null) return;
+    untracked(() => {
+      zoomWanted.set(null);
+      const now = layout();
+      if (stackOf(now, wanted.key) === null) return;
+      mover.move(zoom(focus(now, wanted.key), wanted.on));
     });
   });
   return { layout, mover, set };

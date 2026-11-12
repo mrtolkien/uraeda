@@ -1,16 +1,18 @@
 // A live page, as the previews show one: a story of a project's Storybook, or an HTML mockup,
 // drawn by `WebFrame` at the width its design needs, a phone's or a desktop's, scaled down to fit
 // and centred, never stretched, with the widths to pick from and what the frame does in a row
-// above it. The page's own pane, `keys`, declares the keys: `w` the next width, `R` loads it
-// again, `o` opens it in the browser. A press in the page, or Tab, gives it the keys, and Escape
+// above it. The page's own pane, `keys`, declares the keys: `w` the next width, `f` full screen
+// (the pane zoomed over the window, its page kept), `R` loads it again, `o` opens it in the
+// browser. A press in the page, or Tab, gives it the keys, and Escape
 // takes them back, which the status line says while the page has them. A document's embed draws
 // it without keys, at a height of its own, and its row's buttons take presses. Where a review
 // comment can go, `comment` adds "Comment" (`c`) and, once the page's pick script is ready, pick
 // mode (`p`): the element pressed then opens the comment on it, and Escape in the page ends it.
 import { type JSX, openUrl, signal, View } from "nsh";
-import { connection } from "../../store";
+import { connection, entry } from "../../store";
 import { Button, IconButton, Segmented, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
+import { usePane, zoomer } from "../../ui/layout";
 import { WebFrame, type WebFrameRef, Well } from "../../ui/surfaces";
 import { shownTheme } from "../../ui/theme";
 import { type Picked, pickedOf } from "./pick";
@@ -101,6 +103,10 @@ export function LiveFrame(props: LiveFrameProps) {
     props.onMessage?.(data);
   };
   const open = () => void openUrl(props.src);
+  // Full screen, on the page's own pane: the pane zoomed over the window, its web view kept.
+  const pane = props.keys === true ? usePane() : undefined;
+  const zoom = zoomer();
+  const zoomed = () => pane !== undefined && entry().kept.layout?.zoomed === pane.key;
   const reload = () => frame?.reload();
 
   if (props.keys === true) {
@@ -169,6 +175,15 @@ export function LiveFrame(props: LiveFrameProps) {
               testID="preview-comment"
             />
           )}
+        </If>
+        <If when={pane !== undefined}>
+          <IconButton
+            icon={zoomed() ? "minimize-2" : "maximize-2"}
+            keys="f"
+            label={zoomed() ? "Leave full screen" : "Full screen"}
+            onPress={() => zoom(!zoomed())}
+            testID="full-screen"
+          />
         </If>
         <IconButton
           icon="refresh-cw"

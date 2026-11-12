@@ -2,7 +2,7 @@
 // it. A screen imports `definePane`, `definePlace`, `usePane`, and `PaneScroll` from here; the app's
 // shell mounts `Stacks`. The guide is `specs/ui/panes.md`.
 export * from "./layout";
-export { besideOpener, offerBeside } from "./here";
+export { besideOpener, offerBeside, zoomer } from "./here";
 export {
   actionOf,
   definePane,

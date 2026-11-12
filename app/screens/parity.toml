@@ -136,6 +136,13 @@ why = "a comment there is a review comment, which task 42 attached to the embedd
 fate = "brought-back"
 now = "a mockup's or a story's page (`c`, and `p` once its pick script is ready) and its embed in a spec under review: a review comment on the spec's block that shows it, opened beside the page (or under the embed), its text starting `Mockup <file>, <role> “<name>”:` or `Story <file>#<export>, …:`; the server puts `uraeda-pick.js` in a mockup asked with `uraeda-pick`, a Storybook loads its own"
 
+[[left]]
+what = "Full screen, and a preview growing past its column"
+old = "Previews (LiveWindow)"
+why = "a pane is zoomed by the frame (R345)"
+fate = "brought-back"
+now = "a story's or a mockup's page: Full screen, `f`, zooms its pane over the window (task 66's zoom, `Space w z`), its web view kept, the side stack hidden rather than the pane drawn again; `f` again puts it back"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -225,14 +232,6 @@ why = "each pane keeps its own cursor (task 50)"
 fate = "left"
 needs = "the remembered action naming the row it changed, and the pane moving its cursor there"
 missed = "nobody much: the page where it happened opens"
-
-[[left]]
-what = "Full screen, and a preview growing past its column"
-old = "Previews (LiveWindow)"
-why = "a pane is zoomed by the frame (R345)"
-fate = "left"
-needs = "task 66's zoom of a pane"
-missed = "a person reviewing a desktop mockup will, until task 66 lands"
 
 # --- Replaced by something the rewrite does otherwise --------------------------------------------
 

@@ -7869,3 +7869,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/files/raw.rs`, `app/screens/preview/LiveFrame.tsx`, `pick.ts`,
   `specComment.ts`, `MockupPage.tsx`, `StoryPage.tsx`, `app/screens/file/Reader.tsx`,
   `app/screens/review/`.
+
+## T90.6: A preview's Full screen is the frame's zoom of its pane, asked by the pane
+
+- **Decision**: a story's or a mockup's own page has Full screen (`f`, and its button beside the
+  width), which zooms its pane over the window, focused, and puts it back: `zoomer()` in
+  `app/ui/layout/here.ts`, which the layout shell takes as it takes "open beside". Task 66's zoom
+  hides the other stack's panel rather than drawing the pane again, so the page in the web view
+  stays as it was. An embed in a document has no Full screen: "Open its page" leads to it.
+- **Rationale**: one zoom for every pane, with the old page's button on the preview, where a person
+  reviewing a desktop mockup looks for it.
+- **Where**: `app/ui/layout/here.ts`, `frame.ts`, `app/screens/preview/LiveFrame.tsx`.

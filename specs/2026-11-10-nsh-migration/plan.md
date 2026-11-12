@@ -3021,6 +3021,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   page's pick script is ready, "Pick an element" (`p`); `StoryEmbed` and `MockupEmbed` take
   `comment: { on, open(about) }`; a preview's page comments through `useSpecComment`
   (`specComment.ts`). A mockup asked with `uraeda-pick` gets the pick script from the server.
+- Full screen (T90.6): `f` on a preview's page zooms its pane, through `zoomer()` of
+  `app/ui/layout`.
 
 ## Task 50: Notifications, undo, and writes
 

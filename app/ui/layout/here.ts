@@ -29,6 +29,20 @@ export function besideOpener(): (pane: PaneRef) => void {
   return (pane) => besideWanted.set({ from, pane });
 }
 
+/** A pane that asked to be zoomed over the window, or back: the layout shell takes and clears it. */
+export const zoomWanted = signal<{ key: string; on: boolean } | null>(null);
+
+/**
+ * What zooms the caller's pane over the window, focused, or puts it back, as the frame's `Space w z`
+ * does: a preview's "Full screen". Called in a view; the function it gives on a key or a press.
+ */
+export function zoomer(): (on: boolean) => void {
+  const key = PaneContext()?.key ?? null;
+  return (on) => {
+    if (key !== null) zoomWanted.set({ key, on });
+  };
+}
+
 /** What a pane names that can be opened beside it now: the row under a list's cursor. */
 export type BesideOffer = { open: () => void; pane: PaneRef };
 
