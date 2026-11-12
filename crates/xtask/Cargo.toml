@@ -1,0 +1,18 @@
+[package]
+name = "uraeda-xtask"
+description = "The repository's own tools: the start of a release, and the checks of its configuration."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dev-dependencies]
+toml_edit.workspace = true
+
+[lints]
+workspace = true

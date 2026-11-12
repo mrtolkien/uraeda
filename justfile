@@ -112,7 +112,7 @@ package:
 # `URAEDA_WEB_BUILD=target/web`, and an `ura` built with it set, as `just package` builds it.
 web-build:
     {{ heavy }} scripts/web-build.sh
-    URAEDA_WEB_BUILD="$PWD/target/web" cargo test -q -p uraeda-server --test web -- --ignored --nocapture the_first_load
+    URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test web -- --ignored --nocapture the_first_load
 
 # The web build in a real browser, the dev shell's headless Chromium, over a sandbox that serves
 # `target/web/`: it signs in with the access key, opens the home page, and takes its pictures,
@@ -242,6 +242,14 @@ dist *args:
 # The release's plan, which fails when `release.yml` is not what `dist-workspace.toml` generates.
 release-plan:
     dist plan
+
+# Start a release, from an up-to-date `main`: `just release 1.4.0`, which asks for the release's
+# name, or `just release 1.4.0 --name "Vim mode + git page"`. It writes the version's notes in
+# `CHANGELOG.md` from the records added to `specs/done/` since the last tag, sets the workspace's
+# version, and, once confirmed, commits, tags, and pushes: the tag runs the release. `--dry-run`
+# prints the notes and changes nothing (`crates/xtask/`).
+release *args:
+    cargo run -q -p uraeda-xtask -- release "$@"
 
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:

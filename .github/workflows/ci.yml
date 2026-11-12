@@ -15,70 +15,24 @@ concurrency:
 permissions:
   contents: read
 
-# Each job runs one group of `vp run ready`, without Vite Task's cache, then fails when its checks
-# changed a file, such as a generated one left uncommitted. The toolchain test checks that every
-# group of `ready` has a job. The TypeScript tests are split over several jobs, by Vitest's
-# `--shard` (`URAEDA_TEST_SHARD`, see `vite.tasks.ts`), balanced by `scripts/test-shard.ts`: the
-# toolchain test checks that the matrix lists every shard, so the jobs together run every test.
-# 11 jobs: a free plan runs 20 at once. Validation runs on Linux x64 only; the
-# release matrix builds the other platforms.
+# `ready` runs the full pass, every check of the repository, then fails when its checks changed a
+# file, such as a generated one left uncommitted: `crates/xtask/tests/toolchain.rs` checks that a
+# job runs it. `web` builds the app for a browser and opens it, and `release` checks the release's
+# plan and packages the Linux app. Validation runs on Linux x64 only; the release matrix builds
+# the other platforms.
 jobs:
-  rust:
+  ready:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Its first run builds Native Shell's crates, the app's headless runner, and every test.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - name: Run the Rust checks
+      - name: Run every check
         # nextest's `ci` profile reports every failure at once.
         env:
           NEXTEST_PROFILE: ci
-        run: nix develop --command pnpm exec vp run --no-cache ready:rust
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  typescript:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run the TypeScript checks
-        run: nix develop --command pnpm exec vp run --no-cache ready:typescript
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  ts-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
-    env:
-      URAEDA_TEST_SHARD: ${{ matrix.shard }}/7
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run a slice of the TypeScript tests
-        run: nix develop --command pnpm exec vp run --no-cache ready:ts-test
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  app:
-    runs-on: ubuntu-latest
-    # Its first run builds Native Shell's crates and the app's headless runner.
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run the app's checks
-        run: nix develop --command pnpm exec vp run --no-cache ready:app
+        run: nix develop --command just ready
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain

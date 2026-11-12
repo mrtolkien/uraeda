@@ -9804,6 +9804,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "uraeda-xtask"
+version = "1.4.0"
+dependencies = [
+ "toml_edit 0.23.10+spec-1.0.0",
+]
+
+[[package]]
 name = "ureq"
 version = "3.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
