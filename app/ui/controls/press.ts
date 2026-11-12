@@ -4,15 +4,17 @@
 // - **States**: rest, hover, pressed, focus, disabled. Hover and pressed are the platform's own,
 //   through `hoverStyle` and `activeStyle` of `nsh/base`'s parts, so the pointer costs no render.
 //   A press moves the control at once; it comes back in `motion.press`.
-// - **Focus**: a stop of the focus ledger (`app/ui/surfaces/focus.ts`). On GTK a view never takes
-//   the platform's focus, so the ledger is the focus: Tab in a dialog or a sheet reaches the
-//   control, Enter or Space presses it, and its ring is drawn from it. Where the platform focuses
+// - **Focus**: a stop of the focus ledger (`app/ui/surfaces/focus.ts`), which is the focus the app
+//   draws on every platform: Tab in the focused pane, a dialog, or a sheet reaches the control,
+//   Enter presses it (Space too in a layer; on a page Space is the leader's), and its ring is drawn
+//   from it. Where the platform focuses
 //   views (macOS, the web), `focusStyle` draws the same ring. The focus is always visible.
 // - **Disabled**: no press, no focus, Tab passes it, and it says so by its dashed edge and faint
 //   words, never by opacity alone.
 // - **Drawn as asked**: `state` draws one state still, for the gallery's pictures. Such a control
 //   takes no press and declares no key.
 import { Keyboard, type ViewRef, type ViewStyle } from "nsh";
+import { RevealContext } from "../layout/here";
 import { focusStop } from "../surfaces/focus";
 import { tokens } from "../tokens";
 
@@ -75,13 +77,17 @@ export function pressable(props: PressProps, onPress: () => void = () => props.o
       onPress();
     }
   };
+  // In a pane that scrolls, Tab brings the control it reaches into sight.
+  const reveal = RevealContext();
   const stop = focusStop(
     () => ({
+      blur: () => node?.blur(),
       focus: () => {
         // A field typed in stops taking the keys, and the ledger holds the control.
         Keyboard.dismiss();
         node?.focus();
         stop.onFocus();
+        if (node !== undefined) reveal?.(node);
       },
     }),
     { disabled: isOff, first: props.first, press },

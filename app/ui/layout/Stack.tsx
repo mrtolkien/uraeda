@@ -8,8 +8,9 @@ import { Arriving, type Landing } from "./arrival";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, type PaneHere, PaneContext, type PaneMark, titleOf } from "./panes";
 import { Kbd } from "../controls";
-import { KeyScope } from "../keys/registry";
+import { KeyScope, registerKey } from "../keys/registry";
 import { Pane, type PaneTab } from "../surfaces";
+import { focusNext, paneStops, type Stops, StopsContext } from "../surfaces/focus";
 import { alpha, tokens } from "../tokens";
 import { type WidthClass, widthClass } from "../width";
 
@@ -47,6 +48,24 @@ export type StackViewProps = {
 /** The mark of a pane's tab, read as its kind says. */
 export const markOf = (pane: PaneRef): PaneMark => kindOf(pane)?.mark?.(pane.args) ?? {};
 
+/**
+ * Tab and Shift+Tab, in a pane's scope: they go through its controls and fields, in order, and
+ * around, never into another pane. From a field too, as a dialog's do.
+ */
+function TabKeys(props: { stops: Stops }) {
+  const here = { inField: true, repeat: true } as const;
+  registerKey([
+    { ...here, keys: "Tab", label: "Next control", run: () => focusNext(props.stops, false) },
+    {
+      ...here,
+      keys: "shift+Tab",
+      label: "Previous control",
+      run: () => focusNext(props.stops, true),
+    },
+  ]);
+  return null;
+}
+
 /** One pane's view, with what it knows of itself, and its keys on while it has the focus. */
 function PaneBody(props: { focused: boolean; pane: PaneRef; width: WidthClass }) {
   const spec = kindOf(props.pane);
@@ -63,10 +82,14 @@ function PaneBody(props: { focused: boolean; pane: PaneRef; width: WidthClass })
     );
   }
   const Drawn = spec.view;
+  const stops = paneStops();
   return (
     <PaneContext.Provider value={here}>
       <KeyScope kind="pane" name={titleOf(props.pane)} on={() => props.focused}>
-        <Drawn args={props.pane.args} focused={props.focused} width={props.width} />
+        <StopsContext.Provider value={stops}>
+          <TabKeys stops={stops} />
+          <Drawn args={props.pane.args} focused={props.focused} width={props.width} />
+        </StopsContext.Provider>
       </KeyScope>
     </PaneContext.Provider>
   );

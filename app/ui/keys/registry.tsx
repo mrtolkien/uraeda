@@ -10,6 +10,7 @@
 // all. A text field with the focus gets its keys first: only a binding that asks (`inField`) is
 // heard there.
 import { cleanup, computed, context, effect, type JSX, keymap, signal, untracked } from "nsh";
+import { paneControlFocused, pressFocused, releaseFocused } from "../surfaces/focus";
 import { interaction } from "../timing";
 import { createLeader } from "./leader";
 import type { Step } from "./sequence";
@@ -136,9 +137,21 @@ export const pendingKeys = (): Step | null => leader.step();
 /** Ends the sequence that waits, if any: a page change does. */
 export const endKeys = () => leader.end();
 
-/** A key heard: what pends takes it first, else the bindings of the key run. */
+/** The keys that leave a pane's control the focus: Tab moves it, the leader's menu is over it. */
+const KEEPS_CONTROL = new Set(["Tab", "shift+Tab", LEADER, CHORD]);
+
+/**
+ * A key heard: what pends takes it first; then a pane's control that Tab or a press focused takes
+ * Enter, and gives the focus back to its pane on Escape, or on any other key, which then acts on
+ * the pane; else the bindings of the key run.
+ */
 function heard(token: string) {
   interaction(token);
+  if (leader.step() === null && store.layer() === null) {
+    if (token === "Enter" && pressFocused()) return;
+    if (token === "Escape" && releaseFocused()) return;
+    if (!KEEPS_CONTROL.has(token)) releaseFocused();
+  }
   const { consumed, ran } = leader.press(token);
   if (ran !== null) {
     store.run(ran, store.on());
@@ -181,6 +194,11 @@ function wanted(): Map<string, How> {
   // The chord opens the leader's menu with the switch on or off.
   if (store.on().some(({ spec }) => spec.keys.startsWith(`${LEADER} `))) {
     add(CHORD, { inField: false, repeat: false });
+  }
+  // A pane's control with the focus takes Enter, and Escape gives its pane the keys back.
+  if (paneControlFocused() && store.layer() === null) {
+    add("Enter", { inField: false, repeat: false });
+    add("Escape", { inField: false, repeat: false });
   }
   // Space on a control that keeps it is the control's.
   if (store.keepsSpace()) {
