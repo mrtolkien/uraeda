@@ -90,6 +90,23 @@ function RowView(props: { hands: CategoryHands; row: InboxRow | undefined }) {
   );
 }
 
+/** Deletes a category, its notes kept without one: undone by `u`, as a note's delete. */
+async function removeCategory(
+  repo: string,
+  inbox: Inbox,
+  one: Extract<InboxRow, { kind: "category" }>,
+) {
+  const name = one.name;
+  const written = await call("inbox.removeCategory", {
+    hash: inbox.hash,
+    keepNotes: true,
+    name,
+    repo,
+  });
+  const label = `Deleted the category ${name}${one.count > 0 ? ": its notes stay, without a category" : ""}.`;
+  remember(written.change, label, { repo, subject: name });
+}
+
 /** Opens a note's pane beside the list, with the focus: in place of the one open, on its page. */
 export function openNote(repo: string, key: string) {
   const to = { key, page: "note" as const, repo };
@@ -177,20 +194,8 @@ function Notes(props: { inbox: Inbox; repo: string }) {
     if (addHere === adding) addHere = undefined;
   });
 
-  /** Deletes a category, its notes kept without one: undone by `u`, as a note's delete. */
-  const deleteCategory = (one: Extract<InboxRow, { kind: "category" }>) => {
-    const name = one.name;
-    return said(async () => {
-      const written = await call("inbox.removeCategory", {
-        hash: props.inbox.hash,
-        keepNotes: true,
-        name,
-        repo: props.repo,
-      });
-      const label = `Deleted the category ${name}${one.count > 0 ? ": its notes stay, without a category" : ""}.`;
-      remember(written.change, label, { repo: props.repo, subject: name });
-    });
-  };
+  const deleteCategory = (one: Extract<InboxRow, { kind: "category" }>) =>
+    said(() => removeCategory(props.repo, props.inbox, one));
   const hands: CategoryHands = {
     onDelete: (one) => void deleteCategory(one),
     onRename: (name) => naming.set({ kind: "rename", name }),

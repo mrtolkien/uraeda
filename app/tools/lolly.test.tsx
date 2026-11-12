@@ -140,10 +140,10 @@ step("03-round answering the agent's questions", async (hand) => {
   await hand.click("id:option-B", "option-also");
   await hand.click("id:option-B", "option-unpicked");
   await hand.write("id:round-comment", "Only on the phone.", "answer");
-  for (const n of [2, 3]) {
-    await hand.click("id:round-next", `next-question-${n}`);
-    await hand.click("id:option-A", `option-${n}`);
-  }
+  await hand.click("id:round-next", "next-question-2");
+  await hand.click("id:option-A", "option-2");
+  await hand.click("id:round-next", "next-question-3");
+  await hand.click("id:option-A", "option-3");
   await hand.click("id:round-next", "to-the-end");
   hand.page("round end");
   await hand.point("id:round-submit", "submit");
