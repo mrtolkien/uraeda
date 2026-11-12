@@ -1,9 +1,10 @@
 //! The parity list, `parity.toml`: every record, mutation, and route of the Node server is
 //! either served by this server under a name it knows, or dropped on purpose, with why.
+//!
+//! The Node server is gone. The list's keys are its names, frozen as its code had them when it
+//! went: this test read them from that code until then, and failed on a name without a line and
+//! on a line of no name. What stays checked is each line's new name.
 
-mod parity {
-    pub mod node;
-}
 mod support;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -23,21 +24,9 @@ struct List {
 /// What a line's value starts with when the old name is not served.
 const DROPPED: &str = "dropped: ";
 
-/// The problems of one kind's lines: an old name with no line, a line of no old name, and a new
-/// name this server does not serve.
-fn problems(
-    kind: &str,
-    lines: &BTreeMap<String, String>,
-    old: &BTreeSet<String>,
-    known: &BTreeSet<String>,
-) -> Vec<String> {
-    let listed: BTreeSet<String> = lines.keys().cloned().collect();
-    let missing = old.difference(&listed).map(|name| {
-        format!("{kind} `{name}` of the Node server has no line: map it, or drop it with why")
-    });
-    let stale = listed
-        .difference(old)
-        .map(|name| format!("{kind} `{name}` is no name of the Node server: remove its line"));
+/// The problems of one kind's lines: a new name this server does not serve, and a name dropped
+/// without why.
+fn problems(kind: &str, lines: &BTreeMap<String, String>, known: &BTreeSet<String>) -> Vec<String> {
     let unknown = lines.iter().filter_map(|(old, new)| {
         if let Some(why) = new.strip_prefix(DROPPED) {
             return why
@@ -48,14 +37,13 @@ fn problems(
         (!known.contains(new))
             .then(|| format!("{kind} `{old}` maps to `{new}`, which this server does not serve"))
     });
-    missing.chain(stale).chain(unknown).collect()
+    unknown.collect()
 }
 
 #[tokio::test]
 async fn every_old_record_mutation_and_route_is_mapped_or_dropped() {
     let text = include_str!("../parity.toml");
     let list: List = toml_edit::de::from_str(text).expect("parity.toml reads");
-    let old = parity::node::read();
     let server = support::server().await;
     let registry = server.shared().get::<Registry>();
     let catalog = uraeda_protocol::catalog();
@@ -68,9 +56,12 @@ async fn every_old_record_mutation_and_route_is_mapped_or_dropped() {
     let records = names(catalog.records().collect(), registry.records());
     let actions = names(catalog.actions().collect(), registry.actions());
     let routes = server.routes().into_iter().map(str::to_owned).collect();
-    let mut found = problems("record", &list.records, &old.records, &records);
-    found.extend(problems("action", &list.actions, &old.actions, &actions));
-    found.extend(problems("route", &list.routes, &old.routes, &routes));
+    // The Node server's names, as many as its code held when it went (ruling R229).
+    let counts = [list.records.len(), list.actions.len(), list.routes.len()];
+    assert_eq!(counts, [46, 114, 29], "a line of the frozen list went");
+    let mut found = problems("record", &list.records, &records);
+    found.extend(problems("action", &list.actions, &actions));
+    found.extend(problems("route", &list.routes, &routes));
     server.stop().await;
     assert!(found.is_empty(), "parity.toml:\n{}", found.join("\n"));
 }

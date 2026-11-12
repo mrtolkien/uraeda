@@ -1,14 +1,12 @@
 # The screens' parity list, the spec's first success criterion: "Every route of the React UI has a
 # screen in the new app, or a line saying why it went". `crates/app/tests/parity.rs` reads it.
 #
-# `[routes]`: each page of the React UI's route table (`packages/web/src/routeTable.ts`), by its
-# name there, with its paths, the page of `app/store/routes.ts` that draws it now and the screen
-# that gives that page its place, or `dropped` and why. The test fails on an old page without a
-# line, a line of no old page, a page no screen places, and a page mapped to `missing`, which draws
-# "Nothing here". That each placed page mounts is `app/screens/shell/places.test.tsx`'s.
-#
-# TASK 61: the React UI goes. The keys of `[routes]` are then the frozen list of its pages: drop the
-# test's read of `routeTable.ts`, and keep this list and its checks.
+# `[routes]`: each page of the React UI's route table, by its name there, with its paths, the page
+# of `app/store/routes.ts` that draws it now and the screen that gives that page its place, or
+# `dropped` and why. The React UI is gone: the keys are its pages, frozen as its route table had
+# them when it went. The test fails on a line that went, a page no screen places, and a page mapped
+# to `missing`, which draws "Nothing here". That each placed page mounts is
+# `app/screens/shell/places.test.tsx`'s.
 #
 # `[[left]]`: what the old screens did that the screens of tasks 36 to 51 and 65 did not, from their
 # commits and rulings, most used first: `brought-back` by task 55 and its fixes (T90, where it is

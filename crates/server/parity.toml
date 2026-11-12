@@ -1,10 +1,8 @@
 # The parity list: every record type, mutation, and route of the Node server, by its old name, with
-# the name this server serves it by, or `dropped: ` and why. `tests/parity.rs` reads the old names
-# from `packages/server/` and fails on one without a line, a line of no old name, and a new name
-# this server does not serve. Rulings are in `specs/2026-11-10-nsh-migration/rulings.md`.
-#
-# TASK 61: the Node server goes. The keys below are then the frozen list of its names: drop the
-# test's read of `packages/server/`, and keep this list and the check of its new names.
+# the name this server serves it by, or `dropped: ` and why. The Node server is gone: the keys are
+# its names, frozen as its code had them when it went, 46 records, 114 mutations, and 29 routes.
+# `tests/parity.rs` fails on a new name this server does not serve, and on a line that went.
+# Rulings are in `specs/2026-11-10-nsh-migration/rulings.md`.
 
 # fate's views, by type. A record keeps fate's name (R6), and takes the arguments of R52 and R58.
 [records]

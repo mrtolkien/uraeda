@@ -2,8 +2,12 @@
 //! has a screen in the app, or a line saying why it went; and what the old screens did that the
 //! new ones do not is listed, each with its fate.
 //!
+//! The React UI is gone: the keys of `[routes]` are its pages, frozen as its route table had them
+//! when it went. This test read them from that table until then, and failed on a page without a
+//! line and on a line of no page.
+//!
 //! A Rust test, as `keys.rs` is: a test under `nsh test` reads no file the app is not granted, and
-//! this one reads the old UI's route table, the list, and the screens' sources. What a page shows
+//! this one reads the list and the screens' sources. What a page shows
 //! once opened is `app/screens/shell/places.test.tsx`'s: it opens every page a screen gives a place,
 //! `definePlace("<page>", ..)`, and fails on one that does not mount. This test checks that each
 //! old page maps to such a page, and never to `missing`, the page that draws "Nothing here".
@@ -57,26 +61,14 @@ enum Fate {
     Replaced,
 }
 
+/// How many pages the React UI's route table held when it went: the keys of `[routes]`.
+const OLD_PAGES: usize = 31;
+
 /// The page that draws "Nothing here", which no old page but its own maps to.
 const NOTHING_HERE: &str = "missing";
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-/// TASK 61: the React UI goes. The keys of `[routes]` are then the frozen list of its pages: drop
-/// this function, and the test's two checks that read it ("has no line", "is no page").
-fn old_pages() -> BTreeSet<String> {
-    let table = fs::read_to_string(root().join("packages/web/src/routeTable.ts")).unwrap();
-    let start = table
-        .find("export type Route =")
-        .expect("the old route table's type");
-    let union = &table[start..start + table[start..].find(";\n\n").unwrap()];
-    union
-        .split("page: \"")
-        .skip(1)
-        .map(|rest| rest[..rest.find('"').unwrap()].to_owned())
-        .collect()
 }
 
 /// The pages a screen gives a place, from each `definePlace("<page>", ..)` under `app/`.
@@ -171,20 +163,14 @@ fn left_problems(left: &Left) -> Vec<String> {
 fn every_old_route_is_mapped_or_dropped() {
     let text = fs::read_to_string(root().join("app/screens/parity.toml")).unwrap();
     let list: List = toml_edit::de::from_str(&text).expect("parity.toml reads");
-    let old = old_pages();
-    assert!(
-        old.contains("home"),
-        "the old route table was not read: {old:?}"
+    // The React UI's pages, as many as its route table held when it went.
+    assert_eq!(
+        list.routes.len(),
+        OLD_PAGES,
+        "a line of the frozen list went"
     );
     let placed = placed_pages();
-    let listed: BTreeSet<String> = list.routes.keys().cloned().collect();
-    let missing = old
-        .difference(&listed)
-        .map(|page| format!("`{page}` of the React UI has no line: map it, or drop it with why"));
-    let stale = listed
-        .difference(&old)
-        .map(|page| format!("`{page}` is no page of the React UI: remove its line"));
-    let mut found: Vec<String> = missing.chain(stale).collect();
+    let mut found = Vec::new();
     for (page, route) in &list.routes {
         found.extend(route_problems(page, route, &placed));
     }
