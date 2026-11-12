@@ -13,7 +13,8 @@ import { type Next, type NextAction, nextOf } from "./next";
 import { Drop, DroppedNote, Problems, Rename } from "./Parts";
 import { Postpone } from "./Postpone";
 import { ContinueDialog } from "../runs/ContinueDialog";
-import { type FeatureArgs, ticking, WithFeature } from "./read";
+import { ticking } from "../../ui/clock";
+import { type FeatureArgs, WithFeature } from "./read";
 import { day, endedWords, kindWord, waitWords } from "./words";
 import { plural } from "../../ui/words";
 

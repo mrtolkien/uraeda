@@ -6,7 +6,8 @@ import { record } from "../../store";
 import type { Feature, HistoryView } from "../../store/protocol";
 import { Heading, Link, Text } from "../../ui/controls";
 import { PaneScroll } from "../../ui/layout";
-import { type FeatureArgs, ticking, WithFeature } from "./read";
+import { ticking } from "../../ui/clock";
+import { type FeatureArgs, WithFeature } from "./read";
 import { clock, day, duration } from "./words";
 import { plural } from "../../ui/words";
 

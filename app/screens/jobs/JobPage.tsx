@@ -4,7 +4,7 @@
 // job off this repository's list: the page says so, and "Run it here again" ticks it back.
 import { effect, signal, untracked, View } from "nsh";
 import { dismissRun, type JobArgs, jobNamed, jobsOf, runRefusal } from "./actions";
-import { ticking } from "./clock";
+import { ticking } from "../../ui/clock";
 import { inputOf, savedForm } from "./form";
 import { JobForm } from "./JobForm";
 import { askRun, RunQuestion } from "./RunNow";

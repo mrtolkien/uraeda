@@ -1,5 +1,6 @@
-// The clock the place's times read against, read again every 30 seconds while a pane shows them:
-// "Tomorrow at 3:00" turns into "Today at 3:00" at midnight without a reload.
+// The clock a relative time reads against, read again every `every` ms while its caller is drawn:
+// "Tomorrow at 3:00" turns into "Today at 3:00" at midnight, and "2 min" into "3 min", without a
+// reload.
 import { cleanup, signal } from "nsh";
 
 export function ticking(every = 30_000) {

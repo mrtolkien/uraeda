@@ -10,7 +10,8 @@ import { PaneScroll, usePane } from "../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, listKeys } from "../../ui/lists";
 import { sessionBeside } from "../session";
 import { toneOf } from "./Overview";
-import { type FeatureArgs, ticking, WithFeature } from "./read";
+import { ticking } from "../../ui/clock";
+import { type FeatureArgs, WithFeature } from "./read";
 import { clock, duration, endedWords, stepWord, waitWords, whoWords } from "./words";
 import { plural } from "../../ui/words";
 

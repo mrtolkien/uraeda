@@ -15,7 +15,8 @@ import { mockupPane } from "../preview/MockupPage";
 import { FeatureMap } from "../runs/FeatureMap";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
-import { type FeatureArgs, ticking, WithFeature } from "./read";
+import { ticking } from "../../ui/clock";
+import { type FeatureArgs, WithFeature } from "./read";
 import { clock, duration, fileWord, STAGES, stageOf } from "./words";
 import { plural } from "../../ui/words";
 

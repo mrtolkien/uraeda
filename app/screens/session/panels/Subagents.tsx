@@ -11,7 +11,7 @@ import type { Session, SubSession, Subagent } from "../../../store/protocol";
 import { usePane } from "../../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, VirtualList } from "../../../ui/lists";
 import { tokens } from "../../../ui/tokens";
-import { ticking } from "../../jobs/clock";
+import { ticking } from "../../../ui/clock";
 import type { SessionArgs } from "../place";
 import { runsOnWords, turnWords } from "../words";
 import { Padded, WithSession } from "./read";

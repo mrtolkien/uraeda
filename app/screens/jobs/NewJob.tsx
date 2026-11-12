@@ -3,7 +3,7 @@
 // prompt are filled, then the page becomes the job's own, where each field saves as it is left;
 // Back goes to the list.
 import { untracked, View } from "nsh";
-import { ticking } from "./clock";
+import { ticking } from "../../ui/clock";
 import { newForm } from "./form";
 import { JobForm } from "./JobForm";
 import { call, redirect } from "../../store";

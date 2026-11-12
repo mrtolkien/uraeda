@@ -5,7 +5,7 @@
 import { computed, View } from "nsh";
 import { type JobArgs, jobNamed, jobsOf } from "./actions";
 import { askRun, RunQuestion } from "./RunNow";
-import { ticking } from "./clock";
+import { ticking } from "../../ui/clock";
 import { failedWords, skippedWords, whenWords } from "./words";
 import { navigate, record } from "../../store";
 import type { JobRun } from "../../store/protocol";

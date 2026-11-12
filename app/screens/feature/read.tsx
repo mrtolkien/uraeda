@@ -1,6 +1,6 @@
-// What every pane of the feature page shares: its arguments, the clock that counts a running time,
-// and the states before the feature is there, each in words.
-import { cleanup, type JSX, signal } from "nsh";
+// What every pane of the feature page shares: its arguments, and the states before the feature is
+// there, each in words.
+import type { JSX } from "nsh";
 import { navigate, record } from "../../store";
 import type { Feature } from "../../store/protocol";
 import { Banner, Spinner } from "../../ui/controls";
@@ -8,14 +8,6 @@ import { Empty } from "../../ui/lists";
 
 /** A pane of the feature page: the repository and the feature's folder. */
 export type FeatureArgs = { folder: string; repo: string };
-
-/** The clock, read again every `every` ms while the caller is drawn: what counts a running time. */
-export function ticking(every: number) {
-  const now = signal(Date.now());
-  const timer = setInterval(() => now.set(Date.now()), every);
-  cleanup(() => clearInterval(timer));
-  return now;
-}
 
 /** The feature, read live: `undefined` until it came, `null` when no feature has the folder. */
 export const featureOf = (args: FeatureArgs) =>

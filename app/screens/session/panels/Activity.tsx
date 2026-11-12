@@ -15,7 +15,7 @@ import { Icon, Text } from "../../../ui/controls";
 import { usePane } from "../../../ui/layout";
 import { createCursor, Empty, VirtualList } from "../../../ui/lists";
 import { tokens } from "../../../ui/tokens";
-import { ticking } from "../../jobs/clock";
+import { ticking } from "../../../ui/clock";
 import { type Feed, transcriptFeed } from "../pages";
 import type { SessionArgs } from "../place";
 import { PlanProgress } from "./Plan";

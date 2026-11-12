@@ -8,7 +8,7 @@
 import { computed, signal, untracked, View } from "nsh";
 import { jobsOf, openJob } from "./actions";
 import { askRun, RunQuestion } from "./RunNow";
-import { ticking } from "./clock";
+import { ticking } from "../../ui/clock";
 import { JobCard } from "./JobCard";
 import { call, navigate } from "../../store";
 import type { Job } from "../../store/protocol";
