@@ -92,17 +92,27 @@ fn asked_by(shared: &Shared, status: &FeatureStatus) -> String {
 
 /// The features in flight of one repository that need the human.
 fn rows_of(shared: &Shared, repository: &Repository) -> Result<Vec<NeedsYouRow>, ApiError> {
-    let features = api::read_workspace(&repository.path)?.features.into_iter();
+    let workspace = api::read_workspace(&repository.path)?;
+    let now = status::now_of(&workspace.priorities);
+    let features = workspace.features.into_iter();
     let in_flight =
         features.filter(|feature| !matches!(feature.step.name.as_str(), "done" | "none"));
     Ok(in_flight
-        .filter_map(|feature| row(shared, repository, &feature))
+        .filter_map(|feature| {
+            let now = now.contains(&feature.folder);
+            row(shared, repository, &feature, now)
+        })
         .collect())
 }
 
 /// A feature's row, when its status asks something of the human.
-fn row(shared: &Shared, repository: &Repository, feature: &FeatureView) -> Option<NeedsYouRow> {
-    let status = status::of(shared, &repository.path, feature);
+fn row(
+    shared: &Shared,
+    repository: &Repository,
+    feature: &FeatureView,
+    now: bool,
+) -> Option<NeedsYouRow> {
+    let status = status::of(shared, &repository.path, feature, now);
     let reason = reason(&status, &feature.step.name)?;
     let id = format!("{}/{}", repository.name, feature.folder);
     // The key holds the turn the status follows, so a run that ends at the same gate notifies
@@ -140,6 +150,7 @@ fn reason(status: &FeatureStatus, step: &str) -> Option<NeedsYouReason> {
     match (status.reason, status.status) {
         (Some(StatusReason::Blocked), _) => Some(NeedsYouReason::Blocked),
         (_, SessionStatus::Attention) => Some(NeedsYouReason::Attention),
+        (Some(StatusReason::Continue), _) => Some(NeedsYouReason::Continue),
         (_, SessionStatus::NeedsYou) if step == "pull-request" => Some(NeedsYouReason::PullRequest),
         (_, SessionStatus::NeedsYou) => Some(NeedsYouReason::Step),
         _ => None,
@@ -158,6 +169,10 @@ fn message(feature: &FeatureView, reason: NeedsYouReason, why: Option<StatusReas
     let text = match reason {
         NeedsYouReason::Blocked => REFUSED,
         NeedsYouReason::Attention => attention(why),
+        // What its Continue does, in its page's button's words.
+        NeedsYouReason::Continue => {
+            return crate::records::features::continue_name(&feature.step.name);
+        }
         NeedsYouReason::PullRequest => {
             let number = feature
                 .pull_request

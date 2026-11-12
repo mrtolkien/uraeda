@@ -55,6 +55,7 @@ pub use manager::{
 pub(crate) use manager::{Runner, refusals};
 pub(crate) use message::effort_name;
 pub use page::{Blocked, OUTPUT_LIMIT, PAGE, sent};
+pub(crate) use reads::in_now;
 pub(crate) use running::latest_of;
 pub use session::{NewSession, Session};
 pub use store::{FILE, Store, StoreError};

@@ -10415,3 +10415,29 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/lists/follow.ts`, `app/ui/lists/VirtualList.tsx`, `app/ui/lists/cursor.ts`
   (`to` reveals the row it is on), `app/screens/session/Transcript.tsx`; the tests
   `app/ui/lists/follow.test.ts` and `lists.test.tsx`; the tool `app/tools/follow.test.tsx`.
+## T190.1: A feature of Now that no run follows, at an agent's step, waits for the human's Continue
+
+- **Decision**: the feature status reads `needs-you`, reason `continue`, "Waits for your Continue",
+  for an idle feature whose proposal is in **Now**, with a branch, at a step an agent runs (not
+  `catch-up`, which the catcher may run, nor `pull-request-unknown`): a feature just started, one
+  whose failed run was dismissed, one worked on outside Uraeda. `NeedsYouList` lists it, reason
+  `continue`, its message its page's button, "Continue, write the plan", and its page as its
+  address; Home, the sidebar's two panes, the priorities' rows, and the feature's head read the
+  status. The notifier never tells of it: the human started it, or put its run aside, and nothing
+  came; the window's title counts it. Only the server's one rule decides, in `runner/reads.rs`
+  (`awaiting_continue`); the priorities now read the workspace's status in place of guessing from
+  the step ("An agent's turn").
+- **Rationale**: no run starts by itself (rule 2): such a feature's next move is the human's, as its
+  page's Next already said ("Continue, …", `waitsOn: "human"`), while Home said "In progress · Idle"
+  and the priorities "An agent's turn". A persona: "my feature waiting for my Continue doesn't
+  appear where my eyes go first". Only **Now** counts, the workflow's own target rule: a feature
+  held in Next or Later, or dropped, waits on no one.
+- **Alternatives considered**: notifying after it waited an hour, as the polish brief suggested. Not
+  built: the records change on events, not on time, and a timer that rewrites the list's key is a
+  second clock for one case; the title's count and the sidebar keep it in view. To build once Web
+  Push gives notifications a server side.
+- **If wrong**: a human who keeps started features in Now without wanting them run sees them in
+  Needs you; moving the line to Next takes them out.
+- **Where**: `crates/server/src/runner/reads.rs`, `records/workspace/status.rs`, `needs_you.rs`,
+  `crates/protocol/src/shared/feature.rs`, `workspace/needs_you.rs`, `app/screens/home/core.tsx`,
+  `app/screens/priorities/Section.tsx`, `app/screens/shell/Notifications.tsx`.

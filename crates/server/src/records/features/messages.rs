@@ -146,6 +146,13 @@ fn of_step(
     })
 }
 
+/// What the human's Continue does at a feature's step, in the words of its page's button:
+/// `Continue, write the plan`.
+pub(crate) fn continue_name(step: &str) -> String {
+    let work = text::goal(step, None, None).work;
+    format!("Continue, {}", text::lowered(&work))
+}
+
 /// The value of the record `RecommendedMessage`: the one workflow message that applies to a
 /// feature now, or why none does. None for a folder that is no feature's.
 fn recommended(shared: &Shared, args: ItemArgs) -> Result<Option<RecommendedMessage>, Fault> {

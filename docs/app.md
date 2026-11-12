@@ -669,19 +669,23 @@ name, then Codex's, each with its mark; Home's Usage pane adds each login's week
 one bar shows the five hours of the account of the session or feature in view, named by its label
 ("b 5h: 58% left"), else, with none in view, of the one a new session would start on; a session
 whose account is no longer listed shows no bar. A feature reads Working while any of its sessions
-runs, whatever its step. A run that failed or was stopped asks for you until you dismiss it, with
-Dismiss on its feature's or change's card, or on its session's banner. A pull request reads "PR
-ready" only once it holds its branch's latest commit. While its branch holds commits the pull
-request lacks, the feature reads "Push", in In progress, for the agent to push. Once main moves past
-its branch, it reads "Catch up", for the agent to rebase, validate, and push; main gaining only
-priorities, inbox, proposals, or notes does not count. "Catch up open pull requests", under Runs in
-Settings, starts that run by itself, once per commit of main, once no turn runs in the feature's
-latest session. It runs as part of Comments on the run map, on its agent, model, and effort, in the
-session its joint gives. Its session opens with the line "Catching up with main, which moved to
-“<subject of the commit>”." A catch-up that meets a conflict with main, one needing your choice,
-asks on the pull request: the feature reads "Needs attention", and its session's banner says "The
-catch-up stopped on a conflict." until you answer by requesting changes, or dismiss it with Dismiss.
-A catch-up you stopped or dismissed is not started again until main moves again.
+runs, whatever its step. A started feature of Now whose next step is an agent's, and that no run
+follows, reads "Waits for your Continue", under Needs you, as no run starts by itself; it never
+notifies. Home's In progress keeps what an agent works on, then the features a line of the
+priorities holds elsewhere, saying where ("In Next"); a dropped one leaves it. A run that failed or
+was stopped asks for you until you dismiss it, with Dismiss on its feature's or change's card, or on
+its session's banner. A pull request reads "PR ready" only once it holds its branch's latest commit.
+While its branch holds commits the pull request lacks, the feature reads "Push", in In progress, for
+the agent to push. Once main moves past its branch, it reads "Catch up", for the agent to rebase,
+validate, and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch
+up open pull requests", under Runs in Settings, starts that run by itself, once per commit of main,
+once no turn runs in the feature's latest session. It runs as part of Comments on the run map, on
+its agent, model, and effort, in the session its joint gives. Its session opens with the line
+"Catching up with main, which moved to “<subject of the commit>”." A catch-up that meets a conflict
+with main, one needing your choice, asks on the pull request: the feature reads "Needs attention",
+and its session's banner says "The catch-up stopped on a conflict." until you answer by requesting
+changes, or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until
+main moves again.
 
 Each workflow step is a run of its own: the run's message says where it stops, at the end of its
 step. When a run ends its step before a gate of yours, Uraeda starts the next step's run itself, in

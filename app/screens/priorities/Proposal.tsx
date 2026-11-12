@@ -46,7 +46,7 @@ export function Proposal(props: { repo: string; id: string }) {
             <View style={{ gap: 6 }}>
               <Text size="under" tone="quiet">
                 {shown().running
-                  ? `Started · ${stepWords(shown())}`
+                  ? `Started · ${stepWords(props.repo, shown())}`
                   : shown().merged
                     ? "Merged"
                     : `In ${titleOf(sections(), where() ?? "")}`}

@@ -61,6 +61,8 @@ pub enum StatusReason {
     Capped,
     /// It waits to continue by itself.
     Waiting,
+    /// Its step waits on an agent no run follows: a run starts only at the human's Continue.
+    Continue,
 }
 
 /// When a waiting run continues by itself.

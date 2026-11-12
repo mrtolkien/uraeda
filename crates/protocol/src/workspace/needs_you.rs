@@ -52,6 +52,9 @@ pub enum NeedsYouReason {
     Step,
     /// A pull request is ready for review.
     PullRequest,
+    /// A feature of **Now** waits for the human's Continue: its step is an agent's, and no run
+    /// follows it. Listed, never notified: the human started it, or put its run aside.
+    Continue,
 }
 
 impl Record for NeedsYouList {

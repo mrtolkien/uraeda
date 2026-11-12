@@ -22,7 +22,7 @@ mod starts;
 mod undo;
 mod views;
 
-pub(crate) use messages::{recommend, workflow_message};
+pub(crate) use messages::{continue_name, recommend, workflow_message};
 pub(crate) use options::run_options;
 pub(crate) use starts::start_typed_change;
 use uraeda_core::watch::Changes;

@@ -13,6 +13,8 @@ mod life;
 mod priorities;
 #[path = "features/records.rs"]
 mod records;
+#[path = "features/status.rs"]
+mod status;
 
 use serde_json::{Value, json};
 use support::{Held, Hook, TestRepo, TestServer, call, fixture, fixture_repo, idle, read, writes};

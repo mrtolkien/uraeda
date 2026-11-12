@@ -159,6 +159,7 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
         onOpen={open}
         onTouched={touched}
         proposals={proposals}
+        repo={props.repo}
       />
     ) : (
       <Section

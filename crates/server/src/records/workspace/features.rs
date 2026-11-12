@@ -37,9 +37,10 @@ fn workspace(shared: &Shared, args: RepositoryArgs) -> Result<Workspace, Fault> 
         no_specs,
         setup,
     } = api::read_workspace(&repository.path)?;
+    let now = status::now_of(&priorities);
     let features = features
         .iter()
-        .map(|view| feature(shared, &repository, view));
+        .map(|view| feature(shared, &repository, view, now.contains(&view.folder)));
     Ok(Workspace {
         root,
         default_branch,
@@ -60,11 +61,12 @@ fn feature(
     shared: &Shared,
     repository: &Repository,
     view: &FeatureView,
+    now: bool,
 ) -> Result<WorkspaceFeature, Fault> {
     Ok(WorkspaceFeature {
         id: view.folder.clone(),
         label: repositories::label(repository, &view.folder),
-        status: status::of(shared, &repository.path, view),
+        status: status::of(shared, &repository.path, view, now),
         feature: views::sent(view)?,
     })
 }

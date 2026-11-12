@@ -11,8 +11,8 @@ import { Row } from "../../ui/lists";
 import { Pane } from "../../ui/surfaces";
 import { tokens } from "../../ui/tokens";
 
-/** A feature's state, as its row's icon and hue. */
-function stateOf(feature: WorkspaceFeature): { icon: IconName; hue?: string } {
+/** A feature's state, as its row's icon and hue: the sidebar's, the priorities', Home's. */
+export function stateOf(feature: WorkspaceFeature): { icon: IconName; hue?: string } {
   switch (feature.status.status) {
     case "working":
       return { hue: tokens.light.running, icon: "activity" };

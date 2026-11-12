@@ -14,6 +14,7 @@ import type { Tone } from "../../ui/tokens";
 const REASONS: Record<NeedsYouRow["reason"], { icon: IconName; label: string; tone: Tone }> = {
   attention: { icon: "triangle-alert", label: "Needs a look", tone: "caution" },
   blocked: { icon: "triangle-alert", label: "Blocked", tone: "danger" },
+  continue: { icon: "play", label: "Your Continue", tone: "needs" },
   "pull-request": { icon: "git-pull-request", label: "Pull request", tone: "needs" },
   step: { icon: "circle-dot", label: "Waits on you", tone: "needs" },
 };

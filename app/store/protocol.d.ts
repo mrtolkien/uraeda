@@ -3226,7 +3226,7 @@ rows: Array<NeedsYouRow>, };
 /**
  * Why an item needs the human, in the order a notification picks it.
  */
-export type NeedsYouReason = "blocked" | "attention" | "step" | "pull-request";
+export type NeedsYouReason = "blocked" | "attention" | "step" | "pull-request" | "continue";
 
 /**
  * An item that needs the human.
@@ -5432,7 +5432,7 @@ output: string | null, };
 /**
  * Why a status needs the human, or works with no turn running.
  */
-export type StatusReason = "blocked" | "step" | "failed" | "stopped" | "interrupted" | "halted" | "conflict" | "capped" | "waiting";
+export type StatusReason = "blocked" | "step" | "failed" | "stopped" | "interrupted" | "halted" | "conflict" | "capped" | "waiting" | "continue";
 
 export type StepItem = { block: number, checked: boolean, };
 

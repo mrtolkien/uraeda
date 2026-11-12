@@ -47,7 +47,12 @@ fn record(shared: &Shared, repository: &Repository, view: &FeatureView) -> Resul
     let sessions = sessions_of(shared, &repository.path.to_string_lossy(), view);
     Ok(Feature {
         label: label.and_then(|item| item.label.clone()),
-        status: status::of(shared, &repository.path, view),
+        status: status::of(
+            shared,
+            &repository.path,
+            view,
+            status::in_now(&repository.path, &view.folder),
+        ),
         // A decision that cannot be read is no preview.
         preview: api::preview(&checkout).is_ok_and(|preview| preview.is_some()),
         run_options: options::pair(shared, &repository.path, &view.folder),

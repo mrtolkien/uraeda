@@ -1,10 +1,11 @@
 //! What the sessions' records, a feature's status, and the automatic runs read of a session:
 //! its turns, its status, and each feature in flight with the status every view shows.
 
+use std::collections::HashSet;
 use std::path::Path;
 
 use uraeda_core::api;
-use uraeda_core::view::FeatureView;
+use uraeda_core::view::{FeatureView, ProposalView};
 use uraeda_protocol::{FeatureStatus, SessionStatus, StatusReason, Wait};
 
 use super::manager::Runner;
@@ -100,8 +101,20 @@ impl Runner {
     /// latest started first, gives "Working", from that session, whatever the step; a feature
     /// with problems needs the human; then the latest session's own status, which reads the
     /// step, never an older session's outcome; without a session, the step needs the human
-    /// when it waits on them, else the feature is idle.
-    pub(crate) fn feature_status(&self, root: &str, feature: &FeatureView) -> FeatureStatus {
+    /// when it waits on them, else the feature is idle. An idle feature of **Now**, `now`,
+    /// waits for the human's Continue, as [`awaiting_continue`] says.
+    pub(crate) fn feature_status(
+        &self,
+        root: &str,
+        feature: &FeatureView,
+        now: bool,
+    ) -> FeatureStatus {
+        let status = self.feature_status_read(root, feature);
+        awaiting_continue(status, feature, now)
+    }
+
+    /// [`Runner::feature_status`], before an idle feature's Continue.
+    fn feature_status_read(&self, root: &str, feature: &FeatureView) -> FeatureStatus {
         let idle = |status, label: &str, reason| FeatureStatus {
             status,
             label: label.to_owned(),
@@ -172,13 +185,14 @@ impl Runner {
         let Ok(workspace) = api::read_workspace(Path::new(root)) else {
             return Vec::new();
         };
+        let now = in_now(&workspace.priorities);
         let in_flight = workspace
             .features
             .into_iter()
             .filter(|feature| !matches!(feature.step.name.as_str(), "done" | "none"));
         in_flight
             .map(|feature| {
-                let status = self.feature_status(root, &feature);
+                let status = self.feature_status(root, &feature, now.contains(&feature.folder));
                 (feature, status)
             })
             .collect()
@@ -202,6 +216,38 @@ impl Runner {
         .collect()
     }
 }
+
+/// The folders of the features whose proposal is in **Now**: those the human moves now, as the
+/// workflow's own target rule reads them. A dropped feature has no line, a held one is elsewhere.
+pub(crate) fn in_now(priorities: &[ProposalView]) -> HashSet<String> {
+    let now = priorities.iter().filter(|line| line.section == "now");
+    now.filter_map(|line| line.feature.clone()).collect()
+}
+
+/// An idle feature of **Now** whose step is an agent's run, read as waiting for the human's
+/// Continue: no run starts by itself, so the next move is theirs. Not at `catch-up`, which the
+/// catcher may run, nor where the agent has nothing to run.
+fn awaiting_continue(status: FeatureStatus, feature: &FeatureView, now: bool) -> FeatureStatus {
+    let step = &feature.step;
+    let runs = step.waits_on == "agent"
+        && feature.branch.is_some()
+        && !matches!(
+            step.name.as_str(),
+            status::CATCH_UP | "pull-request-unknown" | "none" | "done"
+        );
+    if !(now && runs && status.status == SessionStatus::Idle) {
+        return status;
+    }
+    FeatureStatus {
+        status: SessionStatus::NeedsYou,
+        label: WAITS_FOR_CONTINUE.to_owned(),
+        reason: Some(StatusReason::Continue),
+        ..status
+    }
+}
+
+/// What a feature that waits for the human's Continue reads.
+const WAITS_FOR_CONTINUE: &str = "Waits for your Continue";
 
 /// The status of a session as the protocol sends it.
 pub(crate) fn status_of_feature(status: &FeatureStatus) -> Status {

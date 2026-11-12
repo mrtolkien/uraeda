@@ -126,9 +126,12 @@ async fn workspace_answers_its_shape() {
         "session": null, "turn": null, "wait": null,
     });
     assert_eq!(waiting["status"], needs);
-    // One the agent works on next waits on nobody's answer.
-    let idle = feature(&value, "2026-10-12-cli-tuis");
-    assert_eq!(idle["status"]["status"], "idle");
+    // One of Now the agent works on next, which no run follows, waits for the human's Continue.
+    let next = &feature(&value, "2026-10-12-cli-tuis")["status"];
+    assert_eq!(
+        [&next["status"], &next["reason"], &next["label"]],
+        ["needs-you", "continue", "Waits for your Continue"]
+    );
 }
 
 // The repositories decision: a record of a repository is scoped to it by name, never mixing two.
@@ -196,10 +199,12 @@ async fn needs_you_list_answers_its_shape() {
         "continued": false,
     });
     assert_eq!(**row.unwrap(), expected);
-    assert!(
-        asking(&value, "2026-10-12-cli-tuis").is_empty(),
-        "an agent's step asks nothing"
-    );
+    // An agent's step of Now that no run follows waits for the human's Continue.
+    let reasons: Vec<_> = asking(&value, "2026-10-12-cli-tuis")
+        .iter()
+        .map(|row| row["reason"].clone())
+        .collect();
+    assert_eq!(reasons, [json!("continue"), json!("continue")]);
 }
 
 #[tokio::test]
@@ -424,8 +429,8 @@ async fn the_list_follows_its_file() {
 }
 
 // The feature status decision's one place, read by the sidebar and the notifications: a commit
-// that answers the questions moves the feature in its workspace, and takes it off what needs the
-// human.
+// that answers the questions moves the feature in its workspace, and its ask from the questions to
+// the human's Continue.
 #[tokio::test]
 async fn a_commit_reaches_the_workspace_and_what_needs_the_human() {
     let repo = fixture_repo("todo-app");
@@ -442,9 +447,14 @@ async fn a_commit_reaches_the_workspace_and_what_needs_the_human() {
 
     let moved = |workspace: &Value| feature(workspace, HUMAN)["step"]["name"] != "human-gate";
     let after = workspace.until("the feature's next step", moved).await;
-    assert_ne!(feature(after, HUMAN)["status"]["status"], "needs-you");
+    // Its gate's ask is answered: what is left is the human's Continue of the agent's step.
+    assert_eq!(feature(after, HUMAN)["status"]["reason"], "continue");
+    let continues = |list: &Value| {
+        let rows = asking(list, HUMAN);
+        rows.len() == 1 && rows[0]["reason"] == "continue"
+    };
     needs
-        .until("the row to go", |list| asking(list, HUMAN).is_empty())
+        .until("the gate's row to become a Continue", continues)
         .await;
 }
 

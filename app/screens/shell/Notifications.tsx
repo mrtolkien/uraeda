@@ -7,6 +7,8 @@
 // - An item tells once: a toast in the app, and, while the window is not focused, a notification of
 //   the desktop, whose click brings the window up on the item's page.
 // - Nothing tells about the page the human is looking at, the window focused.
+// - A feature that waits for the human's Continue is listed and counted, and never tells: the
+//   human started it, or put its run aside, and nothing came.
 // - The desktop's notifications are the app's own switch, kept on this device: Linux asks no
 //   permission, so the app asks itself, once, after saying what will notify, at the first item
 //   that comes; "Not now" is kept, and never asked again. The settings' Appearance changes it.
@@ -134,9 +136,10 @@ export function Notifier() {
       }
       const fresh = now.filter((row) => !seen!.has(row.key));
       for (const row of fresh) seen.add(row.key);
-      // What was answered goes; what came, unless looked at, tells.
+      // What was answered goes; what came, unless looked at, tells. A feature waiting for the
+      // human's Continue never tells: they started it, or put its run aside, themselves.
       const keys = new Set(now.map((row) => row.key));
-      const told = fresh.filter((row) => !looksAt(row.href));
+      const told = fresh.filter((row) => !looksAt(row.href) && row.reason !== "continue");
       asks.set([...told.toReversed(), ...asks().filter((row) => keys.has(row.key))]);
       for (const row of told) toDesktop(row);
       if (told.length > 0 && mayNotify() && device.get("notifications") === undefined) {

@@ -4,6 +4,7 @@
 import { type Accessor, computed, effect, untracked, View } from "nsh";
 import type { Order } from "./moves";
 import { shownIn } from "./order";
+import { stateOf } from "../shell/Sidebar";
 import { broughtBack, remember, took } from "../shell/undo";
 import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
@@ -12,7 +13,6 @@ import { KeyScope, registerKey } from "../../ui/keys/registry";
 import { type Cursor, createCursor, DragOrder, Empty, Line, List, Row } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 import { TextField } from "../../ui/text";
-import { tokens } from "../../ui/tokens";
 
 /** A proposal's words, as one line of plain text. */
 export const plain = (proposal: Pick<ProposalItem, "spans">) =>
@@ -128,18 +128,29 @@ export function Section(props: SectionProps) {
   );
 }
 
-/** Where a running proposal's feature is, in words: its task, or who it waits on. */
-export function stepWords(proposal: ProposalItem | undefined) {
+/** The status of a running proposal's feature, as the server decides it for every view. */
+function statusOf(repo: string, proposal: ProposalItem | undefined) {
+  const folder = proposal?.running?.folder;
+  const features = record("Workspace", { repo })()?.features ?? [];
+  return features.find((feature) => feature.id === folder);
+}
+
+/**
+ * Where a running proposal's feature is, in words: its task while an agent works on it, else its
+ * status as the sidebar says it ("Waits for your Continue", "Needs you", "Idle").
+ */
+export function stepWords(repo: string, proposal: ProposalItem | undefined) {
   const step = proposal?.running?.step;
   if (step === undefined) return undefined;
-  return step.task ?? (step.waitsOn === "human" ? "Waits on you" : "An agent's turn");
+  const status = statusOf(repo, proposal)?.status;
+  if (status === undefined) return step.task ?? undefined;
+  return status.status === "working" ? (step.task ?? status.label) : status.label;
 }
 
 /** Who a running proposal's feature waits on, as its row's icon and hue: the sidebar's. */
-function stepLook(proposal: ProposalItem | undefined) {
-  return proposal?.running?.step?.waitsOn === "human"
-    ? { hue: tokens.light.needs, icon: "circle-dot" as const }
-    : { hue: tokens.light.running, icon: "activity" as const };
+function stepLook(repo: string, proposal: ProposalItem | undefined) {
+  const feature = statusOf(repo, proposal);
+  return feature === undefined ? { hue: undefined, icon: "flag" as const } : stateOf(feature);
 }
 
 /** The running proposals, apart: each opens its feature. Nothing to order here. */
@@ -155,6 +166,7 @@ export function Ongoing(props: {
   onOpen: (key: string) => void;
   onTouched: () => void;
   proposals: Accessor<ReadonlyMap<string, ProposalItem>>;
+  repo: string;
 }) {
   const items = computed(() => props.keys().map((id) => ({ id })));
   const cursor = createCursor(items, { onChange: (id) => id !== undefined && props.onTouched() });
@@ -169,13 +181,13 @@ export function Ongoing(props: {
           const proposal = () => props.proposals().get(id());
           return (
             <Line
-              hue={stepLook(proposal()).hue}
-              icon={stepLook(proposal()).icon}
+              hue={stepLook(props.repo, proposal()).hue}
+              icon={stepLook(props.repo, proposal()).icon}
               label={proposal() === undefined ? "" : plain(proposal()!)}
               meta={
                 props.compact()
                   ? (proposal()?.running?.step?.task ?? undefined)
-                  : stepWords(proposal())
+                  : stepWords(props.repo, proposal())
               }
             />
           );

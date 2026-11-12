@@ -25,8 +25,13 @@ import { registerKey } from "../../ui/keys";
 const toList = () => navigate({ page: "priorities" });
 
 /** Where it stands, in words: "In Next", "Started · Waits on you", "Merged". */
-function standing(proposal: ProposalItem, priorities: Priorities, section: string | undefined) {
-  if (proposal.running) return `Started · ${stepWords(proposal)}`;
+function standing(
+  repo: string,
+  proposal: ProposalItem,
+  priorities: Priorities,
+  section: string | undefined,
+) {
+  if (proposal.running) return `Started · ${stepWords(repo, proposal)}`;
   if (proposal.merged) return "Merged";
   const title = priorities.sections.find((one) => one.section === section)?.title;
   return title === undefined ? "In the priorities" : `In ${title}`;
@@ -217,7 +222,7 @@ function Body(props: {
     <View style={{ gap: 18, maxWidth: 880, paddingBottom: 24 }}>
       <View style={{ gap: 4 }}>
         <Text size="under" tone="quiet">
-          {standing(props.proposal, props.priorities()!, where())}
+          {standing(props.repo, props.proposal, props.priorities()!, where())}
         </Text>
         <Heading level={2}>{plain(props.proposal)}</Heading>
         <If when={!props.proposal.running && !props.proposal.merged}>
