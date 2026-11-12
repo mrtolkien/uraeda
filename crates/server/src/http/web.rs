@@ -7,7 +7,8 @@
 //! - **Its files** are the only paths open without a session, with the sign-in routes: they hold
 //!   nothing of the owner's. Each is sent in the smallest form the browser takes, brotli, gzip,
 //!   or as it is, which the build made beforehand. A file whose name holds the hash of its
-//!   content is cached for good; the page and the manifest are asked again at each load. Any
+//!   content is cached for good; the page, the manifest, and an extension's frame are asked
+//!   again at each load, with the tag of their content, and a `304` answers when it is the same. Any
 //!   origin may read them, as the frame an extension's page runs in has none
 //!   (`app/extensions/host.web.tsx`): the app's page, and every route, are not concerned.
 //! - **The page** answers every address of the app, so a reload or a shared address opens it:
@@ -55,6 +56,9 @@ struct File {
     plain: Option<Bytes>,
     brotli: Option<Bytes>,
     gzip: Option<Bytes>,
+    /// The tag of its content, which a browser sends back to ask whether it changed: for a file
+    /// whose name does not say it.
+    tag: Option<HeaderValue>,
 }
 
 /// The web build the server serves, read once as it starts.
@@ -62,8 +66,6 @@ pub(crate) struct Web {
     files: HashMap<String, File>,
     /// The page, `index.html`, or the one that says there is no build.
     page: File,
-    /// The page's tag, which a browser sends back to ask whether it changed.
-    tag: HeaderValue,
     /// The paths that are the server's own: see [`Web::is_servers`].
     routes: Vec<&'static str>,
 }
@@ -97,16 +99,18 @@ impl Web {
                 Form::Gzip => file.gzip = Some(bytes),
             }
         }
-        let page = files.remove("index.html").unwrap_or_else(|| File {
+        let mut page = files.remove("index.html").unwrap_or_else(|| File {
             plain: Some(Bytes::from_static(NOT_BUILT.as_bytes())),
             ..File::default()
         });
-        let html = page.inflated().unwrap_or_default();
-        let digest = Sha256::digest(&html);
-        let tag: String = digest.iter().take(8).map(|b| format!("{b:02x}")).collect();
+        page.tag = page.tagged();
+        for (path, file) in &mut files {
+            if !hashed(path) {
+                file.tag = file.tagged();
+            }
+        }
         Web {
             files,
-            tag: HeaderValue::from_str(&format!("\"{tag}\"")).expect("a tag is ASCII"),
             page,
             routes,
         }
@@ -148,6 +152,20 @@ impl File {
             return Some((gzip.clone(), Some("gzip")));
         }
         self.inflated().map(|plain| (plain, None))
+    }
+
+    /// The tag of the file's content.
+    fn tagged(&self) -> Option<HeaderValue> {
+        let digest = Sha256::digest(self.inflated()?);
+        let tag: String = digest.iter().take(8).map(|b| format!("{b:02x}")).collect();
+        HeaderValue::from_str(&format!("\"{tag}\"")).ok()
+    }
+
+    /// Whether a browser that sent `headers` holds the file as it is.
+    fn held(&self, headers: &HeaderMap) -> bool {
+        self.tag
+            .as_ref()
+            .is_some_and(|tag| text(headers, &IF_NONE_MATCH).as_bytes() == tag.as_bytes())
     }
 
     /// The file as it is: from its gzip form, when that is all that is held.
@@ -255,10 +273,17 @@ pub(crate) async fn answer(State(shared): State<Shared>, request: Request) -> Re
     let path = request.uri().path();
     if let Some(file) = web.files.get(path.trim_start_matches('/')) {
         let cached = if hashed(path) { FOREVER } else { "no-cache" };
-        let Some(sent) = file.sent(encodings) else {
-            return not_found();
+        let mut response = if file.held(headers) {
+            not_modified(cached)
+        } else {
+            let Some(sent) = file.sent(encodings) else {
+                return not_found();
+            };
+            respond(sent, kind(path), cached)
         };
-        let mut response = respond(sent, kind(path), cached);
+        if let Some(tag) = &file.tag {
+            response.headers_mut().insert(ETAG, tag.clone());
+        }
         // An extension's page runs in a frame without an origin (`extension.html`), whose
         // player loads these same files: to it they are another origin's. They hold nothing of
         // the owner's, and are open without a session already.
@@ -274,15 +299,18 @@ pub(crate) async fn answer(State(shared): State<Shared>, request: Request) -> Re
     if !opened || web.is_servers(path) {
         return not_found();
     }
-    if text(headers, &IF_NONE_MATCH) == web.tag {
-        return (StatusCode::NOT_MODIFIED, [(ETAG, web.tag.clone())]).into_response();
-    }
-    let Some(sent) = web.page.sent(encodings) else {
-        return not_found();
+    let mut response = if web.page.held(headers) {
+        not_modified("no-cache")
+    } else {
+        let Some(sent) = web.page.sent(encodings) else {
+            return not_found();
+        };
+        respond(sent, kind("index.html"), "no-cache")
     };
-    let mut response = respond(sent, kind("index.html"), "no-cache");
     let headers = response.headers_mut();
-    headers.insert(ETAG, web.tag.clone());
+    if let Some(tag) = &web.page.tag {
+        headers.insert(ETAG, tag.clone());
+    }
     let policy = HeaderValue::from_static(policy::POLICY);
     headers.insert(CONTENT_SECURITY_POLICY, policy);
     response
@@ -294,6 +322,15 @@ pub(crate) fn is_file(shared: &Shared, path: &str) -> bool {
         .get::<Arc<Web>>()
         .files
         .contains_key(path.trim_start_matches('/'))
+}
+
+/// The answer to a browser that holds the file as it is.
+fn not_modified(cached: &'static str) -> Response {
+    let mut response = StatusCode::NOT_MODIFIED.into_response();
+    let headers = response.headers_mut();
+    headers.insert(CACHE_CONTROL, HeaderValue::from_static(cached));
+    headers.insert(VARY, HeaderValue::from_static("Accept-Encoding"));
+    response
 }
 
 /// A file's answer: its bytes, with what they are, how they are encoded, and how long they keep.

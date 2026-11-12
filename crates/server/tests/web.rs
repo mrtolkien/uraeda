@@ -122,6 +122,14 @@ async fn the_apps_files_are_served_compressed_and_cached_by_their_hash() {
     assert_eq!((again.status, again.body.len()), (304, 0));
     let manifest = file(&server, "/manifest.webmanifest", None).await;
     assert_eq!(manifest.header("cache-control"), Some("no-cache"));
+    // So does every other unhashed file, as the frame an extension's page loads in each time.
+    let tag = manifest.header("etag").expect("the manifest has a tag");
+    let again = server.get("/manifest.webmanifest").header("if-none-match", tag);
+    let again = again.send().await;
+    assert_eq!((again.status, again.body.len()), (304, 0));
+    assert_eq!(again.header("access-control-allow-origin"), Some("*"));
+    let changed = server.get("/manifest.webmanifest").header("if-none-match", "\"other\"");
+    assert_eq!(changed.send().await.body, b"{}");
 }
 
 #[tokio::test]
