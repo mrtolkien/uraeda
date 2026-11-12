@@ -239,6 +239,7 @@ fn comes_later(path: &str, later: &[String]) -> bool {
         || path.starts_with("icons/")
         || name == "manifest.webmanifest"
         || path == "extension.html"
+        || path == "notify-worker.js"
 }
 
 /// A file's path without the digest of its content Native Shell names it with:

@@ -94,7 +94,11 @@ function listen() {
 function toDesktop(row: NeedsYouRow) {
   if (!mayNotify() || !desktopNotifications() || lifecycle() === "active") return;
   const title = `${row.label} needs you`;
-  if (web) return notifyBrowser(title, row.message, row.key, () => navigate(parseRoute(row.href)));
+  if (web) {
+    return notifyBrowser(title, row.message, row.key, row.href, (href) =>
+      navigate(parseRoute(href)),
+    );
+  }
   notifyDesktop(title, row.message)
     .then((id) => {
       opens.set(id, row.href);

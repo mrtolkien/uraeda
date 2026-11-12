@@ -67,6 +67,10 @@ printf '%s\n' "$frame" >"$site/extension.html"
 # `app/web/icon.png` (`nsh.json`'s `icon`), are the manifest's and a phone's home screen's.
 cp "$root/app/package/dev.uraeda.app.svg" "$site/icon.svg"
 
+# The service worker that shows the notifications (`app/web/notify-worker.js`): at the site's root,
+# so its scope is the whole app.
+cp "$root/app/web/notify-worker.js" "$site/notify-worker.js"
+
 # The manifest, what "Add to Home Screen" installs: NSH gives it white, where the app's first
 # paint is the default light theme's backdrop, as the page's own light colour is.
 manifest="$site/manifest.webmanifest"
@@ -84,6 +88,7 @@ compress() {
 compress "$page"
 compress "$site/extension.html"
 compress "$site/icon.svg"
+compress "$site/notify-worker.js"
 find "$site" -name '*.otf' -print0 | while IFS= read -r -d '' font; do compress "$font"; done
 
 rm -rf "$out"

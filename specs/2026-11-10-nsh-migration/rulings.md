@@ -10098,3 +10098,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: one retry costs one whole value; looping would stream a broken large value forever.
 - **Where**: `app/store/connection.ts`; the store's test against the real server, by injected
   frames.
+
+## T81.4: Notifications in a browser go through a service worker
+
+- **Decision**: of the two ways the finding offered, the worker: `app/web/notify-worker.js`, served
+  at the site's root by the web build, registered at the first notification, shows every
+  notification (`showNotification`) and, on a click, brings the app's tab up and tells it the
+  address, or opens it when no tab is. It takes no request. A browser without workers uses
+  `new Notification`, and nothing of either throws into the app: a failure is a warning in the
+  console.
+- **Rationale**: Chrome on Android and an installed web app accept only this way, and the phone is a
+  target; the worker is 25 lines, the policy allowed it already (`worker-src 'self'`), and hiding
+  the switch on the phone would have hidden it where it matters most. Not seen on a phone here: the
+  browser test checks the worker is served, registers for the whole app, and can show.
+- **Where**: `app/web/{notify.ts,notify-worker.js}`, `scripts/web-build.sh`,
+  `app/screens/shell/Notifications.tsx`; the browser test
+  `the_worker_that_shows_notifications_is_served_for_the_whole_app`.

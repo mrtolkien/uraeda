@@ -187,3 +187,22 @@ async fn a_confirmation_opens_and_confirms_by_its_key() {
     }
     served.stop().await;
 }
+
+#[tokio::test]
+#[ignore = "needs the real web build and a browser: `just web-test` runs it"]
+async fn the_worker_that_shows_notifications_is_served_for_the_whole_app() {
+    let mut served = Served::start(DESKTOP, "dark").await;
+    let root = served.address("/");
+    let browser = &mut served.browser;
+    // What the app registers at its first notification: Chrome on Android and an installed web
+    // app show a notification through it alone.
+    let registered = browser
+        .evaluate(
+            "navigator.serviceWorker.register('/notify-worker.js') \
+             .then(() => navigator.serviceWorker.ready) \
+             .then((at) => [at.scope, typeof at.showNotification])",
+        )
+        .await;
+    assert_eq!(registered, serde_json::json!([root, "function"]));
+    served.stop().await;
+}
