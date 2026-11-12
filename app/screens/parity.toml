@@ -157,6 +157,13 @@ why = "the refused write's card retries a feature's file only; a default round's
 fate = "brought-back"
 now = "the refused write's card: Retry for a feature's file (`commit.retry`) and for the triage's or the decisions check's submit (`defaultRound.retry`), told by the page it was made on"
 
+[[left]]
+what = "A host name edited in place"
+old = "Settings (Server, `settings.editHost`)"
+why = "removing and adding a name does the same, in two presses (T48)"
+fate = "brought-back"
+now = "Settings, Server: an Edit beside each host name's Remove opens the name dialog (`settings.editHost`), warning when it is the name this device reaches the server through"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -198,14 +205,6 @@ why = "its source lists are short, and the extensions' New sections lost `search
 fate = "left"
 needs = "a filter field over the `new-sources` pane's entries"
 missed = "nobody will: the lists fit a screen"
-
-[[left]]
-what = "A host name edited in place"
-old = "Settings (Server, `settings.editHost`)"
-why = "removing and adding a name does the same, in two presses (T48)"
-fate = "left"
-needs = "an Edit on the host's row, in the name dialog, over `settings.editHost`"
-missed = "nobody will: host names are set once"
 
 [[left]]
 what = "The screen-reader announcer"

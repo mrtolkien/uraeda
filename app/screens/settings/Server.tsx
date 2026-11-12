@@ -10,6 +10,7 @@ import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, extensionHost } from "../../store";
 import { Button, IconButton, refusalOf, sent, Switch, Text } from "../../ui/controls";
 import { TextField } from "../../ui/text";
+import { NameDialog } from "../NameDialog";
 
 /** The host name in the address this device reaches the server at. */
 function ownHost(): string {
@@ -24,6 +25,7 @@ function ownHost(): string {
 /** The allowed host names: one line each, with its remove, then the field that adds one. */
 function Hosts(props: { names: ReadonlyArray<string>; onRefused: (words: string | null) => void }) {
   const asking = signal<string | null>(null);
+  const editing = signal<string | null>(null);
   // A name removed goes from the list at once, and comes back if the server refuses.
   const gone = signal<ReadonlyArray<string>>([]);
   const add = savedField(
@@ -57,6 +59,11 @@ function Hosts(props: { names: ReadonlyArray<string>; onRefused: (words: string 
                 {name()}
               </Text>
               <IconButton
+                icon="pencil-line"
+                label={`Edit ${name()}`}
+                onPress={() => editing.set(name())}
+              />
+              <IconButton
                 icon="x"
                 label={`Remove ${name()}`}
                 onPress={() => (name() === ownHost() ? asking.set(name()) : void remove(name()))}
@@ -80,6 +87,27 @@ function Hosts(props: { names: ReadonlyArray<string>; onRefused: (words: string 
           </View>
         )}
       </Each>
+      <If when={editing()}>
+        {(from) => (
+          <NameDialog
+            blank="A host name is needed: Remove takes a name away."
+            icon="pencil-line"
+            initial={from()}
+            label="Host name"
+            onClose={() => editing.set(null)}
+            onSave={async (to) => {
+              await call("settings.editHost", { from: from(), to });
+            }}
+            placeholder="mac.tail1234.ts.net"
+            title="Edit the host name"
+            words={
+              from() === ownHost()
+                ? "This device reaches Uraeda through this name: once it changes, the server refuses this device until it reaches it through the new one."
+                : "The server accepts requests to this name, from now on."
+            }
+          />
+        )}
+      </If>
       <TextField
         label="Add a host name"
         lines="one"
