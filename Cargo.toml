@@ -62,17 +62,18 @@ nsh-package = "=0.5.0"
 # one draws no shader, or fails a page at its import. A crate adds `webview` for web views, which
 # links WebKitGTK.
 nsh-platform-linux = "=0.5.0"
-# oxc, at one exact version for every crate: its crates release together, and 0.153 needs Rust 1.97.
-oxc_allocator = "=0.152.0"
-oxc_ast = "=0.152.0"
-oxc_ast_visit = "=0.152.0"
-oxc_codegen = "=0.152.0"
-oxc_diagnostics = "=0.152.0"
-oxc_parser = "=0.152.0"
-oxc_semantic = "=0.152.0"
-oxc_span = "=0.152.0"
-oxc_syntax = "=0.152.0"
-oxc_transformer = "=0.152.0"
+# oxc, at one exact version for every crate, the one NSH's rolldown (1.2.13) holds: its crates
+# release together, and one version builds once.
+oxc_allocator = "=0.153.0"
+oxc_ast = "=0.153.0"
+oxc_ast_visit = "=0.153.0"
+oxc_codegen = "=0.153.0"
+oxc_diagnostics = "=0.153.0"
+oxc_parser = "=0.153.0"
+oxc_semantic = "=0.153.0"
+oxc_span = "=0.153.0"
+oxc_syntax = "=0.153.0"
+oxc_transformer = "=0.153.0"
 percent-encoding = "2"
 pulldown-cmark = { version = "0.13.4", default-features = false }
 # The QR code `ura pair` draws in the terminal: no dependency of its own.
