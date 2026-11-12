@@ -7,6 +7,7 @@ import changes from "../../fixtures/protocol/changes.json";
 import frames from "../../fixtures/protocol/frames.json";
 import messages from "../../fixtures/protocol/messages.json";
 import { apply } from "./apply";
+import { PROTOCOL } from "./connection";
 import { Held } from "./held";
 import type { JsonValue, Op } from "./protocol";
 
@@ -346,8 +347,8 @@ test("a change that arrives after its unsub is ignored, and no subscription is l
 test("a refused connection says which side to update", async () => {
   const app = await harness();
   // A client newer than the server, and one older: the real server refuses both.
-  await step(app, { conn: "newer", do: "connect", protocol: 3 });
-  await step(app, { conn: "older", do: "connect", protocol: 1 });
+  await step(app, { conn: "newer", do: "connect", protocol: PROTOCOL + 1 });
+  await step(app, { conn: "older", do: "connect", protocol: PROTOCOL - 1 });
   await until(
     app,
     (f) => f.conns.newer?.status === "refused" && f.conns.older?.status === "refused",
