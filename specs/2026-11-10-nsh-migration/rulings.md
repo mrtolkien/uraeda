@@ -10457,7 +10457,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/home/core.tsx`, `app/screens/session/SessionsPage.tsx`,
   `app/screens/session/panels/words.ts`.
 
-## T191.1: Tab goes through the focused pane's stops; Enter presses, Space stays the leader
+## R522: Tab goes through the focused pane's stops; Enter presses, Space stays the leader
 
 - **Decision**: each pane has a list of focus stops of its own (`paneStops`, made in the layout's
   `PaneBody`), as an overlay has; its scope binds Tab and Shift+Tab, from a field too, through its
@@ -10481,7 +10481,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/surfaces/focus.ts`, `app/ui/keys/registry.tsx`, `app/ui/layout/Stack.tsx`,
   `app/ui/controls/press.ts`, `app/ui/document/Spans.tsx`, `app/ui/layout/focus.test.tsx`.
 
-## T191.2: A key the leader's menu does not have closes it, and the status line names it
+## R523: A key the leader's menu does not have closes it, and the status line names it
 
 - **Decision**: at a pending step, a printable key no entry has ends the sequence, does nothing
   else, and the status line says "`Space x` is no key here" for two seconds. `Space w` lists its
@@ -10493,7 +10493,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/keys/{sequence.ts,leader.ts,LeaderMenu.tsx,groups.ts}`,
   `app/ui/layout/StatusLine.tsx`.
 
-## T191.3: Back returns to the previous page; what a page shows inside itself adds no visit
+## R524: Back returns to the previous page; what a page shows inside itself adds no visit
 
 - **Decision**: a category of the settings opened from their index, once they are shown, replaces
   the visit (`redirect`), as the decisions' list and the inbox already did for their rows; opening
@@ -10502,7 +10502,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   Unsaved text of a category is kept on the device, so changing it asks nothing.
 - **Where**: `app/screens/settings/Index.tsx`, `specs/ui/keyboard.md`.
 
-## T193.1: The app's layers are a lint per folder, and what a page is built with is a test
+## R525: The app's layers are a lint per folder, and what a page is built with is a test
 
 - **Decision**: `.oxlintrc.json` holds the layers as `no-restricted-imports`, one override per
   folder, each saying the fix: `app/ui/` imports no screen, extension, gallery, or tool, and of
@@ -10524,7 +10524,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   1.86's `no-new-array` refused its array of a length, marked in place: `Array.from` fills by a
   callback, which the check found too slow).
 
-## T193.2: A TSX function's length is held at 150 lines, with 18 functions marked in place
+## R526: A TSX function's length is held at 150 lines, with 18 functions marked in place
 
 - **Decision**: `.oxlintrc.json` turns `max-lines-per-function` back on, at 150 lines, blank lines
   and comments not counted. The 18 functions over it are marked in place
@@ -10542,7 +10542,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `.oxlintrc.json`, the 17 marked files. `specs/decisions/code-quality.md`'s consequence
   "A TSX function's length is not checked yet" is now out of date: a human amends it.
 
-## T195.1: A repository not set up says so at the head of Needs you, not on a Setup pane
+## R527: A repository not set up says so at the head of Needs you, not on a Setup pane
 
 - **Decision**: Home's Needs you opens on a banner while the server's `Workspace` says the
   repository has no `specs/` folder (`noSpecs`) or a required setup item is not written (`setup`):
@@ -10557,7 +10557,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   with the agent" filling a chat with the skill's setup message, once the server gives one.
 - **Where**: `app/screens/home/SetUp.tsx`, `app/screens/home/core.tsx`.
 
-## T86.1: A phone's browser keeps the phone's frame held sideways
+## R528: A phone's browser keeps the phone's frame held sideways
 
 - **Decision**: in a browser that says it is a phone (Native Shell's `platform.idiom`, a coarse
   pointer on a screen under 600 points both ways), the width class is narrow at every width. Turned

@@ -9,7 +9,7 @@
 //
 // A phone's browser is narrow at every width: a phone turned on its side is still held in the
 // hands, a thumb on its glass and no keyboard under it, so it keeps the phone's frame, its targets,
-// and its sheets, never a desktop's status line of keys and its 32-point controls (ruling T86.1).
+// and its sheets, never a desktop's status line of keys and its 32-point controls (ruling R528).
 // The browser says it is a phone by its idiom: a coarse pointer on a screen under 600 points both
 // ways. The native app on a phone would too; `nsh test` runs headless as one at any width, so this
 // asks the browser alone.

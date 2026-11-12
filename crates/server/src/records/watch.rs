@@ -161,7 +161,7 @@ impl Watches {
             let back = move || repositories::reload(&listed);
             match files::watch(vec![Target::file(path.clone())], back) {
                 Ok(watch) => drop(watched.insert(name, (path, watch))),
-                Err(error) => eprintln!("uraeda: {name}: {error}"),
+                Err(error) => say_err!("uraeda: {name}: {error}"),
             }
         }
     }
