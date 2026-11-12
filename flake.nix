@@ -53,6 +53,17 @@
           dontStrip = true;
         });
 
+      # The AppImage's runtime, the program at the head of every AppImage that mounts the image
+      # appended to it: a static build, which needs no FUSE library on the machine. `just package`
+      # writes the AppImage as this runtime followed by the app's squashfs image, as appimagetool
+      # does, which nixpkgs does not have.
+      appimageRuntimeFor =
+        pkgs:
+        pkgs.fetchurl {
+          url = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64";
+          hash = "sha256-L8qLRDySUQ8Ug6iD9gBhrQm0a5eLJjHIB82HOkfsJg0=";
+        };
+
       # What NSH's GTK backend builds against and runs on: GTK 4, which must be 4.14 or newer, and
       # WebKitGTK 6.0 for web views.
       gtkFor =
@@ -125,6 +136,10 @@
               # The formatter and linter of what Cargo does not read: TSX, Markdown, JSON, TOML.
               oxfmt
               oxlint
+              # The release: cargo-dist, at the version `dist-workspace.toml` pins, and the
+              # workflows' linter.
+              cargo-dist
+              actionlint
             ]
             # The app, on Native Shell: GTK's build tools, clang for QuickJS' bindings, and the
             # display no screen shows.
@@ -135,6 +150,12 @@
               # Real key presses and clicks on the hidden display, for the checks of
               # `crates/app/tests/outside.rs`.
               xdotool
+              # `just package`: the binaries made to run outside Nix, the icons rendered from
+              # their vector source, the desktop entry checked, and the AppImage's image.
+              patchelf
+              resvg
+              desktop-file-utils
+              squashfsTools
             ]
             ++ lib.optionals (stdenv.hostPlatform.system == "x86_64-linux") [ (nshFor pkgs) ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (gtkFor pkgs);
@@ -159,6 +180,10 @@
             fi
             unset root
           '';
+          # The AppImage's runtime, for `just package`.
+          URAEDA_APPIMAGE_RUNTIME = pkgs.lib.optionalString (
+            pkgs.stdenv.hostPlatform.system == "x86_64-linux"
+          ) "${appimageRuntimeFor pkgs}";
           # QuickJS' bindings are generated with libclang.
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
           # `nsh check` runs this TypeScript, the version NSH pins, and downloads none.

@@ -1,0 +1,7 @@
+# actionlint's configuration, `just lint-workflows`.
+paths:
+  # cargo-dist writes this workflow, `just dist generate`, and `just release-plan` fails when it
+  # was edited by hand: ShellCheck's style notes on its scripts are dist's to take.
+  .github/workflows/release.yml:
+    ignore:
+      - "shellcheck reported issue in this script"

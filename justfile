@@ -53,13 +53,17 @@ fmt-check:
     cargo fmt --check
     oxfmt --check
 
-# Every lint: Clippy on the workspace, and the app's TSX.
-lint: lint-app
+# Every lint: Clippy on the workspace, the app's TSX, and the GitHub workflows.
+lint: lint-app lint-workflows
     {{ heavy }} cargo clippy --workspace --all-targets -- -D warnings
 
 # The lints of the app's TSX.
 lint-app:
     oxlint -c .oxlintrc.json --deny-warnings app
+
+# The GitHub workflows' lint, with ShellCheck on their scripts.
+lint-workflows:
+    actionlint
 
 # The Rust tests: all of them, or cargo-nextest's arguments, `just test -p uraeda-core`.
 test *args:
@@ -91,6 +95,12 @@ app *args:
     {{ nsh }} build -o ../target/app/nsh
     cargo build -q -p uraeda-cli -p uraeda-app --bin ura --bin uraeda
     target/debug/uraeda --app target/app/nsh "$@"
+
+# The Linux app as a release ships it, in `target/package/`: the folder `uraeda/`, the same as
+# `uraeda-app-x86_64-linux.tar.gz` and as `uraeda-app-x86_64.AppImage`, each with its `.sha256`.
+# It holds the app, `ura` beside it, the desktop entry, and the icons: see `scripts/package.sh`.
+package:
+    {{ heavy }} scripts/package.sh
 
 # A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
 # fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
@@ -147,6 +157,15 @@ sandbox *args:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
 sandboxed +command:
     {{ isolated }} scripts/sandboxed.sh "$@"
+
+# cargo-dist, which builds and releases `ura`: `just dist plan`, or `just dist generate` after a
+# change of `dist-workspace.toml`, which writes `.github/workflows/release.yml` again.
+dist *args:
+    dist "$@"
+
+# The release's plan, which fails when `release.yml` is not what `dist-workspace.toml` generates.
+release-plan:
+    dist plan
 
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:

@@ -86,16 +86,21 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The Linux app's package builds the app's crates in release, from a cold cache at first.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
 
       - name: Check the release plan
-        # The release workflow runs on tags only, so its plan is checked here.
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.33.0/cargo-dist-installer.sh | sh
-          dist plan
+        # The release workflow runs on tags only, so its plan is checked here, with the dev
+        # shell's cargo-dist, at the version dist-workspace.toml pins.
+        run: nix develop --command just release-plan
+
+      - name: Package the Linux app
+        # As the release builds it (`build-app.yml`): the tarball and the AppImage, whose sizes
+        # it prints.
+        run: nix develop --command just package
 
       - name: Print the size of ura
         # Printed on every run, never tested: see the CLI decision.

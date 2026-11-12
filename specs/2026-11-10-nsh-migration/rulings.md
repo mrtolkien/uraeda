@@ -7683,3 +7683,82 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   menu a long press opens too.
 - **Where**: `app/ui/layout/drag.ts`, `app/ui/surfaces/Pane.tsx` (a tab's `onLongPress`, `drag`),
   `app/ui/controls/Menu.tsx`.
+
+## R397: The package is assembled around the app's host, with NSH's compiler, not `nsh package`
+
+- **Decision**: `just package` (`scripts/package.sh`) compiles the TSX with `nsh build --release`,
+  the compile `nsh package` runs, and builds `uraeda` and `ura` with Cargo. It lays them out as
+  `nsh package --target linux` lays out a package: `lib/uraeda`, `lib/ura` beside it,
+  `lib/nsh/{bundle.nshc,app.json,capabilities.json,assets/}`. The launcher `uraeda`, a link `ura`,
+  the desktop entry, and the hicolor icons sit around them. The folder is packed as
+  `uraeda-app-x86_64-linux.tar.gz`, and as `uraeda-app-x86_64.AppImage`: AppImage's static type 2
+  runtime, pinned in `flake.nix`, followed by the folder's squashfs image, with `AppRun`, the entry,
+  and the icon at its root.
+- **Rationale**: `nsh package`'s program is NSH's release runner, built with the app's crate. It
+  registers no native components, and has none of the host's calls (`uraeda.server`, `uraeda.token`,
+  `uraeda.pair`): the app would wait forever for its server. Building that runner also costs a
+  release build of NSH for nothing. nixpkgs has no `appimagetool`; an AppImage is its runtime and an
+  image appended, which `mksquashfs` and `cat` write.
+- **If wrong**: a later NSH that packages a host binary of the app's own replaces the script's
+  middle; the layout and the artifacts' names stay.
+- **Where**: `scripts/package.sh`, `justfile` (`package`), `flake.nix`, `app/package/`.
+
+## R398: The package's binaries run outside Nix, on the machine's GTK and glibc 2.39 or newer
+
+- **Decision**: built in the dev shell, `uraeda` and `ura` get the system's loader,
+  `/lib64/ld-linux-x86-64.so.2`, and no run path (`patchelf`), so they load the machine's libraries.
+  The package bundles no library: the machine needs GTK 4.14 or newer and WebKitGTK 6.0, as NSH's
+  packaging page says, and glibc 2.39 or newer: Ubuntu 24.04's, the first release with GTK 4.14. The
+  dev shell's glibc is 2.44, which gave eight math functions of libm new symbol versions (2.43 and
+  2.44): the first build ran on no distribution. They are linked with `--wrap` to
+  `scripts/glibc-floor.c`, which calls their 2.2.5 versions, and `just package` fails, naming the
+  symbol, when a binary needs a glibc past 2.39. The launcher runs `lib/uraeda --version` first.
+  When the loader refuses it, it names what to install, per distribution: a missing `libgtk-4`, a
+  missing `libwebkitgtk-6.0` or `libjavascriptcoregtk-6.0`, or an undefined `gtk_`, `gdk_`, or
+  `gsk_` symbol, which is a GTK older than 4.14. The host also reads GTK's version as it starts, and
+  refuses below 4.14 in words.
+- **Rationale**: the toolchain decision builds everything in the Nix dev shell. A binary built there
+  names Nix's loader, which a machine without Nix lacks, and fails with "No such file or directory".
+  Bundling GTK and WebKitGTK in the AppImage would carry hundreds of megabytes, and WebKit's helper
+  processes, which the human did not ask for. The Rust build binds every symbol at load (full
+  RELRO), so a too-old GTK fails before `main`: only a launcher can say it in words.
+- **If wrong**: the wrappers grow with each glibc of nixpkgs. Should they grow past a few lines, the
+  binaries are linked against an older glibc's stubs instead, as `cargo zigbuild` does.
+- **Where**: `scripts/package.sh`, `app/package/uraeda`, `crates/app/src/host/window.rs`.
+
+## R399: One version, the workspace's, stamped at package time
+
+- **Decision**: the version is `[workspace.package] version` in `Cargo.toml`. `ura` and `uraeda`
+  carry it (`CARGO_PKG_VERSION`), and `just package` writes it in `lib/nsh/app.json`. `app/nsh.json`
+  keeps `0.0.0`: nothing reads it for the release. The artifacts' names carry no version, as
+  cargo-dist's do, so `releases/latest/download/...` links work.
+- **Where**: `scripts/package.sh`, `.github/workflows/build-app.yml`, which checks the package's
+  version is the release plan's.
+
+## R400: The app is a global artifacts job of cargo-dist's release
+
+- **Decision**: `dist-workspace.toml` names `./build-app` in `global-artifacts-jobs`;
+  `just dist generate` wrote `release.yml` from it. `build-app.yml` runs
+  `nix develop --command just package` and uploads both artifacts and their `.sha256` as
+  `artifacts-build-app`. The `host` job waits for it, and creates the GitHub release with every file
+  at once. A failed build releases nothing; "Re-run failed jobs" on the tag's run completes the
+  release at the same version. `gh release create` deletes its draft when an upload fails, so a
+  failed `host` leaves no release either. A run that created the release replaces nothing: run
+  again, `gh release create` stops at it. `actionlint` lints the workflows in `just lint`, and
+  `just release-plan`, which CI's `release` job runs, fails while `release.yml` is out of date. That
+  job also runs `just package`, outside `ready`, which a release build would slow by many minutes.
+- **Rationale**: the distribution decision asks for one tag, one version, and releases completable
+  at the same version. A workflow of its own, uploading after dist's release, would publish `ura`
+  without the app whenever the app's build failed.
+- **Alternatives considered**: a separate `app.yml` uploading the missing files to the release after
+  it exists: completable by hand, but the release stands without the app meanwhile.
+- **Where**: `dist-workspace.toml`, `.github/workflows/{release,build-app,ci}.yml`,
+  `.github/actionlint.yaml`, `justfile`, `CONTRIBUTING.md`.
+
+## R401: The package builds with a profile of its own
+
+- **Decision**: `[profile.release-app]` inherits `release`, with `opt-level = 3`, thin LTO, and 16
+  codegen units. `ura` in the package is built with it too, in the same Cargo run as `uraeda`.
+- **Rationale**: `release` is tuned for `ura`'s size (`opt-level = "z"`, full LTO, one unit), which
+  slows the app's drawing and makes its build far longer. One run builds the crates they share once.
+- **Where**: `Cargo.toml`, `scripts/package.sh`.

@@ -1,8 +1,9 @@
 # Installing Uraeda
 
-Uraeda has three parts, each optional but the first: the skill, the workflow your agent follows;
-`ura`, the command-line tool that checks and moves it; and the web UI, which drives it from a
-browser. The [README](README.md#getting-started) has the quick install. This page has every way.
+Uraeda has four parts, each optional but the first: the skill, the workflow your agent follows;
+`ura`, the command-line tool that checks and moves it, and serves it; the app, a desktop window that
+drives it; and the web UI, which drives it from a browser. The [README](README.md#getting-started)
+has the quick install. This page has every way.
 
 ## The skill
 
@@ -55,6 +56,82 @@ at each Tab, so completion follows every upgrade:
 echo 'COMPLETE=fish ura | source' > ~/.config/fish/completions/ura.fish  # fish, by hand
 echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 ```
+
+## The app
+
+The app is Uraeda's desktop window, on Linux x64 for now. It holds its own `ura`: on its machine, it
+finds the server running, or starts `ura serve` and stops it when its window closes.
+
+It needs GTK 4.14 or newer and WebKitGTK 6.0, which Ubuntu 24.04, Debian 13, Fedora 40, and later
+releases have. A desktop usually has GTK already; WebKitGTK may need installing:
+
+```sh
+sudo apt install libgtk-4-1 libwebkitgtk-6.0-4    # Debian and Ubuntu
+sudo dnf install gtk4 webkitgtk6.0                # Fedora
+sudo pacman -S gtk4 webkitgtk-6.0                 # Arch
+```
+
+When one is missing or too old, the app says which, and how to install it, instead of starting.
+
+Each release has the app in two forms, with the same files: an AppImage, one program to download and
+run, and a tarball, a folder to unpack where you keep programs. Neither updates itself: install the
+next release the same way.
+
+### The AppImage
+
+```sh
+curl -LO https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-app-x86_64.AppImage
+chmod +x uraeda-app-x86_64.AppImage
+./uraeda-app-x86_64.AppImage
+```
+
+An AppImage mounts itself with FUSE, which desktops have. Where FUSE is missing, as in a container,
+run it with `--appimage-extract-and-run`.
+
+### The tarball
+
+Unpack it, put `uraeda` and `ura` on your `PATH`, and give the desktop its entry and icons:
+
+```sh
+mkdir -p ~/.local/opt ~/.local/bin
+curl -L https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-app-x86_64-linux.tar.gz | tar -xz -C ~/.local/opt
+ln -sf ~/.local/opt/uraeda/uraeda ~/.local/opt/uraeda/ura ~/.local/bin/
+cp -r ~/.local/opt/uraeda/share/. ~/.local/share/
+```
+
+Uraeda is then in the desktop's launcher, and `uraeda` starts it from a terminal. Its `ura` comes
+with the app, so `ura upgrade` does not update it: install the next release's tarball instead.
+
+### Another machine's server
+
+`uraeda --server <address>` opens another machine's server instead of starting one, such as
+`uraeda --server https://desktop.tail1234.ts.net`. That server is reached through a proxy, as
+[the web UI's page](docs/web-ui.md) explains. On its first start, the app asks for a pairing code:
+run `ura pair` on the server's machine, which prints a one-time code and its QR code, and type the
+code in. The app keeps the device's token in the desktop's secret store, so it pairs once.
+
+### Sessions of the web UI
+
+<!-- TASK 61: `ura import-sessions`, run once, copies the web UI's sessions into the server of
+`ura serve`. Task 61 writes this section. -->
+
+## A server alone
+
+On a server or a machine without a desktop, install `ura` alone, with the installer script or
+Homebrew below, and run `ura serve`. It serves Uraeda on http://127.0.0.1:4320, on loopback only,
+until it is stopped. Other devices reach it through a proxy, and pair with `ura pair`, as above.
+
+## From source, with Nix
+
+The repository's dev shell pins every tool that builds Uraeda. In a clone:
+
+```sh
+nix run github:mrtolkien/uraeda -- --version    # ura alone
+nix develop -c just package                     # the app, as a release ships it
+```
+
+`just package` writes the tarball and the AppImage in `target/package/`, on x64 Linux.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the rest.
 
 ## Claude Code
 

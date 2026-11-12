@@ -63,7 +63,7 @@ mod linux {
     const SERVICE: &str = "org.freedesktop.Notifications";
     const PATH: &str = "/org/freedesktop/Notifications";
     /// The app's id, which names its desktop entry: the desktop shows the app's name and icon.
-    const APP_ID: &str = "dev.uraeda.app";
+    const APP_ID: &str = crate::APP_ID;
 
     /// Sends a notification: one default action, which a click on the notification invokes, and
     /// no timeout of its own. `sent` gets the id the desktop gives it, or why it took none.

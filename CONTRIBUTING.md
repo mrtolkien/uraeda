@@ -49,8 +49,17 @@ cargo clippy -p uraeda-server --all-targets -- -D warnings
 `vp run ready` runs the first two, and the crates' tests with the others'. The three tasks run `nsh`
 through [`scripts/nsh.ts`](scripts/nsh.ts), which builds in the repository's `target/` and keeps the
 versions of [`Cargo.lock`](Cargo.lock): run any other `nsh` command the same way, as
-`node scripts/nsh.ts package --target linux`. `app:check` also writes NSH's types in `app/.nsh/`,
-which `vp check` reads: in a new checkout, run it first.
+`just nsh build`. `app:check` also writes NSH's types in `app/.nsh/`, which `vp check` reads: in a
+new checkout, run it first.
+
+`nix develop -c just package` packages the app as a release ships it, in `target/package/`: the
+folder `uraeda/`, the same as a tarball and as an AppImage, each with its `.sha256`.
+[`scripts/package.sh`](scripts/package.sh) compiles the TSX with `nsh build --release`, builds
+`uraeda` and `ura` with Cargo's `release-app` profile, and makes them run outside Nix, on the
+system's loader and libraries. It puts the launcher, the desktop entry, and the icon of
+[`app/package/`](app/package/) around them, the icons rendered at each size from the SVG. NSH's own
+`nsh package` is not used: its program is NSH's runner, without the app's host, which starts the
+server and pairs the device. It prints the libraries the app links and the newest glibc it needs.
 
 To upgrade NSH, change its version and hash in [`flake.nix`](flake.nix), the `nsh-*` crates in
 `Cargo.toml`, `minRuntime` in [`app/nsh.json`](app/nsh.json), and the version and commit in
@@ -114,6 +123,23 @@ pushes:
 vp run release 0.5.0
 vp run release 0.5.0 --name "Vim mode + git page"
 ```
+
+A pushed tag runs [`release.yml`](.github/workflows/release.yml), which cargo-dist writes from
+[`dist-workspace.toml`](dist-workspace.toml): `just dist generate` writes it again after a change
+there, and `just release-plan` fails while it is out of date. Its jobs build `ura` for each
+platform, and the Linux app with `just package` in the dev shell
+([`build-app.yml`](.github/workflows/build-app.yml)), all from the tag's commit, so they share its
+version. Only once every build passed does the `host` job create the GitHub release, with every file
+at once; the Homebrew formula follows. The tag also runs [`npm.yml`](.github/workflows/npm.yml),
+which publishes the web UI's npm package until the app replaces it.
+
+A release that stopped part way is completed at the same version: on the tag's run, "Re-run failed
+jobs". A failed build released nothing, so its re-run builds what failed, reuses what passed, and
+releases it all. A failed `host` job left no release either: `gh release create` deletes its draft
+when an upload fails. Only a run cancelled during that upload leaves a draft, to delete by hand. A
+run that created the release never replaces a file of it: run again, it stops at the release that
+exists, and only the jobs after it, such as Homebrew's, are re-run. GitHub re-runs a run's jobs for
+30 days.
 
 ## Licenses
 

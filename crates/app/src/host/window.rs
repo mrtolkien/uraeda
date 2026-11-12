@@ -16,6 +16,7 @@ use crate::server_start::{Local, LocalOptions};
 const USAGE: &str = "\
 Usage: uraeda [--server <address>] [--data-dir <folder>] [--port <port>] [--ura <command>]
               [--app <folder>]
+       uraeda --version
 
   --server <address>   Another machine's server: https://mac.tail1234.ts.net. The app pairs
                        with it on its first start.
@@ -72,8 +73,15 @@ impl Args {
     }
 }
 
+/// The oldest GTK the app runs on: NSH's GTK backend uses 4.14's calls.
+const GTK_NEEDED: (u32, u32) = (4, 14);
+
 /// Runs the app until its last window closes, then stops the server it started.
 pub fn run(args: Args) -> ExitCode {
+    if let Err(problem) = gtk_recent_enough() {
+        eprintln!("uraeda: {problem}");
+        return ExitCode::FAILURE;
+    }
     let exe = std::env::current_exe()
         .and_then(|exe| exe.canonicalize())
         .ok();
@@ -106,7 +114,7 @@ pub fn run(args: Args) -> ExitCode {
     let assets = AssetBase::Directory(app.join("assets"));
     crate::share_app_assets(assets.clone());
     let options = AppOptions {
-        app_id: "dev.uraeda.app".to_owned(),
+        app_id: crate::APP_ID.to_owned(),
         title: "Uraeda".to_owned(),
         size: (1400, 900),
         asset_base: Some(assets),
@@ -123,6 +131,22 @@ pub fn run(args: Args) -> ExitCode {
     } else {
         ExitCode::FAILURE
     }
+}
+
+/// Whether the machine's GTK is recent enough, said in words when it is not. A GTK that lacks one
+/// of the calls the app links fails earlier, as the program loads: the package's launcher says
+/// that one (`app/package/uraeda`).
+fn gtk_recent_enough() -> Result<(), String> {
+    use nsh_platform_linux::gtk4;
+    let found = (gtk4::major_version(), gtk4::minor_version());
+    if found >= GTK_NEEDED {
+        return Ok(());
+    }
+    Err(format!(
+        "this machine has GTK {}.{}, and Uraeda needs GTK {}.{} or newer: update GTK 4 \
+         (libgtk-4-1 on Debian and Ubuntu, gtk4 on Fedora and Arch), or the system.",
+        found.0, found.1, GTK_NEEDED.0, GTK_NEEDED.1
+    ))
 }
 
 /// The server the command line names, or this machine's.

@@ -110,6 +110,14 @@ npx @uraeda/ui                                  # the web UI, in your repository
 
 Without `ura`, install the skill with `npx skills add mrtolkien/uraeda`
 
+On Linux, the app is a desktop window in place of the browser, with `ura` inside. It needs GTK 4.14
+and WebKitGTK 6.0, as on Ubuntu 24.04 and later:
+
+```sh
+curl -LO https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-app-x86_64.AppImage
+chmod +x uraeda-app-x86_64.AppImage && ./uraeda-app-x86_64.AppImage
+```
+
 Then:
 
 1. **Add your repository.** `npx @uraeda/ui`, run in it, opens it in your browser.

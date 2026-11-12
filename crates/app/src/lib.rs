@@ -24,6 +24,10 @@ mod vim_bridge;
 
 use nsh_core::prelude::*;
 
+/// The app's id: its GTK application and window, `app/nsh.json`'s `id`, and the name of its
+/// desktop entry and icons in `app/package/`, so a desktop groups its windows under its entry.
+pub const APP_ID: &str = "dev.uraeda.app";
+
 /// What the app's TSX may import from `uraeda/native`: `native.rs` lists it. Native Shell finds
 /// this function at the crate's root, and reads the module's name in this file.
 #[native_module("uraeda/native")]

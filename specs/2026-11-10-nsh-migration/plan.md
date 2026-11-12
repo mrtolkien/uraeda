@@ -3247,15 +3247,38 @@ can become a full pane, as in a tiling window manager.
 - Produces: a release with `ura` (the CLI and the server) and the Linux app as a tarball and an
   AppImage, from one tag, with one version, as the distribution decision asks.
 
-- [ ] **Step 1: Package the app** with NSH's packager. Read its packaging page first. The app needs
+- [x] **Step 1: Package the app** with NSH's packager. Read its packaging page first. The app needs
       GTK 4.14 or newer, and says so when it is missing.
-- [ ] **Step 2: Add both artifacts to the release workflow.** A release that fails part way must be
+- [x] **Step 2: Add both artifacts to the release workflow.** A release that fails part way must be
       completable at the same version.
-- [ ] **Step 3: Write the install pages**: `INSTALL.md` for every way to install, `README.md` for a
+- [x] **Step 3: Write the install pages**: `INSTALL.md` for every way to install, `README.md` for a
       quick one.
-- [ ] **Step 4: Install each artifact on a clean container**, start it, and open a repository.
-      Expected: the home page.
-- [ ] **Step 5: Commit**: `build(nsh-migration): package the Linux app and ura serve`.
+- [x] **Step 4: Install each artifact on a clean container**, start it, and open a repository.
+      Expected: the home page. Seen: in Debian 13 with only `libgtk-4-1` (4.18.6) and
+      `libwebkitgtk-6.0-4` (2.54.0) installed, as an unprivileged user, both the tarball and the
+      AppImage (`--appimage-extract-and-run`) started their own `ura serve` and showed the home page
+      of the repository they started in; the server stopped when the app closed.
+- [x] **Step 5: Commit**: `build(nsh-migration): package the Linux app and ura serve`.
+
+**As built** (rulings R397 to R401):
+
+- `just package` (`scripts/package.sh`) writes `target/package/uraeda/`,
+  `uraeda-app-x86_64-linux.tar.gz`, and `uraeda-app-x86_64.AppImage`, each with its `.sha256`: the
+  launcher `uraeda` (`app/package/uraeda`), `ura` linked to `lib/ura`, `lib/uraeda`, `lib/nsh/`, and
+  the desktop entry and icons in `share/`. NSH's `nsh package` is not used: its program has none of
+  the host's calls. The binaries need glibc 2.39 or newer (`scripts/glibc-floor.c`).
+- `crates/app`: `uraeda_app::APP_ID`, `uraeda --version`, and a refusal in words below GTK 4.14.
+  `crates/app/tests/package.rs` checks the desktop entry, the icon, and `app/nsh.json` against it.
+- The release: `global-artifacts-jobs = ["./build-app"]` in `dist-workspace.toml`, and
+  `.github/workflows/build-app.yml`. CI's `release` job runs `just release-plan` and `just package`.
+  `just lint` runs `actionlint` (`just lint-workflows`). `just dist <args>` runs cargo-dist.
+- **Task 61 changes in the release**: delete `.github/workflows/npm.yml`, the npm release of
+  `@uraeda/ui` and its binding, with `packages/uraeda/`. Its `scripts/bump.ts` is `vp run release`,
+  which writes the notes, sets the workspace's version, tags, and pushes: port it to a recipe, and
+  update `CONTRIBUTING.md`'s "Releasing". Keep `release.yml`, `build-app.yml`, and
+  `publish-homebrew.yml`. In `ci.yml`, the `release` job stays, and the setup action loses
+  `pnpm install`. Write `INSTALL.md`'s "Sessions of the web UI" at its `TASK 61:` mark, and drop its
+  "The web UI" section and the README's `npx @uraeda/ui` lines.
 
 ## Task 55: Parity
 

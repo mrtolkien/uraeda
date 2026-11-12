@@ -21,7 +21,7 @@ const ITEM: &str = "org.freedesktop.Secret.Item";
 const PROMPT: &str = "org.freedesktop.Secret.Prompt";
 
 /// The attribute that names the app's items.
-const APPLICATION: &str = "dev.uraeda.app";
+const APPLICATION: &str = crate::APP_ID;
 
 /// How long the human has to answer the store's prompt.
 const PROMPTED: Duration = Duration::from_secs(120);

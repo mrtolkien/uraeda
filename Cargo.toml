@@ -174,3 +174,11 @@ strip = true
 # The profile that dist builds releases with.
 [profile.dist]
 inherits = "release"
+
+# The Linux app's package, `just package`: `uraeda` and the `ura` beside it, built for speed, as
+# an app's drawing needs, and in minutes, where `release`'s one unit and full LTO took far longer.
+[profile.release-app]
+inherits = "release"
+opt-level = 3
+lto = "thin"
+codegen-units = 16

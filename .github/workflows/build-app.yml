@@ -1,0 +1,49 @@
+# Builds the Linux app's package for a release, `just package` in the dev shell: the tarball and
+# the AppImage, each with `ura` inside and its `.sha256`, from the commit of the tag that releases
+# `ura`, so both carry the version of the workspace's `Cargo.toml`. `release.yml` calls it, from
+# `global-artifacts-jobs` in dist-workspace.toml, and its `host` job releases what it uploads with
+# `ura`'s archives, once every build passed: a failed build releases nothing, and "Re-run failed
+# jobs" on the tag's run completes the release at the same version.
+name: Build the Linux app
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-app:
+    # NSH's runtime and the app build for x86_64 Linux only.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PLAN: ${{ inputs.plan }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - name: Build the package
+        run: nix develop --command just package
+      - name: Check the package carries the release's version
+        run: |
+          version=$(echo "$PLAN" | jq --raw-output '[.releases[].app_version] | unique | .[]')
+          echo "release: $version"
+          test "$(echo "$version" | wc -l)" = 1
+          grep -q "\"version\":\"$version\"" target/package/uraeda/lib/nsh/app.json
+      - name: Upload the package
+        uses: actions/upload-artifact@v7
+        with:
+          # `artifacts-*`: the name the `host` job collects and releases.
+          name: artifacts-build-app
+          path: |
+            target/package/uraeda-app-x86_64-linux.tar.gz
+            target/package/uraeda-app-x86_64-linux.tar.gz.sha256
+            target/package/uraeda-app-x86_64.AppImage
+            target/package/uraeda-app-x86_64.AppImage.sha256
+          if-no-files-found: error

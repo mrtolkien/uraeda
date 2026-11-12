@@ -6,6 +6,11 @@ use std::process::ExitCode;
 #[cfg(target_os = "linux")]
 fn main() -> ExitCode {
     let given: Vec<String> = std::env::args().skip(1).collect();
+    // Answered before GTK starts: the package's launcher asks it to check the program loads.
+    if given.iter().any(|arg| arg == "--version") {
+        println!("uraeda {}", env!("CARGO_PKG_VERSION"));
+        return ExitCode::SUCCESS;
+    }
     let args = match uraeda_app::host::Args::parse(given.iter().cloned()) {
         Ok(args) => args,
         // Asked for, the usage is the answer.
