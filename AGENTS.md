@@ -173,14 +173,21 @@ Running it here:
 - In a new worktree, the dev shell clones the `target/` of the closest checkout once, the feature's
   worktree for a task's, so the first build compiles only the workspace's crates: see
   `scripts/worktree-seed.sh`. `du` counts the clone's shared blocks; `btrfs filesystem du` does not.
-- The sandbox is the Rust server over sample projects and a fake agent, without sign-in:
-  `nix develop -c just sandbox` runs `ura sandbox` at http://127.0.0.1:4420, keeps its state in
-  `.sandbox-next/` until `just sandbox --reset` rebuilds it, and never reads the human's folders or
-  runs a real agent. `--port 0` takes a free port, `--sign-in` keeps sign-in on with a new key at
-  each start, `--long-chat` adds a chat of 20,000 messages, and `--folder DIR` puts it elsewhere.
+- **To review UI changes in the whole app, run `nix develop -c just sandbox`**: the app, with hot
+  reload, over the Rust server's sandbox, sample projects and a fake agent, without sign-in, at
+  http://127.0.0.1:4420. Its state stays in `.sandbox-next/` until `just sandbox --reset` rebuilds
+  it, and it never reads the human's folders or runs a real agent; Ctrl+C stops the app and the
+  server. `--long-chat` adds a chat of 20,000 messages, `--port 0` takes a free port, `--sign-in`
+  keeps sign-in on with a new key at each start, `--folder DIR` puts it elsewhere, and `--no-app`
+  starts the server alone. An agent runs it inside `hidden-display` (or `hidden-display --gpu`).
   Every screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox
   of its own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you
   started by its process id.
+- **`just walk`** walks the whole app as one person's day, on a fresh sandbox and the hidden
+  display: the steps of `app/tools/walk.test.tsx`, by keys at a desk, then by touch at a phone's
+  width, then the pages that matter in light, each step a numbered picture in `target/shots/walk/`.
+  `just walk 07` runs the steps whose name holds `07`. A tool to look at the app with after a fix,
+  never a check.
 - Every test, picture, gallery, frame, and sandbox recipe, and whatever `hidden-display` runs, goes
   through `scripts/isolated.sh`: its data, configuration, cache, and state folders are temporary,
   and the run fails when it wrote in the person's `dev.uraeda.app` or `uraeda-next` folders. Only
@@ -188,11 +195,11 @@ Running it here:
 - The app itself, `uraeda`, is `just app`: it finds this machine's server, or starts one, and stops
   the one it started as it closes. An agent runs it on the hidden display, on folders of its own:
   `hidden-display just app --data-dir <a temporary folder> --port 0`, with the agents' commands
-  stood in for on its `PATH`. `just app-dev` runs the TSX with hot reload over the sandbox at 4420.
-  A screen's pictures are `just app-shots <route>`, `/r/sample/inbox`, on a fresh sandbox, in
-  `target/shots/app/`.
+  stood in for on its `PATH`. `just app-dev` runs the TSX with hot reload over a sandbox already
+  running at 4420. A screen's pictures are `just app-shots <route>`, `/r/sample/inbox`, on a fresh
+  sandbox, in `target/shots/app/`.
 - `vp run sandbox` still serves the old web UI over the old sandbox, in `.sandbox/`, until the
-  migration removes it (task 61).
+  migration removes it (task 61): the new app's is `just sandbox`.
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
   it rewrote the section unwrapped, which fails the format check. Edit it by hand, or copy a newer
   version from `node_modules/vite-plus/AGENTS.md`.

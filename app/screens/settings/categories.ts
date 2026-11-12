@@ -208,6 +208,6 @@ export function search(text: string, extra: ReadonlyArray<Words>): ReadonlyArray
     // Extensions, which no setting's words held.
     const named = category.label.toLowerCase().includes(needle);
     const itself = { category, words: { help: category.about, label: category.label } };
-    return named ? [itself, ...settings] : settings;
+    return named ? [itself].concat(settings) : settings;
   });
 }

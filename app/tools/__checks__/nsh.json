@@ -3,6 +3,11 @@
     "network": {
       "hosts": ["127.0.0.1"]
     },
+    "webview": {
+      "hosts": ["127.0.0.1"]
+    },
+    "clipboard": true,
+    "openUrl": true,
     "process": {
       "env": ["URAEDA_SANDBOX"]
     },

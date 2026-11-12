@@ -162,11 +162,24 @@ bench-navigation on="gpu":
     URAEDA_SANDBOX_ARGS=--long-chat {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} scripts/sandboxed.sh {{ nsh }} test tools/navigation.test.tsx --target linux 2>&1 | tee target/bench-navigation-{{ on }}.log
     @sed -n '/^navigation:/,/^[^|n]/p' target/bench-navigation-{{ on }}.log | sed 's/\x1b\[[0-9;]*m//g'
 
-# The server over sample projects and a fake agent, without sign-in, at http://127.0.0.1:4420, its
-# state in `.sandbox-next/` until `just sandbox --reset`: `ura sandbox`'s flags, `--port 0`,
-# `--sign-in`, `--long-chat`, `--folder DIR`.
+# The whole app to review, on sample projects with a fake agent and no sign-in: the server, `ura
+# sandbox`, at http://127.0.0.1:4420, its state in `.sandbox-next/` until `just sandbox --reset`,
+# and the app over it, with hot reload; Ctrl+C stops both. `ura sandbox`'s flags,
+# `--long-chat`, `--port 0`, `--sign-in`, `--folder DIR`; `--no-app` for the server alone. An agent
+# runs `hidden-display just sandbox`.
 sandbox *args:
-    {{ isolated }} cargo run -q -p uraeda-cli -- sandbox "$@"
+    {{ isolated }} scripts/sandbox.sh "$@"
+
+# A walk through the whole app, as one person doing a day's work on the sandbox: the steps of
+# `app/tools/walk.test.tsx`, by keys at a desktop's width, then by touch at a phone's, each a
+# numbered picture in `target/shots/walk/`, in both themes where they matter. A tool to run again
+# after a fix, never a check: `just walk`, or `just walk 04` for the steps whose name holds it, which
+# replace their own pictures. On Xvfb's hidden display; `just walk "" gpu` on the GPU's.
+walk filter="" on="software":
+    mkdir -p target/shots/walk
+    find target/shots/walk -name '{{ filter }}*.png' -delete
+    URAEDA_SANDBOX_ARGS=--long-chat {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} scripts/sandboxed.sh scripts/walk.sh {{ nsh }} test tools/walk.test.tsx --target linux --filter "{{ filter }}"
+    @ls target/shots/walk
 
 # A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.

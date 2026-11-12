@@ -6,7 +6,8 @@
 #   temporary folder: a fresh sandbox, never the checkout's `.sandbox-next/`. Beside it, a second
 #   one keeps sign-in on (`--sign-in`), for the pairing and revoking tests.
 # - Once the servers answer, it runs the command with `URAEDA_SANDBOX` set to the first one's
-#   address, `http://127.0.0.1:<port>`, `URAEDA_SANDBOX_FOLDER` to its folder, and
+#   address, `http://127.0.0.1:<port>`, `URAEDA_SANDBOX_FOLDER` to its folder,
+#   `URAEDA_SANDBOX_PID` to its process, and
 #   `URAEDA_SANDBOX_SIGN_IN` and `URAEDA_SANDBOX_KEY` to the second one's address and access key.
 # - When the command ends, passed or failed, it stops the servers by their process ids, and removes
 #   the folder. It exits with the command's status.
@@ -69,6 +70,6 @@ key=$(grep -o 'ura_[A-Za-z0-9_-]*' "$folder/signed.run/out" | head -n 1)
 echo "[uraeda] sandbox at $address, in $folder/sandbox; with sign-in at $signed" >&2
 
 status=0
-URAEDA_SANDBOX="$address" URAEDA_SANDBOX_FOLDER="$folder/sandbox" \
+URAEDA_SANDBOX="$address" URAEDA_SANDBOX_FOLDER="$folder/sandbox" URAEDA_SANDBOX_PID="${servers[0]}" \
   URAEDA_SANDBOX_SIGN_IN="$signed" URAEDA_SANDBOX_KEY="$key" "$@" || status=$?
 exit "$status"

@@ -3210,6 +3210,10 @@ can become a full pane, as in a tiling window manager.
 **Files:**
 
 - Modify: `AGENTS.md`, `CONTRIBUTING.md`, `justfile` (`just sandbox` starts the new app)
+- As built (rulings R417 to R421): `scripts/sandbox.sh` (`just sandbox`, `--no-app` for the server
+  alone), `just walk` (`app/tools/walk.test.tsx`, its entry `app/tools/__checks__/Walk.tsx`,
+  `scripts/walk.sh`, pictures in `target/shots/walk/`), `URAEDA_SANDBOX_PID` from
+  `scripts/sandboxed.sh`, the wiki example and a broken extension in the sandbox
 
 **Interfaces:**
 
@@ -3217,14 +3221,15 @@ can become a full pane, as in a tiling window manager.
 - Produces: `just sandbox`, which opens the Linux app on `ura sandbox`. A report of what a person
   meets, in the pull request.
 
-- [ ] **Step 1: Point `just sandbox` at the new app**, with `--reset` kept.
-- [ ] **Step 2: Walk through the app as one persona** of [personas](/specs/ui/personas.md), from a
+- [x] **Step 1: Point `just sandbox` at the new app**, with `--reset` kept.
+- [x] **Step 2: Walk through the app as one persona** of [personas](/specs/ui/personas.md), from a
       new feature to an approved spec and a finished session, by keyboard and by pointer. Note what
       hurts its looks, readability, behaviour, and coherence, with pictures.
-- [ ] **Step 3: Fix what is clearly wrong.** Propose the rest as changes to the guides, in the pull
+- [x] **Step 3: Fix what is clearly wrong.** Propose the rest as changes to the guides, in the pull
       request.
-- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 5: Commit**: `fix(nsh-migration): what a walk through the app found`.
+- [x] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS. 176 app tests passed
+      (the walk's 22 skip themselves without a display, in 4 s); the crates' task, 380 passed.
+- [x] **Step 5: Commit**: `fix(nsh-migration): what a walk through the app found`.
 
 ## Task 53: Performance
 

@@ -8014,3 +8014,102 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   (`gc_decref_child: Assertion JS_REF_COUNT(p) > 0`) after the gallery's scenes, under load 7; the
   rerun passed, 152 of 152, and the scenes' tests pass alone with and without R414.
 - **Where**: `app/tools/navigation.test.tsx`, `app/gallery/frames.test.tsx`, the `justfile`.
+
+## R417: `just sandbox` opens the app on the sandbox; `just walk` walks it
+
+- **Decision**: `just sandbox` runs [`scripts/sandbox.sh`](/scripts/sandbox.sh): `ura sandbox` with
+  the flags given (`--reset`, `--long-chat`, `--port`, `--sign-in`, `--folder`), then, once it
+  prints its address, the app with hot reload over it (`nsh run`, `URAEDA_SANDBOX` set); Ctrl+C
+  stops both, the server by its process id. `--no-app` starts the server alone, as the recipe did
+  before. An agent runs it in `hidden-display`. `just walk [filter] [gpu]` runs
+  [`app/tools/walk.test.tsx`](/app/tools/walk.test.tsx) on a fresh sandbox with its long chat: one
+  person's day, a test per step, by keys at 1400 points, by touch at 390, then the pages that matter
+  in light, each step a numbered picture in `target/shots/walk/`. It opens the app through its own
+  entry, `app/tools/__checks__/Walk.tsx`, with the app's web views. The test cannot stop a process:
+  [`scripts/walk.sh`](/scripts/walk.sh) stops the sandbox's server when the picture
+  `*-server-stops*` appears, by the id `scripts/sandboxed.sh` now exports (`URAEDA_SANDBOX_PID`),
+  and starts it again on the same port at `*-server-gone*`. The sandbox's config folder gains the
+  wiki example and the `throws` fixture, so a broken extension and an extension's place and pane of
+  Home can be seen.
+- **Rationale**: one command shows the whole app as a person meets it; the walk is kept so the next
+  fix is checked the same way, and is a tool, never a check (it skips itself without a display).
+- **Where**: `justfile`, `scripts/sandbox.sh`, `scripts/walk.sh`, `scripts/sandboxed.sh`,
+  `app/tools/`, `crates/server/src/sandbox.rs`, `AGENTS.md`, `CONTRIBUTING.md`.
+
+## R418: A proposal file starts from the start dialog
+
+- **Decision**: a proposal file's Start, its button and `s`, opens the start dialog of the New page
+  (`StartDialog`, with `slug`, the file's own short name, and `discovery={false}`, the file's form
+  holding its research effort), the run map at full size in it; `feature.start` and
+  `change.startProposal` take its `options`, kept for the folder as a typed start's are. The pane
+  keeps the choice of a feature or a change (`f`, `c`), and no short-name field of its own.
+- **Rationale**: rule 3, one component for the whole map wherever work starts. The pane started at
+  once on the settings' options, so a step's agent could not be picked before its first run; and
+  `s`, which focused a prefilled name, appended to it ("group-inboxday-groups").
+- **Where**: `app/screens/proposal/StartPart.tsx`, `app/screens/new/StartDialog.tsx`,
+  `crates/protocol/src/features/starts.rs`, `crates/server/src/records/features/starts.rs`.
+
+## R419: GTK's own focus is given back
+
+- **Decision**: a field's ref says when the app asks it for the focus (`focusAsked`, through
+  `TextField`'s ref). When a field goes while it holds the focus (an overlay's, a comment's once
+  saved), or an overlay closes that the page's keys had before it, a focus that comes unasked within
+  500 ms is GTK's: it is given back at once (`focus.ts`'s `stray`).
+- **Rationale**: GTK gives the focus of a removed widget to the window's next field, the page's
+  first: after a picker the inbox's add field took every key typed (`d` there deleted a category),
+  and after a saved comment the Review pane's general comment did, while the status line said NAV.
+  NSH restores only what it saw focused, which was nothing.
+- **If wrong**: a click in a field within half a second of a picker closing is given back once:
+  click again.
+- **Where**: `app/ui/surfaces/focus.ts`, `app/ui/text/TextField.tsx`.
+
+## R420: One key, one meaning, by the table of every single-letter key
+
+- **Decision**: from the table of every single-letter key per pane, made walking the app: a
+  session's Stop is `x` (it was `S`, a feature's New session beside it); a comment on a reviewed
+  part, a mockup, or a story is `i` (it was `c`, which answers C in a round, while `i` writes
+  everywhere else); the run map's `d` removes what its place holds, a reviewer or a step's own pick
+  (its `r`, "back to what it follows", is gone: `r` runs a job and reviews the decisions); a
+  review's "Go to your verdict" is `n`, as the keyboard guide says; Git's file diff stages by `s`,
+  as its row does; Home's every pane adds a note by `a`; a refused commit's card is `Space x`
+  (dismiss) and `Space o` (retry, or open). Letters left with several meanings, each on pages of
+  their own, are proposed in R421.
+- **Where**: `app/screens/session/Composer.tsx`, `app/screens/file/Reader.tsx`,
+  `app/screens/preview/LiveFrame.tsx`, `app/screens/runs/RunMap.tsx`, `app/screens/git/Detail.tsx`,
+  `app/screens/home/index.tsx`, `app/screens/shell/Writes.tsx`; and, found the same way, `b`, which
+  did nothing anywhere (the history's own stack told no one of a Back: `app/store/history.ts`,
+  guarded by `frame.test.tsx`'s "b goes back to the page before"), `/` from a decision read, and
+  `Ctrl+Enter` from anywhere in the start dialog.
+
+## R421: What the walk proposes for the guides
+
+- **Decision**: proposals for the human, none made; each with its picture of `just walk`:
+  1. **Needs you is drawn twice on Home** (`01-home-01`): the guide gives the sidebar its Needs you,
+     and Home its pane of the same list. Propose: on Home, the sidebar's Needs you folds to its
+     count.
+  2. **A note promoted lands nowhere** (`02-proposal-05`): the keyboard guide says the human lands
+     on the result, selected; the inbox stays, its toast's "Open the priorities" a press only.
+     Propose: a promotion to a proposal file opens its proposal; to a line, the toast's Open takes a
+     key.
+  3. **"Leave page?" guards nothing** (`07-git-10`): it asks before leaving a refused commit's
+     message, while its own words say the text stays on the device. Propose: no question where the
+     text is kept; the Git page's tab keeps a mark that a message waits.
+  4. **Cards over the side pane** (`08-sessions-*`, `14-server-04`): a refused commit's card and the
+     stopped runs' notifications cover the side stack's top, its search, on every page. Propose:
+     such cards stand at the bottom right, above the status line, one line each until opened.
+  5. **A proposal's research effort twice** (`02-proposal-08`): its control above the text, and the
+     frontmatter's raw `discovery: high # low, medium, or high …` in the text under it. Propose: the
+     editor hides the frontmatter the form edits.
+  6. **A reader's intro repeats the status line** (`05-spec-03`): "Press a part, or i on the one at
+     the cursor, to comment on it, s to ask …" above every review, at a desk. Propose: the line on
+     the phone only, where there is no status line.
+  7. **`p` is five things** (`keys` table): pull on Git, promote in the inbox, pause on Jobs, pick
+     in a preview, the previous question in a round. Propose: the keyboard guide's table names each
+     page's own letters, and says whether a letter may mean two things on two pages.
+  8. **The panes' menu, `Space w`, in ASCII order** (`09-panes-01`): uppercase first, so "Reset
+     every place's layout" sits between "Send to the main stack" and "Fold". Propose: a group's
+     entries in the order of their meaning, the moves, then the views, then the resets.
+  9. **A side pane's tabs are far by keys** (`05-spec-08`): from a spec's Outline to its Decisions
+     tab, `k` climbs every row of the outline before the tabs take `h` `l`. Propose: Vim's `g t` and
+     `g T` switch the focused stack's tab from anywhere in it.
+- **Where**: `specs/ui/` once decided; the pictures in `target/shots/walk/`.

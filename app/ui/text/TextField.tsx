@@ -143,13 +143,15 @@ const ownerKeys = computed(() => {
 });
 
 /** The editor's ref, whose focus says it was asked for (`focusAsked`): GTK's own is not. */
+/** `take`, once it said the focus is asked for. */
+const asked =
+  <A extends unknown[]>(take: (...args: A) => void) =>
+  (...args: A) => {
+    focusAsked();
+    take(...args);
+  };
+
 function asking(node: TextFieldRef): TextFieldRef {
-  const asked =
-    <A extends unknown[]>(take: (...args: A) => void) =>
-    (...args: A) => {
-      focusAsked();
-      take(...args);
-    };
   return {
     blur: () => node.blur(),
     focus: asked(() => node.focus()),

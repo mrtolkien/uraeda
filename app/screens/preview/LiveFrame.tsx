@@ -6,7 +6,7 @@
 // browser. A press in the page, or Tab, gives it the keys, and Escape
 // takes them back, which the status line says while the page has them. A document's embed draws
 // it without keys, at a height of its own, and its row's buttons take presses. Where a review
-// comment can go, `comment` adds "Comment" (`c`) and, once the page's pick script is ready, pick
+// comment can go, `comment` adds "Comment" (`i`) and, once the page's pick script is ready, pick
 // mode (`p`): the element pressed then opens the comment on it, and Escape in the page ends it.
 import { type JSX, openUrl, signal, View } from "nsh";
 import { connection, entry } from "../../store";
