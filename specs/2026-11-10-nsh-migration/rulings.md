@@ -10634,12 +10634,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/core/src/settings/runs_write.rs`, `app/store/store.test.ts`.
 ## T200.1: On a phone, a sheet is a visit of its own, and every sheet is
 
-- **Decision**: `Float`, what every dialog and sheet is, makes each opening of one with a scrim, on a
-  narrow window, a visit of the history over its page (`backCloses`, through the history's
+- **Decision**: `Float`, what every dialog and sheet is, makes each opening of one with a scrim, on
+  a narrow window, a visit of the history over its page (`backCloses`, through the history's
   `openOverlay`, which had no caller): the browser's Back, or the edge's swipe, closes it and stays
-  on the page. Closed otherwise, its visit goes with it, so Back never lands on a page with
-  nothing to close. One opened from another closes alone. A wider window pushes nothing, and a
-  popover, a menu or a selector, is never a visit.
+  on the page. Closed otherwise, its visit goes with it, so Back never lands on a page with nothing
+  to close. One opened from another closes alone. A wider window pushes nothing, and a popover, a
+  menu or a selector, is never a visit.
 - **Rationale**: the phone guide says sheets are "each in the address, so Back closes it", and a
   thumb's Back is the swipe from the edge: with the sheet open it left the page. One place, the
   float, covers every sheet a phone shows, the dialogs it turns into included, where a call in each
@@ -10647,6 +10647,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Alternatives considered**: the address naming the sheet, so a reload reopens it (`openOverlay`'s
   `to`): each sheet would need a route of its own; the visit alone gives Back.
 - **If wrong**: a sheet whose action opens another page leaves its visit under that page, and Back
-  from there shows the first page with nothing open, a second Back leaving it; dropping the visit
-  as a page opens from it would need the history to replace a visit it cannot see the end of.
-- **Where**: `app/ui/surfaces/backCloses.ts`, `app/ui/surfaces/Float.tsx`.
+  from there shows the first page with nothing open, a second Back leaving it; dropping the visit as
+  a page opens from it would need the history to replace a visit it cannot see the end of.
+- **Where**: `app/ui/surfaces/backCloses.ts`, bound by `app/store/history.ts` (the component library
+  imports nothing of the store: an extension's page is built from `app/ui/` alone),
+  `app/ui/surfaces/Float.tsx`.
