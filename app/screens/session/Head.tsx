@@ -18,7 +18,7 @@ import {
   Text,
   refusalOf,
 } from "../../ui/controls";
-import { movedOf } from "./offers";
+import { focusProposal, movedOf, openOffer } from "./offers";
 import { attentionWords, runsOnWords, statusTone, waitWords } from "./words";
 import { isNarrow } from "../../ui/width";
 import { registerKey } from "../../ui/keys";
@@ -65,6 +65,16 @@ export function SessionHead(props: {
           <SessionEffort repo={props.repo} runtime={props.runtime} session={props.session} />
         </If>
         <If when={props.session.folder === null && props.session.parent === null}>
+          {/* The chat's `c`, as a link: its offer's card, its proposal written by the agent. */}
+          <Link
+            alone
+            onPress={() => {
+              if (!focusProposal(props.session.id)) openOffer(props.session.id, "change");
+            }}
+            size="under"
+          >
+            Make it a change…
+          </Link>
           <Archive repo={props.repo} session={props.session} />
         </If>
       </View>

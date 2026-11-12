@@ -153,3 +153,15 @@ test("Enter in the sessions' search opens the match under the cursor", async () 
   await app.waitFor("id:composer", { timeout: 20_000 });
   expect(app.value(FIELD) ?? "").toBe("");
 }, 60_000);
+
+test("a chat is made a change by its link too, as by c", async () => {
+  const app = await open("../../App.tsx", { height: 800, network: "live", width: 1400 });
+  await app.waitFor("text:Sessions", { timeout: 30_000 });
+  await app.press("text:Sessions >> nth=0");
+  // A chat in the main checkout, of no feature: one `c` may make a change of.
+  await app.waitFor("text:Run the tests, then tidy the imports", { timeout: 20_000 });
+  await app.press("id:sessions >> text:Run the tests, then tidy the imports");
+  await app.waitFor("text:Make it a change…", { timeout: 20_000 });
+  await app.press("text:Make it a change…");
+  await app.waitFor("id:offer-change", { timeout: 10_000 });
+}, 60_000);
