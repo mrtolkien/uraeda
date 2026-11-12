@@ -65,15 +65,20 @@ nothing but your config folder.
 - Run in a repository, it adds that repository to its list. A second `ura serve` on the same data
   folder starts nothing: it hands its folder to the first, prints its address, and exits.
 - Ctrl-C, or closing its terminal, stops it, and everything it runs.
-- Its first start prints an access key, once: keep it in a password manager. A browser signs in with
-  it. To replace a lost key, stop the server, delete `sign-in.json` in its data folder, and start it
-  again: every browser and device is signed out.
+- Its first start in a terminal prints an access key, once: keep it in a password manager. A browser
+  signs in with it. A start whose output goes to a file or another program, as a service's or the
+  desktop app's, prints none, so no key rests in a log: `ura key` shows one then.
 
 `ura pair` pairs another device with the running server, a phone or another computer. It prints a
 code, good for one device, for 10 minutes, the address the device reaches the server at, and a QR
 code holding both. The device scans it, or you enter the code there. It then signs in with a token
 of its own, which you can revoke alone. `--data-dir` names the server's data folder when `ura serve`
 was given one.
+
+`ura key` shows an access key of the running server, once, for a browser to sign in with: the first,
+when no start showed one. Uraeda keeps only a key's hash, so it never shows a key again:
+`ura key --replace` makes a new one in place of a lost one, and signs every browser and device out.
+`--data-dir` names the server's data folder, as for `ura pair`.
 
 `ura sandbox` is for working on Uraeda itself, from a checkout of it: the server over sample
 projects and a fake agent, without sign-in, on http://127.0.0.1:4420. It keeps the projects and

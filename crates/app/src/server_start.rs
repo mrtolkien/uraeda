@@ -11,7 +11,7 @@ use std::fs::{self, OpenOptions};
 use std::os::unix::fs::DirBuilderExt as _;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -107,6 +107,9 @@ pub struct Local {
     /// The app closes: it starts no server any more, as a late call of its window would, and a
     /// start that waits gives up.
     closing: AtomicBool,
+    /// Where the log of the app's last start begins: its failure shows those lines alone, never
+    /// an earlier start's.
+    logged_from: AtomicU64,
 }
 
 impl Local {
@@ -115,6 +118,7 @@ impl Local {
             options,
             started: Mutex::new(None),
             closing: AtomicBool::new(false),
+            logged_from: AtomicU64::new(0),
         }
     }
 
@@ -273,6 +277,8 @@ impl Local {
             OpenOptions::new().create(true).append(true).open(&log)
         })()
         .map_err(|error| format!("Uraeda's server cannot log in {}: {error}", log.display()))?;
+        let length = log.metadata().map_or(0, |metadata| metadata.len());
+        self.logged_from.store(length, Ordering::SeqCst);
         let mut command = Command::new(&options.ura);
         command
             .arg("serve")
@@ -305,9 +311,11 @@ impl Local {
         self.options.data_dir.join("run").join("server.log")
     }
 
-    /// Why a start failed, with the last lines its server logged.
+    /// Why a start failed, with the last lines its server logged in this start.
     fn failed(&self, why: &str) -> String {
-        let logged = fs::read_to_string(self.log()).unwrap_or_default();
+        let logged = fs::read(self.log()).unwrap_or_default();
+        let from = usize::try_from(self.logged_from.load(Ordering::SeqCst)).unwrap_or(usize::MAX);
+        let logged = String::from_utf8_lossy(logged.get(from..).unwrap_or_default());
         let lines: Vec<&str> = logged.lines().rev().take(5).collect();
         let last: Vec<&str> = lines.into_iter().rev().collect();
         if last.is_empty() {

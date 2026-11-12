@@ -140,7 +140,7 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     settings: [],
   },
   {
-    about: "The devices paired with this server, and how to pair another.",
+    about: "The devices paired with this server, how to pair another, and a browser's key.",
     icon: "key-round",
     id: "sign-in",
     label: "Sign-in",
@@ -154,6 +154,11 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         help: "A device pairs once, with a one-time code that ura pair prints on the server's machine.",
         label: "Pair another device",
         terms: ["phone", "QR", "code"],
+      },
+      {
+        help: "A browser signs in with the access key, which ura key shows once on the server's machine.",
+        label: "Sign a browser in",
+        terms: ["browser", "access key", "password"],
       },
     ],
   },

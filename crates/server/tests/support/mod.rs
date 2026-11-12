@@ -150,7 +150,9 @@ impl Setup {
         let server = Server::start(options.clone())
             .await
             .expect("the server starts");
-        let key = sign_in::first_key(server.shared()).expect("a first start shows its key");
+        let key = sign_in::key_at_start(server.shared())
+            .expect("its file is written")
+            .expect("a first start shows its key");
         TestServer {
             server,
             clock: options.clock.clone(),

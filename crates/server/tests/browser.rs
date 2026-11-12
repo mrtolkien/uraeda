@@ -51,7 +51,9 @@ async fn a_browser_signs_in_with_the_access_key_and_sees_the_home_page() {
     environment.push(("URAEDA_WEB_BUILD".to_owned(), web_build()));
     let options = sandbox::options(&built, 0, Mode { sign_in: true }, environment);
     let server = Server::start(options).await.expect("the sandbox starts");
-    let key = sign_in::first_key(server.shared()).expect("a start with sign-in shows its key");
+    let key = sign_in::key_at_start(server.shared())
+        .expect("its file is written")
+        .expect("a start with sign-in shows its key");
     let home = format!("{}/r/sample/", server.address());
     let shots = shots();
 

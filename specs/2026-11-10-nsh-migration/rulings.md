@@ -8933,3 +8933,48 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the plan's rule for a failure of timing under load. The test draws in a GTK window,
   and touches nothing this task changed.
 - **Where**: `crates/app/tests/extensions.rs`.
+
+## T87.1: The access key is made only where a person sees it, and rests in no file
+
+- **Decision**: what R431 left to the human, fixed at the root: a server makes no access key until
+  someone is about to see it.
+  - The sign-in file holds no key at first (`key` is left out). `ura serve` whose standard output is
+    a terminal makes it at its first start and prints it with its address, as before
+    (`sign_in::key_at_start`). A start whose output goes to a file or a program, as the app's, a
+    service's, or a pipe, makes none and prints none: the app's `run/server.log` never holds one.
+  - `ura key` asks the running server, with the host token, `POST /session/key` with `{ replace }`:
+    the first key ends nothing (nobody signed in with a key yet); a key there already is shown never
+    again, so the server answers 409 with the way out, and `ura key --replace` makes a new one,
+    which ends every session and device, as R41 says.
+  - The rule "a key never shown wipes the sign-in file at stop" (R40) and `Store::forget` are gone.
+    It existed so that a start never left the owner with a key nobody saw, a lockout. Now no key is
+    made unseen, and `ura key` makes one at any time, so nothing locks the owner out; and the wipe
+    cost the paired devices with the key, which a server started by the app would have lost at every
+    stop.
+  - The app's start error shows the last lines its own start logged, never an earlier start's: a log
+    written by an earlier version still holds a key, and was shown by a start that failed.
+  - Settings › Sign-in gains "Sign a browser in", which names `ura key`. A browser of the host is
+    signed in by the one-time links of R45 (`POST /open` with `signIn`), with no key.
+  - **What signs in and is in a file**: the sign-in file, `sign-in.json`, holds the key's, the
+    sessions', and the devices' hashes only (R42), 0600. The host token is the one secret in clear
+    in a file, `run/server.json`, 0600 in `run/` 0700, by design: it is how `ura pair`, `ura key`,
+    the app, and a second start prove they are the owner on this machine (R34). It is new at each
+    start and removed at stop, and whoever reads it reads every file of the data folder already, as
+    the owner. The device's token is in the desktop's secret store (R431).
+- **Rationale**: the sign-in decision says the key is stored only as a hash and shown once. A key in
+  a log is a stored secret in clear that outlives its showing and signs a browser in from another
+  machine. Of R431's two ways out, the app showing the key in its own window still makes a key
+  nobody asked for at each first start; a key made when asked for has no unseen state at all.
+- **Alternatives considered**: a filter of key lines in the log: the key would still be made and
+  kept unseen, and the filter is a second rule beside the one that writes it. A key shown in the
+  app's Settings on request: the key would then travel through the live protocol to a page, a path
+  to guard of its own; `ura key` is one command beside `ura pair`, which Settings names already.
+- **If wrong**: the browser's sign-in page (`app/web/SignIn.tsx`, task 57's) still says `ura serve`
+  showed the key at its first start; it should name `ura key`.
+- **Where**: `crates/server/src/sign_in/{mod,store,routes,host,pairing}.rs`,
+  `crates/server/src/run.rs`, `crates/cli/src/{key,serve,sandbox}.rs`,
+  `crates/app/src/server_start.rs`, `app/screens/settings/{SignIn.tsx,categories.ts}`, the tests
+  `nothing_that_signs_in_rests_in_a_file_but_the_host_token` and
+  `a_failed_start_shows_its_own_lines_alone` (`crates/app/tests/host.rs`),
+  `key_shows_a_key_once_where_serve_wrote_none` (`crates/cli/tests/serve.rs`), and
+  `a_new_key_from_the_host_ends_every_sign_in`.

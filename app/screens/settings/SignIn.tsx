@@ -135,7 +135,7 @@ function Devices() {
 }
 
 /** The category's rows. */
-const ROWS = () => [{ id: "devices" }, { id: "pair" }];
+const ROWS = () => [{ id: "devices" }, { id: "pair" }, { id: "browser" }];
 
 export function SignIn() {
   return (
@@ -156,7 +156,22 @@ export function SignIn() {
             <Text tone="faint">
               On a phone, scan its QR code, or enter the code at the address it prints; on another
               machine, start uraeda --server with that address, and give it the code. A code pairs
-              one device, within 5 minutes.
+              one device, within 10 minutes.
+            </Text>
+          </View>
+        }
+      />
+      <FieldRow
+        {...wordsOf("sign-in", "Sign a browser in")}
+        icon="globe"
+        id="browser"
+        under={
+          <View style={{ gap: 4 }}>
+            <Text font="code">ura key</Text>
+            <Text tone="faint">
+              It shows the access key once, and keeps only its hash, so it never shows it again:
+              keep it in a password manager. ura key --replace makes a new one for a lost one, and
+              signs every browser and device out, this app too, which then asks to pair again.
             </Text>
           </View>
         }

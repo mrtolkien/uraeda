@@ -12,6 +12,8 @@ use uraeda_server::{Clock, DEFAULT_PORT, NotStarted, Options, default_data_dir};
 /// and its address is printed. `no_scheduled_jobs` starts no job at its times. A start typed at a
 /// terminal opens the app in the browser, unless `no_open` or the settings say otherwise: one
 /// whose output is read by a program, as the Linux app's, a service's, or a script's, opens none.
+/// Only a start at a terminal shows the access key, at the first start: the output of any other
+/// goes to a file or a program, where a key would rest in clear. `ura key` makes one then.
 pub fn run(
     port: Option<u16>,
     data_dir: Option<PathBuf>,
@@ -31,8 +33,9 @@ pub fn run(
         no_scheduled_jobs,
         sandbox: None,
     };
-    let opens = !no_open && std::io::stdout().is_terminal();
-    match uraeda_server::run(options, opens) {
+    let at_terminal = std::io::stdout().is_terminal();
+    let opens = !no_open && at_terminal;
+    match uraeda_server::run(options, opens, at_terminal) {
         Ok(()) => Ok(ExitCode::SUCCESS),
         Err(handed @ NotStarted::HandedOver { .. }) => {
             println!("{handed}");

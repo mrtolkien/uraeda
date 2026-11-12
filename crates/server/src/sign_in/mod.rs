@@ -7,6 +7,10 @@
 //!   and signs in with a token of its own from then on: in its `hello`, and as
 //!   `Authorization: Bearer <token>` on a route.
 //! - Everything is random, and kept only as a hash: see [`crate::secret::Hashed`].
+//! - The access key is made only where a person sees it, and nowhere else: `ura serve` at a
+//!   terminal makes it at its first start, [`key_at_start`], and `ura key` asks the running
+//!   server for one, [`access_key`]. A server whose output goes to a file, as the app's, makes
+//!   none: a key in a log would rest there in clear.
 //!
 //! # Asking who it is
 //!
@@ -30,13 +34,14 @@ mod check;
 mod cookie;
 mod date;
 pub mod devices;
+mod host;
 mod listeners;
 mod once;
 mod pairing;
 mod routes;
 mod store;
 
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::Arc;
 use std::time::Duration;
 
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
@@ -47,10 +52,11 @@ use crate::{Failure, secret};
 
 pub use check::{Identity, OPEN, Open, Refusal, check, require};
 pub(crate) use check::{Unguarded, layer};
+pub use host::{NewKey, access_key};
 use once::Once;
 pub use pairing::{Pairing, pairing_code};
-pub use store::Kind;
 use store::Store;
+pub use store::{Kind, Problem};
 
 /// How long a one-time link may be used after it is made.
 const LINK: Duration = Duration::from_secs(5 * 60);
@@ -66,13 +72,11 @@ const PATH: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'~')
     .remove(b'/');
 
-/// What sign-in holds: the store, the one-time links and pairing codes not used yet, and the
-/// access key this start made, until it is shown.
+/// What sign-in holds: the store, and the one-time links and pairing codes not used yet.
 pub(crate) struct State {
     store: Store,
     links: Once<String>,
     codes: Once<()>,
-    first_key: Mutex<Option<String>>,
 }
 
 /// Sign-in's state, which `mount` provides.
@@ -87,39 +91,23 @@ fn state(shared: &Shared) -> Arc<State> {
 /// When the sign-in file cannot be read, or its first version cannot be written: the server does
 /// not start without knowing who may reach it.
 pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure> {
-    let (store, key) = Store::open(shared.data_dir())?;
-    // The sandbox's server: without sign-in unless its mode keeps it, and then with a new key
-    // shown at each start, so its sign-in and pairing screens can be reached any time.
-    let key = match shared.find::<crate::sandbox::Mode>() {
-        Some(mode) if !mode.sign_in => {
-            shared.provide(Unguarded::new());
-            key
-        }
-        Some(_) if key.is_none() => Some(store.replace_key()?),
-        _ => key,
-    };
+    let store = Store::open(shared.data_dir())?;
+    // The sandbox's server: without sign-in unless its mode keeps it.
+    if shared
+        .find::<crate::sandbox::Mode>()
+        .is_some_and(|mode| !mode.sign_in)
+    {
+        shared.provide(Unguarded::new());
+    }
     shared.provide(State {
         store,
         links: Once::new(LINK),
         codes: Once::new(pairing::LIVES),
-        first_key: Mutex::new(key),
     });
     routes::mount(routes);
     pairing::mount(routes);
     devices::register(shared);
     tokio::spawn(sweeps(shared.clone()));
-    let stopping = shared.clone();
-    shared.on_stop("sign-in", async move {
-        let state = state(&stopping);
-        let unseen = state
-            .first_key
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
-        // A key this start made and never showed is lost: the next start makes and shows one.
-        if unseen.is_some() {
-            state.store.forget();
-        }
-    });
     Ok(())
 }
 
@@ -133,19 +121,26 @@ async fn sweeps(shared: Shared) {
     }
 }
 
-/// The access key, when this start of the server made it: given once, to be shown, and never
-/// again. A server that stops without having given it forgets it, so its next start makes one.
-pub fn first_key(shared: &Shared) -> Option<String> {
-    // Without sign-in the key is never shown: kept unseen, it is forgotten as the server stops.
+/// The access key to show as the server starts, to the person who started it at a terminal:
+/// made now when the data folder has none, the only time it is shown. `None` when it has one, or
+/// without sign-in. The sandbox with sign-in makes a new one at each start, so its sign-in and
+/// pairing screens can be reached any time.
+///
+/// Only a start whose output a person reads asks: a key made and never shown would be useless,
+/// and one written in a log would rest there in clear.
+///
+/// # Errors
+///
+/// When the sign-in file cannot be written: no key is made then.
+pub fn key_at_start(shared: &Shared) -> Result<Option<String>, Problem> {
     if shared.find::<Unguarded>().is_some() {
-        return None;
+        return Ok(None);
     }
-    let state = state(shared);
-    let mut key = state
-        .first_key
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner);
-    key.take()
+    let store = &state(shared).store;
+    match shared.find::<crate::sandbox::Mode>() {
+        Some(_) => store.replace_key().map(Some),
+        None => store.first_key(),
+    }
 }
 
 /// The lines that show the access key a start made, the only time it is shown.

@@ -211,10 +211,7 @@ fn pair_shows_a_code_that_pairs_one_device() {
 
     let mut serve = folders.serve(folder.path(), &["--port", "0"]);
     let mut server = Running(serve.stdout(Stdio::piped()).spawn().unwrap());
-    let (port, printed) = started(&mut server, 3);
-    // A first start shows the access key, once.
-    let key = printed[1].strip_prefix("Access key, shown once: ura_");
-    assert_eq!(key.map(str::len), Some(43), "{printed:?}");
+    let (port, _) = started(&mut server, 1);
 
     let shown = folders.pair(folder.path()).output().unwrap();
 
@@ -247,4 +244,50 @@ fn pair_shows_a_code_that_pairs_one_device() {
     let (again, _) = post(port, "/pair", &pair);
     assert_eq!((paired, again), (200, 401), "{token}");
     assert!(token.contains("\"token\":"), "{token}");
+}
+
+// The contract between `ura key` and the server, and where the key is shown: a start whose
+// output goes to a program or a file makes none, so none rests in a log; `ura key` makes the
+// first, which signs a browser in, and replaces it only when told to.
+#[test]
+fn key_shows_a_key_once_where_serve_wrote_none() {
+    let folders = Folders::new();
+    let folder = tempfile::TempDir::new().unwrap();
+    let mut serve = folders.serve(folder.path(), &["--port", "0"]);
+    let mut server = Running(serve.stdout(Stdio::piped()).spawn().unwrap());
+    let (port, _) = started(&mut server, 1);
+    let key_of = |args: &[&str]| folders.ura("key", folder.path(), args).output().unwrap();
+
+    let first = key_of(&[]);
+    let printed = String::from_utf8(first.stdout).unwrap();
+    assert_eq!(first.status.code(), Some(0), "{printed}");
+    let lines: Vec<&str> = printed.lines().collect();
+    let key = lines[0].strip_prefix("Access key: ").expect(&printed);
+    assert_eq!(key.strip_prefix("ura_").map(str::len), Some(43), "{key}");
+    let shown = format!(
+        "It is shown this once: keep it in a password manager. A browser signs in with it at \
+         http://127.0.0.1:{port}."
+    );
+    assert_eq!(lines[1..], [shown.as_str()]);
+    assert_eq!(
+        post(port, "/session", &serde_json::json!({ "key": key })).0,
+        204
+    );
+
+    // Asked again, it is not shown again: only its hash is kept.
+    let again = key_of(&[]);
+    assert_eq!(again.status.code(), Some(1));
+    let refused = String::from_utf8(again.stderr).unwrap();
+    assert!(refused.contains("`ura key --replace`"), "{refused}");
+
+    let replaced = key_of(&["--replace"]);
+    let printed = String::from_utf8(replaced.stdout).unwrap();
+    assert!(
+        printed.contains("every browser and device was signed out"),
+        "{printed}"
+    );
+    assert_eq!(
+        post(port, "/session", &serde_json::json!({ "key": key })).0,
+        401
+    );
 }

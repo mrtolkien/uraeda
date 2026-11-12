@@ -7,18 +7,18 @@ use std::time::Duration;
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{DefaultBodyLimit, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::HeaderMap;
 use axum::middleware;
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use serde_json::{Value, json};
 
 use crate::http::Routes;
+use crate::secret;
 use crate::shared::Shared;
 use crate::sign_in::routes::{BODY, failed, no_store, slowed, text};
 use crate::sign_in::store::Kind;
-use crate::sign_in::{Refusal, devices, state};
-use crate::{handoff, secret, status};
+use crate::sign_in::{Refusal, devices, host, state};
 
 /// How long a pairing code lives: 10 minutes, on the server's clock.
 pub(super) const LIVES: Duration = Duration::from_secs(10 * 60);
@@ -29,9 +29,6 @@ const SYMBOLS: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 /// How many symbols a code has: 60 random bits, in three groups, as `7KQ2-M9XA-0TBD`.
 const LENGTH: usize = 12;
-
-/// How long `ura pair` waits for the server's answer.
-const ANSWER: Duration = Duration::from_secs(10);
 
 /// Mounts `POST /pair` and `POST /pair/code`.
 pub(super) fn mount(routes: &mut Routes) {
@@ -111,7 +108,7 @@ fn typed(code: &str) -> String {
 
 /// The address a device reaches the server at: the owner's first host name, behind HTTPS, or
 /// else the server's own, on this machine.
-fn address(shared: &Shared) -> String {
+pub(super) fn address(shared: &Shared) -> String {
     let hosts = shared.allowed_hosts();
     let named = hosts.first().map(|host| format!("https://{host}"));
     named.unwrap_or_else(|| shared.address())
@@ -135,21 +132,7 @@ pub struct Pairing {
 ///
 /// When no server runs on the data folder, or it does not answer with a code.
 pub fn pairing_code(data_dir: &Path) -> Result<Pairing, String> {
-    let folder = data_dir.display();
-    let none = || format!("no server runs on {folder}: start one with `ura serve`");
-    let running = status::read(data_dir).ok_or_else(none)?;
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|error| error.to_string())?;
-    let asked = runtime.block_on(async {
-        let (token, nothing) = (Some(running.token.as_str()), json!({}));
-        let ask = handoff::post(running.port, token, "/pair/code", &nothing);
-        tokio::time::timeout(ANSWER, ask).await
-    });
-    let Ok(Some((StatusCode::OK, answer))) = asked else {
-        return Err(none());
-    };
+    let answer = host::ask(data_dir, "/pair/code", &json!({}))?;
     let text = |field: &str| answer.get(field).and_then(Value::as_str).map(str::to_owned);
     let minutes = answer.get("minutes").and_then(Value::as_u64);
     match (text("code"), minutes, text("address")) {
@@ -158,6 +141,9 @@ pub fn pairing_code(data_dir: &Path) -> Result<Pairing, String> {
             minutes,
             address,
         }),
-        _ => Err(none()),
+        _ => Err(format!(
+            "no server runs on {}: start one with `ura serve`",
+            data_dir.display()
+        )),
     }
 }

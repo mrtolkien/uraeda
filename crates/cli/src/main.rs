@@ -12,6 +12,7 @@ mod import_sessions;
 mod inbox;
 mod init;
 mod install;
+mod key;
 mod next;
 mod note;
 mod output;
@@ -221,6 +222,15 @@ enum Command {
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         data_dir: Option<std::path::PathBuf>,
     },
+    /// Show an access key, once, that signs a browser in to the running server
+    Key {
+        /// The data folder of the server
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+        /// Make a new key in place of the one there: every browser and device is signed out
+        #[arg(long)]
+        replace: bool,
+    },
     /// Copy the earlier server's sessions into the store of `ura serve`, once
     ImportSessions {
         /// The earlier server's data folder, which is only read
@@ -299,6 +309,7 @@ fn main() -> ExitCode {
         } => serve::run(port, data_dir, no_scheduled_jobs, no_open),
         Command::Sandbox(args) => sandbox::run(args),
         Command::Pair { data_dir } => pair::run(data_dir),
+        Command::Key { data_dir, replace } => key::run(data_dir, replace),
         Command::ImportSessions {
             from,
             data_dir,

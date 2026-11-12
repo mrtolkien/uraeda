@@ -651,7 +651,8 @@ async fn a_one_time_link_signs_in_once_and_never_leaves_the_server() {
 }
 
 // The sign-in decision's consequence: a lost key is replaced from the host's shell, which signs
-// every device out.
+// every device out. Only when asked to: a key there already was shown once, and is never shown
+// again, so a host that asks for one without `replace` is refused, and nothing ends.
 #[tokio::test]
 async fn a_new_key_from_the_host_ends_every_sign_in() {
     let server = support::server().await;
@@ -661,11 +662,18 @@ async fn a_new_key_from_the_host_ends_every_sign_in() {
     live.sign_in(SignIn::Token(token.clone()));
     live.hello().await;
 
+    let kept = server.post("/session/key").bearer(&server.host_token());
+    let kept = kept.json(&json!({})).send().await;
+    assert_eq!(kept.status, 409);
+    assert!(kept.json()["error"].as_str().unwrap().contains("--replace"));
+    assert_eq!(signed_in(&server, Some(&cookie), None).await, 204);
+
     let answer = server.post("/session/key").bearer(&server.host_token());
-    let answer = answer.send().await;
+    let answer = answer.json(&json!({ "replace": true })).send().await;
 
     assert_eq!(answer.status, 200);
     assert_eq!(answer.header("cache-control"), Some("no-store"));
+    assert_eq!(answer.json()["replaced"], true);
     let key = answer.json()["key"].as_str().unwrap().to_owned();
     assert!(random(key.strip_prefix("ura_").unwrap(), 32), "{key}");
     live.closed().await;
@@ -718,7 +726,7 @@ async fn the_sign_in_file_holds_only_hashes() {
     // A start that is not the first shows no key, and keeps every sign-in.
     let options = server.options();
     let server = server.restart().await;
-    assert_eq!(sign_in::first_key(server.shared()), None);
+    assert_eq!(sign_in::key_at_start(server.shared()).ok(), Some(None));
     assert_eq!(signed_in(&server, Some(&cookie), None).await, 204);
     assert_eq!(signed_in(&server, None, Some(&token)).await, 204);
 
@@ -727,7 +735,6 @@ async fn the_sign_in_file_holds_only_hashes() {
     let unreadable = [
         "{ version: 1".to_owned(),
         json!({ "version": 2, "key": "k", "sessions": [] }).to_string(),
-        json!({ "version": 1, "sessions": [] }).to_string(),
         json!({ "version": 1, "key": "k", "sessions": [session("never")] }).to_string(),
     ];
     for content in unreadable {

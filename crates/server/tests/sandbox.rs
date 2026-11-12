@@ -69,7 +69,8 @@ async fn the_sandbox_answers_workspace_with_no_sign_in() {
     let server = Server::start(options(&built, Mode { sign_in: true }))
         .await
         .unwrap();
-    assert!(uraeda_server::sign_in::first_key(server.shared()).is_some());
+    let key = uraeda_server::sign_in::key_at_start(server.shared());
+    assert!(key.expect("its file is written").is_some());
     let mut client = TestClient::unsigned(server.port()).await;
     let refused = client.say_hello().await;
     assert!(

@@ -120,6 +120,9 @@ code in. The app keeps the device's token in the desktop's secret store, so it p
 On a server or a machine without a desktop, install `ura` alone, with the installer script or
 Homebrew below, and run `ura serve`. It serves Uraeda on http://127.0.0.1:4320, on loopback only,
 until it is stopped. Other devices reach it through a proxy, and pair with `ura pair`, as above.
+Started in a terminal, its first start prints an access key, once, which signs a browser in: keep it
+in a password manager. Started any other way, as a service or by the app, it prints none, so none
+rests in a log: `ura key` on its machine shows one then, once.
 
 ## From source, with Nix
 

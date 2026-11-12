@@ -18,7 +18,7 @@ use crate::handoff::on_server;
 use crate::http::Routes;
 use crate::shared::Shared;
 use crate::sign_in::store::{Kind, Problem};
-use crate::sign_in::{Identity, Refusal, cookie, state};
+use crate::sign_in::{Identity, Refusal, cookie, pairing, state};
 
 /// The largest body a sign-in or a pairing reads, before anyone signed in: a key is 47 characters.
 pub(super) const BODY: usize = 4 * 1024;
@@ -99,15 +99,36 @@ async fn sign_out_everywhere(State(shared): State<Shared>, headers: HeaderMap) -
     cleared(&shared, &headers, state(&shared).store.end_all())
 }
 
-/// `POST /session/key`, from the host: makes a new access key, ends every session and every
-/// device, and answers `{ key }`, the only time the key is shown.
-async fn new_key(State(shared): State<Shared>, headers: HeaderMap) -> Response {
+/// `POST /session/key` with `{ replace }`, from the host: makes the access key, and answers
+/// `{ key, replaced, address }`, the only time the key is shown. The first key ends nothing. A
+/// key there already is replaced only when asked, which ends every session and every device;
+/// otherwise 409 with `{ error }`: it was shown once, and only its hash is kept.
+async fn new_key(State(shared): State<Shared>, headers: HeaderMap, body: Bytes) -> Response {
     // The session check let the host alone through: asked again here, where the key is made.
     if !shared.from_host(&headers) {
         return Refusal::default().into_response();
     }
-    match state(&shared).store.replace_key() {
-        Ok(key) => Json(json!({ "key": key })).into_response(),
+    let replace = serde_json::from_slice::<Value>(&body)
+        .ok()
+        .and_then(|body| body.get("replace").and_then(Value::as_bool))
+        .unwrap_or(false);
+    let store = &state(&shared).store;
+    let made = match store.first_key() {
+        Ok(Some(key)) => Ok((key, false)),
+        Ok(None) if replace => store.replace_key().map(|key| (key, true)),
+        Ok(None) => {
+            let error = "Uraeda has an access key already, and showed it once: it keeps only \
+                         its hash. `ura key --replace` makes a new one, and signs every browser \
+                         and device out.";
+            return (StatusCode::CONFLICT, Json(json!({ "error": error }))).into_response();
+        }
+        Err(problem) => Err(problem),
+    };
+    match made {
+        Ok((key, replaced)) => {
+            let address = pairing::address(&shared);
+            Json(json!({ "key": key, "replaced": replaced, "address": address })).into_response()
+        }
         Err(problem) => failed(&problem),
     }
 }

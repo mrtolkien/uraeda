@@ -62,7 +62,9 @@ pub(crate) struct Signed {
 #[derive(Serialize, Deserialize)]
 struct Stored {
     version: u64,
-    key: Hashed,
+    /// None until a key is asked for: one is made only where a person sees it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    key: Option<Hashed>,
     sessions: Vec<Signed>,
     #[serde(default)]
     devices: Vec<Signed>,
@@ -129,24 +131,21 @@ pub(crate) struct Store {
 }
 
 impl Store {
-    /// Opens the store of a data folder. At the first start the file does not exist: a key is
-    /// made, its hash written, and the key returned, the only time it is.
+    /// Opens the store of a data folder. At the first start the file does not exist: it is
+    /// written with no access key, which is made only once someone asks to see it.
     ///
     /// # Errors
     ///
     /// For a file that cannot be read, or that this version did not write, which is left as it
     /// is, and for a folder the new file cannot be written to.
-    pub(crate) fn open(data_dir: &Path) -> Result<(Store, Option<String>), Problem> {
+    pub(crate) fn open(data_dir: &Path) -> Result<Store, Problem> {
         let path = data_dir.join(FILE);
-        let (stored, key) = match fs::read_to_string(&path) {
+        let (stored, first) = match fs::read_to_string(&path) {
             Ok(text) => (
                 parse(&text).map_err(|reason| unreadable(&path, &reason))?,
-                None,
+                false,
             ),
-            Err(error) if error.kind() == ErrorKind::NotFound => {
-                let key = new_key();
-                (Stored::with(&key), Some(key))
-            }
+            Err(error) if error.kind() == ErrorKind::NotFound => (Stored::new(), true),
             Err(error) => return Err(unreadable(&path, &error.to_string())),
         };
         let state = State {
@@ -158,7 +157,7 @@ impl Store {
             state: Mutex::new(state),
             listeners: Listeners::default(),
         };
-        if key.is_some() {
+        if first {
             let made = DirBuilder::new()
                 .recursive(true)
                 .mode(0o700)
@@ -166,12 +165,38 @@ impl Store {
             made.map_err(|error| store.unwritable(&error))?;
             store.write(&store.state().stored)?;
         }
-        Ok((store, key))
+        Ok(store)
     }
 
     /// Whether a text is the access key, the blanks and line breaks around it ignored.
     pub(crate) fn is_key(&self, text: &str) -> bool {
-        self.state().stored.key.is(text.trim())
+        let state = self.state();
+        state
+            .stored
+            .key
+            .as_ref()
+            .is_some_and(|key| key.is(text.trim()))
+    }
+
+    /// Makes the access key when there is none yet, and returns it, the only time it is shown:
+    /// nothing ends, as no one signed in with a key. `None` when there is one already.
+    pub(crate) fn first_key(&self) -> Result<Option<String>, Problem> {
+        let key = new_key();
+        let (made, written) = self.change(|state| {
+            let made = state.stored.key.is_none();
+            if made {
+                state.stored.key = Some(Hashed::of(&key));
+            }
+            let change = Change {
+                write: made,
+                ..Change::default()
+            };
+            (made, change)
+        });
+        if written.is_err() && made {
+            self.state().stored.key = None;
+        }
+        written.map(|()| made.then_some(key))
     }
 
     /// Makes a new access key and returns it, the only time it is shown: every session and every
@@ -180,7 +205,7 @@ impl Store {
     pub(crate) fn replace_key(&self) -> Result<String, Problem> {
         let key = new_key();
         let (old, written) = self.change(|state| {
-            let old = std::mem::replace(&mut state.stored.key, Hashed::of(&key));
+            let old = state.stored.key.replace(Hashed::of(&key));
             let mut change = state.stored.end(|_, _| true);
             change.write = true;
             (old, change)
@@ -321,13 +346,6 @@ impl Store {
         written.map(|()| renamed)
     }
 
-    /// Removes the file: for a key that was made and that nobody was shown, so the next start
-    /// makes one and shows it.
-    pub(crate) fn forget(&self) {
-        // A file that is not there is forgotten already.
-        let _ = fs::remove_file(&self.path);
-    }
-
     /// Runs a change on what the store holds, writes the file when it asks, ends the signals of
     /// what ended, then tells the listeners. What ended ends even when the write fails.
     fn change<T>(
@@ -393,11 +411,11 @@ impl State {
 }
 
 impl Stored {
-    /// A new file, with the hash of a new key.
-    fn with(key: &str) -> Stored {
+    /// A new file, with no key yet.
+    fn new() -> Stored {
         Stored {
             version: VERSION,
-            key: Hashed::of(key),
+            key: None,
             sessions: Vec::new(),
             devices: Vec::new(),
         }

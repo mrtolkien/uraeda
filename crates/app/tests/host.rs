@@ -281,3 +281,119 @@ fn holds(bytes: &[u8], text: &str) -> bool {
         .windows(text.len())
         .any(|window| window == text.as_bytes())
 }
+
+// The sign-in decision: secrets are stored only as hashes. A server the app starts writes its
+// output in `run/server.log`, a file the app keeps: no access key, no device's token, and no
+// session rests there or in any other file of the owner's folders. The host token alone is in a
+// file, the status file, by design (it is how a second start on this machine hands over), and
+// only its owner reads it.
+#[test]
+fn nothing_that_signs_in_rests_in_a_file_but_the_host_token() {
+    use std::os::unix::fs::PermissionsExt as _;
+    display::on_hidden_display(
+        "nothing_that_signs_in_rests_in_a_file_but_the_host_token",
+        || {
+            let _store = secret_service::serve();
+            let folders = Folders::new();
+            let host = Host::new(Target::Local(folders.local("data")), "Test laptop");
+            let address = host.server().expect("a server starts");
+            let device = host.pair(&Pairing::Here).expect("the app pairs");
+
+            // A first start by the app made no key: nothing to log, nothing to lose.
+            let log = fs::read_to_string(folders.path("data/run/server.log")).expect("its log");
+            assert!(!log.contains("ura_"), "the log holds a key: {log}");
+
+            // The owner asks for a key, for a browser: it is shown, and signs a browser in.
+            let asked = Command::new(ura())
+                .arg("key")
+                .arg("--data-dir")
+                .arg(folders.path("data"))
+                .envs(folders.environment())
+                .output()
+                .expect("`ura key` runs");
+            let printed = String::from_utf8(asked.stdout).expect("text");
+            assert!(asked.status.success(), "{printed}");
+            let key = printed
+                .lines()
+                .find_map(|line| line.strip_prefix("Access key: "))
+                .expect(&printed)
+                .to_owned();
+            let signed = ureq::post(&format!("{address}/session"))
+                .header("Content-Type", "application/json")
+                .send(format!("{{\"key\":\"{key}\"}}"))
+                .expect("the key signs in");
+            let cookie = signed.headers().get("set-cookie").expect("a cookie");
+            let cookie = cookie
+                .to_str()
+                .expect("text")
+                .split(';')
+                .next()
+                .expect("its value");
+            let session = cookie.split_once('.').expect("<id>.<secret>").1.to_owned();
+            // A first key ends nothing: the app's own device still signs in.
+            let devices = ureq::get(&format!("{address}/session"))
+                .header("Authorization", &format!("Bearer {device}"))
+                .call();
+            assert!(
+                devices.is_ok(),
+                "the app's device was signed out: {devices:?}"
+            );
+
+            let token =
+                fs::read_to_string(folders.path("data/run/server.json")).expect("the status file");
+            let token: serde_json::Value = serde_json::from_str(&token).expect("JSON");
+            let token = token["token"].as_str().expect("the host token").to_owned();
+            let secrets = [
+                (
+                    "the access key",
+                    key.strip_prefix("ura_").expect("ura_").to_owned(),
+                ),
+                (
+                    "the device's token",
+                    device.split_once('.').expect("<id>.").1.to_owned(),
+                ),
+                ("the session", session),
+                ("the host token", token),
+            ];
+            let mut found = Vec::new();
+            for (name, secret) in &secrets {
+                for path in files(folders.home.path()) {
+                    if fs::read(&path).is_ok_and(|bytes| holds(&bytes, secret)) {
+                        found.push((
+                            *name,
+                            path.strip_prefix(folders.home.path()).unwrap().to_owned(),
+                        ));
+                    }
+                }
+            }
+            assert_eq!(
+                found,
+                [("the host token", PathBuf::from("data/run/server.json"))]
+            );
+            let mode = |path: &str| {
+                let metadata = fs::metadata(folders.path(path)).expect("it is there");
+                metadata.permissions().mode() & 0o777
+            };
+            assert_eq!(
+                (mode("data/run"), mode("data/run/server.json")),
+                (0o700, 0o600)
+            );
+            host.stop();
+        },
+    );
+}
+
+// A start that fails shows the end of its own log, never the lines an earlier start left.
+#[test]
+fn a_failed_start_shows_its_own_lines_alone() {
+    let folders = Folders::new();
+    fs::create_dir_all(folders.path("data/run")).expect("its folder");
+    let earlier = "Access key, shown once: ura_left-by-an-earlier-start\n";
+    fs::write(folders.path("data/run/server.log"), earlier).expect("an earlier log");
+    fs::write(folders.path("data/sign-in.json"), "{").expect("a broken sign-in file");
+
+    let failed = folders.local("data").ensure().expect_err("the start fails");
+
+    assert!(failed.contains("cannot read"), "{failed}");
+    assert!(!failed.contains("ura_left"), "{failed}");
+}

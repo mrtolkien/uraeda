@@ -832,7 +832,7 @@ fallback written under it, and later tasks build on the fallback.
     `on_change`. `sign_in::mount` registers them with the live engine's `Registry`, and tells the
     `Bus` at each change of the list (rulings R44 and R51).
   - `secret::Hashed`, the only form a secret is kept in, and `sign_in::link`, `sweep`, `on_ended`,
-    and `first_key` (rulings R40 to R42).
+    and `key_at_start` (rulings R40 to R42, and T87.1, which replaced `first_key`).
   - In the tests' support: `TestServer::connect` pairs a device and signs in with its token, and
     `key`, `sign_in`, `pair`, `pairing_code`, `browser_socket`, and `restart` are there for the
     rest.
