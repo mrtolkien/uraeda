@@ -26,7 +26,10 @@ just bench                               # the benchmarks of the specs' success 
 cargo run -p uraeda-cli -- status        # ura, from source
 ```
 
-Turn the commit hook on once in a clone: it formats the files a commit stages, as `just fmt` does.
+Turn the commit hook on once in a clone: it formats the files a commit stages, as `just fmt` does,
+and never touches what the commit leaves out. Every worktree of the clone shares the setting. A
+clone made before the move to Native Shell points at `.vite-hooks/_`, which no longer exists, so it
+ran no hook: the same command replaces it.
 
 ```sh
 git config core.hooksPath .githooks

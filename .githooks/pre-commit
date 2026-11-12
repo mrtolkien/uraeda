@@ -5,50 +5,78 @@
 #
 #   git config core.hooksPath .githooks
 #
-# A staged file that also has changes left out of the commit is not rewritten, since formatting
-# it would add those to the commit: it is checked instead, and the commit stops when it is not
-# formatted, naming it. Outside the dev shell, the formatters are the dev shell's.
+# It formats what is staged, never the working tree: the staged files are copied to a temporary
+# folder, formatted there, and a file that changed is written back only when it has no changes
+# left out of the commit. A file staged in part is not rewritten, since that would add those
+# changes to the commit: the commit stops instead, naming it. Rust is formatted one file at a
+# time, from its text alone, so a `mod` it declares never reaches a file the commit leaves out.
+#
+# The formatters are the dev shell's. Outside it, their paths are kept in `.git/` with the hash
+# of the files that pin them, so a commit does not evaluate the flake again until they change.
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+staged=()
+while IFS= read -r -d '' file; do
+  [ -f "$file" ] && [ ! -L "$file" ] && staged+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+[ ${#staged[@]} -gt 0 ] || exit 0
 
 if ! command -v oxfmt >/dev/null || ! command -v rustfmt >/dev/null; then
-  exec nix develop -c "$0" "$@"
+  cache=$(git rev-parse --git-path uraeda-formatters)
+  pins=$(cat flake.nix flake.lock rust-toolchain.toml | git hash-object --stdin)
+  tools=
+  if [ -f "$cache" ] && [ "$(head -n 1 "$cache")" = "$pins" ]; then
+    tools=$(sed -n 2p "$cache")
+  fi
+  # A path the store has collected since is looked up again.
+  if ! PATH="$tools" command -v rustfmt >/dev/null || ! PATH="$tools" command -v oxfmt >/dev/null; then
+    tools=$(nix develop -c bash -c 'dirname "$(command -v rustfmt)"; dirname "$(command -v oxfmt)"' 2>/dev/null | paste -sd:)
+    printf '%s\n%s\n' "$pins" "$tools" >"$cache"
+  fi
+  export PATH="$tools:$PATH"
+  if ! command -v oxfmt >/dev/null || ! command -v rustfmt >/dev/null; then
+    rm -f "$cache"
+    echo "pre-commit: rustfmt or oxfmt not found: run \`nix develop\` once, then commit again" >&2
+    exit 1
+  fi
 fi
 
-whole=()
+# The staged files, with the formatters' configuration, as the commit will hold them.
+copy=$(mktemp -d)
+trap 'rm -rf "$copy"' EXIT
+git checkout-index --prefix="$copy/" -- "${staged[@]}"
+for config in rustfmt.toml .oxfmtrc.json .gitignore; do
+  [ -f "$config" ] && cp "$config" "$copy/$config"
+done
+
+others=()
+for file in "${staged[@]}"; do
+  if [[ "$file" == *.rs ]]; then
+    (cd "$copy" && rustfmt --emit stdout <"$file" >"$file.formatted") && mv "$copy/$file.formatted" "$copy/$file"
+  else
+    others+=("$file")
+  fi
+done
+# A file a formatter cannot read is left as it is, and `just fmt-check` names it.
+if [ ${#others[@]} -gt 0 ]; then
+  (cd "$copy" && oxfmt --no-error-on-unmatched-pattern "${others[@]}" >/dev/null 2>&1) || true
+fi
+
 partial=()
-while IFS= read -r -d '' file; do
-  [ -f "$file" ] || continue
+for file in "${staged[@]}"; do
+  cmp -s "$copy/$file" <(git show ":$file") && continue
   if git diff --quiet -- "$file"; then
-    whole+=("$file")
+    cat "$copy/$file" >"$file"
+    git add -- "$file"
   else
     partial+=("$file")
   fi
-done < <(git diff --cached --name-only --diff-filter=ACMR -z)
-
-# The Rust files of a list, and the others, each ended by a null.
-rust() {
-  for file in "$@"; do
-    if [[ "$file" == *.rs ]]; then printf '%s\0' "$file"; fi
-  done
-}
-other() {
-  for file in "$@"; do
-    if [[ "$file" != *.rs ]]; then printf '%s\0' "$file"; fi
-  done
-}
-
-if [ ${#whole[@]} -gt 0 ]; then
-  rust "${whole[@]}" | xargs -0 -r rustfmt --edition 2024
-  other "${whole[@]}" | xargs -0 -r oxfmt --no-error-on-unmatched-pattern >/dev/null
-  git add -- "${whole[@]}"
-fi
+done
 
 if [ ${#partial[@]} -gt 0 ]; then
-  if ! rust "${partial[@]}" | xargs -0 -r rustfmt --edition 2024 --check >/dev/null ||
-    ! other "${partial[@]}" | xargs -0 -r oxfmt --check --no-error-on-unmatched-pattern >/dev/null; then
-    echo "pre-commit: a file staged in part is not formatted: run \`just fmt\`, and stage it again:" >&2
-    printf '  %s\n' "${partial[@]}" >&2
-    exit 1
-  fi
+  echo "pre-commit: a file staged in part is not formatted: run \`just fmt\`, and stage it again:" >&2
+  printf '  %s\n' "${partial[@]}" >&2
+  exit 1
 fi

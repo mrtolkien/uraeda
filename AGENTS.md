@@ -182,7 +182,8 @@ Running it here:
   lists them: `just task <crates>` after a Rust task, `just task-app` after an app task,
   `just check` after a merge, `just ready` for the full pass, `just fmt` to format. The repository
   holds no Node, pnpm, or Vite+: a check that needs one is wrong. A commit is formatted by the hook
-  of `.githooks/`, turned on once in a clone with `git config core.hooksPath .githooks`.
+  of `.githooks/`, turned on once in a clone with `git config core.hooksPath .githooks`: it formats
+  the staged text alone, and stops a commit whose file staged in part is not formatted.
 - In a new worktree, the dev shell clones the `target/` of the closest checkout once, the feature's
   worktree for a task's, so the first build compiles only the workspace's crates: see
   `scripts/worktree-seed.sh`. `du` counts the clone's shared blocks; `btrfs filesystem du` does not.

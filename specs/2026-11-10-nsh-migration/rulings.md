@@ -10205,3 +10205,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   of the record for the milliseconds a large one takes; and a connection that sends JSON messages
   reads the value itself.
 - **Where**: `crates/server/src/live/topic.rs`, `subscription.rs`.
+## T187.1: The commit hook formats the staged text, one Rust file at a time, with cached formatters
+
+- **Decision**: `.githooks/pre-commit` copies the staged files out of the index
+  (`git checkout-index --prefix`), with `rustfmt.toml`, `.oxfmtrc.json`, and `.gitignore`, and
+  formats the copy: Rust through rustfmt's standard input, one file at a time, the rest with oxfmt.
+  A file that changed is written back and staged when it has no unstaged change; a file staged in
+  part stops the commit, naming it. A commit with nothing staged returns before any formatter.
+  Outside the dev shell, the formatters' two folders are kept in `.git/uraeda-formatters`, with the
+  hash of `flake.nix`, `flake.lock`, and `rust-toolchain.toml`: the flake is evaluated again only
+  when one of them changed, or the store collected a path.
+- **Rationale**: the hook of R493 ran rustfmt on the working tree's files, and rustfmt formats the
+  modules a file declares: committing `main.rs` rewrote an unstaged `child.rs`. It checked a file
+  staged in part on the working tree, not on what the commit holds. Each commit outside the dev
+  shell evaluated it, 10 s, and the first in a worktree also seeded its `target/`, three minutes in
+  a run: now 0.3 s once the folders are kept.
+- **Where**: `.githooks/pre-commit`, `CONTRIBUTING.md`, `AGENTS.md`.
