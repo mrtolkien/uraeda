@@ -130,7 +130,7 @@ app-shots what="/":
 # An agent, and any check, runs `hidden-display just gallery`.
 # The gallery, every component of the library in one app, on GTK with hot reload.
 gallery *args:
-    {{ isolated }} {{ nsh }} run gallery/Gallery.tsx "$@"
+    {{ isolated }} {{ nsh }} run Gallery.tsx "$@"
 
 # Every page in both themes, 1400, 900, and 390 points wide, as `<group>-<page>-<theme>-<width>.png`:
 # all of them, or those whose test's name holds a word, a page (`just gallery-shots dialog`) or a
