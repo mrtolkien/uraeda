@@ -15,7 +15,7 @@ import { droppedImages } from "../images";
 import { attach, draftKey, putBack, SessionComposer } from "./Composer";
 import { SessionBanners, SessionHead } from "./Head";
 import { OfferCard } from "./Offer";
-import { openedOffer, openOffer } from "./offers";
+import { focusProposal, openedOffer, openOffer } from "./offers";
 import { type Feed, transcriptFeed } from "./pages";
 import { AllowQuestion, answerable, askAllow } from "./Permission";
 import { type SessionArgs, sessionIdOf } from "./place";
@@ -221,6 +221,9 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
   };
   registerKey([
     {
+      // Hinted on its row only, where its guard holds, as the row exists for it.
+      hint: "a",
+      hintLabel: "allow…",
       icon: "shield",
       keys: "a",
       label: "Allow the blocked action, and retry…",
@@ -238,7 +241,10 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
       icon: "git-branch",
       keys: "c",
       label: "Make the chat a change…",
-      run: () => openOffer(props.session().id, "change"),
+      // The agent's offer on screen first: one card, its proposal written, never a second empty.
+      run: () => {
+        if (!focusProposal(props.session().id)) openOffer(props.session().id, "change");
+      },
       when: () => props.session().folder === null && props.session().parent === null,
     },
   ]);

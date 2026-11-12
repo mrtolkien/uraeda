@@ -3,12 +3,12 @@
 // the proposal's field, whose whole purpose is the start; never Enter. Only the session's live
 // offer has buttons: one in its last turn, once that turn ended, that moves this kind of session.
 // Once it moved, the session's page says where it went (rule 9), and the card reads as the text.
-import { type Signal, signal, View } from "nsh";
+import { cleanup, type Signal, signal, View } from "nsh";
 import { call, StoreError } from "../../store";
 import { Button, Refusal, Text } from "../../ui/controls";
 import { Card } from "../../ui/lists";
-import { TextField } from "../../ui/text";
-import { closeOffer, markMoved, type OfferKind, openOffer } from "./offers";
+import { TextField, type TextFieldRef } from "../../ui/text";
+import { closeOffer, holdProposal, markMoved, type OfferKind, openOffer } from "./offers";
 
 /** The proposal and the slug typed in a card, by its row: a cell reused keeps none of them. */
 type Typed = { proposal: Signal<string>; slug: Signal<string> };
@@ -70,6 +70,13 @@ export function OfferCard(props: OfferProps) {
       pending.set(false);
     }
   };
+  // `c` takes the focus to the proposal of the change's card on screen; a card the human opened
+  // takes it as it comes.
+  let field: TextFieldRef | undefined;
+  if (props.kind === "change" && props.live) {
+    cleanup(holdProposal(props.session, () => field?.focus()));
+  }
+  const opened = props.cardKey.startsWith("opened:");
   const title = () => (props.kind === "change" ? "Make it a change" : "Make it a feature");
   return (
     <Card
@@ -83,6 +90,10 @@ export function OfferCard(props: OfferProps) {
               label="The change's proposal"
               onChange={(value) => held.proposal.set(value)}
               onSave={() => void start()}
+              ref={(made) => {
+                field = made;
+                if (opened) made.focus();
+              }}
               rows={{ max: 14, min: 3 }}
               testID="offer-proposal"
               value={held.proposal()}

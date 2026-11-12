@@ -54,3 +54,21 @@ export const movedOf = (session: string): Moved | undefined => moved()[session];
 export function markMoved(session: string, to: Moved) {
   moved.set({ ...moved(), [session]: to });
 }
+
+/** The proposal field of the change's card on screen, by session: where `c` takes the focus. */
+const proposalFields = new Map<string, () => void>();
+
+/** A change's card says how its proposal takes the focus while it is drawn: what ends that. */
+export function holdProposal(session: string, focus: () => void): () => void {
+  proposalFields.set(session, focus);
+  return () => {
+    if (proposalFields.get(session) === focus) proposalFields.delete(session);
+  };
+}
+
+/** Focuses the proposal of the change's card on screen, the agent's offer or one opened: false with none. */
+export function focusProposal(session: string): boolean {
+  const focus = proposalFields.get(session);
+  focus?.();
+  return focus !== undefined;
+}
