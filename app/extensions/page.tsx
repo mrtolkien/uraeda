@@ -22,7 +22,7 @@ import {
   View,
 } from "nsh";
 import { applyFonts, applyTheme } from "../ui/theme";
-import type { Fonts, ThemeSource } from "../ui/tokens";
+import { type Fonts, type ThemeSource, tokens } from "../ui/tokens";
 
 /** What draws a part of a page: `useProps` reads what the app gives it. */
 export type PageView = Component;
@@ -257,8 +257,10 @@ function show() {
     cleanup(() => {
       for (const fn of unloads.splice(0).toReversed()) fn();
     });
+    // On the fill of the pane it sits in, a frame's pane, the standard height's: its own view's
+    // ground was the window's, a black box (a white one in light) in the wiki's pane of Home.
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ backgroundColor: tokens.height.standard.fill, flex: 1 }}>
         <ErrorBoundary
           fallback={(error) => {
             host.post("problem", { message: said(error) });
