@@ -193,6 +193,18 @@ function WikiPlace() {
     );
   });
   const shown = () => picked() ?? pages()[0]?.path;
+  // A folder there with no page in it: its own words, never a spinner waiting for a page.
+  const empty = () => {
+    const value = wiki().value;
+    return value !== undefined && !value.isMissing && value.pages.length === 0
+      ? value.folder
+      : undefined;
+  };
+  // A spinner only while something is on its way: the record, or the page picked.
+  const reading = () =>
+    wiki().error === undefined &&
+    refused() === undefined &&
+    (wiki().value === undefined || (shown() !== undefined && text() === undefined));
   return (
     <Scroll style={{ flex: 1 }}>
       <View style={{ gap: 12 }}>
@@ -203,7 +215,7 @@ function WikiPlace() {
           {(folder) => (
             <Empty
               icon="book-open"
-              title={`No folder ${folder()}`}
+              title={`No folder “${folder()}” in this repository`}
               words="The wiki reads the Markdown files of this folder of the repository. Name another in Settings, Extensions, Wiki."
             />
           )}
@@ -215,10 +227,20 @@ function WikiPlace() {
             </Row>
           )}
         </Each>
-        <If when={refused()}>{(words) => <Banner title={words()} tone="caution" />}</If>
-        <If when={text()} else={<Spinner label="Reading the page" />}>
-          {(page) => <Text font="code">{page()}</Text>}
+        <If when={empty()}>
+          {(folder) => (
+            <Empty
+              icon="book-open"
+              title={`No pages in ${folder()}`}
+              words="The wiki lists the Markdown files of this folder, .md, and none is there yet. Add one, or name another folder in Settings, Extensions, Wiki."
+            />
+          )}
         </If>
+        <If when={refused()}>{(words) => <Banner title={words()} tone="caution" />}</If>
+        <If when={reading()}>
+          <Spinner label={wiki().value === undefined ? "Reading the wiki" : "Reading the page"} />
+        </If>
+        <If when={text()}>{(page) => <Text font="code">{page()}</Text>}</If>
       </View>
     </Scroll>
   );
@@ -226,11 +248,18 @@ function WikiPlace() {
 
 /** The pane of Home: the first pages, each opening the place. */
 function WikiHome() {
-  const { pages } = usePages();
+  const { missing, pages, wiki } = usePages();
   const repo = useRepository();
+  // What the count means: the pages, else why there are none.
+  const heading = () => {
+    if (wiki().error !== undefined) return "The wiki cannot be read";
+    if (missing() !== undefined) return `No folder “${missing()}” in this repository`;
+    if (wiki().value === undefined) return "Reading the wiki…";
+    return pages().length === 0 ? `No pages in ${wiki().value?.folder}` : `${pages().length} pages`;
+  };
   return (
     <View style={{ gap: 4 }}>
-      <Heading level={3}>{`${pages().length} pages`}</Heading>
+      <Heading level={3}>{heading()}</Heading>
       <Each key={(page: WikiPage) => page.path} of={pages().slice(0, 5)}>
         {(page) => (
           <Row onPress={() => navigate(`/r/${repo}/e/wiki/wiki`)}>
