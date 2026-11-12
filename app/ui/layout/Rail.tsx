@@ -53,6 +53,7 @@ function PlaceRow(props: { place: RailPlace }) {
     <View
       accessibilityLabel={props.place.label}
       accessibilityState={{ selected: current() }}
+      hoverStyle={{ backgroundColor: tokens.row.selected }}
       onPress={props.place.onPress}
       role="link"
       style={{

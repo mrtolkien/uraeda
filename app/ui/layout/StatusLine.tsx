@@ -76,6 +76,7 @@ function Hints() {
         {(hint) => (
           <View
             accessibilityLabel={`${hint().label}: ${hint().keys}`}
+            hoverStyle={{ backgroundColor: tokens.row.selected }}
             onPress={() => pressKeys(hint().press)}
             role="button"
             style={{

@@ -21,7 +21,7 @@
 import { type JSX, View } from "nsh";
 import { Button, Icon, type IconName, StatusDot, Text } from "../controls";
 import { Surface, Tooltip } from "../surfaces";
-import { type Tone, tokens } from "../tokens";
+import { mix, type Tone, tokens } from "../tokens";
 import { isNarrow } from "../width";
 import { Bar } from "./Row";
 
@@ -176,11 +176,15 @@ function Head(props: CardProps) {
   );
 }
 
+/** A card under the pointer: its fill a step brighter, as a whole, so it reads as one target. */
+const hovered = () => mix(tokens.role.ink, tokens.height.raised.fill, 0.06);
+
 export function Card(props: CardProps) {
   const pad = 10;
   return (
     <Surface
       height="raised"
+      hoverStyle={props.onPress === undefined ? undefined : { backgroundColor: hovered() }}
       onPress={props.onPress}
       running={props.state?.running}
       testID={props.testID}

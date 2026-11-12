@@ -41,6 +41,8 @@ export type SurfaceProps = {
    */
   glass?: boolean;
   height: HeightName;
+  /** Its look under the pointer, when it takes presses: a card's brighter fill. */
+  hoverStyle?: ViewProps["hoverStyle"];
   onLayout?: ViewProps["onLayout"];
   onPress?: ViewProps["onPress"];
   ref?: (node: ViewRef) => void;
@@ -154,6 +156,7 @@ export function Surface(props: SurfaceProps) {
   return (
     <View
       accessibilityLabel={props.accessibilityLabel}
+      hoverStyle={props.hoverStyle}
       onLayout={props.onLayout}
       onPress={props.onPress}
       ref={props.ref}

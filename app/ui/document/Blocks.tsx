@@ -15,6 +15,7 @@ import { List } from "./List";
 import { BLOCK_GAP, HEADING_AIR, heading, measure, prose } from "./look";
 import { Spans } from "./Spans";
 import { Table } from "./Table";
+import { tokens } from "../tokens";
 
 /** A tree, and each block's children in order, read once. */
 export type Read = {
@@ -86,6 +87,18 @@ function Kind(props: { block: Block; read: Read }): JSX.Element {
 /** The kinds that read as prose, and keep its measure. */
 const PROSE = new Set<Block["kind"]>(["heading", "paragraph", "list", "callout", "quote", "rule"]);
 
+/**
+ * A part that takes presses, under the pointer: a quiet line around it, which shows over a
+ * callout's or a code block's own fill, as a fill would not.
+ */
+const partHover = () =>
+  ({
+    outlineColor: tokens.role.rule,
+    outlineOffset: 4,
+    outlineStyle: "solid",
+    outlineWidth: 1,
+  }) as const;
+
 /** One block: the screen's own drawing of it, or its kind's, then the screen's mark under it. */
 export function BlockView(props: { block: Block; first: boolean; read: Read }) {
   const hands = DocumentContext();
@@ -107,6 +120,9 @@ export function BlockView(props: { block: Block; first: boolean; read: Read }) {
           marginTop: (props.first ? 0 : BLOCK_GAP) + air,
           maxWidth: PROSE.has(block.kind) ? measure() : undefined,
         }}
+        hoverStyle={
+          top && hands.onPress !== undefined ? partHover() : undefined
+        }
         onPress={top && hands.onPress !== undefined ? () => hands.onPress?.(block) : undefined}
         testID={`block-${block.id}`}
       >
