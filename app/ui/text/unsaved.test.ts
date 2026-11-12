@@ -46,6 +46,28 @@ test("text typed while a save is on its way stays, unsaved, over what was saved"
   expect(field.pending()).toBe(false);
 });
 
+test("text typed back to the saved text while a save is on its way stays, over what was saved", async () => {
+  const saved = signal("Original");
+  const field = unsavedText("test:back", saved);
+  field.change("Snapshot");
+  const server = answer();
+  const save = field.save(async () => {
+    await server.given;
+  });
+  // Typed back to the text saved before: no draft differs from it while the save is on its way.
+  field.change("Original");
+  server.pass();
+  expect(await save).toEqual({ ok: true, value: undefined });
+  // The server holds "Snapshot", and the field still shows what was typed after, unsaved over it.
+  expect(field.text()).toBe("Original");
+  expect(field.dirty()).toBe(true);
+  expect(readUnsaved("test:back")).toMatchObject({ base: "Snapshot", text: "Original" });
+  // The record says so too: the field keeps its text.
+  saved.set("Snapshot");
+  expect(field.text()).toBe("Original");
+  expect(field.dirty()).toBe(true);
+});
+
 test("a refused save keeps the text, and tells its caller, so what follows it stops", async () => {
   const field = unsavedText("test:refused", () => "");
   field.change("The notes");

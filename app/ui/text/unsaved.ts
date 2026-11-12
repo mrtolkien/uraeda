@@ -274,9 +274,13 @@ export function unsavedText(
       const done = chain.then(async (): Promise<Submitted<T>> => {
         try {
           const value = await run(snapshot);
-          const shows = peek(at)?.text ?? snapshot;
+          const here = untracked(keyNow) === at;
+          // What the field shows, whether or not an entry holds it: typed back to the text saved
+          // before, it holds none, and is still an edit over the snapshot.
+          const shows = here ? untracked(text) : (peek(at)?.text ?? snapshot);
           settleUnsaved(at, snapshot, exact);
-          if (untracked(keyNow) === at) {
+          if (here) {
+            if (peek(at) === undefined) keep(at, shows, snapshot, exact, options.extra?.());
             kept.set({ key: at, over: untracked(saved), text: snapshot });
             // The field keeps the text it shows, until the record holds it too.
             if (peek(at) === undefined) {
