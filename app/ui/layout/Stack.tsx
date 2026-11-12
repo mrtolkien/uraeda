@@ -294,7 +294,7 @@ function SplitPanes(
           <ResizablePanel
             minSize={96}
             onResize={({ size }) => props.onShare?.(one().key, size)}
-            size={props.stack.sizes?.[one().key] ?? null}
+            size={props.stack.sizes?.[one().key] ?? kindOf(one())?.height ?? null}
             style={{ paddingVertical: (tokens.space.gap.wide - 2) / 2 }}
           >
             <Pane

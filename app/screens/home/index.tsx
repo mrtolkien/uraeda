@@ -68,6 +68,8 @@ export const inProgress = definePane<Repo>({
 });
 
 export const now = definePane<Repo>({
+  // Its empty state and its action, or its few entries, whole: an extension's pane takes the rest.
+  height: 200,
   icon: "list",
   kind: "home-now",
   stack: "side",
@@ -81,6 +83,8 @@ export const now = definePane<Repo>({
 });
 
 export const inbox = definePane<Repo>({
+  // Its field, its hint, its three latest notes, and its link, whole: an equal share cut a note.
+  height: 304,
   icon: "inbox",
   kind: "home-inbox",
   mark: ({ repo }) => ({ count: record("Inbox", { repo })()?.count }),

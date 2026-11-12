@@ -47,6 +47,11 @@ export type PaneSpec<Args extends PaneArgs> = {
    * frame then gives its body no padding on the sides. Padded unless given.
    */
   flush?: boolean;
+  /**
+   * The height it asks for in a split stack, in points, until the human drags it: a pane whose
+   * content has a fixed size, as Home's inbox, gets it, and the others share what is left.
+   */
+  height?: number;
   icon: IconName;
   /** A name no other kind has: "transcript", "session-activity". */
   kind: string;
