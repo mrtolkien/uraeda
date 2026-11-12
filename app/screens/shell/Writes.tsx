@@ -47,17 +47,25 @@ function writes(refused: boolean): Of[] {
 /** The writes that landed a moment ago, by their id: "Committed" names them. */
 const landed = signal<ReadonlyArray<Of>>([]);
 
+/** The landed form of the first word of a write's label: "Starting the feature …" is started. */
+const DONE: Record<string, string> = {
+  Fetching: "Fetched",
+  Merging: "Merged",
+  Pulling: "Pulled",
+  Pushing: "Pushed",
+  Starting: "Started",
+};
+
 /** The word a landed write is said with: its label's first word, done. */
 function doneWord(label: string): string {
-  const verb = label.split(" ")[0] ?? "";
-  const words: Record<string, string> = {
-    Fetching: "Fetched",
-    Merging: "Merged",
-    Pulling: "Pulled",
-    Pushing: "Pushed",
-    Starting: "Started",
-  };
-  return words[verb] ?? "Committed";
+  return DONE[label.split(" ")[0] ?? ""] ?? "Committed";
+}
+
+/** A landed write's label, said as done: "Started the feature …", never "Starting" under "Started". */
+function doneLabel(label: string): string {
+  const [verb = "", ...rest] = label.split(" ");
+  const done = DONE[verb];
+  return done === undefined ? label : [done, ...rest].join(" ");
 }
 
 /** Keeps the writes of `repo` that leave its queue unrefused, for "Committed". */
@@ -129,7 +137,7 @@ export function LandingWrites() {
       <If when={running() === undefined ? landed()[0] : undefined}>
         {(last) => (
           <Toast icon="circle-check" testID="writes-landed" title={doneWord(last().write.label)}>
-            <Text lines={2}>{last().write.label}</Text>
+            <Text lines={2}>{doneLabel(last().write.label)}</Text>
           </Toast>
         )}
       </If>
