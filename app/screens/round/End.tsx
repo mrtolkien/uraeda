@@ -132,10 +132,12 @@ export function End(props: EndProps) {
       label: "Write the notes",
       run: () => notesField?.focus(),
     },
+    // Ctrl+Enter, as a commit on the Git page: never `c`, which answers C one question before,
+    // and whose letter, pressed on, rolls into the end and then confirmed it (ruling T88.1).
     {
-      hint: "c",
+      hint: "mod+Enter",
       hintLabel: "commit",
-      keys: "c",
+      keys: "mod+Enter",
       label: "Commit the answers, after a confirmation",
       // A question left has nothing to confirm: the submit says which, and goes to it.
       run: () => (blank().length > 0 ? void submit(false) : asking.set(true)),
@@ -237,7 +239,7 @@ export function End(props: EndProps) {
         <If when={refusal()}>{(words) => <Refusal testID="round-refusal" words={words()} />}</If>
         <Confirm
           icon={resumes() ? "play" : "check"}
-          keys="c"
+          keys="mod+Enter"
           label={act()}
           onClose={() => asking.set(false)}
           onConfirm={() => void submit(resumes())}

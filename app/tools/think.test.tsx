@@ -237,7 +237,7 @@ step("03-round the end: what is left, the notes, the commit", async (walk) => {
   await walk.shot("where-left");
   await inTurn(Array.from({ length: 10 }), () => walk.keys("n"));
   await walk.shot("end");
-  await walk.keys("c");
+  await walk.keys("mod+Enter");
   await walk.shot("commit-with-questions-left");
   // Answer every question left with its recommendation, then the end.
   await inTurn(Array.from({ length: 6 }), () => walk.keys("a"));
@@ -252,7 +252,7 @@ step("03-round the end: what is left, the notes, the commit", async (walk) => {
   await walk.typed("Keep the menu's order stable between releases.");
   await walk.keys("Escape");
   await walk.shot("notes");
-  await walk.keys("c");
+  await walk.keys("mod+Enter");
   await walk.shot("commit-asked");
   await walk.keys("Enter");
   await walk.app.wait(3000);

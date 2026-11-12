@@ -10263,6 +10263,21 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/keys/{registry.tsx,store.ts}`, `app/ui/text/TextField.tsx`,
   `app/screens/shell/Status.tsx`, `app/ui/text/text.test.tsx`.
 
+## T88.1: A round's end commits by Ctrl+Enter, not by `c`
+
+- **Decision**: the end of a round asks to commit the answers on `Ctrl+Enter`, hinted on the status
+  line, and its confirmation takes `Ctrl+Enter` again or `Enter`. `c` there does nothing.
+- **Rationale**: on a round, a letter answers its question and goes on, and the last answer goes on
+  to the end: `c` answered C on the last question, then, pressed on, opened "Commit 9 answers?",
+  whose key again committed. One letter meant a harmless pick and, a press later, a commit that
+  sends the agent on. `Ctrl+Enter` is what commits on the Git page and sends a field everywhere, and
+  no answer types it.
+- **Alternatives considered**: keeping `c` and stopping the last answer before the end; it keeps a
+  letter that commits on a page where the letters answer.
+- **Where**: `app/screens/round/End.tsx`; the test
+  `Ctrl+Enter at the end asks first, naming what it commits; c there commits nothing`;
+  `specs/ui/keyboard.md`.
+
 ## T88.2: A key that means two things is named in a release build, never thrown
 
 - **Decision**: the registry still throws on a key that could never run, or would mean two things,

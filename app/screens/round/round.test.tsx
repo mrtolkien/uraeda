@@ -88,7 +88,7 @@ test("Shift and a letter adds it to the answer, and stays on the question", asyn
   expect(calls(app).at(-1)?.letters).toContain("A");
 }, 90_000);
 
-test("c at the end asks first, naming what it commits, and commits nothing by itself", async () => {
+test("Ctrl+Enter at the end asks first, naming what it commits; c there commits nothing", async () => {
   const app = await page("Q1.B", true);
   await app.waitUntil(() => words(app).includes("What does editing one occurrence change?"), {
     timeout: 30_000,
@@ -103,7 +103,11 @@ test("c at the end asks first, naming what it commits, and commits nothing by it
   await app.waitUntil(() => words(app).includes("Every question has its answer"), {
     timeout: 10_000,
   });
+  // A letter pressed on past the last question asks nothing: `c` answers C a question before.
   await app.keyboard.press("c");
+  await app.wait(300);
+  expect(words(app)).not.toContain("Commit 4 answers?");
+  await app.keyboard.press("mod+Enter");
   await app.waitUntil(() => words(app).includes("Commit 4 answers?"), { timeout: 10_000 });
   expect(words(app)).toContain("on the feature's branch");
   await app.keyboard.press("escape");
