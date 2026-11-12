@@ -108,3 +108,52 @@ test(
   () => pictures("starting", shell("starts"), says("Starting Uraeda's server")),
   LONG,
 );
+
+/** The session page of the sandbox's feature with a pull request, which has a build session. */
+const SESSION = "/r/sample/f/2026-10-17-keyboard-shortcuts/session";
+
+/**
+ * A session page as the human arranged it (`just app-shots arranged`), each by the keys of
+ * `Space w`: its panels split in the side stack, the Sessions closed; a diff opened beside the
+ * conversation, from the Changes; the conversation zoomed. Then another session, which opens as
+ * the last was left, and the first again once reset.
+ */
+const ARRANGEMENTS: ReadonlyArray<[name: string, keys: ReadonlyArray<string>]> = [
+  ["split", ["l", "space", "w", "q", "space", "w", "s", "h"]],
+  ["beside", ["l", "k", "l", "l", "j", "j", "shift+Enter"]],
+  ["zoomed", ["space", "w", "z"]],
+  ["menu", ["l", "space", "w", "s", "h"]],
+  // Arranged, left for the sessions' list, and another session opened: it opens as arranged.
+  ["another", ["l", "space", "w", "q", "space", "w", "s", "h", "g", "s", "j", "Enter"]],
+];
+
+for (const [name, keys] of ARRANGEMENTS) {
+  test(
+    `state arranged ${name}`,
+    () =>
+      pictures(
+        `arranged-${name}`,
+        (theme, width) =>
+          open("./shell/__checks__/Places.tsx", {
+            colorScheme: theme,
+            height: 800,
+            host: { params: { theme } },
+            network: "live",
+            width,
+          }),
+        async (app) => {
+          await app.waitUntil(() => app.shows("id:frame"), { timeout: 30_000 });
+          await app.host.send("go", SESSION);
+          await app.waitFor("id:session-title", { timeout: 30_000 });
+          await app.wait(1500);
+          // One key after the other, as a person types them.
+          await keys.reduce<Promise<void>>(
+            (done, key) => done.then(() => app.keyboard.press(key)).then(() => app.wait(100)),
+            Promise.resolve(),
+          );
+          if (name === "menu") await app.press("id:pane-menu-session-transcript");
+        },
+      ),
+    LONG,
+  );
+}

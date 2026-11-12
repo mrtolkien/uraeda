@@ -30,6 +30,11 @@ export type Stack = {
   readonly shown: string | null;
   /** All its panes at once, one under the other, in place of tabs. */
   readonly split: boolean;
+  /**
+   * The heights the human gave its panes while split, in points, by key: a pane without one
+   * shares what the others leave equally.
+   */
+  readonly sizes?: Readonly<Record<string, number>>;
 };
 
 export type Layout = {
@@ -37,11 +42,21 @@ export type Layout = {
   readonly closed: ReadonlyArray<string>;
   /** The key of the pane the keys go to. */
   readonly focus: string | null;
+  /**
+   * The side stack's panes, while they are tabs of the main stack ("one stack"): the keys that
+   * go back to the side stack when the human parts the stacks again.
+   */
+  readonly joined?: ReadonlyArray<string>;
   /** The side stack is folded away. */
   readonly folded: boolean;
   readonly main: Stack;
   /** The focus is on the tabs of the focused pane's stack, not in the pane. */
   readonly onTabs: boolean;
+  /**
+   * Panes the human opened in this place from where they were named, "open beside": not the
+   * place's own, so the place keeps them, and a close takes them away for good.
+   */
+  readonly opened?: ReadonlyArray<string>;
   readonly side: Stack;
   /** The key of the pane drawn over the whole room of both stacks. */
   readonly zoomed: string | null;
@@ -70,7 +85,8 @@ export function paneKey(kind: string, args: Readonly<Record<string, Json>>): str
   return sorted.length === 0 ? kind : `${kind}:${JSON.stringify(sorted)}`;
 }
 
-const stackOfPanes = (
+/** A stack of `panes`, showing `shown` when it holds it, else its first. */
+export const stackOfPanes = (
   panes: ReadonlyArray<PaneRef>,
   shown?: string | null,
   splits = false,
@@ -226,7 +242,10 @@ export function close(layout: Layout, key: string): Layout {
   if (pane === undefined || !pane.closes || (name === "main" && layout.main.panes.length === 1)) {
     return layout;
   }
-  return { ...without(layout, key), closed: [...layout.closed, key] };
+  const opened = layout.opened ?? [];
+  return opened.includes(key)
+    ? { ...without(layout, key), opened: opened.filter((one) => one !== key) }
+    : { ...without(layout, key), closed: [...layout.closed, key] };
 }
 
 /**
@@ -298,14 +317,14 @@ export const zoom = (layout: Layout, on: boolean): Layout => ({
 /**
  * The layout of the place as it is now: its panes still there keep their stack and order, a pane
  * it no longer has goes as a closed one does, and a new one joins its default stack at the end.
- * A pane the human closed in this visit stays closed.
+ * A pane the human closed in this visit stays closed, and one they opened there stays.
  */
 export function sync(layout: Layout, place: Place): Layout {
   const wanted = new Map([...place.main, ...place.side].map((pane) => [pane.key, pane] as const));
   let next = layout;
   for (const name of STACKS) {
     for (const pane of layout[name].panes) {
-      if (!wanted.has(pane.key)) {
+      if (!wanted.has(pane.key) && !(layout.opened ?? []).includes(pane.key)) {
         next = without(next, pane.key);
       }
     }

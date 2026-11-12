@@ -1,7 +1,8 @@
 // What a screen declares: its kinds of pane, once each, with `definePane`, and the panes each of
 // its pages shows, with `definePlace`. The layout shell draws them: a screen never draws a pane's
 // frame, a tab, or a side column of its own. See the guide, `specs/ui/panes.md`.
-import { context, type JSX, Scroll, type ScrollProps, signal } from "nsh";
+import { type JSX, Scroll, type ScrollProps, signal } from "nsh";
+import { PaneContext } from "./here";
 import { type Json, type PaneRef, paneKey, type Place, type StackName } from "./layout";
 import { entry, keep, positions } from "../../store/history";
 import type { Route, RouteOf } from "../../store/routes";
@@ -169,15 +170,7 @@ export function titleOf(pane: PaneRef): string {
   return typeof title === "string" ? title : title(pane.args);
 }
 
-/** What a pane knows of itself, inside its view: `usePane()`. */
-export type PaneHere = {
-  focused: () => boolean;
-  /** The pane's key: where it keeps what it remembers. */
-  key: string;
-  width: () => WidthClass;
-};
-
-export const PaneContext = context<PaneHere | null>(null);
+export { type PaneHere, PaneContext } from "./here";
 
 /** A pane's own value that a move, a hidden tab, or Back keeps: plain data, in the visit. */
 export type Remembered<T extends Json> = { (): T; set(value: T): void };

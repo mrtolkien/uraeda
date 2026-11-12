@@ -7574,3 +7574,112 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `places.test.tsx` opens `/r/sample/e/hello/hello`. An `Empty`'s title row is as wide as its pane,
   so a long title wraps on a phone rather than run past the edge.
 - **Where**: `fixtures/pages/`, `app/screens/shell/places.test.tsx`, `app/ui/lists/Empty.tsx`.
+
+## R391: The moves are a leader group, `Space w`, and one table draws the keys and the pane's menu
+
+- **Decision**: the moves are the group `Space w`, "Panes" in the leader menu, as LazyVim's
+  `<leader>w` and Vim's `Ctrl-w`; no single key is taken from a page. The letters mirror the focus
+  keys and the editors the human uses: `H` `L` send the focused pane to the main or the side stack
+  (`h` `l` move the focus there), `m` makes a side pane the main one (Hyprland's `swapwithmaster`),
+  `<` `>` move its tab, `s` splits its stack or makes it tabs, `=` gives split panes equal heights,
+  `f` folds the side stack (as `]`), `z` zooms, `o` makes one stack (Vim's `:only`), `q` closes, `u`
+  brings back the last closed, `r` resets this kind of place, `R` every kind. One table, `MOVES` in
+  `app/ui/layout/moveKeys.tsx`, declares the keys and draws the pane's menu, the `…` at the end of a
+  pane's title or its long-pressed tab, each entry with its key; a move whose `when` refuses is
+  absent from both. On a narrow window only `<` `>` (along the one stack, crossing from main into
+  side), `q`, `u`, `r`, `R`, and open beside remain. The status line names `␣w panes`.
+- **Rationale**: the human asked for the moves "by keyboard first", in a group the leader menu
+  teaches; one table keeps a key and its menu entry from drifting apart. The swap is only from the
+  side stack: from main, `L` is the move, and "make it the main pane" reads right only from there.
+- **Alternatives considered**: `Ctrl-w` as Vim has it: a chord the GTK text fields would take, and
+  the registry's leader is Space. Swap from main with the side's shown pane: two words for one key.
+- **Where**: `app/ui/layout/{moveKeys.tsx,moves.ts}`, `app/ui/keys/groups.ts`.
+
+## R392: An arrangement is kept per kind of place, by its subject's kind, and names panes by kind
+
+- **Decision**: the device keeps `layouts`, one arrangement per kind of place: each stack's panes by
+  kind, the kinds shown, the stacks split and the heights given, the kinds closed, the kind zoomed,
+  the stacks joined. A kind of place is its subject's kind, the place's first main pane as declared,
+  so `/sessions/<id>` and a feature's session page are one (`session-transcript`), as every file's
+  page is (`file-reader`). A new visit opens as the arrangement says, a pane it does not name in its
+  default stack after the others; the visit then keeps its own layout, for Back. An arrangement
+  equal to the place's default is not kept, so a default changed later is followed. The side stack's
+  width and fold stay one fact for every place (`DeviceKeys.frame`), as task 33 kept them. Panes
+  opened beside are the visit's alone, never in an arrangement.
+- **Rationale**: "every session page opens as the human arranged the last one"; a pane kind's
+  location is one fact, as VS Code's view location. Keying by the page would split a session's two
+  pages; keying globally by pane kind would let a move on the Git page move a pane on Home.
+- **If wrong**: `placeKind` is one function; a table from pages to kinds of place can replace it.
+- **Where**: `app/ui/layout/{arrangement,frame}.ts`, `DeviceKeys.layouts` in `app/store/device.ts`.
+
+## R393: Open beside puts a named pane in the other stack of the page shown
+
+- **Decision**: a list whose rows name a pane gives `beside={(id) => pane(...)}` to `List`,
+  `VirtualList`, or `listKeys`: `shift+Enter`, a long press on a framed row, and "Open … beside" in
+  the pane's menu (the row under the cursor, offered by `offerBeside`) put that pane after the shown
+  tab of the stack other than the list's pane's, with the focus, closable, and listed in
+  `Layout.opened` so `sync` keeps it and a close drops it for good. Built: the session's Changes
+  open a file's diff (`session-diff`, new, from the Changes' `FileDiff`, moved to its own file); the
+  sessions' list and a feature's Sessions open a conversation (`session-beside`, a kind of its own
+  titled by the session, so it never merges with the page's "Conversation" and the arrangement never
+  places it); a feature's Steps open a file's reader or a mockup. Panes changed to read their
+  arguments, not the route: the file reader honours `#heading` only on its own file's page; the
+  buffer's outline takes `source` as an argument. `here.ts`, new, holds the pane's context and the
+  beside signal without the store, as lists are part of `uraeda/ui`, which extension pages build.
+- **Rationale**: Kiro opens a chat as an editor tab while it stays in its panel; a diff beside a
+  transcript is the human's example. `Enter` keeps going to the thing's page, so nothing a hand
+  knows changes.
+- **Left out**: a link in a document (a transcript's, a spec's) has no beside yet: links are the
+  document renderer's, with no secondary action, and a hand on a link reaches its page by `Enter`.
+  The decisions' and the inbox's panes still read the route: their places are driven by it, and no
+  row names them to open beside.
+- **Where**: `app/ui/layout/here.ts`, `app/ui/lists/{keys.ts,List.tsx,VirtualList.tsx}`,
+  `app/screens/session/{index.tsx,SessionsPage.tsx,panels/}`,
+  `app/screens/feature/{Steps,Sessions}.tsx`, `app/screens/file/Reader.tsx`,
+  `app/screens/buffer/index.tsx`.
+
+## R394: The side stack joins the main one as tabs, and parts again
+
+- **Decision**: `Space w o` puts the side stack's panes after the main stack's, as tabs, the focus
+  where it was, and keeps their keys in `Layout.joined`; again, they go back to the side stack in
+  their order. A pane sent or opened into the empty side stack makes two stacks again; closing it
+  leaves the stacks joined, and `o` parts them. Swap and a move into the side stack end the join.
+- **Rationale**: "move the sidebar inside the main view so it becomes a full pane" is i3's tabbed
+  container over both: one stack the window's width, which comes back as it was.
+- **Where**: `join`, `part`, `toggleJoin` in `app/ui/layout/moves.ts`.
+
+## R395: A zoom hides the other stack, and a move slides the stack a pane lands in
+
+- **Decision**: a zoom no longer draws the pane in a stack of its own: the other stack's panel is
+  hidden and the zoomed one takes the room, the zoomed pane alone on its title. So a zoom draws
+  nothing again: a web view, an extension's page, or a streaming transcript stays as it is. A pane
+  moved to the other stack is drawn anew there (its state is the visit's and the device's); every
+  move calls `arrive`, which glides the frame (`LayoutAnimation`) and slides the stack a pane landed
+  in from the side it came from, 48 points, fading up, in `motion.glide`. Reduced motion lands at
+  once.
+- **Rationale**: "anything that moves existing UI content gets a short animation, never a jump";
+  moving a native view between two parents is not something Native Shell does, so the travel is the
+  landing stack's.
+- **What a move keeps**, walked: a transcript keeps its cursor and, new, its place (`positions()`
+  under its key, and whether it followed its end): moved while a reply streams, it opens at its end,
+  still following, the reply's text the store's. A field's unsaved text is the device's or the
+  visit's, and comes back; a field moved by the menu loses the focus, and Vim, as on any field that
+  takes the focus, opens in insert mode. `Space w` typed inside a field types: Escape first, as
+  every page key asks. A preview's web view and an extension's page reload when moved, keeping their
+  address and records; zoomed, they stay.
+- **Where**: `app/ui/layout/{arrival.tsx,Stacks.tsx,Stack.tsx}`,
+  `app/screens/session/Transcript.tsx`.
+
+## R396: A tab drags onto the other stack; a split stack's panes drag their heights
+
+- **Decision**: a press on a tab that moves more than 6 points carries it (the tab's responder); the
+  stacks it may land in show a frame, "Drop here", lit under the pointer; let go over the other
+  stack, it moves there, at the end of its tabs. A folded or empty side stack shows while a main tab
+  is carried. A split stack is a vertical `ResizablePanelGroup`: equal shares until a line is
+  dragged, the heights kept in the stack (`sizes`) and in the arrangement, `Space w =` to share
+  again. Reordering a tab by the pointer is left to the keys and the menu.
+- **Also fixed**: `Menu` ran its entry after closing, when an owner that draws no entries while
+  closed had none left: it takes the entry first. `Menu` takes `shown` and `onOpenChange`, for a
+  menu a long press opens too.
+- **Where**: `app/ui/layout/drag.ts`, `app/ui/surfaces/Pane.tsx` (a tab's `onLongPress`, `drag`),
+  `app/ui/controls/Menu.tsx`.

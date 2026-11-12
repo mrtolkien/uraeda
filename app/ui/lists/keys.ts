@@ -13,9 +13,16 @@
 // for a list that opens at its end (a transcript), without scrolling. A pointer user meets a quiet bar there; a pane at rest keeps its cursor, unlit.
 import { effect, untracked } from "nsh";
 import { type KeySpec, keysWorkHere, registerKey } from "../keys/registry";
+import { besideOpener, offerBeside } from "../layout/here";
+import type { PaneRef } from "../layout/layout";
 import type { Cursor } from "./cursor";
 
 export type ListKeysOptions = {
+  /**
+   * The pane a row names, opened beside the list's pane in place of `onOpen`'s navigation: a
+   * session's conversation, a file, a diff. `shift+Enter`, and its pane's menu, "Open … beside".
+   */
+  beside?: (id: string) => PaneRef | undefined;
   /** The row's own action, run by `Enter`: open it, follow it. */
   onOpen?: (id: string) => void;
   /** What `Enter` says in the key map: "open" unless given. */
@@ -68,6 +75,31 @@ export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
           return false;
         }
         open(id);
+        return undefined;
+      },
+      when,
+    });
+  }
+  if (options.beside !== undefined) {
+    const named = options.beside;
+    const open = besideOpener();
+    const atCursor = () => {
+      const id = cursor.at();
+      return id === undefined ? undefined : named(id);
+    };
+    offerBeside(() => {
+      const pane = atCursor();
+      return pane === undefined ? undefined : { open: () => open(pane), pane };
+    });
+    keys.push({
+      keys: "shift+Enter",
+      label: "open beside",
+      run: () => {
+        const pane = atCursor();
+        if (pane === undefined) {
+          return false;
+        }
+        open(pane);
         return undefined;
       },
       when,

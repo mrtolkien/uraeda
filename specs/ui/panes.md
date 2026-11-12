@@ -20,6 +20,9 @@ screen never draws a pane's frame, a tab bar, a side column, or the status line.
 - **The layout** is the two stacks, which pane each shows, which pane has the focus, and whether the
   side stack is folded or a pane zoomed. It is plain data in the visit (`entry().kept.layout`): Back
   returns to a page as it was left.
+- **An arrangement** is a layout as the device keeps it for a kind of place, its panes named by
+  their kinds (`DeviceKeys.layouts`): a new visit of any session opens as the last session was left.
+  A kind of place is its subject's kind, the main stack's first pane as the place declares it.
 - **The frame** is what is not a pane: the rail of places at the left (the bar of places at the top
   on a phone), the status line at the foot, and the overlays.
 
@@ -162,9 +165,57 @@ The status line names `h l pane` and `[ ] fold`; the tabs' keys show beside the 
 is there. The pointer does the same: a press in a pane focuses it, a press on a tab shows it, and
 the side stack's edge drags. Its width and both folds are kept per device.
 
-## What comes later
+## What a pane must do to move
 
-Task 66 adds the moves by the human: a pane sent to the other stack or swapped with the main one,
-tabs reordered, a stack split, a pane zoomed or closed, a layout kept per kind of place and reset.
-Their pure functions already exist in [`layout.ts`](/app/ui/layout/layout.ts): `move`, `reorder`,
-`split`, `zoom`, `close`, `reset`.
+The human moves panes (below): to the other stack, as a tab of a stack it was not declared in,
+zoomed to the window, closed and brought back, or opened beside a page it does not belong to. A pane
+that follows these rules moves without any code of its own:
+
+- **It reads everything from its arguments and the store, never from the route.** A pane opened
+  beside is drawn on another page: `route()` there is that page's. A reader that scrolls to the
+  address's `#heading` checks the address is its own file's first. A place reads the route to make
+  its panes' arguments; the pane reads its arguments.
+- **It keeps what a move must not lose in the visit or the device**, as above: a move draws it anew
+  in the other stack. Its scroll, `PaneScroll` or a list's `offset` kept under `usePane().key`
+  (`positions()`, which writes nothing a page reads); its cursor and folds, `remember`; its typed
+  text, the device's `unsaved`. A zoom does not draw it again, nor a split's resize.
+- **What it names can open beside it.** A list whose rows name something with a pane of its own (a
+  session, a file, a diff) gives `beside={(id) => pane(...)}` to `List`, `VirtualList`, or
+  `listKeys`: `shift+Enter`, a long press on the row, and "Open … beside" in the pane's menu then
+  put that pane in the other stack of the page shown, as a tab, the focus on it, in place of the
+  row's `Enter`, which goes to its page. Elsewhere, `besideOpener()` gives the function that does
+  it. A pane kind opened beside another of its kind on the same page, as a second conversation, is a
+  kind of its own with a title that tells the two apart (`session-beside`).
+- **`closes: true` for every pane the place does not need**: a page's companions close, its subject
+  never. A pane opened beside always closes.
+- **A web view, or an extension's page, is drawn again by a move**: it reloads, keeping only what
+  its address and its records hold. A zoom keeps it, as the other stack is only hidden.
+
+## The moves
+
+The keys are the leader's group `Space w`, "window", as LazyVim's `<leader>w` and Vim's `Ctrl-w`,
+declared once in [`moveKeys.tsx`](/app/ui/layout/moveKeys.tsx), whose table the pane's menu draws
+too, each entry with its key. A move that makes no sense where the focus is, or on a narrow window,
+is absent from both, never disabled.
+
+| Key           | Does                                                                            | Narrow |
+| ------------- | ------------------------------------------------------------------------------- | ------ |
+| `Space w H`   | The focused pane to the main stack, as i3's `move left`                         | -      |
+| `Space w L`   | The focused pane to the side stack; the main stack's last pane stays            | -      |
+| `Space w m`   | A side pane swaps with the pane main shows, Hyprland's `swapwithmaster`         | -      |
+| `Space w <`   | The tab one place left, `>` right; on a narrow window along the one stack       | yes    |
+| `Space w s`   | The focused stack split, or tabs again; `=` gives split panes equal heights     | -      |
+| `Space w f`   | Fold the side stack, or unfold it, as `]`                                       | -      |
+| `Space w z`   | Zoom the focused pane over both stacks' room, and back, as Zed's and tmux's     | -      |
+| `Space w o`   | One stack: the side stack's panes join main as tabs, as Vim's `:only`; and back | -      |
+| `Space w q`   | Close the focused pane, if it closes; `u` brings the last closed back           | yes    |
+| `Space w r`   | Reset this kind of place's arrangement; `R` every kind's                        | yes    |
+| `Shift+Enter` | On a row that names a pane: open it beside                                      | yes    |
+
+The pointer does the same: the `…` at the end of a pane's title opens its menu, and so does a long
+press on its tab, the touch's way; a tab dragged onto the other stack moves there, both stacks lit
+as targets while it is carried; the line between split panes drags their heights. Every move glides
+(`arrive` in [`arrival.tsx`](/app/ui/layout/arrival.tsx)): the stack a pane lands in slides in from
+where it came, while the frame glides to its new sizes.
+
+The status line names `␣w panes`; the leader menu, opened at `Space w`, teaches the rest.

@@ -19,6 +19,7 @@ function sessionOf(args: SessionArgs) {
 export const sessionActivity = definePane<SessionArgs>({
   flush: true,
   icon: "activity",
+  closes: true,
   kind: "session-activity",
   mark: (args) => ({ running: sessionOf(args)?.status === "working" }),
   stack: "side",
@@ -29,6 +30,7 @@ export const sessionActivity = definePane<SessionArgs>({
 export const sessionChanges = definePane<SessionArgs>({
   flush: true,
   icon: "git-compare",
+  closes: true,
   kind: "session-changes",
   mark: (args) => ({ count: sessionOf(args)?.edited.length || undefined }),
   stack: "side",
@@ -39,6 +41,7 @@ export const sessionChanges = definePane<SessionArgs>({
 export const sessionSubagents = definePane<SessionArgs>({
   flush: true,
   icon: "users",
+  closes: true,
   kind: "session-subagents",
   mark: (args) => {
     const subs = sessionOf(args)?.subSessions ?? [];

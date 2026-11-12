@@ -4,7 +4,7 @@
 // button follow again (rule 9: never lost in a long session). Its rows are read by pages
 // (`pages.ts`); each message has its own signal, and a reply grows by blocks (`Rows.tsx`).
 import { effect, signal, untracked, View } from "nsh";
-import { call, navigate, record, redirect, StoreError } from "../../store";
+import { call, navigate, positions, record, redirect, StoreError } from "../../store";
 import type { Session } from "../../store/protocol";
 import { Button, Spinner } from "../../ui/controls";
 import { keysWorkHere, registerKey } from "../../ui/keys";
@@ -116,7 +116,12 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
     initial: kept() ?? undefined,
     onChange: (id) => kept.set(id ?? null),
   });
-  const following = signal(true);
+  // Where the conversation was read, kept in the visit: a move to the other stack, a zoom, or its
+  // tab shown again opens it there, or at its end, following a reply that streams, as it was left.
+  const followed = pane.remember("following", true);
+  const where = positions();
+  const place = `${pane.key}:transcript`;
+  const following = signal(untracked(followed));
   let list: VirtualListRef | undefined;
 
   // Shown: the human saw its latest turn, whatever its status says, as "Needs you" at a gate.
@@ -211,9 +216,14 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
               />
             </View>
           }
-          follow
+          follow={untracked(followed)}
           framed={false}
-          onFollowing={(now) => following.set(now)}
+          offset={untracked(followed) ? undefined : where.at(place)}
+          onFollowing={(now) => {
+            following.set(now);
+            if (untracked(followed) !== now) followed.set(now);
+          }}
+          onOffset={(offset) => where.keep(place, offset)}
           onShown={feed.shown}
           ref={(made) => (list = made)}
           row={(id) => <TranscriptRow feed={feed} hands={hands} id={id} />}

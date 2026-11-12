@@ -6,10 +6,14 @@
 // itself, an insert or a remove, glides when the screen calls `glide()` just before it.
 import { type Accessor, type JSX, type StyleProp, View, type ViewStyle } from "nsh";
 import type { Cursor } from "./cursor";
+import { besideOpener } from "../layout/here";
+import type { PaneRef } from "../layout/layout";
 import { listKeys } from "./keys";
 import { Row } from "./Row";
 
 export type ListProps = {
+  /** The pane a row names, opened beside the list's: `shift+Enter`, a long press, the pane's menu. */
+  beside?: (id: string) => PaneRef | undefined;
   cursor: Cursor;
   /** Shown in place of the rows while there are none: an `Empty`, which says why. */
   empty?: JSX.Element;
@@ -29,14 +33,21 @@ export type ListProps = {
 export function List(props: ListProps) {
   const cursor = props.cursor;
   if (props.keys !== false) {
-    listKeys(cursor, { onOpen: props.onOpen, openLabel: props.openLabel });
+    listKeys(cursor, { beside: props.beside, onOpen: props.onOpen, openLabel: props.openLabel });
   }
+  const open = besideOpener();
+  /** A long press, the touch's way to a row's second action: its pane beside. */
+  const besideOf = (id: string) => {
+    const pane = props.beside?.(id);
+    return pane === undefined ? undefined : () => open(pane);
+  };
   return (
     <View style={props.style} testID={props.testID}>
       <If when={cursor.items().length > 0} else={props.empty}>
         <Each key={(item: { id: string }) => item.id} of={cursor.items()}>
           {(item, index) => (
             <Row
+              onLongPress={besideOf(item().id)}
               onPoint={() => cursor.set(item().id)}
               onPress={() => {
                 cursor.set(item().id);

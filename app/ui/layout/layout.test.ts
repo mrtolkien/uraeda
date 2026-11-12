@@ -23,6 +23,7 @@ import {
   zoom,
 } from "./layout";
 import { fitted } from "./Stack";
+import { seen } from "./__checks__/seen";
 
 const pane = (kind: string, closes = true): PaneRef => ({
   args: {},
@@ -36,23 +37,6 @@ const SESSION: Place = {
   main: [pane("transcript", false)],
   side: [pane("activity"), pane("changes"), pane("plan")],
 };
-
-/** A layout in one line: each stack's tabs, the shown one in brackets, the focused one starred. */
-function seen(layout: Layout): string {
-  const stack = (name: "main" | "side") => {
-    const { panes, shown, split: isSplit } = layout[name];
-    const tabs = panes.map(({ key }) => {
-      const mark = key === layout.focus ? "*" : "";
-      return !isSplit && key === shown ? `[${key}${mark}]` : `${key}${mark}`;
-    });
-    const how = isSplit ? " split" : "";
-    const folded = name === "side" && layout.folded ? " folded" : "";
-    return `${name}${how}${folded}: ${tabs.join(" ") || "-"}`;
-  };
-  const tabs = layout.onTabs ? " | on tabs" : "";
-  const zoomed = layout.zoomed === null ? "" : ` | zoomed ${layout.zoomed}`;
-  return `${stack("main")} | ${stack("side")}${tabs}${zoomed}`;
-}
 
 const start = layoutOf(SESSION);
 const on = (key: string, from = start) => focus(from, key);

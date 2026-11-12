@@ -170,9 +170,14 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
     const asked = jumps(props.args)();
     if (asked !== undefined) untracked(() => scroll?.toBlock(asked.block));
   });
-  // A heading the address names, `spec.md#architecture`, as the page opens or as it changes.
+  // A heading the address names, `spec.md#architecture`, as the page opens or as it changes: only
+  // the address of this file's own page, not a page it is opened beside.
   effect(() => {
-    const hash = route().hash;
+    const now = route();
+    if (now.page !== "file" || now.folder !== props.args.folder || now.name !== props.args.name) {
+      return;
+    }
+    const hash = now.hash;
     if (hash === undefined || hash === "") return;
     untracked(() => {
       const heading = headingAt(shown().document, hash);

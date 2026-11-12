@@ -29,6 +29,17 @@ export type PaneTab = {
   needs?: boolean;
   /** A press on the tab: shows it. */
   onPress?: () => void;
+  /** A long press on the tab: its pane's menu, the touch's way to it. */
+  onLongPress?: () => void;
+  /**
+   * The pointer carrying the tab, from a press that moves: where it went, in the window's
+   * points, and whether it was let go (`true`) or taken away (`false`).
+   */
+  drag?: {
+    grant: (x: number, y: number) => void;
+    move: (x: number, y: number) => void;
+    end: (dropped: boolean) => void;
+  };
   /** A run is on in it: a small mark of the running light follows its title. */
   running?: boolean;
   testID?: string;
@@ -90,7 +101,18 @@ function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string
   const title = (
     <View
       accessibilityLabel={props.many || props.tab.compact === true ? props.tab.title : undefined}
+      onLongPress={props.tab.onLongPress}
+      onMoveShouldSetResponder={props.tab.drag === undefined ? undefined : () => true}
       onPress={props.tab.onPress}
+      onResponderGrant={(event: { pageX: number; pageY: number }) => {
+        props.tab.drag?.grant(event.pageX, event.pageY);
+        return true;
+      }}
+      onResponderMove={(event: { pageX: number; pageY: number }) =>
+        props.tab.drag?.move(event.pageX, event.pageY)
+      }
+      onResponderRelease={() => props.tab.drag?.end(true)}
+      onResponderTerminate={() => props.tab.drag?.end(false)}
       accessibilityState={props.many ? { selected: props.tab.current } : undefined}
       role={props.many ? "tab" : undefined}
       style={{ flexShrink: 1, height: tokens.pane.titleHeight - 1, minWidth: 0 }}

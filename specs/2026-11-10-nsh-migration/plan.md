@@ -3155,6 +3155,13 @@ can become a full pane, as in a tiling window manager.
 
 - Modify: `app/ui/layout/`, `specs/ui/panes.md`, `specs/ui/keyboard.md`
 - Test: `app/ui/layout/moves.test.tsx`
+- As built (rulings R391 to R396): `moves.ts` (the moves, pure), `arrangement.ts` (what the device
+  keeps per kind of place), `moveKeys.tsx` (the table of `Space w` and the pane's menu), `frame.ts`
+  (where the layout is kept), `arrival.tsx` (the landing's slide), `drag.ts`, `here.ts` (the pane's
+  context and open beside, without the store), the check page `__checks__/moves.tsx`; `beside` on
+  `List`, `VirtualList`, and `listKeys`; `DeviceKeys.layouts`; `Menu`'s `shown` and `onOpenChange`;
+  a tab's `onLongPress` and `drag` in `Pane`; the pane kinds `session-diff` and `session-beside`;
+  `just app-shots arranged`, a session page in four arrangements.
 
 **Interfaces:**
 
@@ -3170,17 +3177,18 @@ can become a full pane, as in a tiling window manager.
     arranged the last one. A pane's location is one stored fact, as VS Code's view location is.
   - Drag of a tab to the other stack, on a pointer, as a second way to do the same moves.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
       `a pane sent to the other stack keeps its scroll and its     text`;
       `a layout comes back after a restart`; `reset gives the place's default`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** Choose the keys with the keyboard guide's layers: the moves are a group
+- [x] **Step 2: Run them**. Expected: FAIL. The four through the frame failed on the layout line (no
+      key moved a pane); the table's rows passed, written after `moves.ts`.
+- [x] **Step 3: Implement.** Choose the keys with the keyboard guide's layers: the moves are a group
       of the leader menu, and no single key is taken from a page. Every move is animated, short, as
       the design language's motion asks: a pane never jumps.
-- [ ] **Step 4: Review it in the running app**, on the sandbox, at each width, by keyboard then by
+- [x] **Step 4: Review it in the running app**, on the sandbox, at each width, by keyboard then by
       touch: arrange a session page three ways, leave it, and come back.
-- [ ] **Step 5: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): panes move between the stacks`.
+- [x] **Step 5: Run the task's validation**: `just task-app`. Expected: PASS.
+- [x] **Step 6: Commit**: `feat(nsh-migration): panes move between the stacks`.
 
 ## Task 52: The sandbox, and a walk through the app
 

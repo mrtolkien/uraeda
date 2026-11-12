@@ -7,14 +7,19 @@ import { navigate, record, serverTime } from "../../store";
 import type { SessionRow } from "../../store/protocol";
 import { Banner, Button, Spinner } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
-import { usePane } from "../../ui/layout";
+import { type PaneRef, usePane } from "../../ui/layout";
 import { Card, createCursor, Empty, VirtualList } from "../../ui/lists";
 import { TextField, type TextFieldRef } from "../../ui/text";
 import { rowState, runsOnWords, statusTone } from "./words";
 
 const open = (id: string) => navigate({ id, page: "session-id" });
 
-export function SessionsPane(props: { repo: string; session: string }) {
+export function SessionsPane(props: {
+  /** The conversation of a session, opened beside the list: `shift+Enter`. */
+  beside?: (id: string) => PaneRef;
+  repo: string;
+  session: string;
+}) {
   const pane = usePane();
   const query = pane.remember("query", "");
   const kept = pane.remember<string | null>("at", props.session === "" ? null : props.session);
@@ -77,6 +82,7 @@ export function SessionsPane(props: { repo: string; session: string }) {
         else={
           <If when={read()() !== undefined} else={<Spinner label="Reading the sessions" />}>
             <VirtualList
+              beside={props.beside}
               cursor={cursor}
               empty={
                 <Empty

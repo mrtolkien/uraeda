@@ -12,20 +12,48 @@ import { TranscriptPane } from "./Transcript";
 
 export { addSessionPanes, type SessionArgs, sessionIdOf } from "./place";
 
+/** The session `args` names, read as a signal: `null` while there is none. */
+function sessionOf(args: SessionArgs) {
+  const id = sessionIdOf(args)();
+  return typeof id === "string" ? record("Session", { id, repo: args.repo })() : null;
+}
+
+/** What a conversation's tab says besides its title: it waits on the human, or it runs. */
+const conversationMark = (args: SessionArgs) => {
+  const session = sessionOf(args);
+  return {
+    needs: session?.status === "needs-you" || session?.status === "attention",
+    running: session?.status === "working",
+  };
+};
+
 export const sessionTranscript = definePane<SessionArgs>({
   flush: true,
   icon: "message-square",
   kind: "session-transcript",
-  mark: (args) => {
-    const id = sessionIdOf(args)();
-    const session = typeof id === "string" ? record("Session", { id, repo: args.repo })() : null;
-    return {
-      needs: session?.status === "needs-you" || session?.status === "attention",
-      running: session?.status === "working",
-    };
-  },
+  mark: conversationMark,
   stack: "main",
   title: "Conversation",
+  view: (props) => <TranscriptPane args={props.args} />,
+});
+
+/** A title cut to what a tab holds, with an ellipsis. */
+const short = (title: string) => (title.length > 28 ? `${title.slice(0, 27).trimEnd()}…` : title);
+
+/**
+ * Another session's conversation, opened beside the page's own from the sessions' list
+ * (`shift+Enter`), as Kiro opens a chat as an editor tab: the same pane, its tab named by the
+ * session, since two read "Conversation". A pane of its own kind, so the page's arrangement never
+ * places it, and the page's own session may be opened beside itself, to read two places of it.
+ */
+export const sessionBeside = definePane<SessionArgs>({
+  closes: true,
+  flush: true,
+  icon: "message-square",
+  kind: "session-beside",
+  mark: conversationMark,
+  stack: "main",
+  title: (args) => short(sessionOf(args)?.title ?? "Conversation"),
   view: (props) => <TranscriptPane args={props.args} />,
 });
 
@@ -33,6 +61,8 @@ export const sessionTranscript = definePane<SessionArgs>({
 type ListArgs = { repo: string; session: string };
 
 export const sessionsList = definePane<ListArgs>({
+  // Beside a session, the human may close it; on `/sessions`, the main stack's one pane, never.
+  closes: true,
   flush: true,
   icon: "square-terminal",
   kind: "sessions-list",
@@ -43,7 +73,16 @@ export const sessionsList = definePane<ListArgs>({
   }),
   stack: "side",
   title: "Sessions",
-  view: (props) => <SessionsPane repo={props.args.repo} session={props.args.session} />,
+  view: (props) => (
+    <SessionsPane
+      // `shift+Enter` on a row: its conversation beside the one shown, as a tab of main.
+      beside={(id) =>
+        sessionBeside({ folder: "", fresh: false, repo: props.args.repo, session: id })
+      }
+      repo={props.args.repo}
+      session={props.args.session}
+    />
+  ),
 });
 
 /** The repository of the page shown: every route of a repository's pages names one. */

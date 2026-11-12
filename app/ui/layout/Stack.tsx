@@ -2,13 +2,15 @@
 // body is the pane shown, or split, a pane each, one under the other. A pane hidden behind its tab
 // is not drawn at all: it keeps what it shows in the visit (`usePane`, `PaneScroll`), so it comes
 // back as it was left.
-import { type JSX, type StyleProp, signal, Text, View, type ViewStyle } from "nsh";
+import { type JSX, type StyleProp, signal, Text, View, type ViewRef, type ViewStyle } from "nsh";
+import { ResizablePanel, ResizablePanelGroup } from "nsh/base";
+import { Arriving, type Landing } from "./arrival";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, type PaneHere, PaneContext, type PaneMark, titleOf } from "./panes";
 import { Kbd } from "../controls";
 import { KeyScope } from "../keys/registry";
 import { Pane, type PaneTab } from "../surfaces";
-import { tokens } from "../tokens";
+import { alpha, tokens } from "../tokens";
 import { type WidthClass, widthClass } from "../width";
 
 export type StackViewProps = {
@@ -16,6 +18,8 @@ export type StackViewProps = {
   focus: string | null;
   /** Only the shown pane's title on its edge: the phone's bottom bar holds the tabs. */
   lone?: boolean;
+  /** The key of the pane zoomed over the window: drawn alone, if it is this stack's. */
+  zoomed?: string | null;
   onFocus: (key: string) => void;
   onShow: (key: string) => void;
   /** The focus is on the tabs of the focused pane's stack. */
@@ -23,6 +27,19 @@ export type StackViewProps = {
   stack: Stack;
   /** Drawn at the end of the tabs' row: the side stack's fold. */
   tabsEnd?: JSX.Element;
+  /** The menu of the pane `key`, at the end of its title: the moves, by tap. */
+  menu?: (key: string) => JSX.Element;
+  /** A long press on a pane's tab: its menu. */
+  onTabLongPress?: (key: string) => void;
+  /** What a pane's tab calls as the pointer carries it. */
+  drag?: (key: string) => PaneTab["drag"];
+  /** A split pane's height, dragged. */
+  onShare?: (key: string, size: number) => void;
+  /** Whether a tab the pointer carries would land here, and is over it. */
+  target?: "take" | "over" | null;
+  /** Where its panes slide in from when they land: its name in the frame. */
+  landing?: Landing;
+  viewRef?: (view: ViewRef) => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -137,6 +154,35 @@ function TabKeysHint() {
 const bodyOf = (pane: PaneRef) =>
   kindOf(pane)?.flush === true ? { paddingBottom: 1, paddingHorizontal: 0 } : undefined;
 
+/** The room a pane's menu takes at the end of its title, in points. */
+const MENU = 36;
+
+/** What a stack shows over itself while a tab carried by the pointer would land in it. */
+function DropTarget(props: { over: boolean }) {
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        pointerEvents: "none",
+        backgroundColor: props.over ? alpha(tokens.light.focus, 0.12) : undefined,
+        borderColor: tokens.light.focus,
+        borderWidth: props.over ? 2 : 1,
+        bottom: 0,
+        justifyContent: "center",
+        left: 0,
+        position: "absolute",
+        right: 0,
+        top: tokens.pane.titleRise,
+      }}
+      testID="drop-target"
+    >
+      <Text style={{ color: tokens.light.focus, fontFamily: tokens.type.body }}>
+        {props.over ? "Let go to move it here" : "Drop here"}
+      </Text>
+    </View>
+  );
+}
+
 export function StackView(props: StackViewProps) {
   // The stack's own width, which its panes lay out by: known once it is laid out, and its panes
   // are drawn only then, so none is made at a phone's width first, then made again.
@@ -145,69 +191,129 @@ export function StackView(props: StackViewProps) {
   const has = (key: string | null) => props.stack.panes.some((pane) => pane.key === key);
   const shown = () => props.stack.panes.find((pane) => pane.key === props.stack.shown);
   const lit = () => has(props.focus);
+  /** A pane of this stack is zoomed: it is drawn alone, with its own title. */
+  const zoomedHere = () => props.zoomed != null && has(props.zoomed);
+  /** A pane's tab, with its long press and its drag. */
+  const tab = (one: PaneRef, current: boolean, onPress: () => void): PaneTab => ({
+    ...tabOf(one, current, onPress),
+    drag: props.drag?.(one.key),
+    onLongPress:
+      props.onTabLongPress === undefined ? undefined : () => props.onTabLongPress?.(one.key),
+  });
 
   return (
     <View
       onLayout={(event) => room.set(event.bounds.size.width)}
-      style={[{ flex: 1, gap: tokens.space.gap.wide - 2, minWidth: 0 }, props.style]}
+      ref={props.viewRef}
+      style={[{ flex: 1, minWidth: 0 }, props.style]}
       testID={props.testID}
     >
-      <If
-        when={props.stack.split}
-        else={
-          <If when={shown()}>
-            {(pane) => (
-              <Pane
-                body={bodyOf(pane())}
-                focused={lit()}
-                onPress={() => props.onFocus(pane().key)}
-                running={markOf(pane()).running}
-                style={{ flex: 1 }}
-                tabs={fitted(
-                  (props.lone === true ? [pane()] : props.stack.panes).map((one) =>
-                    tabOf(one, one.key === pane().key, () => props.onShow(one.key)),
-                  ),
-                  room(),
-                  (props.tabsEnd === undefined ? 0 : 36) + (props.onTabs && lit() ? 110 : 0),
-                )}
-                tabsEnd={
-                  <>
-                    {props.onTabs && lit() ? <TabKeysHint /> : undefined}
-                    {props.tabsEnd}
-                  </>
-                }
-              >
-                <Each key={(one: PaneRef) => one.key} of={room() > 0 ? [pane()] : []}>
-                  {(one) => (
-                    <PaneBody
-                      focused={props.focus === one().key && !props.onTabs}
-                      pane={one()}
-                      width={width()}
-                    />
+      <Arriving name={props.landing ?? "main"}>
+        <If
+          when={props.stack.split && !zoomedHere()}
+          else={
+            <If when={shown()}>
+              {(pane) => (
+                <Pane
+                  body={bodyOf(pane())}
+                  focused={lit()}
+                  onPress={() => props.onFocus(pane().key)}
+                  running={markOf(pane()).running}
+                  style={{ flex: 1 }}
+                  tabs={fitted(
+                    (props.lone === true || zoomedHere() ? [pane()] : props.stack.panes).map(
+                      (one) => tab(one, one.key === pane().key, () => props.onShow(one.key)),
+                    ),
+                    room(),
+                    (props.tabsEnd === undefined ? 0 : 36) +
+                      (props.menu === undefined ? 0 : MENU) +
+                      (props.onTabs && lit() ? 110 : 0),
                   )}
-                </Each>
-              </Pane>
-            )}
-          </If>
-        }
-      >
-        <Each key={(one: PaneRef) => one.key} of={props.stack.panes}>
-          {(one) => (
+                  tabsEnd={
+                    <>
+                      {props.onTabs && lit() ? <TabKeysHint /> : undefined}
+                      {props.menu?.(pane().key)}
+                      {props.tabsEnd}
+                    </>
+                  }
+                >
+                  <Each key={(one: PaneRef) => one.key} of={room() > 0 ? [pane()] : []}>
+                    {(one) => (
+                      <PaneBody
+                        focused={props.focus === one().key && !props.onTabs}
+                        pane={one()}
+                        width={width()}
+                      />
+                    )}
+                  </Each>
+                </Pane>
+              )}
+            </If>
+          }
+        >
+          <SplitPanes {...props} tab={tab} width={width()} ready={room() > 0} />
+        </If>
+      </Arriving>
+      <If when={props.target}>{(target) => <DropTarget over={target() === "over"} />}</If>
+    </View>
+  );
+}
+
+/**
+ * A split stack: its panes one under the other, in the heights the human dragged them to, else in
+ * equal shares; the border between two drags.
+ */
+function SplitPanes(
+  props: StackViewProps & {
+    ready: boolean;
+    tab: (one: PaneRef, current: boolean, onPress: () => void) => PaneTab;
+    width: WidthClass;
+  },
+) {
+  return (
+    <ResizablePanelGroup
+      axis="vertical"
+      handleAccessibilityLabel="Resize the panes"
+      renderHandle={(handle) => (
+        <View
+          style={{
+            backgroundColor: handle.state === "idle" ? "transparent" : tokens.light.focus,
+            height: 1,
+            width: "100%",
+          }}
+        />
+      )}
+    >
+      <Each key={(one: PaneRef) => one.key} of={props.stack.panes}>
+        {(one) => (
+          <ResizablePanel
+            minSize={96}
+            onResize={({ size }) => props.onShare?.(one().key, size)}
+            size={props.stack.sizes?.[one().key] ?? null}
+            style={{ paddingVertical: (tokens.space.gap.wide - 2) / 2 }}
+          >
             <Pane
               body={bodyOf(one())}
               focused={props.focus === one().key}
               onPress={() => props.onFocus(one().key)}
               running={markOf(one()).running}
               style={{ flex: 1 }}
-              tabs={[tabOf(one(), true, () => props.onFocus(one().key))]}
+              tabs={[props.tab(one(), true, () => props.onFocus(one().key))]}
+              tabsEnd={
+                <>
+                  {props.menu?.(one().key)}
+                  {/* The stack's own, as the side stack's fold, on its first pane's title. */}
+                  {props.stack.panes[0]?.key === one().key ? props.tabsEnd : undefined}
+                </>
+              }
             >
-              <If when={room() > 0}>
-                <PaneBody focused={props.focus === one().key} pane={one()} width={width()} />
+              <If when={props.ready}>
+                <PaneBody focused={props.focus === one().key} pane={one()} width={props.width} />
               </If>
             </Pane>
-          )}
-        </Each>
-      </If>
-    </View>
+          </ResizablePanel>
+        )}
+      </Each>
+    </ResizablePanelGroup>
   );
 }

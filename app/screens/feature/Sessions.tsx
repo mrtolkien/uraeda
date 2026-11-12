@@ -8,6 +8,7 @@ import type { Session } from "../../store/protocol";
 import { Button, Spinner } from "../../ui/controls";
 import { PaneScroll, usePane } from "../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, listKeys } from "../../ui/lists";
+import { sessionBeside } from "../session";
 import { toneOf } from "./Overview";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
 import { clock, duration, endedWords, plural, stepWord, waitWords, whoWords } from "./words";
@@ -100,6 +101,8 @@ function Cards(props: { args: FeatureArgs; sessions: () => ReadonlyArray<string>
     onChange: (id) => kept.set(id ?? null),
   });
   listKeys(cursor, {
+    // Its conversation beside the feature's page, as a tab: `shift+Enter`.
+    beside: (id) => sessionBeside({ folder: "", fresh: false, repo: props.args.repo, session: id }),
     onOpen: (id) => navigate({ id, page: "session-id" }),
     openLabel: "open the session",
   });

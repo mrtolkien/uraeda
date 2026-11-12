@@ -28,6 +28,8 @@ import {
 } from "nsh";
 import type { Cursor } from "./cursor";
 import { listKeys } from "./keys";
+import { besideOpener } from "../layout/here";
+import type { PaneRef } from "../layout/layout";
 import { Row, rowHeight } from "./Row";
 
 export type VirtualListRef = {
@@ -40,6 +42,8 @@ export type VirtualListRef = {
 };
 
 export type VirtualListProps = {
+  /** The pane a row names, opened beside the list's: `shift+Enter`, a long press, the pane's menu. */
+  beside?: (id: string) => PaneRef | undefined;
   cursor: Cursor;
   /** Shown in place of the rows while there are none: an `Empty`, which says why. */
   empty?: JSX.Element;
@@ -94,11 +98,19 @@ export function VirtualList(props: VirtualListProps) {
 
   if (props.keys !== false) {
     listKeys(cursor, {
+      beside: props.beside,
       onOpen: props.onOpen,
       openLabel: props.openLabel,
       start: props.follow === true ? "last" : "first",
     });
   }
+
+  const open = besideOpener();
+  /** A long press, the touch's way to a row's second action: its pane beside. */
+  const besideOf = (id: string) => {
+    const pane = props.beside?.(id);
+    return pane === undefined ? undefined : () => open(pane);
+  };
 
   const show = (id: string) => {
     const rows = untracked(cursor.items);
@@ -200,6 +212,7 @@ export function VirtualList(props: VirtualListProps) {
           props.row(() => item().id, index)
         ) : (
           <Row
+            onLongPress={besideOf(item().id)}
             onPoint={() => cursor.set(item().id)}
             onPress={() => pick(item().id)}
             rule={props.rules}

@@ -3,29 +3,33 @@
 // window's width: on a wide and a semi-wide window the rail, the main stack, the side stack, and
 // the status line; on a narrow one the places' bar, one stack holding every pane, and its bar of
 // tiles. The rail's, the status line's, and the bars' contents are the app's shell's slots.
-import { computed, effect, type Signal, signal, untracked, View } from "nsh";
+import { computed, effect, type Signal, signal, untracked, View, type ViewRef } from "nsh";
 import { ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { BottomBar, NavBar } from "./bars";
+import { kindOfKey } from "./arrangement";
+import { tabDrags } from "./drag";
+import { choices, frameState, same } from "./frame";
+import { besideOffer } from "./here";
 import { FrameKeys } from "./keys";
 import {
   fold,
   focus,
   type Layout,
-  layoutOf,
   narrowed,
   type Place,
   show,
   type StackName,
-  sync,
+  stackOf,
 } from "./layout";
+import { menuEntries, MoveKeys } from "./moveKeys";
+import { share } from "./moves";
 import { actionOf, focusWanted, placeOf } from "./panes";
 import { Rail, type RailSlots } from "./Rail";
 import { SideRail } from "./SideRail";
 import { StackView } from "./Stack";
 import { type StatusSlots, StatusLine } from "./StatusLine";
-import { device, type DeviceKeys } from "../../store/device";
-import { entry, keep, route } from "../../store/history";
-import { IconButton, Text } from "../controls";
+import { route } from "../../store/history";
+import { IconButton, Menu, Text } from "../controls";
 import { KeyScope } from "../keys/registry";
 import { Backdrop, Sheet } from "../surfaces";
 import { tokens } from "../tokens";
@@ -49,34 +53,44 @@ const SIDE = { least: 280, semiWide: 340, wide: 400, roomy: 440, reading: 680 } 
 const wideSide = (room: number) =>
   Math.min(SIDE.roomy, Math.max(SIDE.wide, room - SIDE.reading - tokens.space.gap.wide));
 
-/** Two values equal as data: what the layout and the place are compared by. */
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-
-/** The frame's choices on this device, and their writer. */
-const choices = {
-  kept: () => device.get("frame") ?? {},
-  set: (values: DeviceKeys["frame"]) => device.set("frame", { ...choices.kept(), ...values }),
-};
-
 /** Whether the rail is folded: the human's choice, else on all but a wide window. */
 const railFolded = () => choices.kept().rail ?? width() !== "wide";
 
 /** Whether the window is narrow: one stack of tabs. */
 const narrow = () => width() === "narrow";
 
+/** The layout the frame draws now: `undefined` before it is drawn. */
+const drawn = signal<Layout | undefined>(undefined);
+export const frameLayout = () => drawn();
+
 export function Stacks(props: StacksProps) {
   const place = computed(() => props.place ?? placeOf(route()), { equals: same });
-  // The layout the visit keeps, else the place's default, always made to hold the place's panes.
-  const layout = computed(
-    () => sync(entry().kept.layout ?? layoutOf(place(), choices.kept().side === true), place()),
-    { equals: same },
+  const { layout, mover, set } = frameState(place, narrow);
+  effect(() => drawn.set(layout()));
+  /** The pane whose menu is open, by its key. */
+  const menuOf = signal<string | null>(null);
+  const views: Partial<Record<StackName, ViewRef>> = {};
+  const drags = tabDrags(layout, (next) => void mover.move(next), views);
+  /** The menu of the pane `key`: the moves, each with its key. Opening it focuses the pane. */
+  const menu = (key: string) => (
+    <Menu
+      entries={menuOf() === key ? menuEntries(mover, besideOffer(key)) : []}
+      label="Move the pane"
+      onOpenChange={(open) => {
+        if (open) onFocus(key);
+        menuOf.set(open ? key : null);
+      }}
+      shown={menuOf() === key}
+      testID={`pane-menu-${kindOfKey(key)}`}
+    />
   );
-  const set = (next: Layout) => {
-    if (next.folded !== layout().folded) {
-      choices.set({ side: next.folded });
-    }
-    keep({ layout: next });
+  const onTabLongPress = (key: string) => {
+    onFocus(key);
+    menuOf.set(key);
   };
+  /** Whether a tab carried by the pointer would land in `name`, and is over it. */
+  const target = (name: StackName) =>
+    drags.takes(name) ? (drags.over() === name ? "over" : "take") : null;
   const room = signal(0);
   const sideWidth = () => {
     const most = Math.max(SIDE.least, Math.round(room() * 0.6));
@@ -85,7 +99,11 @@ export function Stacks(props: StacksProps) {
     return Math.min(most, Math.max(SIDE.least, chosen));
   };
   const hasSide = () => layout().side.panes.length > 0;
+  /** The side stack is drawn: it has a pane and is not folded, or a tab carried may land there. */
+  const sideShown = () => (hasSide() && !layout().folded) || drags.takes("side");
   const onShow = (key: string) => set(narrow() ? focus(layout(), key) : show(layout(), key));
+  /** A split pane's height, dragged. */
+  const onShare = (key: string, size: number) => set(share(layout(), key, size));
   const onFocus = (key: string) => {
     if (layout().focus !== key || layout().onTabs) {
       set(focus(layout(), key));
@@ -104,17 +122,25 @@ export function Stacks(props: StacksProps) {
 
   const stack = (name: StackName) => (
     <StackView
+      drag={drags.of}
       focus={layout().focus}
+      landing={name}
+      menu={menu}
       onFocus={onFocus}
+      onShare={onShare}
       onShow={onShow}
+      onTabLongPress={onTabLongPress}
       onTabs={layout().onTabs}
       stack={layout()[name]}
+      target={target(name)}
+      viewRef={(view) => (views[name] = view)}
+      zoomed={layout().zoomed}
       tabsEnd={
         name === "side" ? (
           <IconButton
             icon="panel-right"
             label="Fold the side stack"
-            onPress={() => set(fold(layout(), true))}
+            onPress={() => mover.move(fold(layout(), true))}
           />
         ) : undefined
       }
@@ -122,10 +148,13 @@ export function Stacks(props: StacksProps) {
     />
   );
 
-  /** The pane zoomed over both stacks' room. */
-  const zoomed = () => {
+  /**
+   * The stack of the pane zoomed over both stacks' room, which takes it whole: the other stack's
+   * panel is hidden, so the zoomed pane is not drawn again, and a web view or a page in it stays.
+   */
+  const zoomedIn = () => {
     const key = layout().zoomed;
-    return [...layout().main.panes, ...layout().side.panes].find((pane) => pane.key === key);
+    return key === null ? null : stackOf(layout(), key);
   };
   /** The two stacks side by side, the side one's edge dragged to resize it. */
   const group = () => (
@@ -142,17 +171,21 @@ export function Stacks(props: StacksProps) {
         />
       )}
     >
-      <ResizablePanel minSize={320} style={{ paddingRight: tokens.space.gap.wide / 2 }}>
+      <ResizablePanel
+        minSize={320}
+        style={{ paddingRight: zoomedIn() === null && sideShown() ? tokens.space.gap.wide / 2 : 0 }}
+        visible={zoomedIn() !== "side"}
+      >
         {stack("main")}
       </ResizablePanel>
       <ResizablePanel
-        fixed
-        maxSize={Math.max(SIDE.least, Math.round(room() * 0.6))}
+        fixed={zoomedIn() !== "side"}
+        maxSize={zoomedIn() === "side" ? null : Math.max(SIDE.least, Math.round(room() * 0.6))}
         minSize={SIDE.least}
         onResize={({ size }) => choices.set({ sideWidth: Math.round(size) })}
-        size={sideWidth()}
-        style={{ paddingLeft: tokens.space.gap.wide / 2 }}
-        visible={hasSide() && !layout().folded}
+        size={zoomedIn() === "side" ? null : sideWidth()}
+        style={{ paddingLeft: zoomedIn() === null ? tokens.space.gap.wide / 2 : 0 }}
+        visible={zoomedIn() === "side" || (zoomedIn() === null && sideShown())}
       >
         {stack("side")}
       </ResizablePanel>
@@ -167,12 +200,13 @@ export function Stacks(props: StacksProps) {
         testID="frame"
       >
         <KeyScope name="Panes">
+          <MoveKeys mover={mover} />
           <FrameKeys
             hasSide={hasSide}
             layout={layout}
             narrow={narrow}
             resize={(by) => choices.set({ sideWidth: sideWidth() + by })}
-            set={set}
+            set={(next) => void mover.move(next)}
             toggleRail={() => choices.set({ rail: !railFolded() })}
           />
           <If when={windowWidth() > 0}>
@@ -198,7 +232,9 @@ export function Stacks(props: StacksProps) {
                     <StackView
                       focus={layout().focus}
                       lone
+                      menu={menu}
                       onFocus={onFocus}
+                      onTabLongPress={onTabLongPress}
                       onShow={onShow}
                       onTabs={layout().onTabs}
                       stack={narrowed(layout())}
@@ -251,22 +287,14 @@ export function Stacks(props: StacksProps) {
                     style={{ flex: 1, minWidth: 0 }}
                   >
                     <If when={layout().main.panes.length > 0} else={<Empty />}>
-                      <If when={zoomed()} else={group()}>
-                        {(pane) => (
-                          <StackView
-                            focus={layout().focus}
-                            onFocus={onFocus}
-                            onShow={onShow}
-                            onTabs={false}
-                            stack={{ panes: [pane()], shown: pane().key, split: false }}
-                            testID="stack-zoomed"
-                          />
-                        )}
-                      </If>
+                      {group()}
                     </If>
                   </View>
                   <If when={hasSide() && layout().folded}>
-                    <SideRail layout={layout()} onShow={(key) => set(focus(layout(), key))} />
+                    <SideRail
+                      layout={layout()}
+                      onShow={(key) => mover.move(focus(layout(), key))}
+                    />
                   </If>
                 </View>
                 <View

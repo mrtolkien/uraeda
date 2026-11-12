@@ -10,6 +10,8 @@ import type { Feature, HistoryView } from "../../store/protocol";
 import { type IconName, Spinner } from "../../ui/controls";
 import { KeyScope, registerKey } from "../../ui/keys";
 import { PaneScroll, usePane } from "../../ui/layout";
+import { readerPane } from "../file/panes";
+import { mockupPane } from "../preview/MockupPage";
 import { FeatureMap } from "../runs/FeatureMap";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
@@ -131,12 +133,21 @@ function Rows(props: { args: FeatureArgs; feature: () => Feature }) {
     const to = byId().get(id)?.to;
     if (to !== undefined) navigate(to);
   };
+  /** A file's reader, or a mockup, beside the steps, in place of its page: `shift+Enter`. */
+  const beside = (id: string) => {
+    const to = byId().get(id)?.to;
+    const repo = props.args.repo;
+    if (to?.page === "file") return readerPane({ folder: to.folder, name: to.name, repo });
+    if (to?.page === "mockup") return mockupPane({ folder: to.folder, name: to.name, repo });
+    return undefined;
+  };
   return (
     <If
       when={history() !== undefined || history.error() !== undefined}
       else={<Spinner label="Reading its history from git" />}
     >
       <List
+        beside={beside}
         cursor={cursor}
         empty={
           <Empty

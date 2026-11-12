@@ -33,17 +33,13 @@ export const bufferPane = definePane<Args>({
   ),
 });
 
-export const outlinePane = definePane<{ path: string; repo: string }>({
+export const outlinePane = definePane<{ path: string; repo: string; source: boolean }>({
   icon: "list",
   kind: "buffer-outline",
   stack: "side",
   title: "Outline",
   view: (props) => (
-    <Outline
-      editor={bufferPane({ ...props.args, source: route().page === "edit" })}
-      path={props.args.path}
-      repo={props.args.repo}
-    />
+    <Outline editor={bufferPane(props.args)} path={props.args.path} repo={props.args.repo} />
   ),
 });
 
@@ -51,7 +47,9 @@ export const outlinePane = definePane<{ path: string; repo: string }>({
 function panes(shown: { path: string; repo?: string }, source: boolean) {
   const repo = shown.repo ?? route().repo ?? "";
   const editor = bufferPane({ path: shown.path, repo, source });
-  return shown.path.endsWith(".md") ? [editor, outlinePane({ path: shown.path, repo })] : [editor];
+  return shown.path.endsWith(".md")
+    ? [editor, outlinePane({ path: shown.path, repo, source })]
+    : [editor];
 }
 
 definePlace("buffer", (shown) => panes(shown, false));

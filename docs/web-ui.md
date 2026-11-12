@@ -406,6 +406,45 @@ first: one of yours takes a tab there only where one of Uraeda's is off, and the
 is on in. A saved change redraws them without reloading the page. One that throws shows its error in
 its own place, and the rest of the page goes on.
 
+## Panes, tabs, and the side stack
+
+In the app, every page is panes in two stacks, as a tiling window manager arranges windows: the main
+stack in the centre, which holds the page's subject, and the side stack at the right. A stack shows
+its panes as tabs, or split, one under the other. On a phone both are one stack of tabs, and the bar
+at the foot switches between them.
+
+You arrange them with the keys of `Space w`, the leader menu's Panes group, or with the `…` at the
+end of a pane's title, which a long press on a tab opens too. The menu shows only the moves that
+make sense where the pane is, each with its key.
+
+| Keys          | Does                                                                               |
+| ------------- | ---------------------------------------------------------------------------------- |
+| `Space w H`   | Send the pane to the main stack; `L` to the side stack                             |
+| `Space w m`   | Make a side pane the main one: it takes the place of the pane the main stack shows |
+| `Space w <`   | Move the tab left, `>` right; on a phone, along the one stack                      |
+| `Space w s`   | Split the stack, or show it as tabs again; `=` gives split panes equal heights     |
+| `Space w f`   | Fold the side stack, or unfold it (`]` does it too)                                |
+| `Space w z`   | Zoom the pane to the whole window, and back                                        |
+| `Space w o`   | One stack: the side stack's panes join the main one as tabs; again, two stacks     |
+| `Space w q`   | Close the pane, when the page does not need it; `u` brings the last one back       |
+| `Space w r`   | Reset this kind of page's arrangement; `R` every page's                            |
+| `Shift+Enter` | On a row that names a session, a file, or a diff: open it beside, as a tab         |
+
+A pointer can also drag a tab to the other stack: the stacks it may land in light up while it is
+carried. A split stack's panes are resized by dragging the line between them, and the side stack by
+its edge, or with `{` and `}`.
+
+**Open beside**: `Shift+Enter` on a row, a long press on it, or "Open … beside" in its pane's menu,
+opens what the row names in the other stack of the page you are on, instead of going to its page: a
+file's diff beside a session's conversation, a spec beside the feature's overview, another session
+beside this one. Such a pane belongs to this visit: close it with `Space w q`.
+
+**What is kept**: each kind of page keeps its arrangement on the device, so every session page opens
+as you left the last one, and a feature's pages as you left the last feature's. Back returns to a
+page exactly as you left it. A pane keeps its scroll, its selection, and the text you typed when it
+moves, zooms, or its tab is hidden. A preview's web page and an extension's page reload when their
+pane moves to the other stack, but not when it is zoomed.
+
 ## Editing text
 
 Every text field is the same editor, in the look of a terminal's text. Markdown is highlighted as

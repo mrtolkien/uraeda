@@ -25,6 +25,8 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` Git, `r` a repository | Every page                            |
 | `Space`                   | The leader menu                                                                                                        | Every page                            |
 | `Space b`                 | Open the page's file as a buffer, the whole file to edit                                                               | Every page showing one file           |
+| `Space w`                 | The panes: `H` `L` send one to a stack, `m` makes it main, `z` zooms, `o` one stack, `q` closes                        | Every page                            |
+| `Shift+Enter`             | Open what the selected row names beside the page, as a tab of the other stack                                          | A list whose rows name a pane         |
 | `?`                       | The key map: every key that works where the focus is, with a search                                                    | Every page                            |
 | `b`                       | Back                                                                                                                   | Every page                            |
 | `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                 | Every page                            |
@@ -156,9 +158,10 @@ it holds has a few keys of its own.
   close to that pane". A row's show under the selected row, in its bar, each written out ("⏎ edit",
   "m move", "d delete"), not in the status line; so do the keys of what the cursor holds, under a
   block or at the end of a question's card ("a b pick", "i comment").
-- **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui), and the
-  `g` keys. It is a menu of its own, not an index of every key: a page's single keys are not in it,
-  they show in the status line. Its rows are buttons, and a click on `Space menu` opens it at once.
+- **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui, the
+  panes' `Space w`, whose moves [the panes guide](panes.md#the-moves) lists), and the `g` keys. It
+  is a menu of its own, not an index of every key: a page's single keys are not in it, they show in
+  the status line. Its rows are buttons, and a click on `Space menu` opens it at once.
 - **The key map**, `?` or `Space ?`, lists every key that works where the focus is, read from the
   registry: the page's, the shell's, the leader menu's by group, and the `g` keys, keys of one label
   on one row (`j ↓ +`), with a search over the labels, the keys, and the groups. It is the index the

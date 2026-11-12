@@ -10,4 +10,5 @@ export const GROUPS: Readonly<Record<string, Group>> = {
   "space n": { icon: "plus", label: "New" },
   "space u": { icon: "palette", label: "UI" },
   "space u f": { icon: "palette", label: "Fonts" },
+  "space w": { icon: "layout-panel-left", label: "Panes" },
 };

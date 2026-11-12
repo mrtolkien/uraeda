@@ -24,19 +24,30 @@ export type MenuProps = {
   testID?: string;
   /** Open as it is drawn: the gallery's. */
   open?: boolean;
+  /**
+   * Open while it says so, as its owner keeps it, told of each change by `onOpenChange`: a menu
+   * that something else opens too, as a pane's by a long press on its tab.
+   */
+  shown?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function Menu(props: MenuProps) {
-  const isOpen = signal(props.open === true);
+  const own = signal(props.open === true);
+  const isOpen = () => props.shown ?? own();
+  const setOpen = (open: boolean) => {
+    own.set(open);
+    props.onOpenChange?.(open);
+  };
   let anchor: ViewRef | undefined;
-  const close = () => isOpen.set(false);
+  const close = () => setOpen(false);
   return (
     <View ref={(node: ViewRef) => (anchor = node)} style={{ alignSelf: "flex-start" }}>
       <IconButton
         disabled={props.disabled}
         icon={props.icon ?? "ellipsis"}
         label={props.label}
-        onPress={() => isOpen.set(true)}
+        onPress={() => setOpen(true)}
         selected={isOpen()}
         state={props.state}
         testID={props.testID}
@@ -50,8 +61,10 @@ export function Menu(props: MenuProps) {
       >
         <Options
           onPick={(at) => {
+            // Taken before it closes: an owner may draw no entries while it is closed.
+            const entry = props.entries[at];
             close();
-            props.entries[at]?.run();
+            entry?.run();
           }}
           rows={props.entries}
           start={props.entries.findIndex((entry) => entry.disabled !== true)}

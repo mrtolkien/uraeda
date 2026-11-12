@@ -4,6 +4,7 @@
 // then answers at once, from memory.
 import { type Accessor, type Signal, signal, Storage } from "nsh";
 import type { Declarations } from "../extensions/page";
+import type { Arrangement } from "../ui/layout/arrangement";
 import type { ThemeChoice } from "../ui/theme";
 import type { Unsaved } from "../ui/text/unsaved";
 import type { Fonts, ThemeSource } from "../ui/tokens";
@@ -29,6 +30,8 @@ export type DeviceKeys = {
   [declared: `declared:${string}`]: { version: number; declarations: Declarations };
   /** The frame: the side stack's width and fold, and the rail's fold (`app/ui/layout/`). */
   frame: { rail?: boolean; side?: boolean; sideWidth?: number };
+  /** How the human arranged each kind of place's panes, by its subject's kind (`app/ui/layout/`). */
+  layouts: Readonly<Record<string, Arrangement>>;
   /** How the priorities show, as columns or one list (`app/screens/priorities/`). */
   "priorities.view": "columns" | "list";
   /** The decisions' order in their list (`app/screens/decisions/`). */
