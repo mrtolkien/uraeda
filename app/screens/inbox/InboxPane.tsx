@@ -1,7 +1,7 @@
 // The inbox's list, the place's subject: the add first, with the inbox's rare actions as icons
 // beside it, then the triage's banner and the last action's, then the notes by category, the notes
 // without one first, and last the row that adds a category, where no thumb lands by mistake.
-import { Clipboard, computed, effect, signal, untracked, View } from "nsh";
+import { cleanup, Clipboard, computed, effect, signal, untracked, View } from "nsh";
 import { call, entry, navigate, record, redirect, route } from "../../store";
 import type { Inbox } from "../../store/protocol";
 import { Banner, Heading, Icon, IconButton, Refusal, Spinner, Text } from "../../ui/controls";
@@ -76,6 +76,12 @@ export function openNote(repo: string, key: string) {
   navigate(to, note === undefined ? {} : { layout: focus(layoutOf(place), note.key) });
 }
 
+/** Puts the focus in the shown inbox's field, in the press that asks it, as a phone's keyboard needs. */
+let addHere: (() => void) | undefined;
+
+/** The phone's bottom bar's Add: the note's field, focused, the keyboard up. */
+export const addNote = () => addHere?.();
+
 function Notes(props: { inbox: Inbox; repo: string }) {
   const pane = usePane();
   const at = pane.remember<string | null>(
@@ -139,6 +145,12 @@ function Notes(props: { inbox: Inbox; repo: string }) {
     }
   };
 
+  const adding = () => startAdding(categoryAt(rows(), cursor.at()));
+  addHere = adding;
+  cleanup(() => {
+    if (addHere === adding) addHere = undefined;
+  });
+
   registerKey([
     {
       hint: "a",
@@ -146,7 +158,7 @@ function Notes(props: { inbox: Inbox; repo: string }) {
       icon: "plus",
       keys: "a",
       label: "Add a note",
-      run: () => startAdding(categoryAt(rows(), cursor.at())),
+      run: adding,
     },
     {
       hint: "d",

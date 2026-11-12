@@ -4,10 +4,11 @@
 // a note opened from the list is the pane shown, the list one tile away.
 import { record } from "../../store";
 import { definePane, definePlace } from "../../ui/layout";
-import { InboxList } from "./InboxPane";
+import { addNote, InboxList } from "./InboxPane";
 import { NoteView } from "./NotePane";
 
 export const inboxList = definePane<{ repo: string }>({
+  action: () => ({ icon: "plus", label: "Add", run: addNote }),
   icon: "inbox",
   kind: "inbox",
   mark: ({ repo }) => {
