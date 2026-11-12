@@ -123,16 +123,26 @@ export function VirtualList(props: VirtualListProps) {
     return pane === undefined ? undefined : () => open(pane);
   };
 
+  /**
+   * To the list's end, the one way there of a key and of "Jump to the latest": drawn when the end
+   * is near, a jump when it is more than `FAR` rows away. An index's offset is estimated for rows
+   * not drawn yet, and an animated way from far back came to rest short of the end.
+   */
+  const toEnd = () => {
+    const rows = untracked(cursor.items).length;
+    list?.scrollToEnd({ animated: rows - 1 - shown.last <= FAR });
+  };
+
   const show = (id: string) => {
     const rows = untracked(cursor.items);
     const index = rows.findIndex((row) => row.id === id);
     if (index === -1 || list === undefined || (index >= shown.first && index <= shown.last)) {
       return;
     }
-    // The last row is the list's end: an index's offset is estimated for rows not drawn yet, and
-    // `G` on a chat of 20,000 messages came to rest forty short of it, "Jump to the latest" shown.
+    // The last row is the list's end: `G` on a chat of 20,000 messages came to rest forty short of
+    // its index, "Jump to the latest" shown.
     if (index === rows.length - 1) {
-      list.scrollToEnd({ animated: index - shown.last <= FAR });
+      toEnd();
       if (props.follow === true) follows(true);
       return;
     }
@@ -220,7 +230,7 @@ export function VirtualList(props: VirtualListProps) {
           scrollTo: (offset, animated = false) => node.scrollToOffset({ animated, offset }),
           show,
           toEnd: () => {
-            node.scrollToEnd({ animated: true });
+            toEnd();
             follows(true);
           },
         });

@@ -67,6 +67,18 @@ test("a list that follows its end stops when the reader scrolls away", async () 
   expect(app.texts()).toContain("Following: no");
 });
 
+test('"Jump to the latest" from far back in a long transcript reaches its end', async () => {
+  const app = await page("far");
+  await app.wait(300);
+  expect(said(app.texts(), "Offset: ")).toBe(0);
+  expect(app.texts()).toContain("Following: no");
+  await app.keyboard.press("e");
+  await app.wait(1000);
+  // Its last row shows, whole, at the list's bottom.
+  expect(app.texts()).toContain("Last shown: 20000");
+  expect(app.texts()).toContain("Following: yes");
+});
+
 test("a reorder by keys moves one item, and says where it went", async () => {
   const app = await page("order");
   // The cursor is on the first row, Inbox, before any key.

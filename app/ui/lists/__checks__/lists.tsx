@@ -4,7 +4,7 @@
 import { host, mount, signal, Text, View } from "nsh";
 import { KeysHost } from "../../keys/KeysHost";
 import { KeyScope, registerKey } from "../../keys/registry";
-import { createCursor, DragOrder, Line, moved, VirtualList } from "..";
+import { createCursor, DragOrder, Line, moved, VirtualList, type VirtualListRef } from "..";
 
 /** A row of exactly 28 points, so a test can count where each one is. */
 const line = (id: () => string) => (
@@ -72,6 +72,46 @@ function Follow() {
   );
 }
 
+const LONG = rows(20_000);
+
+/**
+ * A transcript of 20,000 rows taller than their estimate, opened at its start: `e` is "Jump to the
+ * latest".
+ */
+function Far() {
+  const cursor = createCursor(() => LONG);
+  const offset = signal(0);
+  const following = signal(false);
+  const last = signal(-1);
+  let list: VirtualListRef | undefined;
+  registerKey({ keys: "e", label: "to the end", run: () => list?.toEnd() });
+  return (
+    <View style={{ gap: 8, padding: 16 }}>
+      <Text>Offset: {String(Math.round(offset()))}</Text>
+      <Text>Following: {following() ? "yes" : "no"}</Text>
+      <Text>Last shown: {String(last() + 1)}</Text>
+      <View style={{ height: 400 }}>
+        <VirtualList
+          cursor={cursor}
+          follow
+          keys={false}
+          // Opened at its start, as a transcript opened at a kept place is: its end never measured.
+          offset={0}
+          onFollowing={(now) => following.set(now)}
+          onOffset={(next) => offset.set(next)}
+          onShown={(_, at) => last.set(at)}
+          framed={false}
+          ref={(made) => (list = made)}
+          row={line}
+          // Shorter than its rows, as a transcript's estimate is of its messages.
+          rowHeight={20}
+          testID="list"
+        />
+      </View>
+    </View>
+  );
+}
+
 const NAMES: Record<string, string> = {
   done: "Done",
   inbox: "Inbox",
@@ -113,7 +153,7 @@ function Order() {
   );
 }
 
-const CHECKS = { cursor: Cursor, follow: Follow, order: Order };
+const CHECKS = { cursor: Cursor, far: Far, follow: Follow, order: Order };
 
 mount(() => {
   const Check = CHECKS[String(host.params.check) as keyof typeof CHECKS] ?? Cursor;

@@ -10114,3 +10114,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/web/{notify.ts,notify-worker.js}`, `scripts/web-build.sh`,
   `app/screens/shell/Notifications.tsx`; the browser test
   `the_worker_that_shows_notifications_is_served_for_the_whole_app`.
+
+## T81.5: "Jump to the latest" goes the way `G` goes
+
+- **Decision**: `VirtualListRef.toEnd()` scrolled with an animation from anywhere; R425's jump, when
+  the end is more than 100 rows away, applied to `G` alone. Both now call one `toEnd`.
+- **Rationale**: one rule for one place. The check added, a transcript of 20,000 rows taller than
+  their estimate opened at its start, passes before the change too, in `nsh test` and on GTK: the
+  stop short R425 saw needs the real transcript's rows. It stays, as the guarantee's guard.
+- **Where**: `app/ui/lists/VirtualList.tsx`, `app/ui/lists/__checks__/lists.tsx`.
