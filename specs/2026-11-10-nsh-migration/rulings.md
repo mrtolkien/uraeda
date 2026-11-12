@@ -8934,7 +8934,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   and touches nothing this task changed.
 - **Where**: `crates/app/tests/extensions.rs`.
 
-## T87.1: The access key is made only where a person sees it, and rests in no file
+## R452: The access key is made only where a person sees it, and rests in no file
 
 - **Decision**: what R431 left to the human, fixed at the root: a server makes no access key until
   someone is about to see it.
@@ -8978,3 +8978,31 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_failed_start_shows_its_own_lines_alone` (`crates/app/tests/host.rs`),
   `key_shows_a_key_once_where_serve_wrote_none` (`crates/cli/tests/serve.rs`), and
   `a_new_key_from_the_host_ends_every_sign_in`.
+
+## R453: A confirmation that loses something waits for its own key
+
+- **Decision**: `Confirm` has two kinds. Without `loses`, an act that spends or sends but loses
+  nothing: its button is the lamp and has the focus, and `Enter` or the key that asked confirms, as
+  R438 built it. With `loses`, an act that loses something for good with no undo: Cancel has the
+  focus, so `Enter` presses it and changes nothing; `y`, or the key that asked, confirms; its words
+  sit on the error colour's wash with a bar of it, saying what is lost; its button is a red tube.
+  `loses` replaces `danger`, which said half of it.
+  - **Loses**: a file's discard (`d`, Changes), a conflict's side taken whole (`o` `t`, Changes and
+    the conflict's editor), a merge's abort (`A`), a worktree's removal or clean (`d`), a job's
+    deletion (`d`), the editor's "Drop my text" (`F`) and "Save over it" (`w`), a merged feature's
+    clean (`n`), the triage's dismissal, and two that screens drew by hand and are `Confirm` now: a
+    device's revoke (Settings › Sign-in, a `Banner` with two buttons) and a feature's drop (a
+    `Dialog` whose first button, focused, was Drop). The drop's refusal now shows under its button.
+  - **Loses nothing**: Home's continue all (`C`), run a job now (`r`), push (`P`), continue a merge
+    (`m`), allow and retry (`a` `A`), and the undo or redo of a committed change (`u` `U`), which
+    writes its reverse as a new change and keeps the commit.
+- **Rationale**: R438 left it to the human whether "the shared confirmation focuses Cancel, so that
+  Enter changes nothing" should stand for what loses something. It should: Enter is the key a hand
+  presses without reading, and for these acts there is no way back. One more deliberate press is
+  right for what only spends; a loss waits for a key that means yes. The old `n` is not restored:
+  `Escape` leaves every layer, and a confirmation's own key may be `n` (a feature's clean).
+- **Where**: `app/ui/controls/Confirm.tsx`, its callers, `app/screens/settings/SignIn.tsx`,
+  `app/screens/feature/Parts.tsx`, the gallery page "Confirmation that loses",
+  `specs/ui/keyboard.md`, `specs/ui/components.md`, and the test
+  `Enter in a confirmation that loses something changes nothing`
+  (`app/ui/controls/controls.test.tsx`).

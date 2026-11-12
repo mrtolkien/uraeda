@@ -117,8 +117,10 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   starts a run, pushes, revokes, or loses something for good goes through `Confirm`, from its key
   and from its button alike: its `title` says what will be done, with the names and the numbers
   ("Push 3 commits to origin/main?"), its `words` what it costs, its `label` the act, its `keys` the
-  key that asked, which confirms as Enter does. `danger` where something is lost. Never a dialog
-  drawn by hand for it, never "Are you sure?", and never such an act on a single key
+  key that asked, which confirms. Enter confirms too, but with `loses`, where something is lost for
+  good: Cancel has the focus then, so Enter changes nothing and `y` confirms, the words say what is
+  lost on the error colour's wash, and the button is a red tube, not the lamp. Never a dialog drawn
+  by hand for it, never "Are you sure?", and never such an act on a single key
   ([keyboard](keyboard.md#a-key-that-cannot-be-taken-back) lists them). What `u` undoes needs none.
 - **One main action per view**, a `Button` of `variant="main"`; the rest are tubes. An action that
   starts work is a button or `Ctrl+Enter`, never Enter in a field.

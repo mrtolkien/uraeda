@@ -201,7 +201,7 @@ export function JobsList(props: { repo: string }) {
       </View>
       <RunQuestion from="list" />
       <Confirm
-        danger
+        loses
         icon="trash-2"
         keep="Keep it"
         keys="d"

@@ -1,5 +1,5 @@
 // The Sign-in category: every device paired with this server, a card each, with when it paired and
-// when it was last seen, renamed in place, and revoked after a second, deliberate press: a revoked
+// when it was last seen, renamed in place, and revoked after its confirmation: a revoked
 // device is locked out at once. Then how to pair another, which `ura pair` does on the server's
 // machine.
 import { signal, View } from "nsh";
@@ -8,7 +8,7 @@ import { savedField } from "./fields";
 import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, extensionHost, record, serverDay, serverDaysAgo } from "../../store";
 import type { Device } from "../../store/protocol";
-import { Banner, Button, refusalOf, Text, Under } from "../../ui/controls";
+import { Confirm, refusalOf, Text, Under } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
 import { Card, Empty } from "../../ui/lists";
 import { TextField } from "../../ui/text";
@@ -44,7 +44,6 @@ function DeviceCard(props: { device: Device; onGone: (id: string, gone: boolean)
     },
   );
   const revoke = async () => {
-    asking.set(null);
     refusal.set(null);
     props.onGone(props.device.id, true);
     try {
@@ -88,22 +87,21 @@ function DeviceCard(props: { device: Device; onGone: (id: string, gone: boolean)
         state={own() ? { label: "This device", tone: "accent" } : undefined}
         title={props.device.name}
       />
-      <If when={isAsking()}>
-        <Banner
-          action={
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Button label="Keep it" onPress={() => asking.set(null)} />
-              <Button label="Revoke" onPress={() => void revoke()} variant="danger" />
-            </View>
-          }
-          title={`Revoke ${props.device.name}?`}
-          tone="danger"
-        >
-          {own()
+      <Confirm
+        icon="log-out"
+        keep="Keep it"
+        label="Revoke"
+        loses
+        onClose={() => asking.set(null)}
+        onConfirm={() => void revoke()}
+        open={isAsking()}
+        title={`Revoke ${props.device.name}?`}
+        words={
+          own()
             ? "This device is locked out at once: its token signs in nowhere any more, and the app asks to pair it again, with a new code from ura pair."
-            : "It is locked out at once: its token signs in nowhere any more, and its open windows close. Pairing it again takes a new code from ura pair."}
-        </Banner>
-      </If>
+            : "It is locked out at once: its token signs in nowhere any more, and its open windows close. Pairing it again takes a new code from ura pair."
+        }
+      />
       <Under refusal={refusal()} />
     </View>
   );

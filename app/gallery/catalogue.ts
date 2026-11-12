@@ -41,6 +41,12 @@ export const CATALOGUE: ReadonlyArray<GroupEntry> = [
         shows: "Push 3 commits to origin/main?",
         title: "Confirmation",
       },
+      {
+        icon: "trash-2",
+        name: "discard",
+        shows: "Discard the changes to README.md?",
+        title: "Confirmation that loses",
+      },
       { icon: "rows-3", name: "sheet", shows: "Outline", title: "Sheet" },
       { icon: "chevron-down", name: "popover", shows: "Codex", title: "Popover" },
       { icon: "bell", name: "toasts", shows: "Landing in git", title: "Toasts" },

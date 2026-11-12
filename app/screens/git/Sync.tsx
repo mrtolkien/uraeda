@@ -240,7 +240,7 @@ function Holds(props: { page: GitPage; repo: string }) {
         words={`Every conflict is resolved: it commits the ${kind()} on ${props.page.branch ?? "the branch"}, with ${files() === 1 ? "the file" : `the ${files()} files`} as resolved here.`}
       />
       <Confirm
-        danger
+        loses
         keep="Keep resolving"
         keys="A"
         label={`Abort the ${kind()}`}

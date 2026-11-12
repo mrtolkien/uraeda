@@ -17,7 +17,7 @@ import { rows } from "./lists/rows";
 import { table } from "./lists/table";
 import { reading } from "./scenes/reading";
 import { scene } from "./scenes/session";
-import { confirm, corner, dialog, popover, sheet, tip, toasts } from "./surfaces/overlays";
+import { confirm, corner, dialog, discard, popover, sheet, tip, toasts } from "./surfaces/overlays";
 import { heights } from "./surfaces/heights";
 import { states } from "./surfaces/states";
 import { web } from "./surfaces/web";
@@ -34,6 +34,7 @@ const VIEWS: Record<string, (narrow: boolean) => JSX.Element> = {
   diagrams,
   dialog,
   diff,
+  discard,
   fields,
   glass: () => scene("glass"),
   heights,

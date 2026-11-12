@@ -135,7 +135,7 @@ export function Worktrees(props: { repo: string }) {
         </If>
       </View>
       <Confirm
-        danger
+        loses
         icon={cleans() ? "brush-cleaning" : "trash-2"}
         keep="Keep it"
         keys="d"

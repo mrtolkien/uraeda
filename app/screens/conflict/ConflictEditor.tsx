@@ -176,7 +176,7 @@ export function ConflictEditor(props: { path: string; repo: string }) {
       </If>
       <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
       <Confirm
-        danger
+        loses
         keep="Keep the conflict"
         keys={taken() === "theirs" ? "t" : "o"}
         label={`Take ${asked().side}`}

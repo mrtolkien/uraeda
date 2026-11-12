@@ -40,3 +40,32 @@ test("a disabled control takes neither a tap nor the focus", async () => {
   await app.keyboard.press("enter");
   expect(app.texts()).toContain("Kept: 1");
 });
+
+test("Enter in a confirmation that loses something changes nothing", async () => {
+  const app = await page();
+  const shown = () => app.waitFor("id:confirm", { timeout: 5_000 });
+  const gone = () => app.waitFor("id:confirm", { state: "gone", timeout: 5_000 });
+  // Cancel has the focus: Enter presses it, and nothing is lost.
+  await app.keyboard.press("d");
+  await shown();
+  await app.keyboard.press("enter");
+  await gone();
+  expect(app.texts()).toContain("Discarded: 0");
+  // `y`, or the key that asked, confirms.
+  await app.keyboard.press("d");
+  await shown();
+  await app.keyboard.press("y");
+  await gone();
+  expect(app.texts()).toContain("Discarded: 1");
+  await app.keyboard.press("d");
+  await shown();
+  await app.keyboard.press("d");
+  await gone();
+  expect(app.texts()).toContain("Discarded: 2");
+  // An act that spends but loses nothing: Enter confirms, one press more.
+  await app.keyboard.press("r");
+  await shown();
+  await app.keyboard.press("enter");
+  await gone();
+  expect(app.texts()).toContain("Ran: 1");
+});

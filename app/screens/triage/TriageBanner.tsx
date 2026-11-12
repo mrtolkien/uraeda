@@ -35,7 +35,7 @@ function Dismiss(props: { onRefused: (words: string | null) => void; repo: strin
         pending={pending()}
       />
       <Confirm
-        danger
+        loses
         keep="Keep it"
         label="Dismiss the triage"
         onClose={() => asking.set(false)}

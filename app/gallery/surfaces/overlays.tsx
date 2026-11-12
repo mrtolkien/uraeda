@@ -104,6 +104,28 @@ export function confirm(narrow: boolean) {
   );
 }
 
+export function discard(narrow: boolean) {
+  return (
+    <Under
+      narrow={narrow}
+      over={
+        <Confirm
+          icon="trash-2"
+          keep="Keep them"
+          keys="d"
+          label="Discard the changes"
+          loses
+          onClose={nothing}
+          onConfirm={nothing}
+          open
+          title="Discard the changes to README.md?"
+          words="The file goes back to its last commit. Nothing can bring the changes back."
+        />
+      }
+    />
+  );
+}
+
 const OUTLINE = ["Summary", "What changes", "Requirements", "Open questions", "Success criteria"];
 
 export function sheet(narrow: boolean) {

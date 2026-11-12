@@ -272,7 +272,7 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
         </Each>
       </View>
       <Confirm
-        danger
+        loses
         icon="trash-2"
         keep="Keep them"
         keys="d"
@@ -288,7 +288,7 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
         }
       />
       <Confirm
-        danger
+        loses
         keep="Keep the conflict"
         keys={taken()?.resolution === "theirs" ? "t" : "o"}
         label={`Take ${sideOf(taken()?.resolution ?? "ours").side}`}

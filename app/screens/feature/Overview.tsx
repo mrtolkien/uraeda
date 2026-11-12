@@ -161,7 +161,7 @@ function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
       </If>
       <If when={props.proposal}>{(path) => <CommitProposal args={props.args} path={path()} />}</If>
       <Confirm
-        danger
+        loses
         icon="brush-cleaning"
         keep="Keep it"
         keys="n"

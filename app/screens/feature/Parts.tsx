@@ -1,13 +1,12 @@
 // Parts of the feature's subject pane: what stops the workflow, at its file and line; its name, as
 // the lists show it; and the drop, deliberate behind its question, which says after where the
 // feature went.
-import { signal, View } from "nsh";
+import { signal } from "nsh";
 import { call, navigate } from "../../store";
 import type { Dropped, Feature } from "../../store/protocol";
-import { Banner, Button, Link, Refusal, Text } from "../../ui/controls";
+import { Banner, Button, Confirm, Link, Refusal } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
-import { Dialog } from "../../ui/surfaces";
 import type { FeatureArgs } from "./read";
 import { NameDialog } from "../NameDialog";
 
@@ -105,7 +104,6 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
           await call("feature.drop", { folder: props.args.folder, repo: props.args.repo }),
         ),
       );
-      asking.set(false);
     } catch (error) {
       refusal.set((error as Error).message);
     }
@@ -117,33 +115,21 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
         icon="trash-2"
         label={`Drop the ${what}…`}
         onPress={() => asking.set(true)}
+        pending={pending()}
         variant="danger"
       />
-      <Dialog
+      <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
+      <Confirm
         icon="trash-2"
+        keep="Keep it"
+        label={`Drop ${props.feature.label ?? props.feature.title}`}
+        loses
         onClose={() => asking.set(false)}
+        onConfirm={() => void drop()}
         open={asking()}
         title={`Drop the ${what}?`}
-      >
-        <View style={{ gap: 12 }}>
-          <Text>
-            {
-              "Its proposal leaves the priorities, and its worktree is removed unless it holds uncommitted changes. Its branch stays: nothing it committed is lost."
-            }
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            <Button
-              icon="trash-2"
-              label={`Drop ${props.feature.label ?? props.feature.title}`}
-              onPress={() => void drop()}
-              pending={pending()}
-              variant="danger"
-            />
-            <Button label="Keep it" onPress={() => asking.set(false)} />
-          </View>
-          <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
-        </View>
-      </Dialog>
+        words="Its proposal leaves the priorities, and its worktree is removed unless it holds uncommitted changes. Its branch stays: nothing it committed is lost."
+      />
     </>
   );
 }

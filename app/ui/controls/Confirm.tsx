@@ -1,21 +1,29 @@
 // The confirmation of an act that cannot be taken back: one that spends an agent's time, leaves
 // this machine, or loses something for good. Its key, or its button, opens this instead of doing
 // it, and it says what will be done, in words, with the numbers and the names: "Push 3 commits to
-// origin/main?", never "Are you sure?". Enter confirms, and so does the key that asked: one press
-// more, and a slip of one key does nothing. Escape, or a press outside, leaves everything as it
-// was.
+// origin/main?", never "Are you sure?". Escape, or a press outside, leaves everything as it was.
+//
+// Two kinds. An act that spends or sends but loses nothing: Enter confirms, and so does the key
+// that asked, one press more. An act that `loses` something for good: Cancel has the focus, so
+// Enter changes nothing, as it presses Cancel; `y`, or the key that asked, confirms. Its words,
+// what is lost, sit on the error colour's quiet wash, and its button is a red tube, never the
+// lamp.
 import { type Accessor, computed, type JSX, View } from "nsh";
 import { Dialog } from "../surfaces";
 import { Button } from "./Button";
 import type { IconName } from "./Icon";
 import { Text } from "./Text";
 import { registerKey } from "../keys/registry";
+import { tokens } from "../tokens";
 
 export type ConfirmProps = {
   /** More than its words: a list of what it takes, a refusal. */
   children?: JSX.Element;
-  /** It loses something for good: its button is a danger's. */
-  danger?: boolean;
+  /**
+   * It loses something for good, with no undo: Enter changes nothing, `y` or its key confirms,
+   * its words say what is lost on the error colour's wash, and its button is a danger's.
+   */
+  loses?: boolean;
   icon?: IconName;
   /** The way out, in words: "Cancel" unless given, "Keep it" where something would be lost. */
   keep?: string;
@@ -42,10 +50,28 @@ export function lastAsked<T>(now: Accessor<T | null>): Accessor<T | null> {
   return computed<T | null>((before) => now() ?? before ?? null);
 }
 
-/** Enter, in the confirmation's own layer, whatever has the focus there. */
-function Enter(props: { label: string; run: () => void }) {
-  registerKey({ keys: "Enter", label: props.label, run: props.run });
+/** A key in the confirmation's own layer, whatever has the focus there. */
+function Key(props: { keys: string; label: string; run: () => void }) {
+  registerKey({ keys: props.keys, label: props.label, run: props.run });
   return null;
+}
+
+/** What is lost, on the error colour's quiet wash, with a bar of it on its left edge. */
+function Lost(props: { words: string }) {
+  const colour = tokens.control.tone("danger");
+  return (
+    <View
+      style={{
+        backgroundColor: tokens.control.wash(colour),
+        borderColor: colour,
+        borderLeftWidth: 2,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+      }}
+    >
+      <Text>{props.words}</Text>
+    </View>
+  );
 }
 
 export function Confirm(props: ConfirmProps) {
@@ -55,9 +81,10 @@ export function Confirm(props: ConfirmProps) {
     props.onConfirm();
     props.onClose();
   };
+  const loses = () => props.loses === true;
   return (
     <Dialog
-      icon={props.icon ?? (props.danger === true ? "triangle-alert" : undefined)}
+      icon={props.icon ?? (loses() ? "triangle-alert" : undefined)}
       onClose={props.onClose}
       open={props.open}
       testID={props.testID}
@@ -66,21 +93,34 @@ export function Confirm(props: ConfirmProps) {
     >
       <If when={props.open}>
         <View style={{ gap: 14 }}>
-          <Enter label={props.label} run={confirm} />
-          <Text>{props.words}</Text>
+          <If
+            when={loses()}
+            else={
+              <>
+                <Key keys="Enter" label={props.label} run={confirm} />
+                <Text>{props.words}</Text>
+              </>
+            }
+          >
+            {/* Without a key of its own, its button takes `y`. */}
+            <If when={props.keys !== undefined}>
+              <Key keys="y" label={props.label} run={confirm} />
+            </If>
+            <Lost words={props.words} />
+          </If>
           {props.children}
           <View
             style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}
           >
-            <Button label={props.keep ?? "Cancel"} onPress={props.onClose} />
+            <Button first={loses()} label={props.keep ?? "Cancel"} onPress={props.onClose} />
             <Button
-              first
+              first={!loses()}
               icon={props.icon}
-              keys={props.keys}
+              keys={props.keys ?? (loses() ? "y" : undefined)}
               label={props.label}
               onPress={confirm}
               testID="confirm"
-              variant={props.danger === true ? "danger" : "main"}
+              variant={loses() ? "danger" : "main"}
             />
           </View>
         </View>

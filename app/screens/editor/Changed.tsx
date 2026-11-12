@@ -73,7 +73,7 @@ function Ways(props: ChangedProps) {
         </View>
       </View>
       <Confirm
-        danger
+        loses
         keep="Keep editing"
         keys={asked() === "take" ? "F" : "w"}
         label={asked() === "take" ? "Drop my text" : "Save over it"}

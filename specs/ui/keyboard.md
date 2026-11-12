@@ -32,7 +32,8 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                 | Every page                            |
 | `[`, `]`                  | Fold the sidebar, and the right column                                                                                 | `[` everywhere; `]` on wide screens   |
 | `Escape`                  | Leave the field, the layer, or the mode, and nothing more; with Vim mode on, insert mode goes to normal mode first     | Every page                            |
-| The key again, `Enter`    | Confirm what a key asked for; `Escape` leaves everything as it was                                                     | The shared confirmation               |
+| The key again, `Enter`    | Confirm what spends or sends; `Escape` leaves everything as it was                                                     | The shared confirmation               |
+| The key again, `y`        | Confirm what loses something for good: Cancel has the focus, so `Enter` changes nothing                                | The shared confirmation               |
 | `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                            | Every field of several lines          |
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
@@ -53,8 +54,17 @@ A single key is a slip away, so what one key does is sorted in three:
 - **Neither**: it spends an agent's time, starts a run, leaves this machine, or loses something for
   good. The key, and its button, open the action's own confirmation, `Confirm`, which says what will
   be done, with its names and numbers: "Continue 4 runs?", "Push 3 commits to origin/main?", "Run
-  “Weekly report” now?". The same key again, or `Enter`, does it; `Escape` leaves everything as it
-  was. One press more, never a chore, and never "Are you sure?".
+  “Weekly report” now?". `Escape` leaves everything as it was. One press more, never a chore, and
+  never "Are you sure?". It comes in two kinds:
+  - **What spends or sends, and loses nothing** (continue runs, run a job now, push, continue a
+    merge, allow and retry, undo a committed change, which writes its reverse): the same key again,
+    or `Enter`, does it.
+  - **What loses something for good, with no undo** (discard a file's changes, delete a job, remove
+    or clean a worktree, take one side of a conflict whole, save over a file changed on disk, take
+    the disk's version over typed text, revoke a device, abort a merge, drop or clean a feature,
+    dismiss a triage): the shared confirmation focuses Cancel, so that `Enter` changes nothing; `y`,
+    or the same key again, does it. Its words say what is lost on the error colour's quiet wash, and
+    its button is a red tube, never the lamp.
 
 The keys of the third kind: `C` on Home (continue all), `r` on Jobs (run now), `P` on Git (push),
 `m` and `A` on a stopped merge (continue, which commits it, and abort), `o` and `t` on a conflict (a
@@ -156,8 +166,10 @@ it holds has a few keys of its own.
 ## Focus
 
 - A layer that opens takes the focus where typing goes: a picker its filter, a form its field. The
-  shared confirmation takes the keys: the key that asked, or `Enter`, confirms, and `Escape` leaves
-  (see [A key that cannot be taken back](#a-key-that-cannot-be-taken-back)).
+  shared confirmation takes the keys: the key that asked confirms, and `Escape` leaves; `Enter`
+  confirms what loses nothing, and where something is lost, Cancel has the focus, so that `Enter`
+  changes nothing, and `y` confirms (see
+  [A key that cannot be taken back](#a-key-that-cannot-be-taken-back)).
 - `Escape` gives the focus back where it was before the layer opened.
 - A page that starts something opens with the focus in its text field: the New page in the picked
   kind's composer, and again after `s c f` pick a card, a feature's New session in its composer, and
