@@ -187,8 +187,12 @@ export function NavBar(props: { onSidebar?: () => void; places: ReadonlyArray<Ra
   );
 }
 
-/** About how wide a tile's word is drawn, with the room around it, in points. */
-const wordWidth = (title: string) => title.length * tokens.type.under * 0.62 + 12;
+/**
+ * About how wide a tile's word is drawn, with the room around it, in points: a thumb's at least,
+ * as "Add" alone made a tile 36 points wide.
+ */
+const wordWidth = (title: string) =>
+  Math.max(tokens.control.touch, title.length * tokens.type.under * 0.62 + 12);
 
 /**
  * The bottom bar: a tile per pane of the one stack, an icon over its word, pressed to show it.
