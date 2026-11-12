@@ -138,7 +138,9 @@ export function AddNote(props: AddNoteProps) {
             onFocus={() => props.onFocused(true)}
             onSave={() => void add()}
             placeholder={
-              props.category === null ? "Add a note: Enter adds it" : `Add a note to ${props.category}`
+              props.category === null
+                ? "Add a note: Enter adds it"
+                : `Add a note to ${props.category}`
             }
             ref={props.ref}
             refusal={refusal()}

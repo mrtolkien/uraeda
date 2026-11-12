@@ -120,9 +120,7 @@ export function BlockView(props: { block: Block; first: boolean; read: Read }) {
           marginTop: (props.first ? 0 : BLOCK_GAP) + air,
           maxWidth: PROSE.has(block.kind) ? measure() : undefined,
         }}
-        hoverStyle={
-          top && hands.onPress !== undefined ? partHover() : undefined
-        }
+        hoverStyle={top && hands.onPress !== undefined ? partHover() : undefined}
         onPress={top && hands.onPress !== undefined ? () => hands.onPress?.(block) : undefined}
         testID={`block-${block.id}`}
       >

@@ -78,10 +78,9 @@ test("in a picker, the row under the pointer is the one Enter picks", async () =
   await app.hover("text:CLI >> nth=1");
   await app.keyboard.press("Enter");
   // The note's pane names its category over it: CLI, not UI, which Enter held before.
-  await app.waitUntil(
-    () => app.texts().join(" ").includes(`CLI ${note} c Move to a category`),
-    { timeout: 15_000 },
-  );
+  await app.waitUntil(() => app.texts().join(" ").includes(`CLI ${note} c Move to a category`), {
+    timeout: 15_000,
+  });
   app.dispose();
 }, 90_000);
 

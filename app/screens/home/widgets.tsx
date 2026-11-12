@@ -6,7 +6,15 @@ import { type AgentUsage, usageByAgent, LOW } from "../shell/usage";
 import { remember } from "../shell/undo";
 import { call, navigate, record } from "../../store";
 import type { Inbox, InboxNote } from "../../store/protocol";
-import { Icon, IconButton, type IconName, iconNamed, Link, Text, refusalOf } from "../../ui/controls";
+import {
+  Icon,
+  IconButton,
+  type IconName,
+  iconNamed,
+  Link,
+  Text,
+  refusalOf,
+} from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
