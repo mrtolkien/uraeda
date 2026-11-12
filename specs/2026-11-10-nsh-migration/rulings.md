@@ -10501,3 +10501,25 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: Back from the settings walked their categories one by one before leaving them.
   Unsaved text of a category is kept on the device, so changing it asks nothing.
 - **Where**: `app/screens/settings/Index.tsx`, `specs/ui/keyboard.md`.
+
+## T193.1: The app's layers are a lint per folder, and what a page is built with is a test
+
+- **Decision**: `.oxlintrc.json` holds the layers as `no-restricted-imports`, one override per
+  folder, each saying the fix: `app/ui/` imports no screen, extension, gallery, or tool, and of
+  `app/store/` only `device`, `history`, `routes`, and the protocol's types; `app/store/` imports
+  no screen, and of `app/ui/` and `app/extensions/` only types, and `ui/timing`, a leaf;
+  `app/extensions/` imports no screen. `crates/app/tests/layers.rs` follows the imports a build
+  keeps from `uraeda/ui` and `uraeda/page` (`app/ui/index.ts`, `app/extensions/page.tsx`) and
+  fails, naming the chain, on any file outside `app/ui/` and `app/extensions/`. Screens still
+  import each other freely: 35 pairs of screen folders, with no seam declared.
+- **Rationale**: the rule "`ui` imports nothing of the store" is not the code's: the layout shell
+  keeps panes in the history, and `unsavedText` keeps its text on the device, as the store's README
+  says. What broke once (R355) is a page's build reaching the store through a file the library
+  re-exports, which a rule per file cannot see: re-exporting `FieldRow` again fails the test with
+  `ui/index.ts -> ui/lists/index.ts -> ui/lists/FieldRow.tsx -> ui/layout/panes.tsx ->
+  store/history.ts`, in 0.03 s, where the server's test caught it only in a GTK run.
+- **If wrong**: a store file the components need joins the list of `app/ui/`'s override, with the
+  reason; a seam between screens becomes a screens-shared file and a rule of its own.
+- **Where**: `.oxlintrc.json`, `crates/app/tests/layers.rs`, `app/__checks__/breaks.tsx` (Oxlint
+  1.86's `no-new-array` refused its array of a length, marked in place: `Array.from` fills by a
+  callback, which the check found too slow).
