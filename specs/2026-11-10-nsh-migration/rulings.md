@@ -8503,7 +8503,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the test fails again under load with the wait in it: the page then runs in a view
   that left its window, which is R261's own fault to look for.
 - **Where**: `crates/app/tests/extensions.rs`.
-## T89.1: A field's text reaches the server as a snapshot, by `save` or `send`
+
+## R433: A field's text reaches the server as a snapshot, by `save` or `send`
 
 - **Decision**: `unsavedText` (`app/ui/text/unsaved.ts`) is the one way a field's text reaches the
   server. `save(run)` is for a field over a saved text (a file, a note, a round's notes, a setting):
@@ -8541,7 +8542,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/text/unsaved.ts`, `SaveStatus.tsx`, `unsaved.test.ts`; the sites above;
   `specs/ui/components.md`, "A word typed is never lost".
 
-## T89.2: The device writes a key's values one at a time, and unsaved text has no list beside it
+## R434: The device writes a key's values one at a time, and unsaved text has no list beside it
 
 - **Decision**: `deviceStore.set` writes a key's values one after the other, each with the value the
   key holds as its write starts, so the storage ends on the last value set however its answers come;
@@ -8562,7 +8563,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/store/device.ts`, `device.test.ts`, `app/ui/text/unsaved.ts`,
   `app/screens/shell/boot.ts`.
 
-## T89.3: A test reads a composer's draft from the device, not from `app.value`
+## R435: A test reads a composer's draft from the device, not from `app.value`
 
 - **Decision**: `session.test.tsx`'s "a message refused comes back beside the one begun meanwhile"
   reads the draft from `app.storage()`, and holds the server's answers through the line's seam
@@ -8575,7 +8576,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   passed on the code that lost the message.
 - **Where**: `app/screens/session/session.test.tsx`, `app/screens/shell/__checks__/Places.tsx`.
 
-## T89.4: One home for a file's text edited over the version it was read at
+## R436: One home for a file's text edited over the version it was read at
 
 - **Decision**: `editedFile` (`app/screens/editor/edited.ts`) is the buffer editor's logic, moved
   out of it: the unsaved text over the file as the disk has it (`trackDisk`), `changed`, true while
@@ -8600,7 +8601,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/proposal/proposal.test.tsx` and its page; `specs/ui/keyboard.md`, "The buffer";
   `specs/ui/components.md`.
 
-## T89.5: The Git test waits for its message before its key
+## R437: The Git test waits for its message before its key
 
 - **Decision**: `git.test.tsx` waits until the device holds the commit's message before
   `Ctrl+Enter`, as `session.test.tsx`'s `typed` does.
@@ -8609,7 +8610,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   field held before. The code before this fix read the message the same way.
 - **Where**: `app/screens/git/git.test.tsx`.
 
-## T89.6: A key that cannot be taken back opens its action's own confirmation
+## R438: A key that cannot be taken back opens its action's own confirmation
 
 - **Decision**: every single-letter key of every pane was sorted in three (the table below, from
   `grep -rn 'keys' app/screens` and ruling R420's table): undone by `u`; cheap and put back by hand;
@@ -8662,7 +8663,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/shell/deliberate.test.tsx`; `specs/ui/keyboard.md`, "A key that cannot be taken
   back"; `specs/ui/components.md`.
 
-## T89.7: A round's queue reads its file through the pane that draws it, and goes once spent
+## R439: A round's queue reads its file through the pane that draws it, and goes once spent
 
 - **Decision**: `savesOf` rebinds the queue's reader at each call, to the file of the pane that
   draws the round now, and counts the panes that hold it. The queue leaves the map once no pane
@@ -8678,7 +8679,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the last one's written answers and hash.
 - **Where**: `app/screens/round/saves.ts`, `saves.test.ts`.
 
-## T89.8: A record is read where something lets it go, and the store says when it is not
+## R440: A record is read where something lets it go, and the store says when it is not
 
 - **Decision**: `syncActions` holds the Git page's record once, as its component renders, for its
   guards and its actions; the merge picker and the file diff's `pageHeld` read the accessor their
@@ -8704,3 +8705,28 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/store/{records,connection,index}.ts`, `app/screens/shell/Root.tsx`,
   `app/screens/shell/places.test.tsx` and its page, the check pages of the buffer, the proposal, and
   the extensions; `app/store/README.md`, "Never".
+
+## R441: Three smaller findings of the review of phase 1
+
+- **The New page's visit kept "pending" past a start** (Codex's P2, confirmed: `new.test.tsx`
+  started one chat where two were sent, `expected 1 to be 2`). `pane.remember` writes in the visit
+  shown, so the reset after `navigate` went to the session's visit. A start on its way is the
+  draft's own state now (`draft.pending()`, ruling R433), never the visit's.
+- **A refused write's Open went to the repository shown** (Codex's P2, confirmed in
+  `routes.test.ts`): the queue keeps an address within its repository, `/f/<folder>/spec.md`, and
+  `navigate` fills in the repository of the page shown. `routeIn(repo, address)`
+  (`app/store/routes.ts`) names the write's repository, unless the address names one.
+- **An extension's page opened any address, and its messages were used as they came** (Claude's
+  finding 4, confirmed in `extensions.test.tsx`: the settings, another repository, and another
+  extension's place were opened, and a record named `7` was read). `pageRoute` decides what a page
+  opens: an address of its own repository, one of the repository's ordinary pages or a place of its
+  own extension. Not the settings, where devices are revoked, the server is set, and extensions are
+  turned on: a page that sent the human there would have their next key land on one of those. Not
+  another extension's place: a page is its own extension. An extension is its owner's code, so the
+  rest of the repository's pages are its to link, as a link in a workflow file is. A refusal is said
+  in the app's log, as `navigate` is a message without an answer. A `record` without a whole number
+  and a name, and a `call` without an action's name, read and run nothing; the call is answered with
+  why.
+- **Where**: `app/screens/new/NewPane.tsx`, `new.test.tsx`; `app/store/routes.ts`,
+  `app/screens/shell/Writes.tsx`; `app/extensions/host.tsx`, `extensions.test.tsx`,
+  `docs/extensions.md`.

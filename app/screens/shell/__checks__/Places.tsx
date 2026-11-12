@@ -14,6 +14,7 @@ import { boot } from "../boot";
 import { appHost } from "../host";
 import { Root } from "../Root";
 import {
+  back,
   connection,
   navigate,
   onUnheldRead,
@@ -29,6 +30,7 @@ import { placedPages, placeOf } from "../../../ui/layout";
 // Opens the address: `Shown` then says which pane the frame focuses there, whose tab the test
 // waits for.
 host.on("go", (address) => navigate(parseRoute(String(address))));
+host.on("back", () => void back());
 
 /**
  * Posts the page opened and the pane it focuses, at each change of the route: read here, in a

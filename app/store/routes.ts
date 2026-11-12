@@ -284,6 +284,16 @@ export function parseRoute(address: string): Route {
   };
 }
 
+/**
+ * The route an address kept with a repository names: in the repository it names, else in `repo`.
+ * An address kept by the server, as a queued write's page, is within its repository, and is
+ * opened from wherever the human is: without `repo`, `navigate` would open it in the one shown.
+ */
+export function routeIn(repo: string, address: string): Route {
+  const route = parseRoute(address);
+  return route.repo === undefined ? { ...route, repo } : route;
+}
+
 const segment = encodeURIComponent;
 
 /** A path of several segments, like a file's from the top level, each encoded. */

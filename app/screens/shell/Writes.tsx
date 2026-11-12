@@ -8,7 +8,16 @@
 //   dismissed: what was refused, where its files are, the hook's output whole, and its ways out.
 //   A toast never takes the focus, so typing elsewhere goes on.
 import { effect, Scroll, signal, untracked, View } from "nsh";
-import { call, navigate, parseRoute, pathOf, record, route, type StoreError } from "../../store";
+import {
+  call,
+  navigate,
+  parseRoute,
+  pathOf,
+  record,
+  route,
+  routeIn,
+  type StoreError,
+} from "../../store";
 import type { QueuedWrite } from "../../store/protocol";
 import { Button, Refusal, Spinner, Text } from "../../ui/controls";
 import { Toast, Well } from "../../ui/surfaces";
@@ -188,9 +197,12 @@ function RefusedCard(props: Of & { first: boolean }) {
     }
     pending.set(false);
   };
-  // The page where it was made, which tries it again: the Git page for a write named by none.
+  // The page where it was made, which tries it again, in the write's own repository, whichever
+  // is shown: the Git page for a write named by none.
   const open = () =>
-    navigate(write().href === "" ? { page: "git", repo: props.repo } : parseRoute(write().href));
+    navigate(
+      write().href === "" ? { page: "git", repo: props.repo } : routeIn(props.repo, write().href),
+    );
   return (
     <Toast
       icon="triangle-alert"

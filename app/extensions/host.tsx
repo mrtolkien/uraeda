@@ -10,14 +10,19 @@
 //   its own extension in the repository, or its settings there, from now on. The app answers with
 //   `record` events. A page names a record, never an extension: it reads only its own.
 // - `call`, `{ name, input }`, a call: an action of its own extension, answered with its output.
-// - `navigate`, `{ to }`: an address of the app.
+// - `navigate`, `{ to }`: an address of the app, in the page's own repository: one of its ordinary
+//   pages, or a place of the page's own extension. Never the settings, another repository, or
+//   another extension's place (`pageRoute`).
+//
+// A message is the page's, so it is checked before it is used: a record without a number and a
+// name, or a call without an action's name, reads and runs nothing.
 //
 // App to page (events): `show` (draw your part), `ping` (answer `alive`), `theme`, a `ShownTheme`
 // as the app's changes, `props`, what the part reads with `useProps`, `record`,
 // `{ id, value, error }`, and `key`, `{ keys }`, a key the page declared, pressed.
 import { navigate } from "../store/history";
 import type { Actions, Records } from "../store/protocol";
-import { parseRoute } from "../store/routes";
+import { parseRoute, type Route } from "../store/routes";
 
 /** A record read: its value once it came, or why there is none. */
 export type Reading<V> = { value: V | undefined; error: string | undefined };
@@ -53,9 +58,81 @@ export type PageOf = { extension: string; repo: string };
 
 type RecordAsked = { id: number; name?: string; settings?: true; stop?: true };
 
+/**
+ * The pages a page of an extension may open: a repository's own work. The settings are not among
+ * them: there the devices are revoked, the server is set, and the extensions themselves are turned
+ * on, and a page that sent the human there would have their next key land on one of those.
+ */
+const OPENED: ReadonlySet<Route["page"]> = new Set<Route["page"]>([
+  "home",
+  "feature",
+  "file",
+  "mockup",
+  "branch-decision",
+  "session",
+  "storybook",
+  "priorities",
+  "proposal",
+  "inbox",
+  "note",
+  "triage",
+  "decisions",
+  "decisions-check",
+  "decision",
+  "constitution",
+  "git",
+  "jobs",
+  "job",
+  "job-new",
+  "sessions",
+  "session-id",
+  "new",
+  "edit",
+  "buffer",
+]);
+
+/**
+ * The route a page of `page.extension` may open for the address `to`, in its own repository: or
+ * why it may not, in words. An extension is its owner's code, and its page opens what a link of
+ * the repository's pages opens, and its own places; it never takes the human to another
+ * repository, to another extension's place, or to the settings.
+ */
+export function pageRoute(page: PageOf, to: unknown): { route: Route } | { refused: string } {
+  if (typeof to !== "string") return { refused: "an address is a text, as `/inbox`" };
+  const route = parseRoute(to);
+  if (route.repo !== undefined && route.repo !== page.repo) {
+    return { refused: `a page opens addresses of its own repository, ${page.repo}` };
+  }
+  if (route.page === "extension") {
+    return route.name === page.extension
+      ? { route: { ...route, repo: page.repo } }
+      : { refused: `a page opens its own extension's places, not those of ${route.name}` };
+  }
+  return OPENED.has(route.page)
+    ? { route: { ...route, repo: page.repo } }
+    : { refused: "a page opens the repository's pages and its own places, never the settings" };
+}
+
+/** What a page asked to read, once checked: nothing when it names no number, or no record. */
+function recordAsked(data: Record<string, unknown>): RecordAsked | undefined {
+  const { id, name } = data;
+  if (typeof id !== "number" || !Number.isInteger(id)) return undefined;
+  if (data.stop === true) return { id, stop: true };
+  if (data.settings === true) return { id, settings: true };
+  return typeof name === "string" && name !== "" ? { id, name } : undefined;
+}
+
 /** The app's answers to one page: `heard` takes each message, `close` stops what it reads. */
-export function pageChannel(host: ExtensionHost, page: PageOf, line: PageLine) {
+export function pageChannel(
+  host: ExtensionHost,
+  page: PageOf,
+  line: PageLine,
+  open: (route: Route) => void = navigate,
+) {
   const reads = new Map<number, () => void>();
+  /** Says, in the log, what a page asked that the app did not do: its owner reads it there. */
+  const refused = (what: string, why: string) =>
+    console.warn(`[extension ${page.extension}] ${what} was refused: ${why}.`);
   const record = (asked: RecordAsked) => {
     reads.get(asked.id)?.();
     reads.delete(asked.id);
@@ -80,8 +157,12 @@ export function pageChannel(host: ExtensionHost, page: PageOf, line: PageLine) {
         );
     reads.set(asked.id, stop);
   };
-  const call = (id: number, asked: { name?: string; input?: unknown }) => {
-    const input = { ...page, input: (asked.input ?? null) as never, name: asked.name ?? "" };
+  const call = (id: number, asked: Record<string, unknown>) => {
+    if (typeof asked.name !== "string" || asked.name === "") {
+      line.reply(id, { error: "A call names an action of the extension: its name is missing." });
+      return;
+    }
+    const input = { ...page, input: (asked.input ?? null) as never, name: asked.name };
     host.call("extensions.act", input).then(
       (answer) => line.reply(id, { value: answer.output }),
       (error: unknown) =>
@@ -90,11 +171,20 @@ export function pageChannel(host: ExtensionHost, page: PageOf, line: PageLine) {
   };
   return {
     heard(message: PageMessage) {
-      const data = (message.data ?? {}) as Record<string, unknown>;
-      if (message.name === "record") record(data as RecordAsked);
-      else if (message.name === "call" && message.id !== null) call(message.id, data);
-      else if (message.name === "navigate" && typeof data.to === "string") {
-        navigate(parseRoute(data.to));
+      const data =
+        typeof message.data === "object" && message.data !== null
+          ? (message.data as Record<string, unknown>)
+          : {};
+      if (message.name === "record") {
+        const asked = recordAsked(data);
+        if (asked === undefined) refused("a record", "it names a number and a record");
+        else record(asked);
+      } else if (message.name === "call" && message.id !== null) {
+        call(message.id, data);
+      } else if (message.name === "navigate") {
+        const to = pageRoute(page, data.to);
+        if ("refused" in to) refused(`navigate to ${JSON.stringify(data.to)}`, to.refused);
+        else open(to.route);
       }
     },
     close() {

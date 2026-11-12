@@ -96,7 +96,6 @@ export function NewView(props: { repo: string; kind: NewKind }) {
   const started = rememberStarted(pane);
   const asking = pane.remember<boolean>("asking", false);
   const refusal = pane.remember<string | null>("refusal", null);
-  const pending = pane.remember<boolean>("pending", false);
   const settings = record("Settings", null);
   const agents = record("Agent", { repo: props.repo });
   // What the session runs on, kept in the visit as three plain values.
@@ -126,9 +125,10 @@ export function NewView(props: { repo: string; kind: NewKind }) {
    */
   const sendSession = () =>
     said(async () => {
-      if (pending()) return;
-      pending.set(true);
-      try {
+      // A start on its way is the draft's own state, never the visit's: a visit outlives the
+      // start, and Back to it must find a page that starts the next one.
+      if (draft.pending()) return;
+      {
         const { repo } = props;
         const on = picked();
         const runtime =
@@ -148,8 +148,6 @@ export function NewView(props: { repo: string; kind: NewKind }) {
         }, imagesOf(repo));
         if (sent.ok) navigate({ id: sent.value, page: "session-id", repo });
         else if (sent.why !== null) throw new Error(sent.why);
-      } finally {
-        pending.set(false);
       }
     });
   /** A typed start, from the dialog: its refusal's words, or `null` once it started. */

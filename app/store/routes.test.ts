@@ -17,7 +17,7 @@ import {
   route,
   setLeaveGuard,
 } from "./history";
-import { parseRoute, pathOf, type Route } from "./routes";
+import { parseRoute, pathOf, type Route, routeIn } from "./routes";
 
 /**
  * An address, the route it names, and the address the route writes when it is not the same: an
@@ -312,4 +312,21 @@ test("a leave guard holds a navigation until it is answered", async () => {
   unsaved = false;
   navigate({ page: "git" });
   expect([asked, shown()]).toEqual([5, "/r/uraeda/git"]);
+});
+
+test("an address kept with a repository opens in that repository, whichever is shown", () => {
+  // A refused write's page, as its queue keeps it: within its repository, which the card names.
+  expect(routeIn("notes", "/f/2026-10-06-recurring-tasks/spec.md")).toEqual({
+    folder: "2026-10-06-recurring-tasks",
+    name: "spec.md",
+    page: "file",
+    repo: "notes",
+  });
+  expect(routeIn("notes", "/inbox/triage")).toEqual({ page: "triage", repo: "notes" });
+  // An address that names its repository keeps it.
+  expect(routeIn("notes", "/r/todo-app/new?kind=feature")).toEqual({
+    kind: "feature",
+    page: "new",
+    repo: "todo-app",
+  });
 });

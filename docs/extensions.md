@@ -561,7 +561,12 @@ the page's memory that another part could read: its state is the server's record
 | `useExtensionSettings<T>()` | `() => { value, error }`: the extension's settings in the repository shown, defaults filled in     |
 | `useRepository()`           | The repository's name the part is drawn for                                                        |
 | `useProps<T>()`             | `() => T`: what the app gives the part, `{ kind }` to a New-page section, `{ item }` to a renderer |
-| `navigate(to)`              | Opens an address of the app, as a link does: `/r/todo-app/inbox`, `/r/todo-app/e/wiki/wiki`        |
+| `navigate(to)`              | Opens an address of the repository shown, as a link does: `/inbox`, `/r/todo-app/e/wiki/wiki`      |
+
+`navigate` opens the repository's own pages (home, the inbox, the priorities, a feature and its
+files, the decisions, sessions, Git, jobs, the New page, a buffer) and the extension's own places.
+It never opens the settings, another repository, or another extension's place: the app refuses, and
+says so in its log.
 
 `value` is `undefined` until the record came, and `error` says why there is none: the extension is
 off there, has no such record, threw, or did not answer in 10 seconds. A record stays read through a
