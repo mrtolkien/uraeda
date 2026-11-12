@@ -257,6 +257,16 @@ follow-check filter="":
     mkdir -p target/shots/polish-9
     {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/follow.test.tsx --target linux --filter "{{ filter }}"
 
+# The owner setting the app up and tending it, on the sandbox: the repositories from an empty list,
+# sign-in and devices, every settings category, jobs, extensions (a new one written by the
+# documentation), and the accounts, by keys: the steps of `app/tools/setup.test.tsx`, each a
+# numbered picture in `target/shots/polish-15/`. A tool, never a check: `just setup`, `just setup 04`.
+setup filter="":
+    mkdir -p target/shots/polish-15
+    find target/shots/polish-15 -name '{{ filter }}*.png' -delete
+    {{ isolated }} hidden-display scripts/sandboxed.sh scripts/setup.sh {{ nsh }} test tools/setup.test.tsx --target linux --filter "{{ filter }}"
+    @ls target/shots/polish-15
+
 # A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
 # The thinking work, as the owner at the desk does it on the sandbox: a round answered, a spec
