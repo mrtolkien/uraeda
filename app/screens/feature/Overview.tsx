@@ -226,6 +226,8 @@ function Left(props: { feature: Feature }) {
 
 function Body(props: { args: FeatureArgs; feature: () => Feature }) {
   const feature = props.feature;
+  // What a drop from this pane left (`Drop`): the page then offers nothing more to do.
+  const dropped = usePane().remember<string | null>("dropped", null);
   const now = ticking(30_000);
   const history = record("History", { id: props.args.folder, repo: props.args.repo });
   const recommended = record("RecommendedMessage", {
@@ -274,11 +276,16 @@ function Body(props: { args: FeatureArgs; feature: () => Feature }) {
         </View>
       </View>
       <Problems feature={feature()} />
-      <NextPart args={props.args} next={next()} proposal={proposalAt(feature())} />
-      <If when={message()}>{(text) => <Message text={text()} />}</If>
+      {/* Dropped, nothing is next: its Continue would reach a worktree that is gone. */}
+      <If when={dropped() === null}>
+        <NextPart args={props.args} next={next()} proposal={proposalAt(feature())} />
+      </If>
+      <If when={dropped() === null ? message() : undefined}>
+        {(text) => <Message text={text()} />}
+      </If>
       <Left feature={feature()} />
       <Notes args={props.args} feature={feature()} />
-      <If when={feature().step.name !== "done"}>
+      <If when={feature().step.name !== "done" && dropped() === null}>
         {/* Postpone and Drop, the rare and structural ones, at the foot, far from Next. */}
         <View
           style={{
