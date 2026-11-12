@@ -7,6 +7,7 @@
       "hosts": ["127.0.0.1"]
     },
     "clipboard": true,
+    "fs": { "read": ["${homeDir}", "/tmp"] },
     "openUrl": true,
     "process": {
       "env": ["URAEDA_SANDBOX"]

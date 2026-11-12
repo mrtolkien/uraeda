@@ -231,6 +231,15 @@ walk filter="" on="software":
     URAEDA_SANDBOX_ARGS=--long-chat {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} scripts/sandboxed.sh scripts/walk.sh {{ nsh }} test tools/walk.test.tsx --target linux --filter "{{ filter }}"
     @ls target/shots/walk
 
+# One flow of the walk, slower and whole: the owner at the desk, keys only, from a thought in the
+# inbox to a running feature, then renamed, postponed, and dropped: the steps of
+# `app/tools/to-feature.test.tsx`, which run in order on one sandbox, each a numbered picture in
+# `target/shots/to-feature/`. `just walk-to-feature 4` runs the steps whose name holds `4`.
+walk-to-feature filter="":
+    mkdir -p target/shots/to-feature && find target/shots/to-feature -name '{{ filter }}*.png' -delete
+    {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/to-feature.test.tsx --target linux --filter "{{ filter }}"
+    @ls target/shots/to-feature
+
 # A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
 # The thinking work, as the owner at the desk does it on the sandbox: a round answered, a spec
