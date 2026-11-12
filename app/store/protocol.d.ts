@@ -394,7 +394,11 @@ proposal: string,
 /**
  * Its slug: the one the core proposes when none is given.
  */
-slug?: string | null, };
+slug?: string | null, 
+/**
+ * Its own run options, only what differs from the settings'.
+ */
+options?: RunOptions | null, };
 
 /**
  * A change started.
@@ -1325,6 +1329,10 @@ slug?: string | null,
  * A feature when none is given.
  */
 kind?: StartKind | null, 
+/**
+ * Its own run options, only what differs from the settings'.
+ */
+options?: RunOptions | null, 
 /**
  * The name the write queue shows the start under while it lands.
  */

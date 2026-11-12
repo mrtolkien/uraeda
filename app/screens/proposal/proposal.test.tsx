@@ -20,26 +20,29 @@ const words = (app: App) => app.texts().join(" ");
 
 /** The pane, with the proposal's file read: its text and its start. */
 async function opened(app: App) {
-  await app.waitUntil(() => app.shows("id:proposal-slug") && app.shows("id:proposal-text"), {
+  await app.waitUntil(() => app.shows("id:proposal-start") && app.shows("id:proposal-text"), {
     timeout: 30_000,
   });
 }
 
-test("Enter in a proposal's slug starts nothing", async () => {
+test("a proposal starts only from its start dialog", async () => {
   const app = await page();
   await opened(app);
-  // Enter on the page, then in the short name once typed in: neither starts.
+  // Enter on the page starts nothing; Start asks the short name and the run map first.
   await app.keyboard.press("enter");
-  await app.type("id:proposal-slug", "listener");
-  await app.keyboard.press("enter");
+  await app.press("id:proposal-start");
+  await app.waitUntil(() => app.shows("id:start-slug") && app.shows("id:start-map"), {
+    timeout: 10_000,
+  });
   await app.wait(800);
   expect(starts(app)).toEqual([]);
-  // The button starts it. (The headless runner gives the field's own keys, Enter and Ctrl+Enter,
-  // to no editor: what it guards is that no key of the page starts on Enter.)
-  await app.press("id:proposal-start");
+  // The dialog's Start starts it, with the file's own short name. (The headless runner gives the
+  // field's own keys, Enter and Ctrl+Enter, to no editor: what it guards is that no key of the
+  // page starts on Enter.)
+  await app.press("id:start-confirm");
   await app.waitUntil(() => starts(app).length > 0, { timeout: 10_000 });
   expect(starts(app)).toMatchObject([
-    { action: "feature.start", proposal: "specs/proposals/git-listener.md" },
+    { action: "feature.start", proposal: "specs/proposals/git-listener.md", slug: "git-listener" },
   ]);
   await app.waitUntil(() => words(app).includes("Not started: this is a check."), {
     timeout: 10_000,

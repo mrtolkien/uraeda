@@ -53,6 +53,8 @@ pub struct FeatureStart {
     pub slug: Option<String>,
     /// A feature when none is given.
     pub kind: Option<StartKind>,
+    /// Its own run options, only what differs from the settings'.
+    pub options: Option<RunOptions>,
     /// The name the write queue shows the start under while it lands.
     pub write: Option<WriteName>,
 }
@@ -134,6 +136,8 @@ pub struct ChangeStartProposal {
     pub proposal: String,
     /// Its slug: the one the core proposes when none is given.
     pub slug: Option<String>,
+    /// Its own run options, only what differs from the settings'.
+    pub options: Option<RunOptions>,
 }
 
 action!(ChangeStartProposal, "change.startProposal", ChangeStarted);

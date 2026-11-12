@@ -214,7 +214,7 @@ fn proposal(call: &Call, input: FeatureStart) -> Result<StartPlan, Fault> {
         kind,
         name: input.write,
         href: "",
-        options: None,
+        options: input.options,
     };
     let (proposal, slug) = (input.proposal, input.slug);
     let plan = |root: &Path| Ok(api::plan_start(root, &proposal, slug.as_deref(), kind)?);
@@ -450,7 +450,7 @@ fn proposal_as_change(call: &Call, input: ChangeStartProposal) -> Result<ChangeS
     let run = move |root: &Path, on_step: &dyn Fn(StartProgress)| {
         api::start_feature(root, &proposal, slug.as_deref(), Kind::Change, on_step)
     };
-    let then = first_run(call.shared(), &input.repo, None);
+    let then = first_run(call.shared(), &input.repo, input.options);
     landed(call.shared(), &input.repo, input.slug, run, then).map(change_started)
 }
 

@@ -1,4 +1,5 @@
-// The one question a typed start asks, once the New page's Start or its Ctrl+Enter opens it: the
+// The one question a start asks, once the New page's Start or its Ctrl+Enter opens it, or a
+// proposal file's Start (`../proposal/StartPart.tsx`), whose short name it shows as given: the
 // short name that names the folder and the branch, proposed by the server and editable, a
 // feature's research effort, and how its steps run, the run map, the settings' own component at
 // its full size (rule 3), in a dialog as large as the map needs, up to most of the window. The
@@ -23,6 +24,10 @@ export type StartDialogProps = {
   repo: string;
   /** The text typed, which the server proposes a slug from. */
   text: string;
+  /** A short name already given, as a proposal file's: shown in place of the one proposed. */
+  slug?: string | null;
+  /** Whether it asks the research effort: a proposal file holds its own, as its form says. */
+  discovery?: boolean;
   open: boolean;
   onClose: () => void;
   /** Starts: resolves with the refusal's words, or `null` once started. */
@@ -44,9 +49,13 @@ function Ask(props: StartDialogProps) {
   const settings = record("Settings", null);
   const agents = record("Agent", { repo: props.repo });
   const typed = signal<string | null>(null);
-  const slug = () => typed() ?? proposed()?.slug ?? "";
+  const given = () => (props.slug == null || props.slug === "" ? undefined : props.slug);
+  const slug = () => typed() ?? given() ?? proposed()?.slug ?? "";
   const level = signal<string | null>(null);
-  const levels = () => (props.kind === "feature" ? (proposed()?.discoveryLevels ?? []) : []);
+  const levels = () =>
+    props.kind === "feature" && props.discovery !== false
+      ? (proposed()?.discoveryLevels ?? [])
+      : [];
   const discovery = () => level() ?? (levels().includes("high") ? "high" : (levels()[0] ?? null));
   const own = signal<RunOptions>(NONE);
   const refusal = signal<string | null>(null);
