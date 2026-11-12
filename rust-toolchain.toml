@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.97.0"
+channel = "1.100.0"
 components = ["rustfmt", "clippy", "llvm-tools-preview"]
 # The web build: Native Shell's engine and the app's crate, as one WebAssembly module.
 targets = ["wasm32-unknown-unknown"]

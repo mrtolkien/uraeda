@@ -140,8 +140,10 @@ impl Picture {
     /// How many pixels `wanted` takes, given their red, green, and blue.
     pub fn count(&self, wanted: impl Fn(u8, u8, u8) -> bool) -> usize {
         self.pixels
-            .chunks_exact(4)
-            .filter(|pixel| wanted(pixel[2], pixel[1], pixel[0]))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .filter(|[blue, green, red, _]| wanted(*red, *green, *blue))
             .count()
     }
 }

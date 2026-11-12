@@ -203,10 +203,12 @@ fn quoted(doc: Doc<'_>, pos: Pos, quote: char, around: bool, count: usize) -> Op
     let line = doc.line(pos.line);
     let quotes = unescaped(&line, quote);
     let (open, close) = if quotes.contains(&pos.col) {
-        let pair = quotes
-            .chunks_exact(2)
-            .find(|pair| pair[0] <= pos.col && pos.col <= pair[1])?;
-        (pair[0], pair[1])
+        let [open, close] = quotes
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .find(|[open, close]| *open <= pos.col && pos.col <= *close)?;
+        (*open, *close)
     } else {
         match quotes.iter().rposition(|col| *col < pos.col) {
             Some(index) => (quotes[index], *quotes.get(index + 1)?),

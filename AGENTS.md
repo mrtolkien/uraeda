@@ -170,7 +170,8 @@ Running it here:
 - **A crate that takes `nsh-bundler` takes the five `rolldown_*` crates beside it** in `Cargo.toml`,
   as `crates/server/` does: NSH holds `rolldown` at 1.2.13, a new release moved those five alone,
   and `rolldown` no longer built.
-- Rust 1.97 is the oldest release that builds NSH 0.5.0, which declares it (`rust-version`).
+- The toolchain is Rust 1.100.0 (`rust-toolchain.toml`), and the workspace's `rust-version` is
+  1.100. NSH 0.5.0 declares 1.97, the oldest release that builds it.
 
 ## Shell
 

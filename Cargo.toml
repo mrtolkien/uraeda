@@ -7,9 +7,8 @@ version = "1.4.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mrtolkien/uraeda"
-homepage = "https://github.com/mrtolkien/uraeda"
 publish = false
-rust-version = "1.97"
+rust-version = "1.100"
 
 [workspace.dependencies]
 # The server's HTTP and WebSockets, with only what it serves: HTTP/1 on tokio, JSON, and upgrades.
