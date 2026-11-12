@@ -212,7 +212,7 @@ _bench-web what on test:
     URAEDA_BENCH="{{ what }}" {{ if on == "web-profile" { "URAEDA_BENCH_PROFILE=1" } else { "" } }} URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact {{ test }} 2>&1 | tee "target/bench-web-$(echo '{{ what }}' | tr ' ' -).log"
 
 # The whole app to review, on sample projects with a fake agent and no sign-in: the server, `ura
-# sandbox`, at http://127.0.0.1:4420, its state in `.sandbox-next/` until `just sandbox --reset`,
+# sandbox`, at http://127.0.0.1:4420, its state in `.sandbox/` until `just sandbox --reset`,
 # and the app over it, with hot reload; Ctrl+C stops both. `ura sandbox`'s flags,
 # `--long-chat`, `--port 0`, `--sign-in`, `--folder DIR`; `--no-app` for the server alone. An agent
 # runs `hidden-display just sandbox`.

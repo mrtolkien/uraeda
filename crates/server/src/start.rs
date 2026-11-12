@@ -43,7 +43,8 @@ pub enum Holder {
 /// Starts a server, or hands over to the one running.
 pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     let failed = |error: std::io::Error| NotStarted::Failed(error.to_string());
-    let listener = listen(&options).await?;
+    let (asked, asked_by) = crate::port::asked_port(&options).map_err(NotStarted::Failed)?;
+    let listener = listen(&options, asked).await?;
     let port = listener.local_addr().map_err(failed)?.port();
     // The status file before the rest of the start: a second start meanwhile finds the token,
     // and waits for the answer.
@@ -57,6 +58,7 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     let no_scheduled_jobs = options.no_scheduled_jobs;
     let sandbox = options.sandbox;
     let shared = Shared::new(options, port, token);
+    shared.provide(crate::port::PortFrom(asked_by));
     if no_scheduled_jobs {
         shared.provide(crate::jobs::NoScheduledJobs);
     }
@@ -92,9 +94,9 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     Ok(server)
 }
 
-/// Takes the port, on the loopback interface only. Before that, a server its status file names is
+/// Takes the port asked for, on the loopback interface only. Before that, a server its status file names is
 /// asked to take the folder: one data folder has one server, whatever port this start asks for.
-async fn listen(options: &Options) -> Result<TcpListener, NotStarted> {
+async fn listen(options: &Options, port: u16) -> Result<TcpListener, NotStarted> {
     let folder = options.folder.as_deref();
     if let Some(running) = status::read(&options.data_dir) {
         let handed = hand_over(running.port, Some(&running.token), folder).await;
@@ -103,20 +105,20 @@ async fn listen(options: &Options) -> Result<TcpListener, NotStarted> {
             return Err(over);
         }
     }
-    match TcpListener::bind((Ipv4Addr::LOCALHOST, options.port)).await {
+    match TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
         Ok(listener) => Ok(listener),
-        Err(error) if error.kind() == ErrorKind::AddrInUse => Err(taken(options, folder).await),
+        Err(error) if error.kind() == ErrorKind::AddrInUse => {
+            Err(taken(options, port, folder).await)
+        }
         Err(error) => Err(NotStarted::Failed(format!(
-            "cannot listen on port {}: {error}",
-            options.port
+            "cannot listen on port {port}: {error}"
         ))),
     }
 }
 
 /// Why the port is taken: by this data folder's server, which took it since its status file was
 /// read, by another Uraeda, or by another program.
-async fn taken(options: &Options, folder: Option<&Path>) -> NotStarted {
-    let port = options.port;
+async fn taken(options: &Options, port: u16, folder: Option<&Path>) -> NotStarted {
     let token = status::read(&options.data_dir)
         .filter(|running| running.port == port)
         .map(|running| running.token);

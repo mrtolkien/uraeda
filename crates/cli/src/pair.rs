@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use qrcodegen::{QrCode, QrCodeEcc};
-use uraeda_server::default_data_dir;
+use uraeda_core::repositories::default_data_dir;
 use uraeda_server::sign_in::{self, Pairing};
 
 use crate::output;

@@ -1,7 +1,7 @@
 //! `ura import-sessions`: copies the sessions of the earlier server, the Node one, into the new
 //! server's store, once.
 //!
-//! TEMPORARY: removed with the Node server, once the port is done (task 61).
+//! A one-time tool: it goes once its owner ran it, with the importer (ruling R74).
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -9,7 +9,6 @@ use std::process::ExitCode;
 use std::time::SystemTime;
 
 use uraeda_core::repositories;
-use uraeda_server::default_data_dir;
 use uraeda_server::runner::{self, ImportError, Imported, Replace, Store};
 
 /// Imports the sessions of the data folder `from`, the earlier server's by default, into the
@@ -22,8 +21,8 @@ pub fn run(
 ) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     // A relative folder joins the current one.
-    let from = cwd.join(from.unwrap_or_else(repositories::default_data_dir));
-    let data_dir = cwd.join(data_dir.unwrap_or_else(default_data_dir));
+    let from = cwd.join(from.unwrap_or_else(repositories::default_earlier_data_dir));
+    let data_dir = cwd.join(data_dir.unwrap_or_else(repositories::default_data_dir));
     let store = Store::open(&data_dir).map_err(|error| error.to_string())?;
     let replace = if replace { Replace::Yes } else { Replace::No };
     let imported = runner::import(&from, &store, SystemTime::now(), replace);

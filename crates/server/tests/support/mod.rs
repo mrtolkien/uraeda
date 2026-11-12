@@ -120,7 +120,7 @@ impl Setup {
         let mut environment = vec![("PATH".to_owned(), path)];
         environment.extend(self.environment.iter().cloned());
         Options {
-            port: 0,
+            port: Some(0),
             config_dir: self.config.path().to_owned(),
             data_dir: self.data.path().to_owned(),
             folder: self.folder.clone(),

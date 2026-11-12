@@ -199,7 +199,8 @@ enum Command {
     Extension(extension::Args),
     /// Run Uraeda's server on this machine, until it is stopped
     Serve {
-        /// The port on 127.0.0.1, 4320 by default; 0 takes a free one
+        /// The port on 127.0.0.1: else URAEDA_PORT, else the settings' port, else 4310; 0 takes
+        /// a free one
         #[arg(long)]
         port: Option<u16>,
         /// The folder the server keeps its data in

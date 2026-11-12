@@ -30,6 +30,7 @@ mod http;
 pub mod jobs;
 pub mod live;
 pub mod mcp;
+mod port;
 pub mod preview;
 mod process;
 mod records;
@@ -52,15 +53,13 @@ use tokio::task::JoinHandle;
 pub use clock::Clock;
 pub use env::Environment;
 pub use http::Routes;
+pub use port::asked_port;
 pub use run::run;
 pub use shared::Shared;
 pub use start::{Holder, NotStarted};
 
-/// The port `ura serve` listens on by default.
-///
-/// TEMPORARY: apart from the Node server's 4310 while both exist: it becomes that port when the
-/// Node server goes (task 61).
-pub const DEFAULT_PORT: u16 = 4320;
+/// The port `ura serve` listens on when nothing gives one: the port Uraeda's server always had.
+pub const DEFAULT_PORT: u16 = 4310;
 
 /// How long open requests get to end once the server stops.
 const GRACE: Duration = Duration::from_secs(5);
@@ -90,21 +89,13 @@ const DOMAINS: &[Mount] = &[
     sandbox::mount,
 ];
 
-/// The data folder `ura serve` keeps its files in by default: the core's data folder, with
-/// `-next` after its name, as `~/.local/share/uraeda-next`.
-///
-/// TEMPORARY: apart from the Node server's while both exist (task 61).
-pub fn default_data_dir() -> PathBuf {
-    let mut folder = uraeda_core::repositories::default_data_dir().into_os_string();
-    folder.push("-next");
-    folder.into()
-}
-
 /// How a server starts.
 #[derive(Clone, Debug)]
 pub struct Options {
-    /// The port to listen on, on 127.0.0.1: 0 takes a free one.
-    pub port: u16,
+    /// `--port`: the port to listen on, on 127.0.0.1, where 0 takes a free one. Without it,
+    /// the port is `URAEDA_PORT`'s, else the settings file's, else [`DEFAULT_PORT`]: see
+    /// [`asked_port`].
+    pub port: Option<u16>,
     /// The config folder: the settings, the themes, the extensions, and the `.env` of secrets.
     pub config_dir: PathBuf,
     /// The data folder, which one server at a time owns.

@@ -34,7 +34,8 @@ pub struct LocalOptions {
     pub ura: PathBuf,
     /// The data folder, which one server at a time owns.
     pub data_dir: PathBuf,
-    /// The port a server the app starts listens on: `ura serve`'s own, 4320, unless given.
+    /// The port a server the app starts listens on: `ura serve`'s own, 4310 unless its settings
+    /// say otherwise, unless given.
     pub port: Option<u16>,
     /// The folder a server the app starts runs in: its repository joins the list, as with
     /// `ura serve` run there.
@@ -50,7 +51,7 @@ pub struct LocalOptions {
 /// A server of the data folder that answers.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Running {
-    /// Where it listens: `http://127.0.0.1:4320`.
+    /// Where it listens: `http://127.0.0.1:4310`.
     pub address: String,
     /// Its process.
     pub pid: u32,

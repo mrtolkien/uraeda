@@ -21,8 +21,8 @@ Usage: uraeda [--server <address>] [--data-dir <folder>] [--port <port>] [--ura 
   --server <address>   Another machine's server: https://mac.tail1234.ts.net. The app pairs
                        with it on its first start.
   --data-dir <folder>  The data folder of this machine's server: Uraeda's own unless given.
-  --port <port>        The port of a server the app starts: `ura serve`'s own, 4320, unless
-                       given; 0 takes a free one.
+  --port <port>        The port of a server the app starts: `ura serve`'s own, 4310 unless
+                       its settings say otherwise, unless given; 0 takes a free one.
   --ura <command>      The `ura` that serves, when the app starts the server: the one beside
                        this app, else the one on the PATH.
   --app <folder>       The app's built files, `bundle.nshc`: `nsh/` beside this app unless given.";
@@ -154,12 +154,11 @@ fn target(args: &Args, beside: Option<PathBuf>) -> Target {
     if let Some(address) = &args.server {
         return Target::Remote(address.trim_end_matches('/').to_owned());
     }
-    let mut data_dir = args.data_dir.clone().unwrap_or_else(|| {
-        let mut folder = uraeda_core::repositories::default_data_dir().into_os_string();
-        // The Rust server's own data folder, as `ura serve` takes it (ruling R32).
-        folder.push("-next");
-        folder.into()
-    });
+    // The server's own data folder, as `ura serve` takes it.
+    let mut data_dir = args
+        .data_dir
+        .clone()
+        .unwrap_or_else(uraeda_core::repositories::default_data_dir);
     let here = std::env::current_dir().unwrap_or_default();
     if data_dir.is_relative() {
         data_dir = here.join(data_dir);

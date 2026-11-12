@@ -5,7 +5,7 @@
 import { page } from "./page";
 import type { ShellHost } from "../screens/shell/host";
 
-/** The server's address, the page's own origin: `http://127.0.0.1:4320`. */
+/** The server's address, the page's own origin: `http://127.0.0.1:4310`. */
 export const origin = (): string => page().location.origin;
 
 /** Whether the browser is signed in at the server: it answers its own session's check. */

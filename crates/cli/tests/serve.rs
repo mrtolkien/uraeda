@@ -193,6 +193,65 @@ fn serve_runs_until_it_is_stopped_and_a_second_start_hands_over() {
     assert!(!status_file.exists());
 }
 
+// The earlier server, the Node one, kept its sessions in `runner.sqlite`. Its data folder is
+// never this server's: the import reads it, and nothing of it is written (ruling T61.6).
+#[test]
+fn serve_refuses_the_earlier_servers_data_folder_and_writes_nothing_there() {
+    let folders = Folders::new();
+    let repo = TestRepo::named("todo-app");
+    let data = folders.data();
+    fs::create_dir(&data).unwrap();
+    fs::write(
+        Path::new(&data).join("runner.sqlite"),
+        "the earlier server's",
+    )
+    .unwrap();
+
+    let refused = folders
+        .serve(repo.path(), &["--port", "0"])
+        .output()
+        .unwrap();
+
+    let said = String::from_utf8(refused.stderr).unwrap();
+    assert_eq!(
+        said,
+        format!(
+            "ura: {data} holds the earlier server's sessions, runner.sqlite: it is not this \
+             server's data folder. Run `ura import-sessions --from {data}` to copy them, and \
+             start the server on another folder, with --data-dir or URAEDA_DATA_DIR, or on its \
+             own with neither\n"
+        )
+    );
+    assert_eq!(refused.status.code(), Some(1));
+    let left: Vec<_> = fs::read_dir(&data)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .collect();
+    assert_eq!(left, ["runner.sqlite"]);
+}
+
+// The settings decision: without `--port`, the server listens on the port `URAEDA_PORT` gives.
+#[test]
+fn serve_listens_on_the_port_its_variable_gives() {
+    let folders = Folders::new();
+    let repo = TestRepo::named("todo-app");
+    // A port that is free now: taken for a moment, then left to the server.
+    let free = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = free.local_addr().unwrap().port();
+    drop(free);
+
+    let mut server = Running(
+        folders
+            .serve(repo.path(), &[])
+            .env("URAEDA_PORT", port.to_string())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap(),
+    );
+
+    assert_eq!(started(&mut server, 1).0, port);
+}
+
 // The contract between `ura pair` and the server: the code it prints is one the server takes,
 // once.
 #[test]

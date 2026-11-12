@@ -46,7 +46,7 @@ async fn server(folders: &Path) -> Server {
         path
     };
     let start = Start {
-        port: 0,
+        port: Some(0),
         config_dir: folder("config"),
         data_dir: folder("data"),
         folder: None,

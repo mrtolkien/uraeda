@@ -3,7 +3,7 @@
 # review the whole app: `ura sandbox` (the sample projects, the fake agent, no sign-in), then the
 # app over it, with hot reload. Ctrl+C in its terminal stops both, the server by its process id.
 #
-# - The server keeps its state in `.sandbox-next/` (or `--folder`), on 4420 (or `--port`; `--port
+# - The server keeps its state in `.sandbox/` (or `--folder`), on 4420 (or `--port`; `--port
 #   0` takes a free one), and takes `ura sandbox`'s other flags: `--reset`, `--long-chat`,
 #   `--sign-in`.
 # - `--no-app` starts the server alone, until Ctrl+C, for a browser or `just app-dev`.

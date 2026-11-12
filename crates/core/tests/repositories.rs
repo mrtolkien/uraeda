@@ -365,18 +365,22 @@ type DataDirCase = (
 fn the_data_folder_follows_the_platform() {
     let cases: [DataDirCase; 7] = [
         (&[("URAEDA_DATA_DIR", "/data")], "linux", "/data"),
-        (&[("XDG_DATA_HOME", "/xdg")], "linux", "/xdg/uraeda"),
-        (&[], "linux", "/home/me/.local/share/uraeda"),
+        (&[("XDG_DATA_HOME", "/xdg")], "linux", "/xdg/uraeda-next"),
+        (&[], "linux", "/home/me/.local/share/uraeda-next"),
         (
             &[("XDG_DATA_HOME", "")],
             "linux",
-            "/home/me/.local/share/uraeda",
+            "/home/me/.local/share/uraeda-next",
         ),
-        (&[], "macos", "/home/me/Library/Application Support/uraeda"),
+        (
+            &[],
+            "macos",
+            "/home/me/Library/Application Support/uraeda-next",
+        ),
         (
             &[("APPDATA", "C:\\Users\\me\\AppData\\Roaming")],
             "windows",
-            "C:\\Users\\me\\AppData\\Roaming\\uraeda",
+            "C:\\Users\\me\\AppData\\Roaming\\uraeda-next",
         ),
         (
             &[("URAEDA_DATA_DIR", "/data"), ("XDG_DATA_HOME", "/xdg")],
@@ -392,6 +396,32 @@ fn the_data_folder_follows_the_platform() {
         };
 
         let folder = repositories::data_dir(var, os, Path::new("/home/me"));
+
+        assert_eq!(folder, PathBuf::from(expected), "{vars:?} on {os}");
+    }
+}
+
+// The earlier server, the Node one, kept its files in the folder named `uraeda`: the import
+// reads it there, and the variable, which now names this server's folder, does not move it.
+#[test]
+fn the_earlier_servers_data_folder_is_the_platforms_named_uraeda() {
+    let cases: [DataDirCase; 3] = [
+        (&[], "linux", "/home/me/.local/share/uraeda"),
+        (
+            &[("URAEDA_DATA_DIR", "/data"), ("XDG_DATA_HOME", "/xdg")],
+            "linux",
+            "/xdg/uraeda",
+        ),
+        (&[], "macos", "/home/me/Library/Application Support/uraeda"),
+    ];
+    for (vars, os, expected) in cases {
+        let var = |name: &str| {
+            vars.iter()
+                .find(|(key, _)| *key == name)
+                .map(|(_, value)| value.to_string())
+        };
+
+        let folder = repositories::earlier_data_dir(var, os, Path::new("/home/me"));
 
         assert_eq!(folder, PathBuf::from(expected), "{vars:?} on {os}");
     }

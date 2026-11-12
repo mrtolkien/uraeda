@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use uraeda_server::default_data_dir;
+use uraeda_core::repositories::default_data_dir;
 use uraeda_server::sign_in::{self, NewKey};
 
 /// Prints an access key of the server whose files are in `data_dir`: its first, or with

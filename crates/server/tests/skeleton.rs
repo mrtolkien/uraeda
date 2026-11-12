@@ -392,7 +392,7 @@ async fn a_second_start_hands_over_to_the_first() {
     // A port that is not this data folder's server's: another Uraeda, or another program.
     let elsewhere = tempfile::TempDir::new().unwrap();
     let other_data = Options {
-        port: first.port(),
+        port: Some(first.port()),
         data_dir: elsewhere.path().to_owned(),
         ..first.options()
     };
@@ -413,7 +413,7 @@ async fn a_second_start_hands_over_to_the_first() {
     );
     let port = another_program();
     let taken = second_start(Options {
-        port,
+        port: Some(port),
         data_dir: elsewhere.path().to_owned(),
         ..first.options()
     })

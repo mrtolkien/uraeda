@@ -7,7 +7,7 @@ import { host } from "nsh";
 
 /** A server that answers. */
 export type Server = {
-  /** Where it listens: `http://127.0.0.1:4320`. */
+  /** Where it listens: `http://127.0.0.1:4310`. */
   address: string;
   /** It is this machine's: the host starts it again when it stops, and pairs by itself. */
   local: boolean;

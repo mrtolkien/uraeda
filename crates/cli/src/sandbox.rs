@@ -16,7 +16,7 @@ pub struct Args {
     /// The port on 127.0.0.1, 4420 by default; 0 takes a free one
     #[arg(long)]
     port: Option<u16>,
-    /// The sandbox's folder, `.sandbox-next/` of the checkout by default
+    /// The sandbox's folder, `.sandbox/` of the checkout by default
     #[arg(long, value_hint = clap::ValueHint::DirPath)]
     folder: Option<PathBuf>,
     /// Keep sign-in on, with a new key at each start, to see the sign-in and pairing screens

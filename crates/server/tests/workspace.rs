@@ -10,8 +10,8 @@ use std::time::Duration;
 use serde_json::{Value, json};
 use support::{Held, TestRepo, TestServer, call, fixture_repo, read};
 use uraeda_core::repositories;
-use uraeda_protocol::{ErrorCode, NeedsYouList, Repositories, Settings, Themes, Workspace};
-use uraeda_server::Server;
+use uraeda_protocol::{ErrorCode, NeedsYouList, Repositories, Settings, Source, Themes, Workspace};
+use uraeda_server::{Options, Server};
 
 /// The fixture's feature that waits on the human: its questions are not answered.
 const HUMAN: &str = "2026-10-11-web-ui";
@@ -256,7 +256,10 @@ async fn settings_answers_its_shape() {
     assert_eq!(value["problem"], Value::Null);
     assert_eq!(value["server"]["allowedHosts"], unset(json!([])));
     assert_eq!(value["server"]["openBrowser"], unset(json!(true)));
-    assert_eq!(value["server"]["port"]["inForce"], server.port());
+    // The tests' servers take a free port, with the flag.
+    let flag = json!({ "kind": "flag", "name": "--port" });
+    let port = json!({ "inForce": server.port(), "saved": null, "source": flag });
+    assert_eq!(value["server"]["port"], port);
     let keyboard = json!({
         "singleKeyShortcuts": unset(json!(true)),
         "vimMode": unset(json!(false)),
@@ -717,6 +720,59 @@ async fn host_names_given_by_the_environment_stay_whatever_the_file_lists() {
     assert_eq!(status_for(&server, "mac.ts.net").await, 403);
     let written = fs::read_to_string(server.config_dir().join("config.toml")).unwrap();
     assert!(!written.contains("build.ts.net"), "{written}");
+}
+
+// The settings decision, for the port a start listens on: `--port`, then `URAEDA_PORT`, then the
+// settings file's `port`, then 4310, the port Uraeda's server always had (ruling T61.6).
+#[test]
+fn the_port_is_the_flags_then_the_variables_then_the_files_then_4310() {
+    let variable = Source::Environment {
+        name: "URAEDA_PORT".to_owned(),
+    };
+    let flag = Source::Flag {
+        name: "--port".to_owned(),
+    };
+    let file = "[server]\nport = 6000\n";
+    type Row = (
+        Option<u16>,
+        Option<&'static str>,
+        Option<&'static str>,
+        Result<(u16, Source), &'static str>,
+    );
+    let rows: [Row; 7] = [
+        (Some(0), Some("5000"), Some(file), Ok((0, flag.clone()))),
+        (Some(7000), None, None, Ok((7000, flag))),
+        (None, Some("5000"), Some(file), Ok((5000, variable))),
+        // An empty variable is unset.
+        (None, Some(""), Some(file), Ok((6000, Source::File))),
+        (None, None, None, Ok((4310, Source::Default))),
+        // A settings file that does not read never keeps the server from starting.
+        (None, None, Some("[server\n"), Ok((4310, Source::Default))),
+        (
+            None,
+            Some("70000"),
+            None,
+            Err("URAEDA_PORT: The port is a number from 1 to 65535."),
+        ),
+    ];
+    for (flag, variable, file, expected) in rows {
+        let mut setup = support::setup();
+        if let Some(value) = variable {
+            setup = setup.env("URAEDA_PORT", value);
+        }
+        if let Some(text) = file {
+            setup = setup.config("config.toml", text);
+        }
+        let options = Options {
+            port: flag,
+            ..setup.options()
+        };
+
+        let asked = uraeda_server::asked_port(&options);
+
+        let expected = expected.map_err(str::to_owned);
+        assert_eq!(asked, expected, "{flag:?} {variable:?} {file:?}");
+    }
 }
 
 // R13 of the settings page: a variable that is not a setting's value stops the start, and says

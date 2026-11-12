@@ -1,7 +1,7 @@
 //! The one-time import of the Node server's sessions, `runner.sqlite`, into the store: what
 //! `ura import-sessions` runs.
 //!
-//! TEMPORARY: removed with the Node server, once the port is done (task 61).
+//! A one-time tool: it goes once its owner ran it (ruling R74).
 //!
 //! - **Never under a running server**: a server that runs on the new data folder holds its
 //!   sessions in memory, runs their turns, and times their jobs; replacing its store under it

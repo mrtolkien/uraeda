@@ -3,7 +3,7 @@
 # tests need one (`just sandboxed scripts/nsh.sh test`).
 #
 # - It builds `ura`, then starts `ura sandbox` on a free port, in a new folder of the system's
-#   temporary folder: a fresh sandbox, never the checkout's `.sandbox-next/`. Beside it, a second
+#   temporary folder: a fresh sandbox, never the checkout's `.sandbox/`. Beside it, a second
 #   one keeps sign-in on (`--sign-in`), for the pairing and revoking tests.
 # - Once the servers answer, it runs the command with `URAEDA_SANDBOX` set to the first one's
 #   address, `http://127.0.0.1:<port>`, `URAEDA_SANDBOX_FOLDER` to its folder,

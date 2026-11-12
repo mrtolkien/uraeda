@@ -16,7 +16,7 @@ use crate::{Clock, Options, Shared};
 async fn no_write_opens_a_queue_once_the_stop_began() {
     let folder = TempDir::new().unwrap();
     let options = Options {
-        port: 0,
+        port: Some(0),
         config_dir: folder.path().join("config"),
         data_dir: folder.path().join("data"),
         folder: None,

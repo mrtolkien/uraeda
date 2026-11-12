@@ -41,7 +41,7 @@ use crate::runner::Store;
 use crate::shared::Shared;
 use crate::{Clock, Failure, Options};
 
-/// The port the sandbox asks for, away from `ura serve`'s 4320 and the Node sandbox's 4410.
+/// The port the sandbox asks for, away from `ura serve`'s 4310.
 pub const PORT: u16 = 4420;
 
 /// The sample projects' last day, which `ura sandbox` makes today with `URA_TODAY`: the core
@@ -91,10 +91,9 @@ pub fn checkout() -> PathBuf {
     manifest.ancestors().nth(2).unwrap_or(manifest).to_owned()
 }
 
-/// The sandbox's folder in the checkout: `.sandbox-next/`, apart from the Node sandbox's
-/// `.sandbox/` while both exist (task 61), ignored by git.
+/// The sandbox's folder in the checkout: `.sandbox/`, ignored by git.
 pub fn default_folder() -> PathBuf {
-    checkout().join(".sandbox-next")
+    checkout().join(".sandbox")
 }
 
 /// A path of the checkout's `fixtures/`.
@@ -308,7 +307,7 @@ pub fn options(
         None => environment.push(("PATH".to_owned(), bin)),
     }
     Options {
-        port,
+        port: Some(port),
         config_dir: sandbox.config_dir.clone(),
         data_dir: sandbox.data_dir.clone(),
         folder: None,

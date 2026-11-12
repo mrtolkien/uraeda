@@ -16,9 +16,10 @@ use uraeda_core::settings as core;
 use uraeda_protocol::{KeyboardSettings, RunSettings, ServerSettings, Setting, Settings, Source};
 
 use self::given::Given;
+use crate::Failure;
 use crate::live::{Bus, Registry, locked};
+use crate::port::PortFrom;
 use crate::shared::Shared;
-use crate::{DEFAULT_PORT, Failure};
 
 /// The automatic continues in a row when no variable or file gives them.
 const AUTOMATIC_CONTINUES: u32 = 3;
@@ -124,22 +125,13 @@ fn server(shared: &Shared, given: &Given, file: core::ServerSettings) -> ServerS
     }
 }
 
-/// The port in force is the one the server listens on.
-///
-/// TEMPORARY: the file's port is the Node server's while both exist (ruling R32), so only
-/// `--port` moves this server from its default. Task 61 gives the port its setting and its
-/// variable.
+/// The port in force is the one the server listens on, with what gave it as it started: a port
+/// saved since applies at the next start.
 fn port(shared: &Shared, saved: Option<u16>) -> Setting<u16> {
-    let source = match shared.port() {
-        DEFAULT_PORT => Source::Default,
-        _ => Source::Flag {
-            name: "--port".to_owned(),
-        },
-    };
     Setting {
         in_force: shared.port(),
         saved,
-        source,
+        source: shared.get::<PortFrom>().0.clone(),
     }
 }
 

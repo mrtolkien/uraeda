@@ -5,12 +5,12 @@ use std::path::Path;
 
 use common::*;
 
-/// `ura import-sessions` in a folder, with `data` as the earlier server's data folder: the new
-/// server's is then `data` with `-next` after its name.
-fn import(dir: &Path, data: &Path, args: &[&str]) -> Output {
+/// `ura import-sessions` in a folder, with `share` as the system's data folder: the earlier
+/// server's is then `uraeda` in it, and the new server's `uraeda-next`.
+fn import(dir: &Path, share: &Path, args: &[&str]) -> Output {
     let mut all = vec!["import-sessions"];
     all.extend_from_slice(args);
-    ura_in(dir, &all, &[("URAEDA_DATA_DIR", data.to_str().unwrap())])
+    ura_in(dir, &all, &[("XDG_DATA_HOME", share.to_str().unwrap())])
 }
 
 // The contract between `ura import-sessions` and the two servers' data folders: by default it
@@ -18,13 +18,14 @@ fn import(dir: &Path, data: &Path, args: &[&str]) -> Output {
 #[test]
 fn import_sessions_copies_the_earlier_servers_sessions_once() {
     let home = tempfile::TempDir::new().unwrap();
-    let old = home.path().join("data");
-    let new = home.path().join("data-next");
-    fs::create_dir(&old).unwrap();
+    let share = home.path().join("share");
+    let old = share.join("uraeda");
+    let new = share.join("uraeda-next");
+    fs::create_dir_all(&old).unwrap();
     fs::copy(fixture("runner/old.sqlite"), old.join("runner.sqlite")).unwrap();
     let before = fs::read(old.join("runner.sqlite")).unwrap();
 
-    let first = import(home.path(), &old, &[]);
+    let first = import(home.path(), &share, &[]);
 
     assert_eq!(first.stderr, "");
     assert_eq!(
@@ -43,7 +44,7 @@ fn import_sessions_copies_the_earlier_servers_sessions_once() {
     assert_eq!(fs::read(old.join("runner.sqlite")).unwrap(), before);
 
     // A second run imports nothing, and says how to start again.
-    let second = import(home.path(), &old, &[]);
+    let second = import(home.path(), &share, &[]);
     assert_eq!(
         second.stderr,
         "ura: the store already holds 4 sessions: nothing was imported. With --replace, they are \
@@ -51,20 +52,20 @@ fn import_sessions_copies_the_earlier_servers_sessions_once() {
     );
     assert_eq!((second.stdout.as_str(), second.code), ("", 1));
 
-    let replaced = import(home.path(), &old, &["--replace"]);
+    let replaced = import(home.path(), &share, &["--replace"]);
     assert_eq!((replaced.stdout, replaced.code), (first.stdout, 0));
 
     // Each folder can be named: a relative one joins the current folder.
     let named = import(
         home.path(),
-        &old,
-        &["--from", "data", "--data-dir", "elsewhere"],
+        &share,
+        &["--from", "share/uraeda", "--data-dir", "elsewhere"],
     );
     assert_eq!(named.code, 0, "{}", named.stderr);
     assert!(home.path().join("elsewhere/sessions.sqlite").exists());
 
     // A folder without the earlier server's store has nothing to import.
-    let none = import(home.path(), &old, &["--from", "elsewhere"]);
+    let none = import(home.path(), &share, &["--from", "elsewhere"]);
     assert_eq!(
         none.stderr,
         format!(
