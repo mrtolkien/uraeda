@@ -227,10 +227,26 @@ function Tools(props: { count: number; noCheck: boolean; onJump: () => void; rep
   );
 }
 
+/** How many times `/` asked, from a reader beside the list, for its Jump to… picker. */
+const jumpAsked = signal(0);
+
+/**
+ * Opens the decisions' Jump to… picker from a pane beside the list: `/` searches the page's list
+ * wherever the focus is on the page, as the keyboard guide's `/` says.
+ */
+export const askJump = () => jumpAsked.update((asked) => asked + 1);
+
 function LedgerList(props: { repo: string }) {
   const pane = usePane();
   const ledger = ledgerOf(props.repo);
   const jumping = signal(false);
+  let seen = untracked(jumpAsked);
+  effect(() => {
+    const asked = jumpAsked();
+    if (asked === seen) return;
+    seen = asked;
+    jumping.set(true);
+  });
   // One object per id, kept: the list matches its rows by identity.
   const made = new Map<string, { id: string }>();
   const rows = computed(() => {

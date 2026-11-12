@@ -16,6 +16,7 @@ import {
 } from "../../ui/controls";
 import { type DocumentHands, DocumentScroll, type DocumentScrollRef } from "../../ui/document";
 import { registerKey } from "../../ui/keys";
+import { askJump } from "./List";
 import { definePane, PaneScroll, usePane } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
@@ -65,6 +66,8 @@ export function Scroll(
 ) {
   const pane = usePane();
   const path = props.path;
+  // The list's `/`, from the reading: the Jump to… picker over the page.
+  registerKey({ keys: "/", label: "Jump to a decision…", run: askJump });
   if (path !== undefined) {
     registerKey({
       icon: "file-pen-line",
