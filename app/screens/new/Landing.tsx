@@ -135,6 +135,7 @@ export function Landing(props: {
         <Button
           disabled={!landed()}
           icon="arrow-right"
+          keys="Enter"
           label={`Open the ${props.started.kind}`}
           onPress={open}
           testID="start-open"
