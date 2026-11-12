@@ -82,7 +82,7 @@ export function CommentField(props: CommentFieldProps) {
   };
   const whole = wholeOverKeyboard();
   return (
-    <View ref={whole.ref} style={{ gap: 6, paddingTop: 6 }}>
+    <View onLayout={whole.onLayout} ref={whole.ref} style={{ gap: 6, paddingTop: 6 }}>
       <TextField
         autoFocus={props.autoFocus}
         hint={text.dirty() ? "Kept on this device until it is saved" : undefined}

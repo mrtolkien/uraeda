@@ -192,7 +192,7 @@ export function Question(props: QuestionProps) {
           </View>
         </If>
       </View>
-      <View ref={whole.ref}>
+      <View onLayout={whole.onLayout} ref={whole.ref}>
         <TextField
           hint={
             comment.dirty()

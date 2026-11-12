@@ -89,16 +89,21 @@ export function revealBy(it: Measured, box: Measured): number {
 /**
  * A form typed in on a phone shows whole as the keyboard rises, its field and the button that
  * saves it: a browser scrolls only the caret into view, and the keyboard covered the button. Its
- * `ref` goes on the form's view, and `typing` follows its field's focus. Inside a `PaneScroll` or
- * a `DocumentScroll`, found by measure rather than by context, which a browser does not pass.
+ * `ref` goes on the form's view, `onLayout` too, and `typing` follows its field's focus. A field
+ * that grows as it is typed in, a line at a time, pushes its end under the keyboard again: a form
+ * laid out at another height shows whole again. Inside a `PaneScroll` or a `DocumentScroll`,
+ * found by measure rather than by context, which a browser does not pass.
  */
 export function wholeOverKeyboard(): {
+  onLayout: (event: { bounds: { size: { height: number } } }) => void;
   ref: (view: ViewRef) => void;
   typing: (on: boolean) => void;
 } {
   const typing = signal(false);
+  const height = signal(0);
   let form: ViewRef | undefined;
   effect(() => {
+    height();
     if (keyboardFrame().height === 0 || !typing() || form === undefined) return;
     const view = form;
     // Once the pane took the room the keyboard leaves.
@@ -106,6 +111,7 @@ export function wholeOverKeyboard(): {
     cleanup(() => clearTimeout(timer));
   });
   return {
+    onLayout: (event) => height.set(Math.round(event.bounds.size.height)),
     ref: (view) => {
       form = view;
     },
