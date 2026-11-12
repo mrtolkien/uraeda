@@ -9,6 +9,7 @@
 import type { JSX, StyleProp, ViewStyle } from "nsh";
 import type { SurfaceIcon } from "./mark";
 import { Float, type Place } from "./Float";
+import { belowStatus, keyboardUp, safe } from "./safe";
 import { isNarrow } from "../width";
 import { tokens } from "../tokens";
 
@@ -21,9 +22,18 @@ export const sheetPlace = (scrim: boolean): Place =>
     ? {
         box: { margin: GAP, maxHeight: "85%" },
         rise: tokens.motion.rise * 4,
-        window: { alignItems: "stretch", justifyContent: "flex-end" },
+        // Above the home indicator, or lifted by the whole keyboard; never over the places' bar.
+        window: {
+          alignItems: "stretch",
+          justifyContent: "flex-end",
+          paddingBottom: keyboardUp() ? safe.keyboard : safe.bottom,
+          paddingTop: belowStatus(tokens.control.touch),
+        },
       }
-    : { box: { bottom: GAP, left: GAP, right: GAP }, rise: tokens.motion.rise * 4 };
+    : {
+        box: { bottom: GAP, left: GAP, marginBottom: safe.bottom, right: GAP },
+        rise: tokens.motion.rise * 4,
+      };
 
 export type OverlayProps = {
   children?: JSX.Element;

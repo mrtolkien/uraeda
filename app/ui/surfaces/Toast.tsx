@@ -16,6 +16,7 @@ import {
 import { say } from "../announce";
 import { presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
+import { safe } from "./safe";
 import { Surface } from "./Surface";
 import { isNarrow } from "../width";
 import { type Tone, tokens } from "../tokens";
@@ -35,7 +36,7 @@ export function Toasts(props: { children?: JSX.Element }) {
         { gap: tokens.type.line / 2 + 10, position: "absolute" },
         // Under the panes' titles, which stay in reach: the stack's top pane's title, its tabs.
         isNarrow()
-          ? { left: 8, right: 8, top: tokens.control.touch + top() }
+          ? { left: 8, marginTop: safe.top, right: 8, top: tokens.control.touch + top() }
           : { right: 12, top: top(), width: 360 },
       ]}
     >

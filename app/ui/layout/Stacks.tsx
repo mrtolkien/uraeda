@@ -40,7 +40,7 @@ import { type StatusSlots, StatusLine } from "./StatusLine";
 import { route } from "../../store/history";
 import { IconButton, Menu, Text } from "../controls";
 import { KeyScope } from "../keys/registry";
-import { Backdrop, Sheet } from "../surfaces";
+import { aboveHome, Backdrop, keyboardUp, safe, Sheet } from "../surfaces";
 import { tokens } from "../tokens";
 import { measured, width, windowWidth } from "../width";
 
@@ -128,6 +128,10 @@ export function Stacks(props: StacksProps) {
     });
   });
   const sheet: Signal<boolean> = signal(false);
+  /** The phone's bottom bar: for several panes or a pane's action, under the keyboard while up. */
+  const barShown = () =>
+    !keyboardUp() &&
+    (narrowed(layout()).panes.length > 1 || actionOf(narrowed(layout()).panes) !== undefined);
 
   const stack = (name: StackName) => (
     <StackView
@@ -222,7 +226,16 @@ export function Stacks(props: StacksProps) {
             <If
               when={!narrow()}
               else={
-                <View style={{ flex: 1 }}>
+                // Clear of the status bar, the rounded corners, and the keyboard while it is up.
+                <View
+                  style={{
+                    flex: 1,
+                    paddingBottom: safe.keyboard,
+                    paddingLeft: safe.left,
+                    paddingRight: safe.right,
+                    paddingTop: safe.top,
+                  }}
+                >
                   <If when={props.rail}>
                     {(rail) => (
                       <NavBar
@@ -235,7 +248,11 @@ export function Stacks(props: StacksProps) {
                     style={{
                       flex: 1,
                       paddingHorizontal: tokens.space.gap.phone,
-                      paddingBottom: tokens.space.gap.phone,
+                      // The page's end above the home indicator, where no bar stands under it.
+                      paddingBottom:
+                        barShown() || keyboardUp()
+                          ? tokens.space.gap.phone
+                          : aboveHome(tokens.space.gap.phone),
                     }}
                   >
                     <StackView
@@ -250,12 +267,7 @@ export function Stacks(props: StacksProps) {
                       testID="stack-one"
                     />
                   </View>
-                  <If
-                    when={
-                      narrowed(layout()).panes.length > 1 ||
-                      actionOf(narrowed(layout()).panes) !== undefined
-                    }
-                  >
+                  <If when={barShown()}>
                     <BottomBar onShow={onShow} stack={narrowed(layout())} />
                   </If>
                   <Sheet

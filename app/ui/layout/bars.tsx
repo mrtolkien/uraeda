@@ -10,7 +10,8 @@ import type { RailPlace } from "./Rail";
 import { markOf } from "./Stack";
 import { Icon, Text } from "../controls";
 import { Options } from "../controls/Options";
-import { Popover, Surface } from "../surfaces";
+import { Popover, safe, Surface } from "../surfaces";
+import { keyScope } from "../keys/registry";
 import { tokens } from "../tokens";
 
 /** A tab of the top bar: an icon, and its count, lit when `current`, with a line under it. */
@@ -84,7 +85,10 @@ function PlaceTab(props: { place: RailPlace }) {
  */
 function MoreTab(props: { places: ReadonlyArray<RailPlace> }) {
   const open = signal(false);
-  let anchor: ViewRef | undefined;
+  // A signal: the popover reads it once it is drawn, after the ref was set.
+  const anchor = signal<ViewRef | undefined>(undefined);
+  // The menu's layer, for its rows' keys: see `Float`'s `scope`.
+  const layer = keyScope({ kind: "layer", name: "More places", on: open });
   const count = () => props.places.reduce((sum, place) => sum + (place.count ?? 0), 0);
   return (
     <>
@@ -95,14 +99,15 @@ function MoreTab(props: { places: ReadonlyArray<RailPlace> }) {
         label="More places"
         needs={props.places.some((place) => place.needs === true && (place.count ?? 0) > 0)}
         onPress={() => open.set(true)}
-        ref={(node) => (anchor = node)}
+        ref={(node) => anchor.set(node)}
       />
       <Popover
         align="end"
-        anchor={anchor}
+        anchor={anchor()}
         name="More places"
         onClose={() => open.set(false)}
         open={open()}
+        scope={layer}
         style={{ minWidth: 200, paddingVertical: 4 }}
       >
         <Options
@@ -110,6 +115,7 @@ function MoreTab(props: { places: ReadonlyArray<RailPlace> }) {
             open.set(false);
             props.places[at]?.onPress();
           }}
+          scope={layer}
           rows={props.places.map((place) => ({
             hint: place.count ? String(place.count) : undefined,
             icon: place.icon,
@@ -140,7 +146,8 @@ export function NavBar(props: { onSidebar?: () => void; places: ReadonlyArray<Ra
         borderBottomWidth: 1,
         borderColor: tokens.role.ruleQuiet,
         flexDirection: "row",
-        height: tokens.control.touch,
+        // Its tabs a thumb's whole size, over the line under them.
+        height: tokens.control.touch + 1,
       }}
       testID="nav-bar"
     >
@@ -204,83 +211,86 @@ export function BottomBar(props: { onShow: (key: string) => void; stack: Stack }
       glass
       height="raised"
       onLayout={(event) => room.set(event.bounds.size.width)}
-      style={{ flexDirection: "row", height: tokens.control.touch + 8 }}
+      // Its glass goes on under the home indicator, its tiles above it.
+      style={{ paddingBottom: safe.bottom }}
       testID="bottom-bar"
     >
-      <Each key={(pane: PaneRef) => pane.key} of={props.stack.panes}>
-        {(pane) => {
-          const current = () => pane().key === props.stack.shown;
-          const colour = () => {
-            if (current()) {
-              return tokens.role.action;
-            }
-            return markOf(pane()).needs === true ? tokens.light.needs : tokens.role.inkQuiet;
-          };
-          const icon = kindOf(pane())?.icon ?? "square";
-          const word = () => worded() || current();
-          return (
+      <View style={{ flexDirection: "row", height: tokens.control.touch + 8 }}>
+        <Each key={(pane: PaneRef) => pane.key} of={props.stack.panes}>
+          {(pane) => {
+            const current = () => pane().key === props.stack.shown;
+            const colour = () => {
+              if (current()) {
+                return tokens.role.action;
+              }
+              return markOf(pane()).needs === true ? tokens.light.needs : tokens.role.inkQuiet;
+            };
+            const icon = kindOf(pane())?.icon ?? "square";
+            const word = () => worded() || current();
+            return (
+              <View
+                accessibilityLabel={titleOf(pane())}
+                accessibilityState={{ selected: current() }}
+                onPress={() => props.onShow(pane().key)}
+                role="tab"
+                style={{
+                  alignItems: "center",
+                  flexBasis: word() ? wordWidth(titleOf(pane())) : tokens.control.touch,
+                  flexGrow: 1,
+                  flexShrink: word() ? 0 : 1,
+                  gap: 1,
+                  justifyContent: "center",
+                  minWidth: 0,
+                }}
+              >
+                <Icon colour={colour()} name={icon} />
+                <If when={word()}>
+                  <Text bold={current()} colour={colour()} lines={1} size="under">
+                    {titleOf(pane())}
+                  </Text>
+                </If>
+                <If when={markOf(pane()).running === true && !current()}>
+                  <View
+                    style={{
+                      backgroundColor: tokens.light.running,
+                      height: 5,
+                      position: "absolute",
+                      right: "30%",
+                      top: 8,
+                      width: 5,
+                    }}
+                  />
+                </If>
+              </View>
+            );
+          }}
+        </Each>
+        <If when={actionOf(props.stack.panes)}>
+          {(action) => (
             <View
-              accessibilityLabel={titleOf(pane())}
-              accessibilityState={{ selected: current() }}
-              onPress={() => props.onShow(pane().key)}
-              role="tab"
+              accessibilityLabel={action().label}
+              onPress={() => action().run()}
+              role="button"
               style={{
                 alignItems: "center",
-                flexBasis: word() ? wordWidth(titleOf(pane())) : tokens.control.touch,
-                flexGrow: 1,
-                flexShrink: word() ? 0 : 1,
+                backgroundColor: tokens.control.tint(tokens.role.action),
+                borderLeftColor: tokens.role.ruleQuiet,
+                borderLeftWidth: 1,
+                flexBasis: wordWidth(action().label),
+                flexShrink: 0,
                 gap: 1,
                 justifyContent: "center",
-                minWidth: 0,
               }}
+              testID="bottom-bar-action"
             >
-              <Icon colour={colour()} name={icon} />
-              <If when={word()}>
-                <Text bold={current()} colour={colour()} lines={1} size="under">
-                  {titleOf(pane())}
-                </Text>
-              </If>
-              <If when={markOf(pane()).running === true && !current()}>
-                <View
-                  style={{
-                    backgroundColor: tokens.light.running,
-                    height: 5,
-                    position: "absolute",
-                    right: "30%",
-                    top: 8,
-                    width: 5,
-                  }}
-                />
-              </If>
+              <Icon colour={tokens.role.action} name={action().icon} />
+              <Text bold colour={tokens.role.action} lines={1} size="under">
+                {action().label}
+              </Text>
             </View>
-          );
-        }}
-      </Each>
-      <If when={actionOf(props.stack.panes)}>
-        {(action) => (
-          <View
-            accessibilityLabel={action().label}
-            onPress={() => action().run()}
-            role="button"
-            style={{
-              alignItems: "center",
-              backgroundColor: tokens.control.tint(tokens.role.action),
-              borderLeftColor: tokens.role.ruleQuiet,
-              borderLeftWidth: 1,
-              flexBasis: wordWidth(action().label),
-              flexShrink: 0,
-              gap: 1,
-              justifyContent: "center",
-            }}
-            testID="bottom-bar-action"
-          >
-            <Icon colour={tokens.role.action} name={action().icon} />
-            <Text bold colour={tokens.role.action} lines={1} size="under">
-              {action().label}
-            </Text>
-          </View>
-        )}
-      </If>
+          )}
+        </If>
+      </View>
     </Surface>
   );
 }
