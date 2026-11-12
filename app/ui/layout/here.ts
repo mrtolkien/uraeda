@@ -2,7 +2,7 @@
 // imports only `nsh` and types, never the store, so a list, which an extension's page also gets
 // (`app/ui/index.ts`), may offer its rows to open beside: in a page, outside any pane, it offers
 // nothing.
-import { cleanup, context, signal, type ViewRef } from "nsh";
+import { cleanup, context, effect, keyboardFrame, signal, type ViewRef } from "nsh";
 import type { PaneRef } from "./layout";
 import type { WidthClass } from "../width";
 
@@ -24,6 +24,33 @@ export const PaneContext = context<PaneHere | null>(null);
 export type Revealer = (view: ViewRef) => void;
 
 export const RevealContext = context<Revealer | null>(null);
+
+/**
+ * A form typed in on a phone shows whole as the keyboard rises, its field and the button that
+ * saves it: a browser scrolls only the caret into view, and the keyboard covered the button. Its
+ * `ref` goes on the form's view, and `typing` follows its field's focus. Inside a `PaneScroll`.
+ */
+export function wholeOverKeyboard(): {
+  ref: (view: ViewRef) => void;
+  typing: (on: boolean) => void;
+} {
+  const reveal = RevealContext();
+  const typing = signal(false);
+  let form: ViewRef | undefined;
+  effect(() => {
+    if (keyboardFrame().height === 0 || !typing() || form === undefined || reveal === null) return;
+    const view = form;
+    // Once the pane took the room the keyboard leaves.
+    const timer = setTimeout(() => reveal(view), 120);
+    cleanup(() => clearTimeout(timer));
+  });
+  return {
+    ref: (view) => {
+      form = view;
+    },
+    typing: (on) => typing.set(on),
+  };
+}
 
 /** A pane a view asked to open beside it, which the layout shell takes and clears. */
 export const besideWanted = signal<{ from: string | null; pane: PaneRef } | null>(null);

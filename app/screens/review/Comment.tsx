@@ -7,6 +7,7 @@
 import { signal, View } from "nsh";
 import type { CommentItem, FileView } from "../../store/protocol";
 import { Button, Text } from "../../ui/controls";
+import { wholeOverKeyboard } from "../../ui/layout";
 import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
 import type { FileArgs } from "../file/read";
 import { addComment, editComment, removeComment } from "./writes";
@@ -79,13 +80,18 @@ export function CommentField(props: CommentFieldProps) {
     // What was typed while it was saved keeps the field open.
     if (!text.dirty()) props.onClose?.();
   };
+  const whole = wholeOverKeyboard();
   return (
-    <View style={{ gap: 6, paddingTop: 6 }}>
+    <View ref={whole.ref} style={{ gap: 6, paddingTop: 6 }}>
       <TextField
         autoFocus={props.autoFocus}
         hint={text.dirty() ? "Kept on this device until it is saved" : undefined}
         label={props.about === undefined ? props.label : `${props.label}, on ${props.about}`}
-        onBlur={() => void save()}
+        onBlur={() => {
+          whole.typing(false);
+          void save();
+        }}
+        onFocus={() => whole.typing(true)}
         onQuit={props.onClose}
         onSave={() => void save()}
         onChange={text.change}
