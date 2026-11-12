@@ -8,7 +8,10 @@
 //   up, by a wheel or the keys, that ends away from the end.
 // - **While on**, Native Shell pins the list to its end at every layout, however far the end
 //   moved (`pins`): the list moves with the content in the frame it changes. A move away from the
-//   end the reader did not make is put back, at once, with a jump to the end (`back`).
+//   end the reader did not make is put back, at once, with a jump to the end (`back`), and so is
+//   a change of the list's own height (`resized`): in a browser, a list made shorter, as a phone's
+//   composer opens under it, sends no scroll, and kept its top where it was, its end hidden. Its
+//   jump waits `SETTLED`: one made as the layout was heard landed short by what the list lost.
 //
 // GTK clamps the offset to the content when the content shrinks, as a reply's finished block
 // becomes a row of its own, at its estimated height until measured; Native Shell then scrolls by
@@ -28,6 +31,9 @@ export const NEAR_END = 48;
  */
 export const LEAVING = 300;
 
+/** How long after a change of its height a list that follows jumps to its end, in milliseconds. */
+export const SETTLED = 120;
+
 /** What a scroll event says: where the list is, how long its content is, how tall it is. */
 export type Scrolled = { offset: number; content: number; size: number };
 
@@ -42,6 +48,8 @@ export type Follow = {
   hand: (on: boolean) => void;
   /** A scroll came to rest: a wheel's, a glide's, a key's. */
   ended: () => void;
+  /** The list was laid out at the height `size`. */
+  resized: (size: number) => void;
 };
 
 export function createFollow(options: {
@@ -71,6 +79,8 @@ export function createFollow(options: {
   // A move up away from the end, not known yet to be the reader's: until it is, or `LEAVING`
   // passes, the list is let go.
   let doubt: (() => void) | undefined;
+  // A jump asked by a change of the list's height, waiting for the layout to settle.
+  let resizing: (() => void) | undefined;
   const settle = () => {
     doubt?.();
     doubt = undefined;
@@ -136,6 +146,16 @@ export function createFollow(options: {
       if (!on && untracked(following)) options.back();
     },
     pins,
+    resized: (now) => {
+      const was = size;
+      size = now;
+      if (was === 0 || now === was || !untracked(pins)) return;
+      resizing?.();
+      resizing = later(SETTLED, () => {
+        resizing = undefined;
+        if (untracked(pins)) options.back();
+      });
+    },
     scrolled,
   };
 }

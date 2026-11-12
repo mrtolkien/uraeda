@@ -196,6 +196,9 @@ export function VirtualList(props: VirtualListProps) {
           });
         }
       }}
+      onLayout={(event) => {
+        if (props.follow === true) follow.resized(event.bounds.size.height);
+      }}
       onScrollDragEnd={() => follow.hand(false)}
       onScrollDragStart={() => follow.hand(true)}
       onScrollEnd={() => follow.ended()}

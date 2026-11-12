@@ -81,3 +81,20 @@ test("a hand on the list is the reader's at once; a key to another row, and G, a
   at(960, 1408);
   expect(follow.following()).toBe(false);
 });
+
+test("a list that follows stays at its end as it gets shorter, a phone's composer opening under it", () => {
+  const { at, backs, follow, passes } = following();
+  at(552, 1000);
+  // Its height went from 448 to 300: in a browser no scroll says so, and the end was under the
+  // composer, 148 points of the conversation hidden. The jump waits for the layout to settle.
+  follow.resized(300);
+  expect(backs.length).toBe(0);
+  passes();
+  expect(backs.length).toBe(1);
+  expect(follow.following()).toBe(true);
+  // The same height again, or a list let go, asks no jump.
+  follow.resized(300);
+  follow.follows(false);
+  follow.resized(448);
+  expect(backs.length).toBe(1);
+});
