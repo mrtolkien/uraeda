@@ -10,10 +10,14 @@ import { mount, platform } from "nsh";
 import { boot } from "./screens/shell/boot";
 import { appHost } from "./screens/shell/host";
 import { Root } from "./screens/shell/Root";
-import { bindHistory, navigate, parseRoute, redirect } from "./store";
+import { bindHistory, navigate, overlayVisits, parseRoute, redirect } from "./store";
+import { bindVisits } from "./ui/surfaces/backCloses";
 import { browserHistory } from "./store/history.web";
 import { page } from "./web/page";
 import { Web } from "./web/Web";
+
+// A sheet on a phone is a visit of its own, so Back closes it.
+bindVisits(overlayVisits);
 
 void boot().then(() => {
   if (platform.os === "web") {

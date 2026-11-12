@@ -5,7 +5,6 @@
 import { type Accessor, batch, signal } from "nsh";
 import { parseRoute, pathOf, type Route } from "./routes";
 import type { Json, Layout } from "../ui/layout/layout";
-import { bindVisits } from "../ui/surfaces/backCloses";
 import { interaction } from "../ui/timing";
 
 /**
@@ -295,9 +294,9 @@ export function positions(): {
   };
 }
 
-// A sheet on a phone is a visit of its own, so Back closes it (`backCloses`).
-bindVisits({
+/** The visits a sheet on a phone opens, so Back closes it: for `bindVisits` of `ui/surfaces`. */
+export const overlayVisits = {
   back: () => void back(),
-  open: (label) => openOverlay(label),
+  open: (label: string) => openOverlay(label),
   shown: () => entry().kept.overlay,
-});
+};

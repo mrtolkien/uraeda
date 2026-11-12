@@ -2,10 +2,14 @@
 // of its own, opened by a key that is heard in a field too, and the history's Back, from the host.
 import { host, type InputRef, mount, signal, Text, View } from "nsh";
 import { Input } from "nsh/base";
-import { back } from "../../../store/history";
+import { back, overlayVisits } from "../../../store/history";
 import { KeysHost } from "../../keys/KeysHost";
 import { KeyScope, registerKey } from "../../keys/registry";
 import { Dialog, focusStop } from "..";
+import { bindVisits } from "../backCloses";
+
+// The history binds the sheets' visits, as the app's entry does.
+bindVisits(overlayVisits);
 
 /** A field that says it can take the focus, and shows what was typed in it. */
 function Field(props: { first?: boolean; name: string }) {

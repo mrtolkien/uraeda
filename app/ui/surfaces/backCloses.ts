@@ -3,9 +3,9 @@
 // and stays on the page, where it left the page before. Closed any other way, by its Close, its
 // Save, or a tap above it, its visit goes, so the next Back leaves the page as it would have.
 //
-// The visits are the app's history's, which binds itself here (`bindVisits`): the component
-// library imports nothing of the app's store, as an extension's page is built from `app/ui/` alone,
-// and there no history is bound and a sheet is no visit.
+// The visits are the app's history's, which its entry binds here (`bindVisits`, `App.tsx`): the
+// component library imports nothing of the app's store, as an extension's page is built from
+// `app/ui/` alone, and there no history is bound and a sheet is no visit.
 import { cleanup, effect, untracked } from "nsh";
 import { onChange } from "./presence";
 
@@ -21,7 +21,7 @@ export type Visits = {
 
 let visits: Visits | undefined;
 
-/** Binds the app's history: the one caller, `store/history.ts`. */
+/** Binds the app's history (`overlayVisits`): its entry, `App.tsx`, does. */
 export function bindVisits(bound: Visits) {
   visits = bound;
 }

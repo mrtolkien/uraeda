@@ -10649,6 +10649,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a sheet whose action opens another page leaves its visit under that page, and Back
   from there shows the first page with nothing open, a second Back leaving it; dropping the visit as
   a page opens from it would need the history to replace a visit it cannot see the end of.
-- **Where**: `app/ui/surfaces/backCloses.ts`, bound by `app/store/history.ts` (the component library
-  imports nothing of the store: an extension's page is built from `app/ui/` alone),
-  `app/ui/surfaces/Float.tsx`.
+- **Where**: `app/ui/surfaces/backCloses.ts`, `app/ui/surfaces/Float.tsx`; the history's
+  `overlayVisits`, bound by the app's entry, `App.tsx` (the component library imports nothing of the
+  store, as an extension's page is built from `app/ui/` alone, and the store nothing of the
+  library's code).
