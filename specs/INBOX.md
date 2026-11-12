@@ -5,6 +5,7 @@
 - Tapping a session composer on mobile does not open the virtual keyboard
 - [nsh-migration] Remove `ura import-sessions` and its importer once the port to the Rust server is
   done: it is a one-time tool.
+- #WORKAROUND comment to check againt future NSH releases + PRs?
 
 ## Bugfix
 
