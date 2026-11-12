@@ -7,8 +7,6 @@
 //! stand-in of the Secret Service answers: never the owner's keyring.
 #![cfg(all(target_os = "linux", feature = "host"))]
 
-#[path = "outside/display.rs"]
-mod display;
 #[path = "../../server/tests/support/machine.rs"]
 #[allow(
     dead_code,
@@ -19,6 +17,8 @@ mod machine;
 mod secret_service;
 #[path = "host/stand_in.rs"]
 mod stand_in;
+
+use crate::outside::display;
 
 use std::ffi::OsString;
 use std::fs;

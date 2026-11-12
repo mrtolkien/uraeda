@@ -139,7 +139,7 @@ fn the_reader_of_a_workflow_takes_commands_and_no_name_or_comment() {
 
 /// The one exception to "a test runs once" (ruling R111): the checks that draw in real GTK
 /// windows on a hidden display, which fail when other builds saturate the machine.
-const RETRIED: &str = "package(uraeda-app) & binary(outside)";
+const RETRIED: &str = "package(uraeda-app) & binary(tests) & test(/^outside::/)";
 
 /// The problems of cargo-nextest's configuration: a retry anywhere but the exception.
 fn retried(nextest: &str) -> Vec<String> {

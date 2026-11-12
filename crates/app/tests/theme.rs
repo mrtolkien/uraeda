@@ -154,7 +154,7 @@ fn default_themes() -> String {
 }
 
 /// The tokens' copy of the default themes is the core's reading of them. After a change of a
-/// default theme, `UPDATE_TOKENS=1 just test -p uraeda-app -E 'binary(theme)'` writes it again.
+/// default theme, `UPDATE_TOKENS=1 just test -p uraeda-app -E 'test(/^theme::/)'` writes it again.
 #[test]
 fn the_tokens_default_themes_are_the_ones_the_core_reads() {
     let path = concat!(
@@ -169,6 +169,6 @@ fn the_tokens_default_themes_are_the_ones_the_core_reads() {
     assert!(
         kept == fresh,
         "app/ui/tokens/defaults.json is stale: run `UPDATE_TOKENS=1 just test -p uraeda-app -E \
-         'binary(theme)'`"
+         'test(/^theme::/)'`"
     );
 }

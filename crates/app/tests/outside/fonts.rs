@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use gtk::prelude::*;
 use nsh_platform_linux::gtk4::{self as gtk, pango};
 
-use crate::stage::Stage;
+use super::stage::Stage;
 
 /// A folder laid out as `nsh package` lays out the files an app ships: the crate's `assets/`,
 /// under the crate's name. Native Shell reads the app's fonts there.

@@ -108,7 +108,7 @@ pub fn serve() -> Receiver<Shown> {
         },
         |_, _| panic!("the notification service's name was lost"),
     );
-    crate::stage::wait_for("the test's service takes its name", 10, || {
+    super::stage::wait_for("the test's service takes its name", 10, || {
         owner.try_recv().ok()
     });
     receiver

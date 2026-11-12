@@ -162,7 +162,7 @@ Running it here:
 - **`crates/app/tests/outside.rs` guards what the migration assumes of NSH on GTK**: signed
   packages, a page's errors, web views, diagrams, notifications, and the bundled fonts being the
   ones drawn. Each test starts a hidden display of its own, so
-  `cargo nextest run -p uraeda-app --test outside` opens no window. Its pages are in
+  `cargo nextest run -p uraeda-app -E 'test(/^outside::/)'` opens no window. Its pages are in
   `app/__checks__/`. A test that fails after an upgrade of NSH names the assumption that broke: the
   rulings R22 to R26, and R156 for the fonts, say what was built on each.
 - **`just app-check` writes NSH's types in `app/.nsh/`**, which the TSX's lints and an editor read:

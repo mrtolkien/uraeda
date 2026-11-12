@@ -9,19 +9,19 @@
 #![cfg(target_os = "linux")]
 
 #[path = "outside/display.rs"]
-mod display;
+pub(crate) mod display;
 #[path = "outside/errors.rs"]
 mod errors;
 #[path = "outside/fonts.rs"]
-mod fonts;
+pub(crate) mod fonts;
 #[path = "outside/notify.rs"]
 mod notify;
 #[path = "outside/pages.rs"]
-mod pages;
+pub(crate) mod pages;
 #[path = "outside/signing.rs"]
 mod signing;
 #[path = "outside/stage.rs"]
-mod stage;
+pub(crate) mod stage;
 #[path = "outside/web.rs"]
 mod web;
 

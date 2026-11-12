@@ -21,7 +21,7 @@ pub fn on_hidden_display(test: &str, check: impl FnOnce()) {
     let home = tempfile::tempdir().expect("a temporary folder");
     let status = Command::new("hidden-display")
         .arg(std::env::current_exe().expect("the test binary's path"))
-        .args(["--exact", test, "--nocapture"])
+        .args(["--exact", &whole_name(test), "--nocapture"])
         .env(INSIDE, "1")
         .env("XDG_DATA_HOME", home.path().join("data"))
         .env("XDG_CACHE_HOME", home.path().join("cache"))
@@ -34,7 +34,18 @@ pub fn on_hidden_display(test: &str, check: impl FnOnce()) {
         }
         Err(error) => eprintln!(
             "skipped `{test}`: it opens a window, and `hidden-display` did not start ({error}). \
-             Run it in the dev shell: nix develop -c cargo nextest run -p uraeda-app --test outside"
+             Run it in the dev shell: nix develop -c cargo nextest run -p uraeda-app \
+             -E 'test(/^outside::/)'"
         ),
     }
+}
+
+/// The whole name of the test that runs, as its program names it, `outside::<test>`: libtest runs
+/// a test on a thread of that name. `test` alone where the thread has another name.
+fn whole_name(test: &str) -> String {
+    let thread = std::thread::current();
+    let name = thread
+        .name()
+        .filter(|name| name.ends_with(&format!("::{test}")));
+    name.unwrap_or(test).to_owned()
 }

@@ -7,26 +7,13 @@
 //! runner draws no native component.
 #![cfg(target_os = "linux")]
 
-#[allow(
-    dead_code,
-    reason = "the outside checks' pages: this file builds the app's only"
-)]
-#[path = "outside/pages.rs"]
-mod checks;
-#[path = "outside/display.rs"]
-mod display;
-#[path = "outside/fonts.rs"]
-mod fonts;
 #[path = "extensions/pages.rs"]
 mod pages;
 #[path = "extensions/served.rs"]
 mod served;
-#[allow(
-    dead_code,
-    reason = "the outside checks' window: this file uses part of it"
-)]
-#[path = "outside/stage.rs"]
-mod stage;
+
+use crate::outside::pages as checks;
+use crate::outside::{display, fonts, stage};
 
 use std::fs;
 use std::sync::mpsc::Receiver;
