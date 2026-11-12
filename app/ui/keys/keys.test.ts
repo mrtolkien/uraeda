@@ -429,6 +429,28 @@ test("the status line hints a guarded key only where its guard holds", () => {
   expect(store.hints().map((hint) => hint.label)).toEqual(["stage", "take ours"]);
 });
 
+test("the status line names the menu and the map, then the focused pane's keys, then the frame's", () => {
+  const store = createKeyStore();
+  store.register(store.shell, [
+    key("b", "Back", { hint: "b" }),
+    key("?", "Keys", { hint: "?" }),
+    key("space h", "Home", { hint: "space", hintLabel: "menu" }),
+  ]);
+  const frame = store.scope({ name: "Layout" });
+  store.register(frame, [key("[", "Fold", { hint: "[ ]" }), key("h", "Pane", { hint: "h l" })]);
+  const pane = store.scope({ kind: "pane", name: "Changes" }, frame);
+  store.register(pane, [key("s", "stage", { hint: "s" }), key("P", "push", { hint: "P" })]);
+  expect(store.hints().map((hint) => hint.keys)).toEqual([
+    "space",
+    "?",
+    "s",
+    "P",
+    "[ ]",
+    "h l",
+    "b",
+  ]);
+});
+
 test("a pane's keys may reuse the keys of the frame's tabs beside it", () => {
   // The tabs hold the keys only while no pane of the frame has them: a pane's `j`, a carried
   // row's included, never meets the tabs' `j`.

@@ -47,6 +47,14 @@ function tabCount(props: FrameKeysProps) {
   return props.narrow() ? narrowed(layout).panes.length : layout[focusedStack(layout)].panes.length;
 }
 
+/** Whether `h` or `l` moves the focus now: to the other stack, or on a narrow window, a tab. */
+function crosses(props: FrameKeysProps) {
+  const layout = props.layout();
+  if (props.narrow()) return tabCount(props) > 1;
+  const moves = (next: Layout | null) => next !== null && next !== layout;
+  return moves(cross(layout, "main")) || moves(cross(layout, "side"));
+}
+
 /** The pane above or below the focused one, in a split stack. */
 function inSplit(props: FrameKeysProps, by: number) {
   const layout = props.layout();
@@ -61,6 +69,8 @@ function inSplit(props: FrameKeysProps, by: number) {
 function TabKeys(props: FrameKeysProps) {
   registerKey([
     {
+      hint: "h l",
+      hintLabel: "tab",
       keys: "h",
       label: "Previous tab",
       repeat: true,
@@ -72,7 +82,13 @@ function TabKeys(props: FrameKeysProps) {
       repeat: true,
       run: () => apply(props, step(props.layout(), 1, props.narrow())),
     },
-    { keys: "j", label: "Back into the pane", run: () => props.set(toTabs(props.layout(), false)) },
+    {
+      hint: "j",
+      hintLabel: "into the pane",
+      keys: "j",
+      label: "Back into the pane",
+      run: () => props.set(toTabs(props.layout(), false)),
+    },
     { keys: "Enter", label: "Into the pane", run: () => props.set(toTabs(props.layout(), false)) },
     {
       keys: "Escape",
@@ -96,6 +112,8 @@ export function FrameKeys(props: FrameKeysProps) {
           props,
           props.narrow() ? step(props.layout(), -1, true) : cross(props.layout(), "main"),
         ),
+      // Hinted, and listed, only where there is a pane to go to.
+      when: () => crosses(props),
     },
     {
       fallback: true,
@@ -106,6 +124,7 @@ export function FrameKeys(props: FrameKeysProps) {
           props,
           props.narrow() ? step(props.layout(), 1, true) : cross(props.layout(), "side"),
         ),
+      when: () => crosses(props),
     },
     {
       fallback: true,

@@ -193,12 +193,24 @@ function flaw({ scope, spec }: Declared) {
   return null;
 }
 
-/** The hints that come first in the status line, by their keys, in this order. */
-const FIRST_HINTS = ["space", "?", "[ ]"];
+/** The hints that come first in the status line, by their keys, in this order: how to learn more. */
+const FIRST_HINTS = ["space", "?"];
 
-const rank = (keys: string) => {
-  const at = FIRST_HINTS.indexOf(keys);
-  return at === -1 ? FIRST_HINTS.length : at;
+/** Whether a scope is a pane's, or inside one. */
+const inPane = (scope: Scope): boolean =>
+  scope.kind === "pane" ||
+  (scope.parent !== null && scope.kind !== "layer" && inPane(scope.parent));
+
+/**
+ * Where a hint stands in the status line: the menu and the map, then the keys nearest the focus, a
+ * held selection's, the focused pane's, the page's and the frame's, the shell's last. A line too
+ * short for them all hides the last whole.
+ */
+const rank = ({ scope, spec }: Declared) => {
+  const at = FIRST_HINTS.indexOf(spec.hint ?? "");
+  if (at !== -1) return at;
+  const near = selectionOf(scope) !== null ? 0 : inPane(scope) ? 1 : scope.kind === "shell" ? 3 : 2;
+  return FIRST_HINTS.length + near;
 };
 
 /** Who runs first: a held selection, then the page with its panes and layers, then the shell. */
@@ -250,10 +262,10 @@ export function createKeyStore(options: KeyStoreOptions = {}) {
   return {
     active,
     /**
-     * The status line's hints, each once: a held selection's first, then the page's, then the
-     * shell's, after the leader's, the key map's, and the folds'. A selection's keys are hinted
-     * only while it holds, as a round's letters while a question is shown. `inField`: a text
-     * field has the focus.
+     * The status line's hints, each once, in `rank`'s order: the leader's and the key map's, then
+     * a held selection's, the focused pane's, the page's and the frame's, the shell's. A
+     * selection's keys are hinted only while it holds, as a round's letters while a question is
+     * shown. `inField`: a text field has the focus.
      */
     hints(inField = false): Array<StatusHint> {
       const seen = new Set<string>();
@@ -268,9 +280,9 @@ export function createKeyStore(options: KeyStoreOptions = {}) {
           return [];
         }
         seen.add(id);
-        return [{ keys: spec.hint, label, press: spec.hintPress ?? spec.keys }];
+        return [{ hint: { keys: spec.hint, label, press: spec.hintPress ?? spec.keys }, key }];
       });
-      return found.toSorted((a, b) => rank(a.keys) - rank(b.keys));
+      return found.toSorted((a, b) => rank(a.key) - rank(b.key)).map(({ hint }) => hint);
     },
     /**
      * Says a control keeps Space while `kept` holds, as a checkbox with the focus does: the
