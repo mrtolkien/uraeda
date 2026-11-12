@@ -23,6 +23,7 @@ mod others;
 mod sample;
 mod sessions;
 mod stories;
+pub mod storybook;
 mod texts;
 
 use std::fs;
@@ -48,7 +49,7 @@ pub const PORT: u16 = 4420;
 pub const TODAY: &str = "2026-10-21";
 
 /// What changes the sample projects: a sandbox built by other builders is stale.
-const BUILDERS: &str = "3";
+const BUILDERS: &str = "4";
 
 /// How the sandbox's server runs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -71,12 +72,17 @@ pub struct Sandbox {
 }
 
 /// How [`prepare`] makes the sandbox ready.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Prepare {
     /// Builds it again, whatever is there.
     pub reset: bool,
     /// Adds the chat of 20,000 messages to the sample project, kept until a reset.
     pub long_chat: bool,
+    /// The command that runs the fake Storybook, [`storybook`], which the stories feature's
+    /// preview decision takes when the sandbox is built: `ura sandbox` gives its own program's,
+    /// a test the one built beside it. Without one, that preview fails, naming a command that
+    /// is not found.
+    pub storybook: Option<String>,
 }
 
 /// The checkout this build of the server comes from, whose fixtures the builders read.
@@ -120,7 +126,10 @@ pub fn prepare(folder: &Path, prepare: Prepare) -> Result<Sandbox, String> {
     let stamp = folder.join("stamp");
     let built = fs::read_to_string(&stamp).ok();
     if prepare.reset || built.is_none() {
-        build(folder)?;
+        build(
+            folder,
+            prepare.storybook.as_deref().unwrap_or("fake-storybook"),
+        )?;
         fs::write(&stamp, BUILDERS).map_err(|error| error.to_string())?;
     }
     let sandbox = folders(
@@ -151,10 +160,11 @@ fn seeded_at() -> SystemTime {
 }
 
 /// What builds a sample project in its folder.
-type Builder = fn(&Path) -> Result<(), String>;
+type Builder<'a> = &'a (dyn Fn(&Path) -> Result<(), String> + Sync);
 
-/// Builds the sandbox in a folder, replacing what is there.
-fn build(folder: &Path) -> Result<(), String> {
+/// Builds the sandbox in a folder, replacing what is there. `storybook` is the command of the
+/// stories feature's preview.
+fn build(folder: &Path, storybook: &str) -> Result<(), String> {
     if folder.exists() {
         fs::remove_dir_all(folder).map_err(|error| format!("{}: {error}", folder.display()))?;
     }
@@ -162,11 +172,11 @@ fn build(folder: &Path) -> Result<(), String> {
     let projects = &sandbox.projects;
     // Each project in a thread of its own: they share nothing.
     let builders: [(&str, Builder); 5] = [
-        ("sample", sample::build),
-        ("empty", |path| others::empty(path).map(drop)),
-        ("broken", others::broken),
-        ("realistic", others::realistic),
-        ("bare", others::bare),
+        ("sample", &|path| sample::build(path, storybook)),
+        ("empty", &|path| others::empty(path).map(drop)),
+        ("broken", &others::broken),
+        ("realistic", &others::realistic),
+        ("bare", &others::bare),
     ];
     std::thread::scope(|scope| {
         let built: Vec<_> = builders

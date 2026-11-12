@@ -11,6 +11,20 @@ rust-version.workspace = true
 [lib]
 doctest = false
 
+# What the tests run as commands, built beside them: a fake Storybook as the previews' preview
+# command, and a stand-in of `codex` for its runtime. No release holds them.
+[[bin]]
+name = "fake-storybook"
+path = "tests/bin/fake_storybook.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fake-codex"
+path = "tests/bin/fake_codex.rs"
+test = false
+doc = false
+
 [dependencies]
 axum.workspace = true
 base64.workspace = true

@@ -33,9 +33,9 @@ const SESSION_DIR: &str = "/session-dir";
 /// An exchange with Codex, with the events the Node runtime made of it.
 struct Exchange {
     name: String,
-    /// The file, as `fixtures/runtimes/codex/record.ts` wrote it.
+    /// The file, as it was recorded: see `fixtures/runtimes/README.md`.
     lines: String,
-    /// One event a line, as `fixtures/runtimes/codex/node-events.ts` wrote them.
+    /// One event a line, as the Node runtime made them: frozen.
     events: Vec<Value>,
 }
 

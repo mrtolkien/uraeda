@@ -1,10 +1,9 @@
 //! The stories feature of "sample": a feature at its first round whose proposal and questions
 //! link the stories of a Storybook, with a mockup of its own, checked out in a worktree. Its
 //! preview decision runs the fake Storybook the server's preview tests run,
-//! `fixtures/preview/serve.mjs`: an index of the stories files' exports, and a page for each.
+//! [`storybook`](super::storybook): an index of the stories files' exports, and a page for each.
 //! The main checkout has no preview decision: its stories show how to set one.
 
-use super::fixture;
 use super::git::{Commit, Repo, text};
 use super::texts::bytes;
 
@@ -41,15 +40,14 @@ const MOCKUP: &str = r#"<!doctype html>
 </html>
 "#;
 
-/// Builds the feature on its branch from `main`, and checks it out in its worktree.
-pub(super) fn build(repo: &Repo) -> Result<(), String> {
+/// Builds the feature on its branch from `main`, and checks it out in its worktree. Its
+/// preview's command is `storybook`, the fake's, with the port it is given.
+pub(super) fn build(repo: &Repo, storybook: &str) -> Result<(), String> {
     repo.branch(FOLDER, "main")?;
-    let serve = fixture("preview/serve.mjs");
     let decision = format!(
         "---\nstatus: active\napproved-by: Sandbox\npreview-folder: packages/web\n\
-         preview-command: node {} --port {{port}}\n---\n\n# Preview\n\n\
-         The sandbox's fake Storybook: a page for each story, and their index.\n",
-        serve.display()
+         preview-command: {storybook} --port {{port}}\n---\n\n# Preview\n\n\
+         The sandbox's fake Storybook: a page for each story, and their index.\n"
     );
     let exports =
         ["Dragging", "ThinLine", "Grip"].map(|name| format!("export const {name} = {{}};\n"));

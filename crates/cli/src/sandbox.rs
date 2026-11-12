@@ -34,9 +34,12 @@ pub fn run(args: Args) -> Result<ExitCode, String> {
     let folder = args
         .folder
         .map_or_else(sandbox::default_folder, |folder| cwd.join(folder));
+    // The stories feature's preview runs this program's own fake Storybook.
+    let ura = std::env::current_exe().map_err(|error| error.to_string())?;
     let prepare = Prepare {
         reset: args.reset,
         long_chat: args.long_chat,
+        storybook: Some(format!("{} fake-storybook", ura.display())),
     };
     if args.long_chat {
         eprintln!(

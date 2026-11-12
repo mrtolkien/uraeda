@@ -2,8 +2,8 @@
 //! number, and the one-time import of the Node server's `runner.sqlite`.
 //!
 //! The old store of these tests is `fixtures/runner/old.sqlite`, which the Node server's own
-//! store wrote: see `fixtures/runner/write-old.ts`. Each test imports a copy of it, in a
-//! temporary folder.
+//! store wrote, and which is frozen since that store went: see `fixtures/runner/README.md`.
+//! Each test imports a copy of it, in a temporary folder.
 
 mod support;
 

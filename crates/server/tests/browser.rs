@@ -60,6 +60,11 @@ async fn signed_sandbox(
     before: impl FnOnce(&Sandbox),
 ) -> (TempDir, Server, String) {
     let folder = TempDir::new().unwrap();
+    // The stories feature's preview runs the fake Storybook built beside the tests.
+    let prepare = Prepare {
+        storybook: Some(env!("CARGO_BIN_EXE_fake-storybook").to_owned()),
+        ..prepare
+    };
     let built = sandbox::prepare(&folder.path().join("sandbox"), prepare).unwrap();
     before(&built);
     // The process's environment, as `ura sandbox` gives it, with the build to serve.

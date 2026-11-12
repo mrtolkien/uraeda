@@ -1,12 +1,12 @@
 //! What the tests of Codex's runtime run on: a server whose `codex` is a stand-in, which runs
 //! no agent, and the built-in runtime the server registered.
 //!
-//! The stand-in is `fixtures/runtimes/codex/stand-in.mjs`, first on the `PATH` of the server's
-//! environment, before the stand-ins of the agents this file's tests do not run (see
-//! `support/machine.rs`), and run by `node`. In the folder it runs in, a session's, it writes `argv`, its
-//! arguments, `token`, its token for Uraeda's tools, `pid`, and `stdin`, each line it read. With
-//! `exchange.jsonl` there, it replays that exchange; without, it answers as Codex does, as
-//! `options.json` beside it says.
+//! The stand-in is the program `fake-codex`, of `tests/bin/fake_codex.rs`, built beside the
+//! tests, first on the `PATH` of the server's environment, before the stand-ins of the agents
+//! this file's tests do not run (see `support/machine.rs`). In the folder it runs in, a
+//! session's, it writes `argv`, its arguments, `token`, its token for Uraeda's tools, `pid`, and
+//! `stdin`, each line it read. With `exchange.jsonl` there, it replays that exchange; without,
+//! it answers as Codex does, as `options.json` beside it says.
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -26,7 +26,7 @@ use crate::support::{self, Setup, TestServer};
 /// How long a stand-in gets to say what a test waits for.
 const PATIENCE: Duration = Duration::from_secs(30);
 
-/// The fixtures of Codex's runtime: the stand-in, and the exchanges it replays.
+/// The fixtures of Codex's runtime: the exchanges the stand-in replays.
 pub fn fixtures() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/runtimes/codex")
 }
@@ -55,10 +55,9 @@ pub async fn staged(options: Value, prepare: impl FnOnce(Setup) -> Setup) -> Sta
         path
     };
     let (bin, home) = (folder("bin"), folder("home"));
-    let stand_in = fixtures().join("stand-in.mjs");
     let script = format!(
-        "#!/bin/sh\nexec node \"{}\" \"{}\" \"$@\"\n",
-        stand_in.display(),
+        "#!/bin/sh\nexec \"{}\" \"{}\" \"$@\"\n",
+        env!("CARGO_BIN_EXE_fake-codex"),
         bin.display()
     );
     let command = bin.join("codex");

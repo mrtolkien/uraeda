@@ -1,8 +1,9 @@
 //! Previews: a checkout's preview command, started by a read and stopped with the server, its
 //! records, and the proxy that shows it to a sandboxed frame, under the frame secret.
 //!
-//! The preview command of these tests is the fake Storybook of `fixtures/preview/serve.mjs`, a
-//! small script: no test runs a real Storybook, or a package manager.
+//! The preview command of these tests is the fake Storybook of
+//! `uraeda_server::sandbox::storybook`, built beside them as the program `fake-storybook`: no
+//! test runs a real Storybook, or a package manager.
 
 mod support;
 
@@ -39,8 +40,11 @@ struct Project {
     _logs: TempDir,
 }
 
+/// The fake Storybook, as a program.
+const FAKE: &str = env!("CARGO_BIN_EXE_fake-storybook");
+
 /// A project named `name` in the server's list, whose fake Storybook behaves as `mode` says:
-/// see the script's header.
+/// see the fake's header.
 fn project(name: &str, mode: &str) -> Project {
     let logs = TempDir::new().unwrap();
     let log = logs.path().join("starts.log");
@@ -52,8 +56,7 @@ fn project(name: &str, mode: &str) -> Project {
     // The command ends in `&& true`, so its shell waits for the fake, as `pnpm exec` waits for
     // Storybook: only a signal to the whole process group stops both.
     let command = format!(
-        "node {} --port {{port}} --mode {mode} --log {} && true",
-        fixture("preview/serve.mjs").display(),
+        "{FAKE} --port {{port}} --mode {mode} --log {} && true",
         log.display()
     );
     let decision = format!(
@@ -447,7 +450,7 @@ async fn preview_answers_its_shape() {
     let first = records.sub(4, "Preview", preview_of("repo", "main")).await;
     // It says what runs, and where, as the decision writes them.
     let command = first["command"].as_str().unwrap().to_owned();
-    assert!(command.starts_with("node ") && command.contains("--port {port}"));
+    assert!(command.starts_with(FAKE) && command.contains("--port {port}"));
     let ran = |state: &str, base: Value, error: Value| json!({ "state": state, "base": base, "error": error, "command": command, "folder": "packages/web" });
     assert_eq!(first, ran("starting", Value::Null, Value::Null));
     let ready = records
@@ -894,9 +897,11 @@ async fn a_stale_frame_starts_no_preview() {
     let base = ready(&mut records, 1).await;
     let page = format!("{base}iframe.html?id=sidebar--dragging");
     let navigation = [("sec-fetch-dest", "iframe"), ("sec-fetch-mode", "navigate")];
+    // A process's group is read while it runs: a stopped one has none to give.
+    let first = group_of(project.pid(0));
     server.clock().advance(31 * MINUTE);
     preview::sweep(server.shared());
-    assert_eq!(gone(group_of(project.pid(0))).await, Vec::<u32>::new());
+    assert_eq!(gone(first).await, Vec::<u32>::new());
 
     // What an open frame asks for by itself wakes nothing.
     let script = [("sec-fetch-dest", "script"), ("sec-fetch-mode", "no-cors")];
@@ -920,8 +925,9 @@ async fn a_stale_frame_starts_no_preview() {
 
     // Gone again within the minute, it is left: a preview that does not stay is not started
     // again by each look at it.
+    let second = group_of(project.pid(1));
     preview::repository_removed(server.shared(), "repo");
-    assert_eq!(gone(group_of(project.pid(1))).await, Vec::<u32>::new());
+    assert_eq!(gone(second).await, Vec::<u32>::new());
     assert!(!woke(&server, &page, &navigation).await, "a second wake");
     server.clock().advance(2 * MINUTE);
     assert!(woke(&server, &page, &navigation).await, "a minute later");
@@ -933,10 +939,11 @@ async fn a_stale_frame_starts_no_preview() {
         .await;
 
     // Its repository gone from the list, nothing is left to start.
+    let third = group_of(project.pid(2));
     records
         .call("repositories.remove", json!({ "name": "repo" }))
         .await;
-    assert_eq!(gone(group_of(project.pid(2))).await, Vec::<u32>::new());
+    assert_eq!(gone(third).await, Vec::<u32>::new());
     server.clock().advance(2 * MINUTE);
     assert!(!woke(&server, &page, &navigation).await, "no repository");
     assert_eq!(project.starts().len(), 3);

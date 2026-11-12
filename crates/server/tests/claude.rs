@@ -34,7 +34,7 @@ const SESSION_DIR: &str = "/session-dir";
 struct Recorded {
     name: String,
     lines: String,
-    /// One event a line, as `fixtures/runtimes/claude/node-events.ts` wrote them.
+    /// One event a line, as the Node runner made them: frozen, see `fixtures/runtimes/README.md`.
     events: String,
     /// When the stream is read, in seconds since 1970.
     at: u64,

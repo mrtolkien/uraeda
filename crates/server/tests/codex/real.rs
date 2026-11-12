@@ -3,12 +3,10 @@
 //!
 //!   cargo nextest run -p uraeda-server --test codex --run-ignored only real --no-capture
 //!
-//! The sandbox is read-only: between the runtime and Codex is the wrapper of
-//! `fixtures/runtimes/codex/record.ts`, which asks Codex for `read-only` where the runtime asks
-//! for `workspace-write`, and answers the runtime with what it asked for.
+//! Codex gets the sandbox the runtime asks for, `workspace-write`, in a session's folder that
+//! is temporary and outside any repository.
 
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -16,7 +14,7 @@ use serde_json::Value;
 use tempfile::TempDir;
 use uraeda_server::runtimes::{Options, Runtimes};
 
-use crate::stage::{fixtures, message, options, until};
+use crate::stage::{message, options, until};
 use crate::support;
 
 /// The machine's `codex`, as the test's own `PATH` finds it.
@@ -33,23 +31,13 @@ async fn real_codex_runs_a_session_and_resumes_it() {
     let folders = TempDir::new().unwrap();
     let session = folders.path().join("session");
     fs::create_dir(&session).unwrap();
-    let wrapper = folders.path().join("codex");
-    let (record, log) = (
-        fixtures().join("record.ts"),
-        folders.path().join("log.jsonl"),
+    let config = format!(
+        "[extensions.codex]\ncommand = \"{}\"\n",
+        real_codex().display()
     );
-    let script = format!(
-        "#!/bin/sh\nexec node \"{}\" --between \"{}\" \"$@\"\n",
-        record.display(),
-        log.display()
-    );
-    fs::write(&wrapper, script).unwrap();
-    fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
-    let config = format!("[extensions.codex]\ncommand = \"{}\"\n", wrapper.display());
     let setup = support::setup()
         .config("config.toml", &config)
-        .env("HOME", &std::env::var("HOME").unwrap())
-        .env("URAEDA_REAL_CODEX", real_codex().to_str().unwrap());
+        .env("HOME", &std::env::var("HOME").unwrap());
     let server = setup.start().await;
     let runtimes = server.shared().get::<Runtimes>();
     let runtime = runtimes.get("codex").expect("the built-in runtime");

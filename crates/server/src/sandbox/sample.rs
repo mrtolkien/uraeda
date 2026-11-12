@@ -141,8 +141,8 @@ pub(super) const PULL_REQUESTS: [(&str, u32, bool, bool); 8] = [
     ("change/2026-10-18-error-copy", 37, false, true),
 ];
 
-/// Builds the sample project in `path`.
-pub(super) fn build(path: &Path) -> Result<(), String> {
+/// Builds the sample project in `path`, its stories feature's preview running `storybook`.
+pub(super) fn build(path: &Path, storybook: &str) -> Result<(), String> {
     let repo = Repo::init(path)?;
     copy(&fixture("repo/main"), path)?;
     repo.commit_all("chore: specs")?;
@@ -163,7 +163,7 @@ pub(super) fn build(path: &Path) -> Result<(), String> {
     }
     changes(&repo)?;
     round_mockup(&repo)?;
-    super::stories::build(&repo)?;
+    super::stories::build(&repo, storybook)?;
     repo.worktree(folders::WORKING)?;
     // The pull requests waiting on review hold main's tip; those that catch up lack it.
     let decisions = ["code-quality.md", "testing.md"].map(|name| {

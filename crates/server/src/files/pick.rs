@@ -4,7 +4,8 @@
 use axum::http::Uri;
 
 /// The pick script, which tells the app the element pressed in a page while it picks.
-const PICK: &str = include_str!("../../../../skills/uraeda/assets/storybook/uraeda-pick.js");
+pub(crate) const PICK: &str =
+    include_str!("../../../../skills/uraeda/assets/storybook/uraeda-pick.js");
 
 /// Whether the page is asked for picking: its query names `uraeda-pick`.
 pub(super) fn picking(uri: &Uri) -> bool {
