@@ -50,6 +50,9 @@ Text, [`app/ui/text/`](/app/ui/text/) (gallery [Text](/app/gallery/text/)):
 - Every field: `TextField`, one line or many, with Vim when the setting is on; a message to an
   agent: `Composer`, with `attached`, the number of images or files, so they send without words; a
   field that picks: `PickerField`; a save's state: `SaveStatus` with `saving`.
+- A field's text while it is not saved: `unsavedText`, kept on the device as it is typed, with its
+  `save` (a field over a saved text: a file, a note, a setting) and its `send` (a field that starts
+  from nothing: a message, a new note, a commit's message).
 
 Documents, [`app/ui/document/`](/app/ui/document/) (gallery [Documents](/app/gallery/document/)):
 
@@ -96,6 +99,14 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   row whose kind changes its words, icon, or colour is cheap, one that swaps its views is made again
   at every bind. A reply that grows is the list's last row, which the list follows; never its
   footer.
+- **A word typed is never lost.** A field's text is `unsavedText`, and it reaches the server only
+  through its `save` or its `send`, which take the text, and what is attached, as they are when the
+  human asks. The field stays theirs while the server answers: once saved, what they typed meanwhile
+  stays, unsaved, over the text saved; a text sent leaves the field at once, and a refusal puts it
+  back before what was typed since. Both answer `{ ok }`, so what follows a refusal stops: a round
+  is not submitted while its notes are not saved. Never read a field's text after an `await`, and
+  never `discard()` after one: `discard` is the human's own "drop my text". A field closes only once
+  it holds nothing unsaved (`dirty()`).
 - **One main action per view**, a `Button` of `variant="main"`; the rest are tubes. An action that
   starts work is a button or `Ctrl+Enter`, never Enter in a field.
 - **A key is declared where it acts**, by `registerKey` or a `Button`'s `keys`, and shown by `Kbd`:

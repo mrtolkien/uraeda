@@ -77,7 +77,7 @@ function Editing(props: FileEditorProps & { buffer: Accessor<Buffer> }) {
 
   // `over`: the human chose to save over the file as it is now, after it changed.
   let over = false;
-  const saves = saving(async (value) => {
+  const saves = saving(text, async (value) => {
     const from = untracked(disk);
     if (!over && untracked(changed)) {
       throw new Error(`${name} changed on disk: see what changed, then take a version.`);
@@ -86,14 +86,13 @@ function Editing(props: FileEditorProps & { buffer: Accessor<Buffer> }) {
     const input = { hash: from.hash, path: props.path, repo: props.repo, text: value };
     const answer = await call("buffer.save", input);
     tracked.saved(from.hash, { hash: answer.hash, text: value });
-    text.saved(value);
   });
   // The save on its way, which `:wq`'s quit waits for: a refused one keeps the text unsaved, which
   // the leave guard then asks about.
   let inFlight: Promise<boolean> = Promise.resolve(true);
   const save = async () => {
     if (readOnly() !== null || !text.dirty()) return;
-    inFlight = saves.save(text.text());
+    inFlight = saves.save();
     if ((await inFlight) && props.leavesOnSave) props.onLeave();
   };
   const quit = () => void inFlight.then(() => props.onLeave());

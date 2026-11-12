@@ -1,8 +1,9 @@
 // The commit of one checkout: its message, typed in the app's one text field and kept on the
 // device until it is committed, with the default from what is staged shown in its place while it
 // is blank; and Commit, which names how many files it takes and where. `Ctrl+Enter` in the field,
-// or the button, commits: never Enter, which adds a line. `c` goes to the field. A hook's refusal
-// shows above it, whole, in the hook's words, and the files stay staged.
+// or the button, commits: never Enter, which adds a line. `c` goes to the field. The message
+// leaves the field as it commits, and comes back if the commit is refused, before what was typed
+// meanwhile. A hook's refusal shows above it, whole, in the hook's words, and the files stay staged.
 import { View } from "nsh";
 import { isPending, write } from "./writes";
 import type { GitGroup } from "../../store/protocol";
@@ -16,21 +17,25 @@ export function CommitBox(props: { group: GitGroup; held: boolean; repo: string;
   const staged = () => props.group.files.filter((file) => file.staged !== "no").length;
   const can = () => !props.held && staged() > 0;
   const commit = () => {
-    if (!can()) return false;
-    const typed = message.text();
+    if (!can() || message.pending()) return false;
     const files = `${staged()} ${staged() === 1 ? "file" : "files"}`;
-    void write(
-      props.where,
-      "git.commit",
-      { folder: props.group.folder, message: typed, repo: props.repo },
-      `Committing ${files} in ${props.group.name}`,
-    ).then((landed) => {
-      // The field gives the keys back to the list, where the next file waits.
-      if (landed) {
-        message.discard();
-        field?.blur();
-      }
-    });
+    const { repo, where } = props;
+    const { folder, name } = props.group;
+    void message
+      .send(async (typed) => {
+        const landed = await write(
+          where,
+          "git.commit",
+          { folder, message: typed, repo },
+          `Committing ${files} in ${name}`,
+        );
+        // Its refusal is the write's, shown above the field: the message comes back.
+        if (!landed) throw new Error("The commit was refused.");
+      })
+      .then((done) => {
+        // The field gives the keys back to the list, where the next file waits.
+        if (done.ok) field?.blur();
+      });
     return undefined;
   };
   registerKey({

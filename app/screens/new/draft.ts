@@ -6,7 +6,7 @@ import { signal, untracked } from "nsh";
 import { navigate } from "../../store";
 import type { ChatImage, ProposalItem } from "../../store/protocol";
 import { type Held, keepForChat } from "../images";
-import { dropUnsaved, readUnsaved, unsavedKey, writeUnsaved } from "../../ui/text";
+import { amendUnsaved, type Taken, unsavedKey, unsavedText } from "../../ui/text";
 
 /** The draft's key on the device. */
 export const draftKey = (repo: string) => unsavedKey(repo, "new#draft");
@@ -34,16 +34,24 @@ export const hold = (repo: string, images: ReadonlyArray<Held>) => {
 export const release = (repo: string, keep: (image: Held) => boolean = () => false) =>
   held.set({ ...untracked(held), [repo]: untracked(() => heldFor(repo)).filter(keep) });
 
-/** Sends the held images to the server, for a start or a first message to take. */
-export const sentImages = (repo: string): Promise<Array<ChatImage>> =>
-  Promise.all(untracked(() => heldFor(repo)).map((image) => keepForChat(repo, image)));
+/** The images held for `repo`'s draft, as a start takes them: back before those added since. */
+export const imagesOf = (repo: string): Taken<ReadonlyArray<Held>> => ({
+  putBack: (taken) =>
+    held.set({ ...untracked(held), [repo]: [...taken, ...untracked(() => heldFor(repo))] }),
+  take: () => {
+    const taken = untracked(() => heldFor(repo));
+    release(repo);
+    return taken;
+  },
+});
+
+/** Sends `images` to the server, for a start or a first message to take. */
+export const sentImages = (repo: string, images: ReadonlyArray<Held>): Promise<Array<ChatImage>> =>
+  Promise.all(images.map((image) => keepForChat(repo, image)));
 
 /** `text` added under what the draft holds, a blank line between. */
 export function addToDraft(repo: string, text: string) {
-  const key = draftKey(repo);
-  const now = untracked(() => readUnsaved(key))?.text ?? "";
-  const joined = now.trim() === "" ? text : `${now.trimEnd()}\n\n${text}`;
-  writeUnsaved(key, { at: new Date().toISOString(), base: "", text: joined });
+  amendUnsaved(draftKey(repo), (now) => (now.trim() === "" ? text : `${now.trimEnd()}\n\n${text}`));
 }
 
 /** A proposal's words, with its nested lines as a list under them. */
@@ -60,14 +68,13 @@ export function startFromLine(repo: string, proposal: ProposalItem, kind: "featu
 }
 
 /**
- * The draft's text, read as a signal, and what keeps it as it is typed. It is not a field's unsaved
- * text: leaving the page does not ask, as it stays on the device for the next start.
+ * The draft, as the page's composer holds it: its text, kept as it is typed, and its send, which
+ * takes the text as it is when a start is asked and gives it back if the start is refused. Leaving
+ * the page does not ask: the draft stays on the device for the next start.
  */
-export function draftOf(repo: () => string) {
-  const text = () => readUnsaved(draftKey(repo()))?.text ?? "";
-  const change = (value: string) =>
-    value === ""
-      ? dropUnsaved(draftKey(repo()))
-      : writeUnsaved(draftKey(repo()), { at: new Date().toISOString(), base: "", text: value });
-  return { change, discard: () => dropUnsaved(draftKey(repo())), text };
-}
+export const draftOf = (repo: () => string) =>
+  unsavedText(
+    () => draftKey(repo()),
+    () => "",
+    { guards: false },
+  );

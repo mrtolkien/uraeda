@@ -65,13 +65,15 @@ export function Question(props: QuestionProps) {
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;
     if (!untracked(comment.dirty)) return;
-    const text = untracked(comment.text);
     commentRefusal.set(null);
-    props.saves.answer(q(), { comment: text, letters: untracked(letters.value) }).then(
-      () => comment.saved(text.trim()),
-      (error: Error) =>
-        commentRefusal.set(`Not saved: ${error.message} Your text stays on this device.`),
-    );
+    const [question, picked] = [untracked(q), untracked(letters.value)];
+    void comment
+      .save((text) => props.saves.answer(question, { comment: text, letters: picked }))
+      .then((done) => {
+        if (!done.ok) {
+          commentRefusal.set(`Not saved: ${done.why} Your text stays on this device.`);
+        }
+      });
   };
   // Leaving the question saves what was typed: it is on the device until it is in the file.
   cleanup(saveComment);

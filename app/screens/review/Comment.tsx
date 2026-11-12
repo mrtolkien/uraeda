@@ -1,8 +1,9 @@
 // A comment of a review, written where it points: under its block in the reader, or the general
 // one in the Review pane. Its text is the device's as it is typed, so nothing typed is lost, and
 // leaving the page with some asks first; it goes into the review file with its button,
-// Ctrl+Enter, or as the field leaves. A comment is a write of the review alone: nothing commits
-// before the verdict.
+// Ctrl+Enter, or as the field leaves, as it was when asked: what is typed while it is saved stays
+// in the field, which closes only once it holds nothing unsaved. A comment is a write of the
+// review alone: nothing commits before the verdict.
 import { signal, View } from "nsh";
 import type { CommentItem, FileView } from "../../store/protocol";
 import { Button, Text } from "../../ui/controls";
@@ -46,27 +47,35 @@ function keyOf(props: CommentFieldProps) {
 export function CommentField(props: CommentFieldProps) {
   const text = unsavedText(keyOf(props), () => props.editing?.text ?? "");
   const refusal = signal<string | null>(null);
-  const pending = signal(false);
   const save = async () => {
-    const words = text.text().trim();
-    if (pending() || !text.dirty()) return;
-    pending.set(true);
+    if (text.pending() || !text.dirty()) return;
     refusal.set(null);
-    try {
-      if (props.editing !== undefined) {
-        await (words === ""
-          ? removeComment(props.args, props.editing)
-          : editComment(props.args, props.editing, words));
-      } else if (words !== "") {
-        const written = props.about === undefined ? words : `${props.about}: ${words}`;
-        await addComment(props.args, props.lines, props.heading ?? null, written);
+    const { about, args, editing, lines } = props;
+    const heading = props.heading ?? null;
+    // A change keeps its field over the comment; a new comment leaves it, as a message does.
+    const done =
+      editing !== undefined
+        ? await text.save(async (typed) => {
+            const words = typed.trim();
+            await (words === "" ? removeComment(args, editing) : editComment(args, editing, words));
+          })
+        : await text.send((typed) => {
+            const words = typed.trim();
+            return addComment(
+              args,
+              lines,
+              heading,
+              about === undefined ? words : `${about}: ${words}`,
+            );
+          });
+    if (!done.ok) {
+      if (done.why !== null) {
+        refusal.set(`Not saved: ${done.why} Your text stays on this device.`);
       }
-      text.discard();
-      props.onClose?.();
-    } catch (error) {
-      refusal.set(`Not saved: ${(error as Error).message} Your text stays on this device.`);
+      return;
     }
-    pending.set(false);
+    // What was typed while it was saved keeps the field open.
+    if (!text.dirty()) props.onClose?.();
   };
   return (
     <View style={{ gap: 6, paddingTop: 6 }}>
@@ -89,7 +98,7 @@ export function CommentField(props: CommentFieldProps) {
           icon="check"
           label={props.editing !== undefined ? "Save the change" : "Save the comment"}
           onPress={() => void save()}
-          pending={pending()}
+          pending={text.pending()}
         />
         <If when={props.onAsk}>
           {(ask) => (

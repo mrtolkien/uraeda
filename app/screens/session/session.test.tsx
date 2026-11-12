@@ -103,3 +103,39 @@ test("a message typed during a reply is sent once", async () => {
   // Once in the conversation, and not back in the composer with a refusal.
   expect(app.count("text:And the second persona?")).toBe(1);
 }, 90_000);
+
+/** The draft the device keeps for the new session of the feature in `folder`: what its field holds. */
+const draftOf = (app: App, folder: string) => {
+  const kept = app.storage()[`unsaved:sample:session:${folder}#new`];
+  return kept === undefined ? "" : (JSON.parse(kept) as { text: string }).text;
+};
+
+test("a message refused comes back beside the one begun meanwhile", async () => {
+  // A feature that is not there: the server refuses its first message.
+  const folder = "2026-01-01-never-started";
+  const app = await open("../shell/__checks__/Places.tsx", {
+    height: 800,
+    host: { handlers: { places: null, problem: null, shown: null } },
+    network: "live",
+    width: 1400,
+  });
+  await app.waitFor("id:frame", { timeout: 30_000 });
+  await app.host.send("go", `/r/sample/f/${folder}/session?new`);
+  await app.waitFor("id:composer", { timeout: 20_000 });
+  // A slow line: the server's answer waits until the second message is begun.
+  await app.host.send("hold", null);
+  await app.type("id:composer", "The first message");
+  await app.waitUntil(() => draftOf(app, folder) === "The first message");
+  await app.keyboard.press("enter");
+  // The field is free at once: the first is on its way, and the second is begun.
+  await app.waitUntil(() => draftOf(app, folder) === "");
+  await app.type("id:composer", "X");
+  await app.waitUntil(() => draftOf(app, folder) !== "");
+  const begun = draftOf(app, folder);
+  await app.host.send("release", null);
+  // Neither is lost: once refused, the first is back, before the one begun since.
+  await app
+    .waitUntil(() => draftOf(app, folder).startsWith("The first message\n\n"), { timeout: 15_000 })
+    .catch(() => undefined);
+  expect([begun, draftOf(app, folder)]).toEqual(["X", "The first message\n\nX"]);
+}, 60_000);

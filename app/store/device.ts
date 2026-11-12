@@ -2,7 +2,7 @@
 // there, like a theme or a width, and the text they have not saved. Everything else is the
 // server's. `Storage` answers with promises, so the store reads it once, as the app starts, and
 // then answers at once, from memory.
-import { type Accessor, type Signal, signal, Storage } from "nsh";
+import { type Accessor, type Signal, signal, Storage, untracked } from "nsh";
 import type { Declarations } from "../extensions/page";
 import type { Arrangement } from "../ui/layout/arrangement";
 import type { ThemeChoice } from "../ui/theme";
@@ -22,9 +22,7 @@ export type DeviceKeys = {
   "theme.shown": ThemeSource;
   /** The font picked for each part of the UI, a bundled font's id: `applyFonts` reads it. */
   fonts: Partial<Fonts>;
-  /** The keys of the fields that hold unsaved text (`app/ui/text/unsaved.ts`). */
-  unsaved: ReadonlyArray<string>;
-  /** A field's text typed and not saved, by the field's key. */
+  /** A field's text typed and not saved, by the field's key (`app/ui/text/unsaved.ts`). */
   [entry: `unsaved:${string}`]: Unsaved;
   /** What an extension's page declared, by its name, for its version (`app/extensions/declared.tsx`). */
   [declared: `declared:${string}`]: { version: number; declarations: Declarations };
@@ -51,18 +49,31 @@ export type DeviceStore<Keys> = {
    * app closes, and is lost then.
    */
   readonly full: Accessor<boolean>;
+  /** Writes now every value that waits for its rest: the app leaves the front, or closes. */
+  flush(): void;
   /** The value of `key`, `undefined` when the device keeps none: who reads it is told of a change. */
   get<K extends keyof Keys & string>(key: K): Keys[K] | undefined;
+  /**
+   * The keys that start with `prefix` and hold a value now, read from the values themselves: a
+   * family of values, one per field, has no list of its own to keep in step.
+   */
+  keys(prefix: string): ReadonlyArray<string>;
   /**
    * Reads what the device keeps, once, before the app draws: until then `get` answers `undefined`.
    * A value set meanwhile wins over the one kept.
    */
   load(): Promise<void>;
   /**
-   * Keeps `value` under `key`, or nothing with `undefined`: read back at once, written after. Only
-   * the latest write of a key says whether the device is full, whichever settles first.
+   * Keeps `value` under `key`, or nothing with `undefined`: read back at once, written after. A
+   * key's writes go one at a time, each with the value the key holds as it starts, so the storage
+   * ends on the last value set, however its answers come. With `rest`, the write waits until the
+   * key has not been set for that many milliseconds, as a text typed is written once per pause.
    */
-  set<K extends keyof Keys & string>(key: K, value: Keys[K] | undefined): void;
+  set<K extends keyof Keys & string>(
+    key: K,
+    value: Keys[K] | undefined,
+    options?: { rest?: number },
+  ): void;
 };
 
 /** What a stored text holds: nothing when it is not a value the app wrote. */
@@ -84,9 +95,10 @@ export function deviceStore<Keys>(storage: DeviceStorage = Storage): DeviceStore
   const written = new Set<string>();
   /** The keys whose last value the storage refused. */
   const refused = new Set<string>();
-  /** The number of the latest write of each key: an older write's settling decides nothing. */
-  const latest = new Map<string, number>();
-  let writes = 0;
+  /** The keys with a write on its way, and whether the key was set again since it began. */
+  const writing = new Map<string, { again: boolean }>();
+  /** The keys whose write waits for its rest. */
+  const resting = new Map<string, ReturnType<typeof setTimeout>>();
   const full = signal(false);
 
   function cell(key: string): Signal<unknown> {
@@ -98,20 +110,53 @@ export function deviceStore<Keys>(storage: DeviceStorage = Storage): DeviceStore
     return value;
   }
 
-  function wrote(key: string, write: number, kept: boolean) {
-    if (latest.get(key) !== write) return;
-    if (kept) {
-      refused.delete(key);
-    } else {
-      refused.add(key);
+  /** Writes what `key` holds now, after the write of it on its way, if any. */
+  function write(key: string) {
+    const rest = resting.get(key);
+    if (rest !== undefined) clearTimeout(rest);
+    resting.delete(key);
+    const going = writing.get(key);
+    if (going !== undefined) {
+      going.again = true;
+      return;
     }
-    full.set(refused.size > 0);
+    const state = { again: false };
+    writing.set(key, state);
+    const value = untracked(cell(key));
+    const settled = (kept: boolean) => {
+      writing.delete(key);
+      if (state.again) {
+        write(key);
+        return;
+      }
+      if (kept) {
+        refused.delete(key);
+      } else {
+        refused.add(key);
+      }
+      full.set(refused.size > 0);
+    };
+    (value === undefined
+      ? storage.removeItem(key)
+      : storage.setItem(key, JSON.stringify(value))
+    ).then(
+      () => settled(true),
+      () => settled(false),
+    );
   }
 
   return {
+    flush() {
+      for (const key of resting.keys()) write(key);
+    },
     full,
     get<K extends keyof Keys & string>(key: K) {
       return cell(key)() as Keys[K] | undefined;
+    },
+    keys(prefix) {
+      return [...values]
+        .filter(([key, value]) => key.startsWith(prefix) && untracked(value) !== undefined)
+        .map(([key]) => key);
     },
     async load() {
       const keys = await storage.keys();
@@ -124,16 +169,18 @@ export function deviceStore<Keys>(storage: DeviceStorage = Storage): DeviceStore
         }),
       );
     },
-    set(key, value) {
+    set(key, value, options) {
       written.add(key);
       cell(key).set(value);
-      const write =
-        value === undefined ? storage.removeItem(key) : storage.setItem(key, JSON.stringify(value));
-      const number = ++writes;
-      latest.set(key, number);
-      write.then(
-        () => wrote(key, number, true),
-        () => wrote(key, number, false),
+      if (options?.rest === undefined) {
+        write(key);
+        return;
+      }
+      const waiting = resting.get(key);
+      if (waiting !== undefined) clearTimeout(waiting);
+      resting.set(
+        key,
+        setTimeout(() => write(key), options.rest),
       );
     },
   };

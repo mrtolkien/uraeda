@@ -18,7 +18,7 @@ import { droppedImages, pastedImage, pickImages } from "../images";
 import { HeldImages } from "../inbox/AddNote";
 import { AgentPick } from "../runs/AgentPick";
 import { agentsOf } from "../runs/options";
-import { draftOf, forgetLine, heldFor, hold, lineOf, release, sentImages } from "./draft";
+import { draftOf, forgetLine, heldFor, hold, imagesOf, lineOf, release, sentImages } from "./draft";
 import { Landing, rememberStarted } from "./Landing";
 import { type StartAnswer, StartDialog } from "./StartDialog";
 
@@ -119,74 +119,67 @@ export function NewView(props: { repo: string; kind: NewKind }) {
     refusal.set(null);
     run().catch((error: Error) => refusal.set(error.message));
   };
-  /** A new session, with the draft as its first message, on the default agent. */
+  /**
+   * A new session, with the draft as its first message, on the agent picked. The message and its
+   * images are those of the moment it is sent: what is typed while the session is made stays in
+   * the draft, and a refusal gives the message back.
+   */
   const sendSession = () =>
     said(async () => {
       if (pending()) return;
       pending.set(true);
       try {
-        const runtime = agentsOf(
-          agents()?.runtimes ?? [],
-          settings()?.runs?.defaultAgent ?? null,
-        ).fallback;
-        const made = await call("session.newChat", {
-          effort: picked().effort,
-          model: picked().model,
-          repo: props.repo,
-          runtime: picked().agent ?? runtime?.id ?? null,
-        });
-        const images = await sentImages(props.repo);
-        await call("session.send", {
-          images,
-          repo: props.repo,
-          session: made.session,
-          text: draft.text(),
-        });
-        draft.discard();
-        release(props.repo);
-        navigate({ id: made.session, page: "session-id", repo: props.repo });
+        const { repo } = props;
+        const on = picked();
+        const runtime =
+          on.agent ??
+          agentsOf(agents()?.runtimes ?? [], settings()?.runs?.defaultAgent ?? null).fallback?.id ??
+          null;
+        const sent = await draft.send(async (text, held) => {
+          const made = await call("session.newChat", {
+            effort: on.effort,
+            model: on.model,
+            repo,
+            runtime,
+          });
+          const images = await sentImages(repo, held);
+          await call("session.send", { images, repo, session: made.session, text });
+          return made.session;
+        }, imagesOf(repo));
+        if (sent.ok) navigate({ id: sent.value, page: "session-id", repo });
+        else if (sent.why !== null) throw new Error(sent.why);
       } finally {
         pending.set(false);
       }
     });
   /** A typed start, from the dialog: its refusal's words, or `null` once it started. */
   const start = async (answer: StartAnswer): Promise<string | null> => {
-    try {
-      const images = await sentImages(props.repo);
-      const common = {
-        images,
-        line: lineOf(props.repo),
-        options: answer.options,
-        repo: props.repo,
-        slug: answer.slug,
-        text: draft.text(),
-      };
-      if (kind() === "change") {
-        const made = await call("change.start", common);
-        draft.discard();
-        release(props.repo);
-        forgetLine(props.repo);
-        asking.set(false);
-        navigate({ folder: made.folder, page: "feature", repo: props.repo });
-        return null;
+    const { repo } = props;
+    const [starts, line] = [kind(), lineOf(repo)];
+    // The words and the images of the moment Start is pressed: a refusal gives them back.
+    const done = await draft.send(async (text, held) => {
+      const images = await sentImages(repo, held);
+      const common = { images, line, options: answer.options, repo, slug: answer.slug, text };
+      if (starts === "change") {
+        return { change: await call("change.start", common), feature: null };
       }
-      const plan = await call("feature.startText", {
+      const feature = await call("feature.startText", {
         ...common,
         discovery: answer.discovery,
         write: {
-          href: `/r/${props.repo}/new?kind=feature`,
+          href: `/r/${repo}/new?kind=feature`,
           label: `Starting the feature ${answer.slug}`,
         },
       });
-      draft.discard();
-      release(props.repo);
-      forgetLine(props.repo);
-      asking.set(false);
-      started.set({ folder: plan.folder, kind: "feature", title: plan.title });
-      return null;
-    } catch (error) {
-      return (error as Error).message;
-    }
+      return { change: null, feature };
+    }, imagesOf(repo));
+    if (!done.ok) return done.why ?? "A start is already on its way.";
+    forgetLine(repo);
+    asking.set(false);
+    const { change, feature } = done.value;
+    if (change !== null) navigate({ folder: change.folder, page: "feature", repo });
+    else started.set({ folder: feature.folder, kind: "feature", title: feature.title });
+    return null;
   };
   const attach = (images: Promise<ReadonlyArray<Parameters<typeof hold>[1][number]>>) =>
     said(async () => hold(props.repo, await images));
@@ -316,7 +309,8 @@ export function NewView(props: { repo: string; kind: NewKind }) {
                     onStart={start}
                     open={asking()}
                     repo={props.repo}
-                    text={draft.text()}
+                    // The words a start took stay the dialog's while it is on its way.
+                    text={draft.entry()?.sent?.text ?? draft.text()}
                   />
                 </If>
               </>

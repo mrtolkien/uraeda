@@ -8503,3 +8503,74 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the test fails again under load with the wait in it: the page then runs in a view
   that left its window, which is R261's own fault to look for.
 - **Where**: `crates/app/tests/extensions.rs`.
+## T89.1: A field's text reaches the server as a snapshot, by `save` or `send`
+
+- **Decision**: `unsavedText` (`app/ui/text/unsaved.ts`) is the one way a field's text reaches the
+  server. `save(run)` is for a field over a saved text (a file, a note, a round's notes, a setting):
+  it takes the text as it is when asked, the field stays as it is, and once saved, what was typed
+  meanwhile stays, unsaved, over the text saved; saves go one after the other, and the same text
+  asked twice is one save. `send(run, held)` is for a field that starts from nothing (a message, a
+  new note or comment, a commit's message): the text and what is attached leave the field at once,
+  one send at a time; refused, they come back before what was typed and attached since. Both resolve
+  with `{ ok, value }` or `{ ok: false, why }` and never throw, so a chain stops at a refusal. The
+  text sent is kept in its entry (`sent`) until the server answers: an app closed meanwhile finds it
+  back in its field (`restoreUnsaved`, which replaces `pruneUnsaved`). `saving(field, run)` is
+  `save` with the state `SaveStatus` draws. Away from a field: `settleUnsaved` (a save made for it,
+  as a round's submit), `amendUnsaved` (a quote, a message taken back), `moveUnsaved` (a file
+  renamed). `writeUnsaved` and `dropUnsaved` are no longer exported, and a handle's `saved()` is
+  gone.
+- **Rationale**: findings-02, Codex's five P2 on drafts and Claude's finding 5, are one defect: a
+  screen read or cleared a field after its `await`. Every site had its own copy of the lifecycle,
+  five of them wrong, each in its own way. The human's rule is that the app never loses a word
+  typed.
+- **Verified, and moved**: review `Comment.tsx` (discard after the save: confirmed; new comment
+  `send`, edit `save`, closes only when nothing is unsaved); inbox `AddNote.tsx` (confirmed; `send`,
+  with its images); Git `CommitBox.tsx` (confirmed; `send`); New page `NewPane.tsx` and `draft.ts`
+  (the message read after `session.newChat` and the uploads, and cleared after `session.send`:
+  confirmed; `send` with its images, for a session and for a start); session `Composer.tsx` (a
+  refused message dropped when another was begun: confirmed, and seen failing in `session.test.tsx`;
+  `send`); round `End.tsx` (a refused notes save resolved, and the round was submitted: confirmed;
+  `save`, and the submit stops); round `Question.tsx`, `Settled.tsx` (both discards after an await),
+  `saves.ts` (the submit's drop of a settled comment); inbox `NotePane.tsx`; jobs `Typed.tsx`,
+  `NewJob.tsx` (dropped three fields after `jobs.add`); settings `fields.tsx`; the three file
+  editors. The `discard()` calls left are the human's own, with no `await` before them: "Drop my
+  text", "Load the saved version", "Ask the agent instead" (the text moves to the composer in the
+  same turn), a comment saved blank (it is removed), a job's text equal to its saved value.
+- **If wrong**: a field that should keep its text while it is sent uses `save`; one that should
+  queue several sends needs `sent` to hold a list.
+- **Where**: `app/ui/text/unsaved.ts`, `SaveStatus.tsx`, `unsaved.test.ts`; the sites above;
+  `specs/ui/components.md`, "A word typed is never lost".
+
+## T89.2: The device writes a key's values one at a time, and unsaved text has no list beside it
+
+- **Decision**: `deviceStore.set` writes a key's values one after the other, each with the value the
+  key holds as its write starts, so the storage ends on the last value set however its answers come;
+  `set(key, value, { rest })` waits until the key has not been set for `rest` milliseconds, and
+  `flush()` writes what waits, which the shell calls as the app leaves the front (`lifecycle`).
+  `keys(prefix)` lists the keys that hold a value. The `unsaved` list is gone: the entries are found
+  from the store's own keys. A text typed is written 300 ms after the last key, and at once by a
+  save, a send, or a discard.
+- **Rationale**: Claude's finding 5, confirmed: `writeUnsaved` set the entry and then the list, two
+  `JSON.stringify` and two writes per key typed, and Native Shell's `Storage` promises no order
+  between two writes of one key, so the list, read and written whole, could end without a key whose
+  entry was there, and `pruneUnsaved` and the start never saw it. The same was true of an entry's
+  own text: its last two writes could land in the wrong order, and the restart showed the older.
+  `device.test.ts`'s "the storage ends on the last value set" failed on both. The test of "a write
+  that settles after a newer one" pinned two writes of a key in flight at once, which no longer
+  happens: it is the same guarantee, on one write at a time.
+- **If wrong**: a hard kill within 300 ms of a key loses that key's last letters: lower `REST`.
+- **Where**: `app/store/device.ts`, `device.test.ts`, `app/ui/text/unsaved.ts`,
+  `app/screens/shell/boot.ts`.
+
+## T89.3: A test reads a composer's draft from the device, not from `app.value`
+
+- **Decision**: `session.test.tsx`'s "a message refused comes back beside the one begun meanwhile"
+  reads the draft from `app.storage()`, and holds the server's answers through the line's seam
+  (`hold` and `release` of `shell/__checks__/Places.tsx`) so the second message is begun before the
+  first is refused.
+- **Rationale**: on the headless runner, `app.value()` of the app's editor still reads the text sent
+  after the field was emptied by its `value`, on the code before this fix too; on GTK the field is
+  empty (seen in a picture on the hidden display), and the keys typed next go into an empty field on
+  both. Without the hold, the sandbox refuses within the frame the driver waits for, and the test
+  passed on the code that lost the message.
+- **Where**: `app/screens/session/session.test.tsx`, `app/screens/shell/__checks__/Places.tsx`.

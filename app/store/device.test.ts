@@ -74,26 +74,107 @@ test("a value the storage refuses stays for the run, and the device says it is f
   expect(device.full()).toBe(false);
 });
 
-test("a write that settles after a newer one of its key does not decide whether the device is full", async () => {
-  // A storage whose writes settle when the test says, in any order.
-  const pending: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+/** A storage whose writes are kept when the test settles them, in the order it settles them. */
+function slowStorage() {
+  const kept = new Map<string, string>();
+  const waiting: Array<{ key: string; settle: () => void }> = [];
+  let writes = 0;
+  const later = (key: string, apply: () => void) =>
+    new Promise<void>((resolve) => {
+      writes += 1;
+      waiting.push({
+        key,
+        settle: () => {
+          apply();
+          resolve();
+        },
+      });
+    });
+  return {
+    kept,
+    storage: {
+      getItem: async (key: string) => kept.get(key) ?? null,
+      keys: async () => [...kept.keys()],
+      removeItem: (key: string) => later(key, () => kept.delete(key)),
+      setItem: (key: string, value: string) => later(key, () => kept.set(key, value)),
+    },
+    /** Settles every write, the newest first, until none waits: the worst order a storage answers in. */
+    async settle() {
+      while (waiting.length > 0) {
+        waiting.pop()?.settle();
+        // oxlint-disable-next-line no-await-in-loop
+        await new Promise<void>((done) => setTimeout(done, 0));
+      }
+    },
+    writes: () => writes,
+  };
+}
+
+test("the storage ends on the last value set, however its writes settle", async () => {
+  const slow = slowStorage();
+  const device = deviceStore<Keys>(slow.storage);
+  await device.load();
+  // Two fields typed in at once, each key set several times before the storage answers.
+  device.set("unsaved:a", { text: "a" });
+  device.set("unsaved:b", { text: "b" });
+  device.set("unsaved:a", { text: "a, then more" });
+  device.set("unsaved:b", { text: "b, then more" });
+  device.set("theme", "dark");
+  device.set("theme", undefined);
+  await slow.settle();
+
+  // A restart finds both texts whole, and no key that was taken back.
+  const restarted = deviceStore<Keys>(slow.storage);
+  await restarted.load();
+  expect(restarted.get("unsaved:a")).toEqual({ text: "a, then more" });
+  expect(restarted.get("unsaved:b")).toEqual({ text: "b, then more" });
+  expect(restarted.get("theme")).toBe(undefined);
+  // The texts kept are found from the values themselves.
+  expect(restarted.keys("unsaved:").toSorted()).toEqual(["unsaved:a", "unsaved:b"]);
+});
+
+test("a value set with a rest is written once, when the device is flushed", async () => {
+  const slow = slowStorage();
+  const device = deviceStore<Keys>(slow.storage);
+  await device.load();
+  // Typed fast: read back at once, and nothing written while the hand moves.
+  for (const text of ["h", "he", "hel", "hell", "hello"]) {
+    device.set("unsaved:note", { text }, { rest: 60_000 });
+  }
+  expect(device.get("unsaved:note")).toEqual({ text: "hello" });
+  expect(slow.writes()).toBe(0);
+  device.flush();
+  await slow.settle();
+  expect(slow.writes()).toBe(1);
+  expect(slow.kept.get("unsaved:note")).toBe(JSON.stringify({ text: "hello" }));
+  // A value taken back at once cancels the write that waited.
+  device.set("unsaved:note", { text: "more" }, { rest: 60_000 });
+  device.set("unsaved:note", undefined);
+  await slow.settle();
+  expect(slow.kept.has("unsaved:note")).toBe(false);
+});
+
+test("an older refusal of a key does not say the device is full once a newer value is kept", async () => {
+  // A storage that refuses a long text, when the test settles it.
+  const waiting: Array<() => void> = [];
   const storage = {
-    keys: async () => [],
     getItem: async () => null,
-    setItem: () =>
-      new Promise<void>((resolve, reject) => {
-        pending.push({ resolve, reject });
-      }),
+    keys: async () => [],
     removeItem: async () => {},
+    setItem: (_key: string, value: string) =>
+      new Promise<void>((resolve, reject) => {
+        waiting.push(() => (value.length > 20 ? reject(new Error("full")) : resolve()));
+      }),
   };
   const device = deviceStore<Keys>(storage);
   await device.load();
-  // A draft past the limit, then trimmed: the trimmed one is kept first, the long one refused after.
-  device.set("unsaved:inbox", { text: "far too long" });
+  // A draft past the limit, then trimmed before the storage answered.
+  device.set("unsaved:inbox", { text: "far too long a text" });
   device.set("unsaved:inbox", { text: "short" });
-  pending[1]?.resolve();
-  await Promise.resolve();
-  pending[0]?.reject(new Error("full"));
-  await new Promise<void>((done) => setTimeout(done, 0));
+  while (waiting.length > 0) {
+    waiting.shift()?.();
+    // oxlint-disable-next-line no-await-in-loop
+    await new Promise<void>((done) => setTimeout(done, 0));
+  }
   expect(device.full()).toBe(false);
 });

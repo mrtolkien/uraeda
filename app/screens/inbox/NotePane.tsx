@@ -92,22 +92,18 @@ function Note(props: { category: string | null; inbox: Inbox; note: InboxNote; r
   };
   const save = () =>
     said(async () => {
-      const text = field.text().trim();
-      if (text === props.note.text) return;
-      renamed.set({ from: props.note.key, id: props.note.id });
-      const written = await call("inbox.edit", {
-        hash: props.inbox.hash,
-        note: props.note.id,
-        repo: props.repo,
-        text,
+      if (field.text().trim() === props.note.text) return;
+      const { repo } = props;
+      const [hash, note] = [props.inbox.hash, props.note];
+      renamed.set({ from: note.key, id: note.id });
+      // The text as it is now: what is typed while it is saved stays, unsaved.
+      const done = await field.save(async (typed) => {
+        const text = typed.trim();
+        const written = await call("inbox.edit", { hash, note: note.id, repo, text });
+        // The field says it was saved: the stack keeps it for `u`, without a toast.
+        remember(written.change, `Edited ${quoted(text)}.`, { quiet: true, repo, subject: text });
       });
-      // The field says it was saved: the stack keeps it for `u`, without a toast.
-      remember(written.change, `Edited ${quoted(text)}.`, {
-        quiet: true,
-        repo: props.repo,
-        subject: text,
-      });
-      field.saved(text);
+      if (!done.ok) throw new Error(done.why ?? "");
       saved.set(true);
     });
   const attach = (images: ReadonlyArray<Held>) =>

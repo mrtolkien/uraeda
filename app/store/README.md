@@ -115,6 +115,22 @@ time zone, as near to now as it is: "15:08", "Tue 15:08", "12 Nov 15:08", "12 No
 server's zone from the repository shown; until it has, times read in the device's own. `Date`'s
 `getHours` and its kin read the device's zone: never show them.
 
+## What the device keeps
+
+`device.get(key)` and `device.set(key, value)` read and keep a choice of this device, a theme, a
+width, a text not saved yet, by the names of `DeviceKeys` (`device.ts`). A value is read back at
+once, from memory, and written after.
+
+- A key's writes go one at a time, each with the value the key holds as it starts: the storage ends
+  on the last value set, however its answers come.
+- `set(key, value, { rest })` waits for a pause, for a value that changes at every key typed;
+  `flush()` writes what waits, as the app leaves the front.
+- A family of values, one per field or per file, is a pattern of keys, found with
+  `device.keys(prefix)`. Never keep a list of them beside them: two writes of the list cross, and a
+  value is there that the list does not name.
+- A field's text is never kept by hand: it is `unsavedText` (`app/ui/text`), whose `save` and `send`
+  are the only ways it reaches the server.
+
 ## Never
 
 - **Keep a record's value in a component's state, or copy it into a signal.** Read it where it is

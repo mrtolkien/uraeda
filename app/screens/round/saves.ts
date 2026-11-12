@@ -7,7 +7,7 @@
 import { type Accessor, signal, untracked } from "nsh";
 import { call } from "../../store";
 import type { FileView, QuestionItem, SettledComment, WriteName } from "../../store/protocol";
-import { dropUnsaved, readUnsaved, unsavedKey } from "../../ui/text";
+import { readUnsaved, settleUnsaved, unsavedKey } from "../../ui/text";
 import { type Ask, useAsk } from "../session";
 import { remember } from "../shell/undo";
 
@@ -143,8 +143,7 @@ function createSaves(
       written.set(question, saved.answer);
       hash = saved.hash;
       // The comment typed is in the file now: the device lets it go, unless typed on since.
-      const key = fieldKey(args, now()?.path ?? "", question);
-      if (untracked(() => readUnsaved(key))?.text.trim() === comment) dropUnsaved(key);
+      settleUnsaved(fieldKey(args, now()?.path ?? "", question), comment);
     });
 
   const settled = (subject: string, text: string) =>
@@ -244,7 +243,8 @@ function createSaves(
       await Promise.all([
         ...typed.map((one) => answer(one.question, one.answer)),
         ...points.map((point) =>
-          settled(point.subject, point.text).then(() => dropUnsaved(point.key)),
+          // Saved as it was when the submit was asked: what was typed on since stays.
+          settled(point.subject, point.text).then(() => settleUnsaved(point.key, point.text)),
         ),
       ]);
       await queue(async () => {

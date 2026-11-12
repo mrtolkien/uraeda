@@ -9,13 +9,13 @@ import type { ProposalFileView } from "../../store/protocol";
 import { Banner, Button, IconButton, Segmented, sent, Spinner, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import {
+  moveUnsaved,
   SaveStatus,
   saving,
   TextField,
   type TextFieldRef,
   unsavedKey,
   unsavedText,
-  writeUnsaved,
 } from "../../ui/text";
 import { attachToFile, droppedImages, type Held, pastedImage, pickImages } from "../images";
 import type { Started } from "../new/Landing";
@@ -34,15 +34,14 @@ type EditorProps = {
 function Editor(props: EditorProps) {
   const path = () => props.file().path;
   const field = unsavedText(unsavedKey(props.repo, path()), () => props.file().text);
-  const saves = saving(async (text) => {
+  const saves = saving(field, async (text) => {
     await call("text.save", { hash: props.file().hash, path: path(), repo: props.repo, text });
-    field.saved(text);
   });
   const said = signal<string | null>(null);
   const typing = signal(false);
   let editor: TextFieldRef | undefined;
   /** Saves what was typed, if anything: says whether the text is saved. */
-  const save = () => (field.dirty() ? saves.save(field.text()) : Promise.resolve(true));
+  const save = () => (field.dirty() ? saves.save() : Promise.resolve(true));
   const effort = sent(
     () => props.file().discovery ?? "high",
     async (level: string) => {
@@ -65,11 +64,7 @@ function Editor(props: EditorProps) {
       editor?.insert(`\n${answer.link}\n`);
       // A proposal file with its first image becomes a folder: its text follows it there.
       if (answer.path !== path()) {
-        writeUnsaved(unsavedKey(props.repo, answer.path), {
-          at: new Date().toISOString(),
-          base: props.file().text,
-          text: field.text(),
-        });
+        moveUnsaved(unsavedKey(props.repo, path()), unsavedKey(props.repo, answer.path));
       }
     }
   };

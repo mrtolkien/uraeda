@@ -16,14 +16,17 @@ export {
   type VimStatus,
 } from "./TextField";
 export {
+  amendUnsaved,
   differ,
-  dropUnsaved,
   hasDrawnUnsaved,
-  pruneUnsaved,
+  moveUnsaved,
   readUnsaved,
+  restoreUnsaved,
+  settleUnsaved,
+  type Submitted,
+  type Taken,
   type Unsaved,
   unsavedKey,
   unsavedText,
   type UnsavedText,
-  writeUnsaved,
 } from "./unsaved";

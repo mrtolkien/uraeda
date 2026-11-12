@@ -1,8 +1,8 @@
 // What the app does before its first frame: it reads what this device keeps, and shows the theme
 // it showed last, or the default of the system's mode, with the fonts picked here.
-import { colorScheme, host } from "nsh";
+import { colorScheme, effect, host, lifecycle } from "nsh";
 import { device } from "../../store";
-import { pruneUnsaved } from "../../ui/text";
+import { restoreUnsaved } from "../../ui/text";
 import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
 import { DEFAULT_THEMES, type Mode } from "../../ui/tokens";
 
@@ -29,6 +29,11 @@ export async function boot() {
   const named = keepsShownTheme() ? device.get("theme.shown") : undefined;
   applyTheme(named ?? pickTheme(Object.values(DEFAULT_THEMES), deviceTheme(), scheme()));
   applyFonts(device.get("fonts"));
-  // Unsaved text older than 30 days goes before a field shows it.
-  pruneUnsaved(new Date());
+  // Unsaved text older than 30 days goes before a field shows it, and a text the app closed on
+  // while sending is back in its field.
+  restoreUnsaved(new Date());
+  // What waits for a pause in the typing is written as the app leaves the front, or closes.
+  effect(() => {
+    if (lifecycle() !== "active") device.flush();
+  });
 }

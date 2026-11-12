@@ -53,9 +53,13 @@ export function ConflictEditor(props: { path: string; repo: string }) {
   const save = () => {
     const read = file();
     if (read === undefined || read === null || hasMarkers(text.text())) return;
-    const saving = { hash: read.hash, path: props.path, repo: props.repo, text: text.text() };
-    void write("git.saveConflict", saving, `Saving ${props.path}`).then((done) => {
-      if (done) text.saved(saving.text);
+    const { path, repo } = props;
+    // The text as it is now: what is typed while it is saved stays, unsaved.
+    void text.save(async (typed) => {
+      const saving = { hash: read.hash, path, repo, text: typed };
+      if (!(await write("git.saveConflict", saving, `Saving ${path}`))) {
+        throw new Error("The save was refused.");
+      }
     });
   };
   const takeWhole = (resolution: "ours" | "theirs") =>

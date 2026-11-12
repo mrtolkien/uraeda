@@ -37,9 +37,12 @@ export function Typed(props: TypedProps) {
       field.discard();
       return;
     }
-    const refused = await props.form.change(props.at, (all) => props.write(all, text));
-    // Kept: the job shows it; text typed since stays.
-    if (refused === null && untracked(field.text) === text) field.discard();
+    // Saved as it was when the field was left: the job shows it, and text typed since stays. Its
+    // refusal shows under its row, as the form says it.
+    await field.save(async (typed) => {
+      const refused = await props.form.change(props.at, (all) => props.write(all, typed));
+      if (refused !== null) throw new Error(refused);
+    });
   };
   return (
     <TextField

@@ -2,7 +2,8 @@
 // still without an answer, each one press away, and the submit, the round's one main action. It
 // says what it commits and what follows, and is pressed, never typed: Enter in the notes is a new
 // line. Pressed while a question has no answer, it says which, and goes to the first one left: the
-// workflow goes on only once every question is answered.
+// workflow goes on only once every question is answered. It saves the notes first, and submits
+// nothing while they are not saved: a round never goes without its notes.
 import { cleanup, signal, untracked, View } from "nsh";
 import { record } from "../../store";
 import type { FileView, QuestionItem, RoundItems } from "../../store/protocol";
@@ -64,17 +65,15 @@ export function End(props: EndProps) {
     target.kind === "feature" ? record("Feature", { id: target.folder, repo: target.repo }) : null;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const saveNotes = () => {
+  /** Saves the notes as they are now: says whether the file holds them. */
+  const saveNotes = async (): Promise<boolean> => {
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;
-    if (!untracked(notes.dirty)) return Promise.resolve();
-    const text = untracked(notes.text).trim();
+    if (!untracked(notes.dirty)) return true;
     notesRefusal.set(null);
-    return props.saves.notes(text).then(
-      () => notes.saved(text),
-      (error: Error) =>
-        notesRefusal.set(`Not saved: ${error.message} Your notes stay on this device.`),
-    );
+    const done = await notes.save((text) => props.saves.notes(text.trim()));
+    if (!done.ok) notesRefusal.set(`Not saved: ${done.why} Your notes stay on this device.`);
+    return done.ok;
   };
   cleanup(() => void saveNotes());
 
@@ -99,7 +98,9 @@ export function End(props: EndProps) {
     pending.set(true);
     refusal.set(null);
     try {
-      await saveNotes();
+      if (!(await saveNotes())) {
+        throw new Error("your notes could not be saved, as said under them.");
+      }
       await props.saves.submit({
         resumes,
         write: writeOf(target, untracked(() => feature?.()?.title) ?? props.file().name),

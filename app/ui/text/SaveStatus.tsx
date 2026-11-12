@@ -4,6 +4,7 @@
 // always takes the room of its longest words, so the first letter typed moves nothing.
 import { type Accessor, signal, View } from "nsh";
 import { Icon, Text } from "../controls";
+import type { UnsavedText } from "./unsaved";
 
 /** Where a save is. */
 export type SaveState =
@@ -14,31 +15,33 @@ export type SaveState =
 
 /** A field's saves, one after the other: `send` throws when the server refuses, its message the why. */
 export type Saving = {
-  /** Saves `text`: says whether it was saved. */
-  save: (text: string) => Promise<boolean>;
+  /** Saves the field's text as it is now: says whether it was saved. */
+  save: () => Promise<boolean>;
   state: Accessor<SaveState>;
   /** Why the last save was refused, for the field's `refusal`: `null` once one passes. */
   refusal: Accessor<string | null>;
 };
 
-/** The saves of one field, through `send`, which resolves once the server kept the text. */
-export function saving(send: (text: string) => Promise<void>): Saving {
+/**
+ * The saves of one field, through `send`, which resolves once the server kept the text: the
+ * field's own `save`, with the state `SaveStatus` shows. What is typed while one goes stays
+ * unsaved, over the text saved.
+ */
+export function saving(
+  field: Pick<UnsavedText, "save">,
+  send: (text: string) => Promise<void>,
+): Saving {
   const state = signal<SaveState>({ kind: "idle" });
   return {
     refusal: () => {
       const now = state();
       return now.kind === "refused" ? now.why : null;
     },
-    async save(text) {
+    async save() {
       state.set({ kind: "saving" });
-      try {
-        await send(text);
-        state.set({ kind: "saved" });
-        return true;
-      } catch (error) {
-        state.set({ kind: "refused", why: error instanceof Error ? error.message : String(error) });
-        return false;
-      }
+      const done = await field.save(send);
+      state.set(done.ok ? { kind: "saved" } : { kind: "refused", why: done.why ?? "" });
+      return done.ok;
     },
     state,
   };

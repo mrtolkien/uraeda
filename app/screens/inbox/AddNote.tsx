@@ -6,7 +6,7 @@ import { Image, signal, View } from "nsh";
 import { call } from "../../store";
 import type { Inbox } from "../../store/protocol";
 import { IconButton, Text } from "../../ui/controls";
-import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
+import { type Taken, TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
 import type { Held } from "../images";
 import { sendImages } from "./images";
 import { quoted } from "./model";
@@ -25,6 +25,16 @@ export function holdImages(repo: string, images: ReadonlyArray<Held>) {
 
 const release = (repo: string, keep: (image: Held) => boolean = () => false) =>
   held.set({ ...held(), [repo]: heldFor(repo).filter(keep) });
+
+/** The images held for `repo`, as a note sent takes them: back before those added since. */
+const imagesOf = (repo: string): Taken<ReadonlyArray<Held>> => ({
+  putBack: (taken) => held.set({ ...held(), [repo]: [...taken, ...heldFor(repo)] }),
+  take: () => {
+    const taken = heldFor(repo);
+    release(repo);
+    return taken;
+  },
+});
 
 /** A row of images not sent yet, each with the way to take it out. */
 export function HeldImages(props: {
@@ -69,48 +79,40 @@ export type AddNoteProps = {
 };
 
 export function AddNote(props: AddNoteProps) {
-  const field = unsavedText(unsavedKey(props.repo, "specs/INBOX.md#new-note"), () => "");
-  const pending = signal(false);
+  const field = unsavedText(unsavedKey(props.repo, "specs/INBOX.md#new-note"), () => "", {
+    gap: " ",
+  });
   const refusal = signal<string | null>(null);
   const added = signal<string | null>(null);
   const images = () => heldFor(props.repo);
 
   const add = async () => {
     const text = field.text().trim();
-    if (pending()) return;
+    if (field.pending()) return;
     if (text === "") {
       refusal.set(
         images().length > 0 ? "A note with images needs text too." : "A note needs text.",
       );
       return;
     }
-    pending.set(true);
     refusal.set(null);
-    const sent = images();
-    try {
+    const { category, repo } = props;
+    const hash = props.inbox.hash;
+    // The note leaves the field with its images, which is free for the next one.
+    const done = await field.send(async (_, sent) => {
       if (sent.length > 0) {
-        await sendImages(props.repo, props.inbox.hash, { category: props.category, text }, sent);
-        release(props.repo, (image) => !sent.includes(image));
-      } else {
-        const written = await call("inbox.add", {
-          category: props.category,
-          hash: props.inbox.hash,
-          repo: props.repo,
-          text,
-        });
-        // The field says it was added: the stack keeps it for `u`, without a toast.
-        remember(written.change, `Added ${quoted(text)}.`, {
-          quiet: true,
-          repo: props.repo,
-          subject: text,
-        });
+        await sendImages(repo, hash, { category, text }, sent);
+        return;
       }
-      field.discard();
-      added.set(`Added ${quoted(text)}${props.category === null ? "" : ` to ${props.category}`}.`);
-    } catch (error) {
-      refusal.set((error as Error).message);
+      const written = await call("inbox.add", { category, hash, repo, text });
+      // The field says it was added: the stack keeps it for `u`, without a toast.
+      remember(written.change, `Added ${quoted(text)}.`, { quiet: true, repo, subject: text });
+    }, imagesOf(repo));
+    if (done.ok) {
+      added.set(`Added ${quoted(text)}${category === null ? "" : ` to ${category}`}.`);
+    } else if (done.why !== null) {
+      refusal.set(done.why);
     }
-    pending.set(false);
   };
 
   return (

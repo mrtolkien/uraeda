@@ -8,7 +8,10 @@ import { newForm } from "./form";
 import { JobForm } from "./JobForm";
 import { call, redirect } from "../../store";
 import { PaneScroll } from "../../ui/layout";
-import { dropUnsaved, readUnsaved } from "../../ui/text";
+import { readUnsaved, settleUnsaved } from "../../ui/text";
+
+/** The fields of a new job that are typed, and kept as they are. */
+const FIELDS = ["name", "prompt", "time"] as const;
 
 /** Where the device keeps a new job's text, per repository. */
 const keptAs = (repo: string) => `jobs-new:${repo}`;
@@ -19,8 +22,13 @@ export function NewJob(props: { repo: string }) {
   const { filled, form, submit } = newForm(
     props.repo,
     async (job) => {
+      // The texts as they are when the job is added: one typed in while the server answers stays
+      // on the device, for the next new job.
+      const added = FIELDS.map((field) => [field, kept(field)?.text] as const);
       await call("jobs.add", { job, repo: props.repo });
-      for (const field of ["name", "prompt", "time"]) dropUnsaved(`${keptAs(props.repo)}:${field}`);
+      for (const [field, text] of added) {
+        if (text !== undefined) settleUnsaved(`${keptAs(props.repo)}:${field}`, text, true);
+      }
       redirect({ name: job.name, page: "job", repo: props.repo });
     },
     {

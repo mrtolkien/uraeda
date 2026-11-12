@@ -1,7 +1,8 @@
 // The session's composer: what the human sends the agent, at the end of the conversation, in the
 // same pane. Enter sends, as a chat does, Shift+Enter adds a line (the library's `Composer`), and a
 // send is sent once: a second Enter while it goes does nothing. The text leaves the field at once
-// (rule 6) and comes back, with the server's words under it, if the server refuses it. While the
+// (rule 6) and comes back, with the server's words under it, if the server refuses it, before
+// whatever was typed meanwhile: neither message is lost (`unsavedText`'s `send`). While the
 // agent works, a message joins its turn where the agent takes one (`steer`), else waits for the
 // turn's end: the composer says which. Images come by the paperclip, a paste, or a drop on the
 // pane, each kept by the server as it comes (`attach.ts`), and Send waits for them. Stop is `S`,
@@ -12,11 +13,11 @@ import type { ChatImage, RuntimeRecord, Session } from "../../store/protocol";
 import { Button, IconButton, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import {
+  amendUnsaved,
   Composer as Field,
-  dropUnsaved,
-  readUnsaved,
+  type Taken,
   type TextFieldRef,
-  writeUnsaved,
+  unsavedText,
 } from "../../ui/text";
 import { type Held, keepForChat, pastedImage, pickImages } from "../images";
 
@@ -51,14 +52,19 @@ export function attach(repo: string, key: string, held: ReadonlyArray<Held>) {
   }
 }
 
+/** The images of the draft `key`, as a message sent takes them: back before those added since. */
+const imagesHeld = (key: string): Taken<ReadonlyArray<Attached>> => ({
+  putBack: (taken) => setImages(key, [...taken, ...untracked(() => imagesOf(key))]),
+  take: () => {
+    const taken = untracked(() => imagesOf(key));
+    setImages(key, []);
+    return taken;
+  },
+});
+
 /** Puts a message taken back in the draft `key`, before what it holds. */
 export function putBack(key: string, text: string) {
-  const held = readUnsaved(key)?.text ?? "";
-  writeUnsaved(key, {
-    at: new Date().toISOString(),
-    base: "",
-    text: held.trim() === "" ? text : `${text}\n\n${held}`,
-  });
+  amendUnsaved(key, (held) => (held.trim() === "" ? text : `${text}\n\n${held}`));
 }
 
 /** The draft whose composer takes the focus as it is drawn, or now if it is: asking the agent. */
@@ -99,12 +105,10 @@ function blockedWords(runtime: RuntimeRecord | undefined, session: Session | nul
 
 export function SessionComposer(props: SessionComposerProps) {
   const key = () => draftKey(props.repo, props.session?.id ?? null, props.folder);
-  const value = () => readUnsaved(key())?.text ?? "";
-  const change = (text: string) => {
-    if (text === "") dropUnsaved(key());
-    else writeUnsaved(key(), { at: new Date().toISOString(), base: "", text });
-  };
-  const sending = signal(false);
+  // The draft waits in its place: leaving the page does not ask about it.
+  const draft = unsavedText(key, () => "", { guards: false });
+  const value = draft.text;
+  const sending = draft.pending;
   const stopping = signal(false);
   const refusal = signal<string | null>(null);
   let field: TextFieldRef | undefined;
@@ -128,32 +132,24 @@ export function SessionComposer(props: SessionComposerProps) {
     const text = untracked(value).trim();
     const attached = untracked(held);
     if (untracked(sending) || untracked(saving) || (text === "" && attached.length === 0)) return;
-    const draft = untracked(key);
-    sending.set(true);
     refusal.set(null);
-    change("");
-    setImages(draft, []);
-    const session = props.session;
-    try {
-      const sent = await call("session.send", {
-        images: attached.flatMap((one) => (one.image === undefined ? [] : [one.image])),
-        repo: props.repo,
-        text,
-        ...(session === null
-          ? { folder: props.folder, ...(props.fresh ? { newSession: true } : {}) }
-          : { session: session.id }),
-      });
-      props.onSent?.(sent.session);
-    } catch (error) {
-      // Back where the hand was, with why: the text, and the images, unless typed over meanwhile.
-      if ((readUnsaved(draft)?.text ?? "") === "") {
-        writeUnsaved(draft, { at: new Date().toISOString(), base: "", text });
-      }
-      setImages(draft, [...attached, ...imagesOf(draft)]);
-      refusal.set(error instanceof StoreError ? error.message : String(error));
-    } finally {
-      sending.set(false);
-    }
+    const { folder, fresh, repo, session } = props;
+    // The message and its images leave at once. Refused, they come back where the hand was, with
+    // why, before what was typed and attached meanwhile.
+    const sent = await draft.send(
+      (typed, taken) =>
+        call("session.send", {
+          images: taken.flatMap((one) => (one.image === undefined ? [] : [one.image])),
+          repo,
+          text: typed.trim(),
+          ...(session === null
+            ? { folder, ...(fresh ? { newSession: true } : {}) }
+            : { session: session.id }),
+        }),
+      imagesHeld(untracked(key)),
+    );
+    if (sent.ok) props.onSent?.(sent.value.session);
+    else if (sent.why !== null) refusal.set(sent.why);
   };
 
   const stop = async () => {
@@ -256,7 +252,7 @@ export function SessionComposer(props: SessionComposerProps) {
             }
             disabled={blocked() !== undefined || saving()}
             label={`Message ${props.runtime?.name ?? "the agent"}`}
-            onChange={change}
+            onChange={draft.change}
             onSend={() => void send()}
             placeholder={`Message ${props.runtime?.name ?? "the agent"}`}
             queued={hint()}

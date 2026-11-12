@@ -5,7 +5,7 @@
 import { untracked } from "nsh";
 import { record } from "../../store";
 import { besideOpener } from "../../ui/layout";
-import { readUnsaved, writeUnsaved } from "../../ui/text";
+import { amendUnsaved } from "../../ui/text";
 import { draftKey, focusComposer } from "./Composer";
 import { sessionBeside } from "./index";
 
@@ -35,9 +35,8 @@ export function useAsk(repo: string, folder: string): () => Ask | undefined {
     return (quote, text) => {
       const session = untracked(feature)?.session ?? null;
       const key = draftKey(repo, session, folder);
-      const held = untracked(() => readUnsaved(key)?.text ?? "");
       const asked = text === undefined || text.trim() === "" ? quote : `${quote}\n\n${text.trim()}`;
-      writeUnsaved(key, { at: new Date().toISOString(), base: "", text: withQuote(held, asked) });
+      amendUnsaved(key, (held) => withQuote(held, asked));
       focusComposer(key);
       open(sessionBeside({ folder, fresh: false, repo, session: "" }));
     };

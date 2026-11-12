@@ -25,21 +25,18 @@ function Comment(props: {
 }) {
   const text = unsavedText(fieldKey(props.args, props.path, settledField(props.subject)), () => "");
   const refusal = signal<string | null>(null);
-  const pending = signal(false);
   const close = () => opened.update((all) => ({ ...all, [props.args.id]: null }));
   const save = async () => {
-    const words = text.text().trim();
-    if (words === "" || pending()) return;
-    pending.set(true);
+    if (text.text().trim() === "" || text.pending()) return;
     refusal.set(null);
-    try {
-      await props.saves.settled(props.subject, words);
-      text.discard();
-      close();
-    } catch (error) {
-      refusal.set(`Not saved: ${(error as Error).message} Your text stays on this device.`);
+    const { saves, subject } = props;
+    // The comment leaves its field as it is saved, which closes unless more was typed meanwhile.
+    const done = await text.send((typed) => saves.settled(subject, typed.trim()));
+    if (done.ok) {
+      if (!text.dirty()) close();
+    } else if (done.why !== null) {
+      refusal.set(`Not saved: ${done.why} Your text stays on this device.`);
     }
-    pending.set(false);
   };
   return (
     <View style={{ gap: 6, paddingTop: 6 }}>
@@ -59,7 +56,7 @@ function Comment(props: {
           icon="check"
           label="Save the comment"
           onPress={() => void save()}
-          pending={pending()}
+          pending={text.pending()}
         />
         <If when={props.ask}>
           {(ask) => (
@@ -106,22 +103,24 @@ function Given(props: {
     refusal.set(null);
     props.saves.unsettle(props.comment).then(() => pending.set(false), done("Not removed:"));
   };
-  const save = () => {
-    const words = text.text().trim();
-    if (pending()) return;
-    if (words === "") {
+  const save = async () => {
+    if (pending() || text.pending()) return;
+    // Saved blank, the comment goes: nothing typed is dropped with it.
+    if (text.text().trim() === "") {
       text.discard();
       editing.set(false);
       remove();
       return;
     }
-    pending.set(true);
     refusal.set(null);
-    props.saves.reword(props.comment, words).then(() => {
-      pending.set(false);
-      text.discard();
+    const { comment, saves } = props;
+    const saved = await text.save((typed) => saves.reword(comment, typed.trim()));
+    if (!saved.ok) {
+      refusal.set(`Not saved: your text stays on this device. ${saved.why}`);
+    } else if (!text.dirty()) {
+      // What was typed while it was saved keeps the field open.
       editing.set(false);
-    }, done("Not saved: your text stays on this device."));
+    }
   };
   return (
     <View style={{ gap: 4 }}>
@@ -147,13 +146,18 @@ function Given(props: {
           label={`Your comment on “${props.comment.subject}”`}
           onChange={text.change}
           onQuit={() => editing.set(false)}
-          onSave={save}
+          onSave={() => void save()}
           rows={{ max: 8, min: 2 }}
           testID="settled-edit"
           value={text.text()}
         />
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <Button icon="check" label="Save the change" onPress={save} pending={pending()} />
+          <Button
+            icon="check"
+            label="Save the change"
+            onPress={() => void save()}
+            pending={pending() || text.pending()}
+          />
           <Button label="Cancel" onPress={() => editing.set(false)} />
         </View>
       </If>
