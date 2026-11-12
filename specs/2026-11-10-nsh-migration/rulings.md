@@ -10320,7 +10320,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/tests/main.rs`, `crates/app/tests/main.rs`, both crates' `Cargo.toml`,
   `.config/nextest.toml`, `justfile`, `crates/xtask/tests/toolchain.rs`,
   `crates/app/tests/outside/display.rs`.
-## T192.1: A pane may ask for its height in a split stack
+
+## R517: A pane may ask for its height in a split stack
 
 - **Decision**: `definePane` takes `height`, the points a pane asks for in a split stack until the
   human drags it (`ResizablePanel`'s `size`); the panes that ask none share what is left. Home's
@@ -10334,7 +10335,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   share, never their content's height. Fewer notes in the inbox: it changes what Home says.
 - **Where**: `app/ui/layout/panes.tsx`, `Stack.tsx`, `app/screens/home/index.tsx`.
 
-## T192.2: The workflow's marks are drawn as the app's icons
+## R518: The workflow's marks are drawn as the app's icons
 
 - **Decision**: in a document's spans, `✅`, `✔`, `❌`, and `⚠️` are drawn as Lucide's
   `circle-check`, `check`, `circle-x`, and `triangle-alert`, the size of the interface's icon, in

@@ -82,7 +82,8 @@ function Head(props: { args: FileArgs; file: FileView; onVerdict?: () => void })
   const said = () => facts(props.file);
   return (
     <View style={{ gap: 10 }}>
-      <View style={{ alignItems: "center", columnGap: 14, flexDirection: "row", flexWrap: "wrap" }}>
+      {/* A space's width between facts, as the dot's own after it: "Spec · spec.md". */}
+      <View style={{ alignItems: "center", columnGap: 9, flexDirection: "row", flexWrap: "wrap" }}>
         <StatusDot
           label={[kindWord(props.file), status()?.label].filter(Boolean).join(" · ")}
           tone={status()?.tone ?? "quiet"}
