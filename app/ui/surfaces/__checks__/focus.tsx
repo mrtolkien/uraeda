@@ -1,7 +1,8 @@
 // The page of the surfaces' tests of the focus: a field of the page, and a dialog with two fields
-// of its own, opened by a key that is heard in a field too.
-import { type InputRef, mount, signal, Text, View } from "nsh";
+// of its own, opened by a key that is heard in a field too, and the history's Back, from the host.
+import { host, type InputRef, mount, signal, Text, View } from "nsh";
 import { Input } from "nsh/base";
+import { back } from "../../../store/history";
 import { KeysHost } from "../../keys/KeysHost";
 import { KeyScope, registerKey } from "../../keys/registry";
 import { Dialog, focusStop } from "..";
@@ -29,9 +30,13 @@ function Field(props: { first?: boolean; name: string }) {
 
 function Page() {
   const isOpen = signal(false);
+  const backed = signal("");
   registerKey({ inField: true, keys: "mod+o", label: "Ask", run: () => isOpen.set(true) });
+  // Back, as a browser's button or a swipe asks it: whether the history had a visit to leave.
+  host.on("back", () => backed.set(String(back())));
   return (
     <View style={{ flex: 1, gap: 8, padding: 16 }}>
+      <Text>back: {backed()}</Text>
       <Field name="page" />
       <Dialog onClose={() => isOpen.set(false)} open={isOpen()} testID="dialog" title="A question">
         <Field first name="first" />

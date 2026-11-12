@@ -32,12 +32,14 @@ import {
   StopsContext,
   takeFocus,
 } from "./focus";
+import { backCloses } from "./backCloses";
 import { onChange, presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { InScope, keyScope, registerKey } from "../keys/registry";
 import type { Scope } from "../keys/store";
 import { tokens } from "../tokens";
+import { isNarrow } from "../width";
 
 /** Where a float is: a fixed place of the window, and what it travels as it comes. */
 export type Place = {
@@ -139,6 +141,8 @@ export function Float(props: FloatProps) {
     }
   };
   const there = presence(open, () => ({ y: props.place().rise }));
+  // A sheet, what a dialog is on a phone, is a visit of its own there: Back closes it.
+  if (props.scrim) backCloses(open, isNarrow, close);
   const stops: Stops = [];
   const takesKeys = props.keys;
   // Made here, in the float's own body, and given explicitly: see `InScope`.
