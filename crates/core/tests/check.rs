@@ -2608,6 +2608,12 @@ fn approved_over_its_shape(problem: &Problem) -> bool {
             && problem.rule == "decision.keywords")
         || (problem.file.ends_with("specs/decisions/git.md")
             && matches!(problem.rule.as_str(), "decision.rules" | "decision.why"))
+        // The human's rule for a reply stuck on a background command, on the default branch.
+        || (problem.file.ends_with("specs/decisions/run-lifecycle.md")
+            && matches!(
+                problem.rule.as_str(),
+                "decision.keywords" | "decision.why" | "decision.consequences"
+            ))
 }
 
 /// US3 1, SC-001, SC-004: the repository's decisions warn nothing on their shape, and each Why

@@ -10019,8 +10019,31 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   answers keeps its turn across three checks, and a reply not ended yet never asked.
 - **Seen failing first**, on the runner before the change: the two tests of a check timed out
   waiting for it, and the tools test read the reason alone; the third, a reply not ended never
-  asked, passed, as the guard it is. With the reset on output removed, the answering agent's turn failed at its second
-  check.
-- **Where**:
-  `crates/server/src/runner/{running/quiet,running,send,sub_sessions,transcript,manager, message,live}.rs`,
+  asked, passed, as the guard it is. With the reset on output removed, the answering agent's turn
+  failed at its second check.
+- **Where**: `crates/server/src/runner/running/quiet.rs`, and `running.rs`, `send.rs`,
+  `sub_sessions.rs`, `transcript.rs`, `manager.rs`, `message.rs`, and `live.rs` beside it;
   `crates/server/tests/sessions/{background,tools}.rs`.
+
+## T67.2: The rebase on v1.4.0, and the run lifecycle decision over its shape
+
+- **Decision**: the branch is rebased on the default branch's `2ebbc5e3` (`chore: release v1.4.0`),
+  its 262 commits in order. One commit conflicted, the removal of the Node server: the six files of
+  `packages/server/src/runner/` that `9d0337f0` changed stay deleted, its change ported in T67.1.
+  `Cargo.toml` merged by itself, at the default branch's 1.4.0; `Cargo.lock` took each replayed
+  commit's own lock with the workspace's crates at 1.4.0. `specs/PRIORITIES.md`, `specs/INBOX.md`,
+  and `CHANGELOG.md` are the default branch's: this branch never wrote them.
+  - **One decision changed on both sides**, [run lifecycle](../decisions/run-lifecycle.md): the
+    default branch adds the rule of a reply waiting on background work, its reason, and two
+    consequences; this branch moved its "Applies to" from `packages/server/` to `crates/server/`.
+    Git merged both, which do not disagree. The new rule applies to the Rust runner, which T67.1
+    makes follow it, checked by its tests.
+  - **`the_ledger_reads_alone` lists run lifecycle as approved over its shape**: the human's new
+    text holds two MUSTs in one rule, a Why of 116 words, and six consequences, so the test failed
+    on the default branch itself. The human's words stand; the test bends, as it already does for
+    four other decisions. `no_decision_names_a_mechanism_its_checks_do_not` failed on the same rule,
+    which names "10 minutes" where its check says "the runner's tests": the 10 minutes are the rule,
+    so the test's `APPROVED` lists them for this decision.
+- **If wrong**: the human trims the decision to its shape, and the line of `approved_over_its_shape`
+  goes with it.
+- **Where**: `crates/core/tests/check.rs`, `specs/decisions/run-lifecycle.md`.

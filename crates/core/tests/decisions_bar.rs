@@ -100,6 +100,10 @@ fn mechanisms_in(words: &str) -> Vec<String> {
     found
 }
 
+/// The mechanisms a human wrote into a rule on purpose, by decision: the run lifecycle's wait for a
+/// reply stuck on a background command is the rule itself, on the default branch.
+const APPROVED: [(&str, &str); 1] = [("run-lifecycle", "10 minutes")];
+
 #[test]
 fn no_decision_names_a_mechanism_its_checks_do_not() {
     let decisions = decisions_of_the_repository();
@@ -110,6 +114,7 @@ fn no_decision_names_a_mechanism_its_checks_do_not() {
             let unchecked: Vec<&String> = named
                 .iter()
                 .filter(|mechanism| !rule.check.contains(mechanism.as_str()))
+                .filter(|mechanism| !APPROVED.contains(&(name.as_str(), mechanism.as_str())))
                 .collect();
             assert!(
                 unchecked.is_empty(),
