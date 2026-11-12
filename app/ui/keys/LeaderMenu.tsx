@@ -1,13 +1,14 @@
 // The leader menu: the keys pressed so far as its title, then what each next key does, each a
-// chip, a `➜`, then its action, a group named after a `+`, in alphabetical order of their keys. It
-// floats at the window's bottom right, above the status line, and on a narrow window spans its
-// width, as a sheet does. Each row is pressed as its key is, and so are the keys that go back and
+// chip, a `➜`, then its action, a group named after a `+`, in alphabetical order of their keys,
+// or as a group declares them (`groups.ts`). It floats at the window's bottom right, above the
+// status line, and on a narrow window spans its width, as a sheet does. Each row is pressed as its key is, and so are the keys that go back and
 // close. `LeaderMenuHost` draws it for the registry's pending sequence, once it is shown.
 import { computed, View } from "nsh";
 import { isNarrow } from "../width";
 import { Kbd, Text } from "../controls";
 import { tokens } from "../tokens";
 import { keysOn, pendingKeys, pressKeys } from "./registry";
+import { GROUPS } from "./groups";
 import { entriesAt, type MenuEntry, sortedEntries } from "./sequence";
 import { LEADER } from "./token";
 import { Overlay } from "../surfaces";
@@ -29,6 +30,10 @@ function columnsOf(entries: ReadonlyArray<MenuEntry>): Column[] {
   }
   return columns;
 }
+
+/** The entries in the order of their keys, or as declared where the group asks (`groups.ts`). */
+const ordered = (menu: { entries: ReadonlyArray<MenuEntry>; path: ReadonlyArray<string> }) =>
+  GROUPS[menu.path.join(" ")]?.declared === true ? menu.entries : sortedEntries(menu.entries);
 
 /** A key and what it does, pressed as the key is: the focus stays where it was. */
 function Press(props: { arrow?: boolean; keys: string; word: string }) {
@@ -68,7 +73,7 @@ export function LeaderMenu(props: {
       {/* Its columns made here: a wrapping column of rows does not widen its box in Native
           Shell's layout, which cut the second column off at the window's edge. */}
       <View style={{ columnGap: 24, flexDirection: isNarrow() ? "column" : "row" }}>
-        <Each key={(column: Column) => column.key} of={columnsOf(sortedEntries(props.entries))}>
+        <Each key={(column: Column) => column.key} of={columnsOf(ordered(props))}>
           {(column: () => Column) => (
             <View style={{ minWidth: isNarrow() ? undefined : 240 }}>
               <Each key={(entry: MenuEntry) => `${entry.key} ${entry.label}`} of={column().entries}>
