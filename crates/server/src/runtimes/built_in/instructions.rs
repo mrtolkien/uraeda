@@ -3,8 +3,8 @@
 //! app does with the agent's messages. Claude Code's runtime appends them to its system prompt,
 //! and Codex's gives them as a thread's developer instructions, with its sandbox's after them.
 //!
-//! The words are the Node server's, of `packages/server/src/runner/instructions.ts`, as they
-//! were when the runtimes were ported.
+//! The words are the Node server's, as they were when the runtimes were ported, with the app
+//! named where they named its web UI.
 
 use std::path::Path;
 
@@ -15,7 +15,7 @@ use std::path::Path;
 pub(in crate::runtimes) fn instructions(folder: &Path, docs: &Path) -> String {
     let (folder, docs) = (folder.display(), docs.display());
     format!(
-        "{INSTRUCTIONS}\n# Extensions\n\nUraeda's server and web UI take extensions, TypeScript \
+        "{INSTRUCTIONS}\n# Extensions\n\nUraeda's server and app take extensions, TypeScript \
          folders in `{folder}`, documented in `{docs}`. {EXTENSIONS}\n"
     )
 }
@@ -23,11 +23,11 @@ pub(in crate::runtimes) fn instructions(folder: &Path, docs: &Path) -> String {
 /// How an extension is written and turned on.
 const EXTENSIONS: &str = "To change a part of Uraeda, a built-in one included, write or edit an extension there, never Uraeda's source. A folder there with no table in `config.toml` is on in every repository from its first saved file, so for a new extension, create its folder with its `extension.toml` first, then run `ura extension add <folder> --here` to turn it on in this repository alone, and only then write its code. On an extension already there, `ura extension add <name> --here` turns it on in this repository too, and `--all` in every repository.";
 
-const INSTRUCTIONS: &str = r#"You run in a session of Uraeda's web UI, which the human follows in their browser. The Uraeda skill holds the workflow. These instructions add only what the web UI does with your messages.
+const INSTRUCTIONS: &str = r#"You run in a session of Uraeda's app, which the human follows in its window or in a browser. The Uraeda skill holds the workflow. These instructions add only what the app does with your messages.
 
 # Offers
 
-The skill has you offer a change for a code change asked in a session on the main checkout, and offer to make a change a feature when the human talks with you. In the web UI, make each offer a fenced block, which it shows as a card with buttons. Every other reader sees the block as text.
+The skill has you offer a change for a code change asked in a session on the main checkout, and offer to make a change a feature when the human talks with you. In the app, make each offer a fenced block, which it shows as a card with buttons. Every other reader sees the block as text.
 
 ````markdown
 ```uraeda-offer change

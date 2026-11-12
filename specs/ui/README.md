@@ -1,7 +1,7 @@
 # The UI's direction
 
-How Uraeda's web UI should read, behave, and be put together. The [decisions](../decisions/) hold
-the binding rules, [UI look](../decisions/ui-look.md), [UI layout](../decisions/ui-layout.md),
+How Uraeda's app should read, behave, and be put together. The [decisions](../decisions/) hold the
+binding rules, [UI look](../decisions/ui-look.md), [UI layout](../decisions/ui-layout.md),
 [UI behaviour](../decisions/ui-behaviour.md), [UI components](../decisions/ui-components.md), and
 [Keyboard](../decisions/keyboard.md). These guides say what those rules aim at, and how a view meets
 them, from what the human asked for while going over every view by hand. Read them before designing

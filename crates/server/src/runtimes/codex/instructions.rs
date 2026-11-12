@@ -2,7 +2,7 @@
 //! given, `built_in::instructions`, then its sandbox's section. Codex's runtime gives them as a
 //! thread's developer instructions.
 //!
-//! The sandbox's words are the Node server's, of `packages/server/src/runner/codex-thread.ts`,
+//! The sandbox's words are the Node server's,
 //! as they were when the runtime was ported.
 
 use std::path::Path;

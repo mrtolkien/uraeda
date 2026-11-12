@@ -1,5 +1,5 @@
 // The app's route table: the page an address names, and the address a page writes. The paths are
-// the React UI's (`packages/web/src/routeTable.ts`), so a link from before the port still opens.
+// the React UI's, so a link from before the port still opens.
 // An address read once per navigation is no heavy logic: it stays in TSX, with no native call.
 
 /** What the New page starts: a session, a change, or a feature. */

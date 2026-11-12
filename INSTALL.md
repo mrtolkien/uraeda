@@ -1,9 +1,9 @@
 # Installing Uraeda
 
-Uraeda has four parts, each optional but the first: the skill, the workflow your agent follows;
-`ura`, the command-line tool that checks and moves it, and serves it; the app, a desktop window that
-drives it; and the web UI, which drives it from a browser. The [README](README.md#getting-started)
-has the quick install. This page has every way.
+Uraeda has three parts, each optional but the first: the skill, the workflow your agent follows;
+`ura`, the command-line tool that checks and moves it, and serves the app; and the app, which drives
+it, in a desktop window on Linux and in any browser. The [README](README.md#getting-started) has the
+quick install. This page has every way.
 
 ## The skill
 
@@ -59,7 +59,9 @@ echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 
 ## The app
 
-The app is Uraeda's desktop window, on Linux x64 for now. It holds its own `ura`: on its machine, it
+The app runs in any browser, a phone's too: `ura serve` serves it, as
+[a server alone](#a-server-alone) says, and nothing else is installed. On Linux x64, it is also a
+desktop window, which this section installs. The desktop app holds its own `ura`: on its machine, it
 finds the server running, or starts `ura serve` and stops it when its window closes.
 
 It needs GTK 4.14 or newer and WebKitGTK 6.0, which Ubuntu 24.04, Debian 13, Fedora 40, and later
@@ -106,23 +108,39 @@ with the app, so `ura upgrade` does not update it: install the next release's ta
 
 `uraeda --server <address>` opens another machine's server instead of starting one, such as
 `uraeda --server https://desktop.tail1234.ts.net`. That server is reached through a proxy, as
-[the web UI's page](docs/web-ui.md) explains. On its first start, the app asks for a pairing code:
-run `ura pair` on the server's machine, which prints a one-time code and its QR code, and type the
-code in. The app keeps the device's token in the desktop's secret store, so it pairs once.
-
-### Sessions of the web UI
-
-<!-- TASK 61: `ura import-sessions`, run once, copies the web UI's sessions into the server of
-`ura serve`. Task 61 writes this section. -->
+[the app's page](docs/app.md#reaching-it-from-another-device) explains. On its first start, the app
+asks for a pairing code: run `ura pair` on the server's machine, which prints a one-time code and
+its QR code, and type the code in. The app keeps the device's token in the desktop's secret store,
+so it pairs once.
 
 ## A server alone
 
-On a server or a machine without a desktop, install `ura` alone, with the installer script or
-Homebrew below, and run `ura serve`. It serves Uraeda on http://127.0.0.1:4320, on loopback only,
-until it is stopped. Other devices reach it through a proxy, and pair with `ura pair`, as above.
-Started in a terminal, its first start prints an access key, once, which signs a browser in: keep it
-in a password manager. Started any other way, as a service or by the app, it prints none, so none
-rests in a log: `ura key` on its machine shows one then, once.
+Without the desktop app, or on a server or a machine without a desktop, install `ura` alone, with
+the installer script or Homebrew above, and run `ura serve`. It serves the app on
+http://127.0.0.1:4310, on loopback only, until it is stopped, and a start in a terminal opens it in
+your browser. Other devices reach it through a proxy, and pair with `ura pair`, as above. Started in
+a terminal, its first start prints an access key, once, which signs a browser in: keep it in a
+password manager. Started any other way, as a service or by the app, it prints none, so none rests
+in a log: `ura key` on its machine shows one then, once.
+
+## Coming from the web UI, `@uraeda/ui`
+
+Uraeda's earlier web UI came from npm, and ran its own server on Node. `ura serve` replaces it, on
+the same port, with a data folder of its own: `~/.local/share/uraeda-next/`, beside the web UI's
+`~/.local/share/uraeda/`, which it only reads. Once:
+
+1. Stop the web UI's server, and uninstall it: `npm uninstall -g @uraeda/ui`.
+2. Copy its sessions: `ura import-sessions`. It reads the old folder and changes nothing there.
+3. Start the new server, `ura serve`, in a repository, or open the desktop app.
+4. Sign in again: the first start prints a new access key, and each other device pairs with
+   `ura pair`.
+5. Add your other repositories, with `ura add` in each, or copy the old list before the first start:
+   `cp ~/.local/share/uraeda/repositories.json ~/.local/share/uraeda-next/`.
+
+Your settings, themes, and scheduled jobs stay: both read `~/.config/uraeda/`. An extension written
+for the web UI stops loading: [its API changed](docs/extensions.md). `URAEDA_DATA_DIR`, if you set
+it for the web UI, now names the new server's folder: `ura serve` refuses the old one, so unset it
+or point it elsewhere. `ura import-sessions --from <folder>` reads an old folder kept elsewhere.
 
 ## From source, with Nix
 
@@ -138,7 +156,7 @@ nix develop -c just package                     # the app, as a release ships it
 
 ## Claude Code
 
-The web UI's sessions run Claude Code by default, installed and signed in on the machine that runs
+The app's sessions run Claude Code by default, installed and signed in on the machine that runs
 Uraeda. It needs a paid plan: Pro, Max, Team, Enterprise, or Console. Install it as its
 [setup page](https://code.claude.com/docs/en/setup) says, for example:
 
@@ -151,14 +169,9 @@ repository or some, and sets the command it runs, `claude` by default.
 
 ## Codex
 
-The web UI's sessions can run Codex too, installed and signed in on the machine that runs Uraeda,
-with a ChatGPT plan or an OpenAI API key. Install it as its
-[documentation](https://developers.openai.com/codex/cli) says, then sign in, for example:
-
-```sh
-npm install -g @openai/codex
-codex login
-```
+The app's sessions can run Codex too, installed and signed in on the machine that runs Uraeda, with
+a ChatGPT plan or an OpenAI API key. Install it as its
+[documentation](https://developers.openai.com/codex/cli) says, then sign in with `codex login`.
 
 Codex is a built-in extension, `codex`, turned off and given its command, `codex` by default, the
 same way. Its sessions run in its sandbox, which writes the session's folder only, with the network
@@ -166,22 +179,4 @@ off, whatever your `~/.codex/config.toml` says: its automatic reviewer approves 
 network command first.
 
 Another agent runs through a runtime [extension](docs/extensions.md#runtimes) of yours. Without any
-agent, the web UI still shows and edits every file, and its pages only commit.
-
-## The web UI
-
-The web UI comes from npm, and needs Node 24 or later. In a repository, run it with `npx`: it starts
-the server on http://127.0.0.1:4310 and opens the repository in your browser. Run it in another
-repository and it opens in the server already running. For a lasting install, install it globally,
-then run `uraeda`, and update it the same way:
-
-```sh
-npx @uraeda/ui                 # the web UI, for the repository you are in
-npm i -g @uraeda/ui@latest     # a lasting install, then `uraeda`
-```
-
-In a repository whose `package.json` asks for another package manager in `devEngines`, npm refuses
-to run `npx`, with `EBADDEVENGINES`. In a pnpm project, run `pnpm dlx @uraeda/ui`. Anywhere, install
-it once with `npm i -g @uraeda/ui@latest` and run `uraeda`.
-
-Its flags, sign-in, and settings are in [the web UI's page](docs/web-ui.md).
+agent, the app still shows and edits every file, and its pages only commit.

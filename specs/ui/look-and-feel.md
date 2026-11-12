@@ -74,8 +74,8 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 
 A view asks for a colour by its role, never by a hue (the
 [Colour themes](../decisions/colour-themes.md) decision): the theme picked maps its own palette onto
-the roles, which [`theme/roles.ts`](/packages/web/src/theme/roles.ts) turns into the views'
-`--role-*` variables. In Catppuccin, the default:
+the roles, which [`roles.ts`](/app/ui/tokens/roles.ts) turns into the views' `--role-*` variables.
+In Catppuccin, the default:
 
 - **The accent**, `action` (mauve), is what can be pressed: the primary button, the next-step mark,
   the selection.
@@ -102,22 +102,22 @@ component looks good, is easy to read, and conveys the key information".
 The look is a terminal's, with frosted glass for what floats over the page, as modern Linux desktops
 draw their panels with transparency and blur. The phone's floating bars, a row's actions and a
 page's bottom bar, the phone's sheets, the leader menu and the key map on wide screens, and a
-question's header once stuck over its card's text, are frosted glass (`layout/glass.ts`): square, in
-a warm amber tint of their own over the page's own colour, blurred, so the page under them shows its
-shapes and colours but none of its words, and the glass's text reads over any page ("the leader menu
-over text is hard to read"), with a bright rim on the edge that faces the page. The dark theme's
-glass lies over two thirds of the page's colour. The light theme's lies over 85% of it, with a faint
-tint: a darker, smoked tint over less of the page looked more like glass ("the light theme pane
-don't look glassy enough"), but its text fell under the theme's contrast, and to 2:1 over a dimmed
-page, so the human chose the lighter glass for every surface
+question's header once stuck over its card's text, are frosted glass
+([`glass.ts`](/app/ui/tokens/glass.ts)): square, in a warm amber tint of their own over the page's
+own colour, blurred, so the page under them shows its shapes and colours but none of its words, and
+the glass's text reads over any page ("the leader menu over text is hard to read"), with a bright
+rim on the edge that faces the page. The dark theme's glass lies over two thirds of the page's
+colour. The light theme's lies over 85% of it, with a faint tint: a darker, smoked tint over less of
+the page looked more like glass ("the light theme pane don't look glassy enough"), but its text fell
+under the theme's contrast, and to 2:1 over a dimmed page, so the human chose the lighter glass for
+every surface
 ([the key map's round](/specs/done/2026-10-29-help-keybindings.md#q1-how-should-the-key-map-look-in-the-light-theme)).
 A glass that holds the focus on a wide screen, the key map, dims the page under it lightly
-(`--glass-dim`), not as Astryx's dialogs do, which turns the glass grey; the phone's sheets keep
-their dim. Glass blurs its own box, never the whole window: a dialog, a picker, the key map, and an
-image's lightbox dim the page behind them without blurring it (`layout/scrim.ts`), as a terminal's
-popup does. A blur over the whole window is drawn again on every frame the dialog changes, and cost
-about 45 ms per key typed in a dialog's field ("performance is very important"). A new floating
-surface uses those styles, never a second glass. Not the gradients of early 2010s mobile interfaces:
-"just a bit square… extremely blurred". Glass marks what floats over the page; it is not a
-background for panes. Nothing on glass is a filled block, not even the main action: an action stands
-out by its icon in the accent.
+(`--glass-dim`), never with a grey that turns the glass dull; the phone's sheets keep their dim.
+Glass blurs its own box, never the whole window: a dialog, a picker, the key map, and an image's
+lightbox dim the page behind them without blurring it, as a terminal's popup does. A blur over the
+whole window is drawn again on every frame the dialog changes, and cost about 45 ms per key typed in
+a dialog's field ("performance is very important"). A new floating surface uses those styles, never
+a second glass. Not the gradients of early 2010s mobile interfaces: "just a bit square… extremely
+blurred". Glass marks what floats over the page; it is not a background for panes. Nothing on glass
+is a filled block, not even the main action: an action stands out by its icon in the accent.

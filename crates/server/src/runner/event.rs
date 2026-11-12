@@ -1,8 +1,7 @@
 //! The events of a turn, whatever the agent: what a runtime reads from its agent's output, and
 //! what the runner writes beside it. A turn's transcript is the log of them, in order.
 //!
-//! Each keeps the meaning and the JSON of `AgentEvent`, in
-//! [`events.ts`](/packages/server/src/runner/events.ts): `{"type":"toolEnd","id":..,"isError":..}`.
+//! Each keeps the meaning and the JSON of the Node server's `AgentEvent`: `{"type":"toolEnd","id":..,"isError":..}`.
 //! Three have no twin there, as no agent sends them: [`Event::Message`], [`Event::Denial`], and
 //! [`Event::Allowed`], which the runner logs for what the Node server kept as an item it changed
 //! in place.

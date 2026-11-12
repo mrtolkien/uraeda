@@ -3,7 +3,7 @@
 //!
 //! [`Runtime`] and [`AgentProcess`] mirror the adapter an extension's `server.ts` implements,
 //! `Runtime` and `AgentProcess` of `uraeda/server`
-//! ([`extension-api.ts`](/packages/server/src/extension-api.ts)): the same methods, taking and
+//! ([`server.d.ts`](/crates/server/src/extensions/api/server.d.ts)): the same methods, taking and
 //! giving the same JSON, so Claude Code's runtime, Codex's, the fake, and one in an extension's
 //! VM are the same thing to the sessions.
 //!

@@ -189,7 +189,7 @@ enum Command {
     Lsp,
     /// Upgrade ura to the latest release, with the installer script or Homebrew it came from
     Upgrade,
-    /// Add the git repository holding a folder to the web UI's list
+    /// Add the git repository holding a folder to the app's list
     Add {
         /// A folder in the repository; the current folder by default
         #[arg(value_hint = clap::ValueHint::DirPath)]

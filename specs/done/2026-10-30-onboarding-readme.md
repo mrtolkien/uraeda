@@ -27,7 +27,7 @@ that says what Uraeda is, a workflow first, then a CLI, then a web UI. A project
   one feature's walk through the workflow, a quick install, getting started, and links. It stays
   under 1,000 words.
 - The full install is in [`INSTALL.md`](/INSTALL.md); reference for users in
-  [`docs/web-ui.md`](/docs/web-ui.md), [`docs/cli.md`](/docs/cli.md), and
+  [`docs/web-ui.md`](/docs/app.md), [`docs/cli.md`](/docs/cli.md), and
   [`docs/specs-folder.md`](/docs/specs-folder.md); building, testing, and releasing in
   [`CONTRIBUTING.md`](/CONTRIBUTING.md). Every fact of the old README is in one of them.
 - A project is set up once its constitution is written and its code-quality and testing decisions

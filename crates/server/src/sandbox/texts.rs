@@ -1,5 +1,5 @@
 //! The texts the sample features are made of: proposals, specs, plans, records, and code, as the
-//! Node sandbox's builders wrote them (`packages/web/samples/features.ts`).
+//! Node sandbox's builders wrote them.
 
 use super::git::{Commit, Files, text};
 use super::{fixture, fixture_text};

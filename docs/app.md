@@ -1,36 +1,40 @@
-# The web UI
+# The app
 
-The web UI shows every feature and file of a repository with its structure. It performs every human
+The app shows every feature and file of a repository with its structure. It performs every human
 step: answering, reviewing, writing proposals, and jotting down notes. It also holds your sessions
-with the agent, from a phone too. [INSTALL.md](../INSTALL.md#the-web-ui) says how to install it.
+with the agent. It is one app in two forms: a desktop window on Linux, and the same screens in any
+browser, a phone's too, both served by `ura serve`. [INSTALL.md](../INSTALL.md) says how to install
+them.
 
 ## Starting it
 
-In a repository, `npx @uraeda/ui` starts the server on http://127.0.0.1:4310 and opens the
-repository in your browser. Run it in another repository and it opens in the server already running.
-After `npm i -g @uraeda/ui@latest`, the command is `uraeda`.
+In a repository, `ura serve` starts the server on http://127.0.0.1:4310 and opens the repository in
+your browser. Run it in another repository and it opens in the server already running. On Linux,
+`uraeda` opens the desktop app instead: it finds the server running, or starts one, and stops the
+one it started when its window closes.
 
 ```sh
-npx @uraeda/ui                          # the web UI, for the repository you are in
-npx @uraeda/ui --no-open --port 4311    # without opening the browser, on another port
-npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names for this run, over the settings
-npx @uraeda/ui --new-key                # a new access key, which signs every device out
+ura serve                       # the server, and the app in your browser
+ura serve --no-open --port 4311 # without opening the browser, on another port
+uraeda                          # the desktop app, on Linux
+uraeda --server https://mac.tail1234.ts.net  # another machine's server
 ```
 
-`uraeda --help` lists every option.
+`ura serve --help` and `uraeda --help` list every option. [The CLI's page](cli.md) has `ura serve`,
+`ura pair`, and `ura key` in full.
 
 ## Repositories
 
 One server serves every repository in Uraeda's list, kept in your data folder. The menu at the top
-left of the web UI switches between them, adds one by its folder, and removes one. `ura add` adds
-the repository of the folder you are in. Each repository's pages are under `/r/<name>/`.
+left of the app switches between them, adds one by its folder, and removes one. `ura add` adds the
+repository of the folder you are in. Each repository's pages are under `/r/<name>/`.
 
 A repository that lacks the files the workflow needs opens Home on a Setup pane. "Set up with the
 agent" opens a session with the setup message ready to send.
 
 ## The workflow's files
 
-The web UI reads the workflow's files as the skill writes them, and draws them:
+The app reads the workflow's files as the skill writes them, and draws them:
 
 - A decision's `icon`, a [Lucide](https://lucide.dev/icons/) name, shows beside its title, and a
   default icon for a name it does not know. A decision changed on a branch shows its change against
@@ -55,29 +59,32 @@ The web UI reads the workflow's files as the skill writes them, and draws them:
 
 ## Sign-in
 
-Every browser signs in. The first start shows an access key, once, in the terminal: keep it in a
-password manager. The browser it opens is signed in already, and so is the one a second start opens
-on the same machine.
+Every browser and every device signs in. The first start of `ura serve` in a terminal shows an
+access key, once: keep it in a password manager. The browser it opens is signed in already, and so
+is the one a second start opens on the same machine. The desktop app on the server's own machine
+needs no key.
 
 Any other browser, like your phone's, pastes the key once. It stays signed in while it is used at
-least every 30 days. "Sign out" and "Sign out everywhere…" are in Settings, under Sign-in. A lost
-key is replaced with `uraeda --new-key` on the machine that runs Uraeda, which signs every device
-out.
+least every 30 days. A device, the desktop app on another machine or a phone, can pair instead:
+`ura pair` on the server's machine prints a one-time code and its QR code, and the device then signs
+in with a token of its own, which Settings revokes alone. "Sign out" and "Sign out everywhere…" are
+in Settings, under Sign-in. A lost key is replaced with `ura key --replace` on the machine that runs
+Uraeda, which signs every browser and device out. A server started with no terminal, as a service or
+by the app, shows no key: `ura key` shows one then, once.
 
 ## Settings
 
 Settings, at the bottom of the sidebar, shows and changes the server's settings. It also holds the
-colours and the fonts, kept on each browser, and signing out.
+colours and the fonts, kept on each device, and signing out.
 
 Its Appearance section picks the mode, System, Light, or Dark, then a dark theme and a light theme,
 each from its own list: the shipped themes, then [yours](#colour-themes), marked "yours". System
 follows the device, the light theme by day and the dark one by night; `Space u m` cycles the three
-modes. Each browser keeps its own picks, as it keeps its fonts: a phone opened for the first time
-shows Catppuccin, whatever the laptop picked. A browser that picked Mocha or Latte before themes
-existed shows Catppuccin Mocha in Dark mode, or Latte in Light. A picked theme that leaves the
-lists, such as a file of yours deleted, draws its mode's default, Catppuccin Mocha or Latte. A
-reload draws the picked theme from its first frame, the sign-in page included, from the colours the
-browser drew last. A private window that refuses storage keeps the picks until the page reloads.
+modes. Each device keeps its own picks, as it keeps its fonts: a phone opened for the first time
+shows Catppuccin, whatever the laptop picked. A picked theme that leaves the lists, such as a file
+of yours deleted, draws its mode's default, Catppuccin Mocha or Latte. In a browser, a reload draws
+the picked theme from its first frame, the sign-in page included, from the colours the browser drew
+last, and a private window that refuses storage keeps the picks until the page reloads.
 
 `Space u t` tries the themes from the keyboard: a narrow list of every theme at the top of the page,
 dark ones first, the two in use marked, and the app itself drawn in the theme under the cursor. Left
@@ -102,9 +109,10 @@ open_browser = true                      # whether a start opens the browser
 ```
 
 A host name added or removed applies to the next request; the port and the browser, at the next
-start. Each value comes from its flag, `--allowed-hosts`, `--port`, or `--no-open`. Else it comes
-from its environment variable, `URAEDA_ALLOWED_HOSTS` or `URAEDA_PORT`, else the file, else its
-default.
+start. The port comes from `--port`, else from `URAEDA_PORT`, else the file, else 4310. The host
+names come from `URAEDA_ALLOWED_HOSTS` for one run, else the file. `--no-open` opens no browser,
+whatever the file says. A variable is read from the server's environment, or from the `.env` of the
+config folder.
 
 Its `[runs]` table holds how the workflow's runs start and go on by themselves:
 
@@ -480,8 +488,8 @@ run in order when Vim starts. A line the engine refuses shows its error under th
 `Line 2: Not an editor command ":nmpa Q dd"`. A value of the wrong type in the file, like a string
 instead of a list, shows as a problem of the file.
 
-Keys the browser keeps never reach Vim: Ctrl+W closes the tab, even in insert mode. The Leave guard
-asks first while text is not saved.
+In a browser, the keys the browser keeps never reach Vim: Ctrl+W closes the tab, even in insert
+mode. The Leave guard asks first while text is not saved.
 
 ## Buffers
 
@@ -611,7 +619,7 @@ A move there has no toast, so it can only be moved back.
 
 The server listens on 127.0.0.1 only. To reach Uraeda from a public address, put a proxy that ends
 TLS on the same machine, like Caddy or Tailscale Funnel. Add its host name in Settings, or give it
-to `--allowed-hosts`. With Caddy, the whole configuration is:
+in `URAEDA_ALLOWED_HOSTS`. With Caddy, the whole configuration is:
 
 ```caddy
 uraeda.example.com { reverse_proxy 127.0.0.1:4310 }
@@ -774,9 +782,9 @@ runs on a copy of its model catalog with every model's sub-agents disabled. The 
 it cannot be written, Codex runs on its own catalog, and the session says its own sub-agents may
 run. Each extension of yours on in the repository adds its `skills/` folder the same way, as one
 more plugin, `ext-<name>`, for Claude Code. The skill holds the workflow for any agent, and names
-Uraeda's tools and the run's stop, never the web UI. The server adds the web UI's own instructions
-to every session, in [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers'
-cards, and what it shows of the agent's messages, and where your extensions folder and their
+Uraeda's tools and the run's stop, never the app. The server adds the app's own instructions to
+every session, in [`instructions.rs`](../crates/server/src/runtimes/built_in/instructions.rs): its
+offers' cards, and what it shows of the agent's messages, and where your extensions folder and their
 documentation are. A session may write in your extensions folder, Codex's after its reviewer
 approves each write, so asking it for a change to Uraeda gives you an extension.
 
@@ -974,17 +982,25 @@ in <repository>.", as for a repository the job does not name.
 
 ## The data folder
 
-Sessions are kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder,
-`~/.local/share/uraeda/` on Linux, and each feature's own run options in `run-options.sqlite` beside
-it: a cache that cannot be read starts empty, but never takes the features' options with it. There,
-a running server keeps the files that only live while it runs, like its host token and its
-Storybooks' records, in `run/`, and Codex's catalogs without sub-agents, in `codex-catalog/`.
+Sessions are kept in `sessions.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder,
+`~/.local/share/uraeda-next/` on Linux, and each feature's own run options in `run-options.json`
+beside it: a store that cannot be read never takes the features' options with it. The list of
+repositories, `repositories.json`, and the access key's hash with the paired devices,
+`sign-in.json`, are there too. A running server keeps the files that only live while it runs, like
+its host token and its previews' records, in `run/`, and Codex's catalogs without sub-agents, in
+`codex-catalog/`. `ura add`, `ura pair`, `ura key`, and `ura extension` read the same folder: set
+`URAEDA_DATA_DIR` for them too, or give `--data-dir`, when the server has one of its own.
 
-The record of the jobs' runs is in `runner.sqlite` too, the table `job_runs`: one row for each time
-a job was due in a repository, or was run by hand: started, skipped, or failed to start, with why,
-and with the session it started. It keeps the 50 latest rows of each job and repository, and besides
-them the latest started run that has a session and every started run whose session belongs to a
-change or a feature, for as long as that session is kept, which the schedule's open-change check
-reads, and the latest start that failed, until a run starts after it. It is a cache: a
-`runner.sqlite` that cannot be read starts empty, and the history is lost, with no job's table in
+The folder is named `uraeda-next` because the earlier web UI, `@uraeda/ui`, kept its files in
+`uraeda`. The server never writes there, and refuses to start on a folder that holds that UI's
+`runner.sqlite`: `ura import-sessions` copies its sessions, once, as
+[INSTALL.md](../INSTALL.md#coming-from-the-web-ui-uraedaui) says.
+
+The record of the jobs' runs is in `sessions.sqlite` too, the table `job_runs`: one row for each
+time a job was due in a repository, or was run by hand: started, skipped, or failed to start, with
+why, and with the session it started. It keeps the 50 latest rows of each job and repository, and
+besides them the latest started run that has a session and every started run whose session belongs
+to a change or a feature, for as long as that session is kept, which the schedule's open-change
+check reads, and the latest start that failed, until a run starts after it. It is a cache: a
+`sessions.sqlite` that cannot be read starts empty, and the history is lost, with no job's table in
 `config.toml` touched.

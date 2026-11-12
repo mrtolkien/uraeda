@@ -37,12 +37,12 @@ editing it.
   file.
 - `README.md`: user-facing, for people discovering the project. It describes what Uraeda is and
   links into the skill and the example, with a quick install. The reference moved to its own pages:
-  every way to install in `INSTALL.md`, reference for users (the web UI, the `ura` CLI, the `specs/`
+  every way to install in `INSTALL.md`, reference for users (the app, the `ura` CLI, the `specs/`
   folder) in `docs/`, and building, testing, and releasing in `CONTRIBUTING.md`. The
   [documentation](specs/decisions/documentation.md) decision says what goes where: update the page a
   change makes wrong.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
-- `specs/ui/`: the web UI's guides, how its views read, behave, and look at each width. Read them
+- `specs/ui/`: the app's guides, how its views read, behave, and look at each width. Read them
   before designing or changing a view.
 
 ## Repository layout
@@ -59,7 +59,7 @@ editing it.
   - `core/` (`uraeda-core`): the workflow logic, parsing, validation, and states, shared by every
     tool
   - `cli/` (`uraeda-cli`): the `ura` binary
-  - `binding/` (`uraeda-binding`): the core's Node binding, built with napi-rs
+  - `compile/` (`uraeda-compile`): TypeScript to JavaScript, for an extension's server files
   - `lsp/` (`uraeda-lsp`): the `ura lsp` language server
   - `protocol/` (`uraeda-protocol`): the messages between the Rust server and its clients
   - `server/` (`uraeda-server`): the Rust server, everything `ura serve` does
@@ -68,16 +68,17 @@ editing it.
   - `vim/` (`uraeda-vim`): the Vim layer, a state machine from keys to editor commands
   - `app/` (`uraeda-app`): the app's native module `uraeda/native`, its native components, and the
     Linux host
-- `app/`: the app on Native Shell, in TSX. `nsh.json` names its crate, `crates/app/`, and `App.tsx`
-  is its entry. `.nsh/` there is generated, and never committed.
-- `packages/`: TypeScript, in one pnpm workspace
-  - `binding/`: the binding's npm package, with its generated `index.js` and `index.d.ts`
-  - `server/`: the Hono server on Node, serving fate's protocol at `/fate` and the built UI
-  - `web/`: the React web UI, with Astryx components and fate
-  - `benchmarks/`: the runner of the benchmarks, in TypeScript, over the server's adapter
+  - `xtask/` (`uraeda-xtask`): the repository's own tools: the start of a release, `just release`,
+    and the tests of the toolchain's configuration
+- `app/`: the app on Native Shell, in TSX: its screens, its component library, its client store.
+  `nsh.json` names its crate, `crates/app/`, and `App.tsx` is its entry. `.nsh/` there is generated,
+  and never committed.
 - `benchmarks/`: the benchmark's suites, cases, simulated human, and each run's record, scores, and
-  specs; `packages/benchmarks/` runs them (see its [README](benchmarks/README.md))
-- `fixtures/`: workflow files shared by the Rust and TypeScript tests, some broken on purpose
+  specs. Their runner went with the Node server, whose adapter it used, and waits for a port to the
+  Rust server (see its [README](benchmarks/README.md))
+- `fixtures/`: workflow files and recordings the tests share, some broken on purpose
+- `scripts/`: the shell scripts the recipes run
+- `justfile`: every check and build, as recipes
 
 The [stack](specs/decisions/stack.md) and [toolchain](specs/decisions/toolchain.md) decisions say
 what goes where. Code marked `TEMPORARY:` is a placeholder that a named feature replaces: change it
@@ -91,10 +92,9 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
 
 ## Native Shell (NSH)
 
-The UI is moving to [Native Shell](https://nsh.dev) (NSH), a young framework: assume you know
-nothing about it, and read before writing. The
-[migration plan](specs/2026-11-10-nsh-migration/plan.md) says what is built on it, and what the
-spikes measured.
+The UI is built on [Native Shell](https://nsh.dev) (NSH), a young framework: assume you know nothing
+about it, and read before writing. The [migration plan](specs/2026-11-10-nsh-migration/plan.md) says
+what is built on it, and what the spikes measured.
 
 - **Start here**: <https://nsh.dev/llms.txt> lists every page of the documentation with one line
   each. Every page is also served as Markdown, at its address plus `.md`.
@@ -146,17 +146,18 @@ Running it here:
   highlighting, and the other large parts of `nsh/base`. The workspace takes its default features,
   as NSH's own runner does: without one, a shader draws nothing, or a page fails at its import. The
   backend links GStreamer, which the dev shell and a machine that runs the package hold.
-- **Run `nsh` through `node scripts/nsh.ts <command>`**, as the tasks do: `vp run app:check`
-  (`cargo check` of the crate, then the TSX's types), `vp run app:test` (`nsh test`, with no
-  display), and `vp run app:dev`. It runs `nsh` in `app/`, builds in the repository's `target/`, and
-  starts the lockfile of the workspace `nsh` generates from the repository's `Cargo.lock`. A bare
-  `nsh` in `app/` builds everything again, in `app/target/`, with the newest version of every crate.
+- **Run `nsh` through `just nsh <command>`**, which is `scripts/nsh.sh`, as the recipes do:
+  `just app-check` (`cargo check` of the crate, then the TSX's types), `just app-test` (`nsh test`,
+  with no display), and `just app-dev`. It runs `nsh` in `app/`, builds in the repository's
+  `target/`, and starts the lockfile of the workspace `nsh` generates from the repository's
+  `Cargo.lock`. A bare `nsh` in `app/` builds everything again, in `app/target/`, with the newest
+  version of every crate.
 - **A window opens only on the hidden display**: `hidden-display <command>`, as in
-  `hidden-display vp run app:dev`, or `hidden-display node scripts/nsh.ts test --target linux` for
-  tests that draw in a GTK window and take pictures with `app.screenshot(path)`. It is an X display
-  of 1400 by 800 that no screen shows, with a session bus of its own, so a notification sent there
-  reaches no desktop, and shaders draw on it. It paints in software: a frame's time there is not a
-  GPU's. `hidden-display --gpu <command>` draws on the machine's GPU instead, on no screen either: a
+  `hidden-display just app-dev`, or `hidden-display just nsh test --target linux` for tests that
+  draw in a GTK window and take pictures with `app.screenshot(path)`. It is an X display of 1400 by
+  800 that no screen shows, with a session bus of its own, so a notification sent there reaches no
+  desktop, and shaders draw on it. It paints in software: a frame's time there is not a GPU's.
+  `hidden-display --gpu <command>` draws on the machine's GPU instead, on no screen either: a
   headless Weston with its GL renderer, at 120 Hz, as `just frames` and `just bench-navigation` use.
 - **`crates/app/tests/outside.rs` guards what the migration assumes of NSH on GTK**: signed
   packages, a page's errors, web views, diagrams, notifications, and the bundled fonts being the
@@ -164,9 +165,8 @@ Running it here:
   `cargo nextest run -p uraeda-app --test outside` opens no window. Its pages are in
   `app/__checks__/`. A test that fails after an upgrade of NSH names the assumption that broke: the
   rulings R22 to R26, and R156 for the fonts, say what was built on each.
-- **In a new worktree, run `vp run app:check` before `vp check`**: it writes NSH's types in
-  `app/.nsh/`, without which `vp check` fails with `Invalid tsconfig`. `vp run fast` and
-  `vp run ready` do it themselves.
+- **`just app-check` writes NSH's types in `app/.nsh/`**, which the TSX's lints and an editor read:
+  in a new worktree, run it once.
 - **A crate that takes `nsh-bundler` takes the five `rolldown_*` crates beside it** in `Cargo.toml`,
   as `crates/server/` does: NSH holds `rolldown` at 1.2.13, a new release moved those five alone,
   and `rolldown` no longer built.
@@ -178,23 +178,24 @@ Running it here:
   (`no matches found: --include=*.ts`). Quote globs, `--include='*.ts'`, or use `rg -g '*.ts'`.
 - Run the toolchain inside the dev shell, `nix develop -c <command>`: outside it, `cargo nextest`,
   `just`, and other pinned tools are missing.
-- The new stack's checks are recipes of the `justfile`, `nix develop -c just <recipe>`, and `just`
+- Every check and build is a recipe of the `justfile`, `nix develop -c just <recipe>`, and `just`
   lists them: `just task <crates>` after a Rust task, `just task-app` after an app task,
-  `just check` after a merge, `just ready` for the full pass. They need no `vp`, `pnpm`, or `node`,
-  which stay only for the old UI until the migration removes it.
+  `just check` after a merge, `just ready` for the full pass, `just fmt` to format. The repository
+  holds no Node, pnpm, or Vite+: a check that needs one is wrong. A commit is formatted by the hook
+  of `.githooks/`, turned on once in a clone with `git config core.hooksPath .githooks`.
 - In a new worktree, the dev shell clones the `target/` of the closest checkout once, the feature's
   worktree for a task's, so the first build compiles only the workspace's crates: see
   `scripts/worktree-seed.sh`. `du` counts the clone's shared blocks; `btrfs filesystem du` does not.
 - **To review UI changes in the whole app, run `nix develop -c just sandbox`**: the app, with hot
   reload, over the Rust server's sandbox, sample projects and a fake agent, without sign-in, at
-  http://127.0.0.1:4420. Its state stays in `.sandbox-next/` until `just sandbox --reset` rebuilds
-  it, and it never reads the human's folders or runs a real agent; Ctrl+C stops the app and the
-  server. `--long-chat` adds a chat of 20,000 messages, `--port 0` takes a free port, `--sign-in`
-  keeps sign-in on with a new key at each start, `--folder DIR` puts it elsewhere, and `--no-app`
-  starts the server alone. An agent runs it inside `hidden-display` (or `hidden-display --gpu`).
-  Every screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox
-  of its own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you
-  started by its process id.
+  http://127.0.0.1:4420. Its state stays in `.sandbox/` until `just sandbox --reset` rebuilds it,
+  and it never reads the human's folders or runs a real agent; Ctrl+C stops the app and the server.
+  `--long-chat` adds a chat of 20,000 messages, `--port 0` takes a free port, `--sign-in` keeps
+  sign-in on with a new key at each start, `--folder DIR` puts it elsewhere, and `--no-app` starts
+  the server alone. An agent runs it inside `hidden-display` (or `hidden-display --gpu`). Every
+  screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox of its
+  own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you started by
+  its process id.
 - **`just walk`** walks the whole app as one person's day, on a fresh sandbox and the hidden
   display: the steps of `app/tools/walk.test.tsx`, by keys at a desk, then by touch at a phone's
   width, then the pages that matter in light, each step a numbered picture in `target/shots/walk/`.
@@ -225,11 +226,9 @@ Running it here:
   never reaches content its caller wrote. Content that declares keys in a popover or a sheet takes
   its layer's scope explicitly (`keyScope`, then `scope` on the `Popover`, `Sheet`, and `Options`),
   as `Menu` and `Select` do (ruling R478). GTK and `nsh test` do not show it.
-- `vp run sandbox` still serves the old web UI over the old sandbox, in `.sandbox/`, until the
-  migration removes it (task 61): the new app's is `just sandbox`.
-- The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
-  it rewrote the section unwrapped, which fails the format check. Edit it by hand, or copy a newer
-  version from `node_modules/vite-plus/AGENTS.md`.
+- `ura serve` listens on 4310 by default, and keeps its files in `uraeda-next` of the system's data
+  folder: the earlier server's `uraeda` is only read, by `ura import-sessions`. A test or a run of
+  yours always names its own port and data folder: `--port 0 --data-dir <a temporary folder>`.
 
 ## Working with the human
 
@@ -245,35 +244,3 @@ messages (no `Co-Authored-By` lines, no "generated with" footers), not in the RE
 file or pull request. This applies to every coding agent working on this repository. The work is
 made by its human owner, who takes the decisions an agent executes, the same way a README does not
 name the code editor it was written in.
-
-# Using Vite+, the Unified Toolchain for the Web
-
-This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown,
-Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend
-tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through
-`vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for
-information about a specific command.
-
-Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
-
-## Built-in Commands vs Scripts
-
-`vp <name>` runs a built-in command. `vp run <name>` runs a `package.json` script or a
-`vite.config.ts` task. Scripts cannot overwrite built-ins, so `vp dev` and `vp run dev` may do
-different things. Check `package.json` and `vite.config.ts` first, and run `vp run <name>` when the
-project defines a script or task with that name.
-
-## Tool Versions
-
-Run `vp toolchain` to show versions and relationships in the active Vite+ release. Add a tool name
-to select part of the graph. For example, run `vp toolchain vite`. Use `--global` to ignore the
-local `vite-plus` package. Use `vp why <package>` to show the package-manager dependency graph.
-
-## Review Checklist
-
-- [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
-- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation,
-      run via `vp run <script>`.
-- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include
-      its output when asking for help.

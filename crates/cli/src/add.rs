@@ -1,4 +1,4 @@
-//! `ura add`: adds the git repository holding a folder to the web UI's list.
+//! `ura add`: adds the git repository holding a folder to the app's list.
 
 use std::path::PathBuf;
 use std::process::ExitCode;

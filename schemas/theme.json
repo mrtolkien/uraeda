@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/mrtolkien/uraeda/main/schemas/theme.json",
   "title": "Uraeda colour theme",
-  "description": "A colour theme of Uraeda's UI, one TOML file per theme in the themes folder beside config.toml. See docs/web-ui.md, \"Colour themes\".",
+  "description": "A colour theme of Uraeda's UI, one TOML file per theme in the themes folder beside config.toml. See docs/app.md, \"Colour themes\".",
   "type": "object",
   "additionalProperties": false,
   "properties": {

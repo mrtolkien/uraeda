@@ -19,7 +19,7 @@ export const nothing = definePane<{ path: string; place?: string }>({
         <Text tone="quiet">
           {props.args.place === undefined
             ? `Uraeda has no page at ${props.args.path}.`
-            : `This app has no ${props.args.place} screen yet: ${props.args.path} opens in the web UI.`}
+            : `This app has no ${props.args.place} screen: nothing draws ${props.args.path}.`}
         </Text>
       </View>
       <View style={{ alignItems: "flex-start" }}>

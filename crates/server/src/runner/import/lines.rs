@@ -38,7 +38,7 @@ pub(super) struct Line {
     pub(super) event: Event,
 }
 
-/// An item of a turn, as [`events.ts`](/packages/server/src/runner/events.ts) has it. A field
+/// An item of a turn, as the Node server's store wrote it. A field
 /// the import does not need, or that only newer items have, may be missing.
 #[derive(Deserialize)]
 #[serde(

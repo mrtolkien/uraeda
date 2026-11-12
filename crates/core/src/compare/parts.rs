@@ -111,8 +111,8 @@ fn collect(document: &Document, block: &Block, heading: &str, parts: &mut Vec<Pa
                 .children(block.id)
                 .map(|cell| joined(&plain(&cell.spans)))
                 .collect();
-            // The web splits a row's runs back into cells on this join, a lone "|" word
-            // between kept words (`cellRuns`, `packages/web/src/sinceMarks.tsx`): change both.
+            // A client splits a row's runs back into cells on this join, a lone "|" word
+            // between kept words.
             parts.push(part(cells.join(" | "), false));
         }
         BlockKind::Code | BlockKind::Html => {
@@ -152,9 +152,8 @@ fn part(block: &Block, heading: &str, text: String) -> Part {
     }
 }
 
-/// Text with every run of whitespace made one space. The web counts a part's words as this
-/// splits them (`wordCount` and `afterWords`, `packages/web/src/sinceMarks.tsx`), to leave out
-/// the words a part draws its own way: change both.
+/// Text with every run of whitespace made one space. A client counts a part's words as this
+/// splits them, to leave out the words a part draws its own way.
 fn joined(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }

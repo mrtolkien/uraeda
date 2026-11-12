@@ -48,8 +48,7 @@ folder goes to its latest session, or makes the first one, on the server
   [projects.md](/skills/uraeda/references/projects.md#starting-postponing-and-dropping-a-feature),
   with the descriptions of `specs/proposals/` in [SKILL.md](/skills/uraeda/SKILL.md), the template
   [README.md](/skills/uraeda/assets/templates/specs/README.md), and
-  [the specs folder's docs](/docs/specs-folder.md); the menu in
-  [the web UI's docs](/docs/web-ui.md).
+  [the specs folder's docs](/docs/specs-folder.md); the menu in [the web UI's docs](/docs/app.md).
 - Tests: [postpone.test.tsx](/packages/web/src/__tests__/postpone.test.tsx), for a feature with and
   without a session, a change, and a refusal; the message in
   [message.test.ts](/packages/server/src/runner/__tests__/message.test.ts).

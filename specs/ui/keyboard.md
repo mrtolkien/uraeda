@@ -119,7 +119,7 @@ does the same: a buffer, a proposal, a conflicted file.
 - **One selection per view, always visible.** Moving it clears the old one at once; a selection
   shown in two places, or a new one that shows nothing, is a bug.
 - **It looks the same everywhere**: a selected row or card is the accent's muted tint with a bar at
-  its start, and the keyboard's ring goes around the whole card (`layout/picked.ts`).
+  its start, and the keyboard's ring goes around the whole card.
 - **Everything actionable is reachable**: the cards, the panes' buttons, and the rows that add ("put
   my keyboard-driven cursor on 'add to now/next/...' and press enter").
 - **It moves in two dimensions** where the page has columns: `h` `l` cross them, keeping the row's
@@ -129,8 +129,7 @@ does the same: a buffer, a proposal, a conflicted file.
   from row to row, the plan's progress at its foot included, and `Enter` is the row's own, a link's
   or a button's. A part with no row, as the Activity's calls, takes the focus itself, and `j` `k`
   scroll it. `k` past the first row reaches the tabs, where `h` `l` open the previous and the next
-  one, and `h` on the first goes back to the page (`layout/columnKeys.ts`). The status line names
-  `h l column`.
+  one, and `h` on the first goes back to the page. The status line names `h l column`.
 - **On a list, the mouse moves it too.** Moving the pointer onto a row moves the selection there; a
   click selects; a click on the selected row, or a double click, edits it. A row that slides under a
   resting pointer, as the page scrolls or a list grows, takes nothing: only a pointer that moves

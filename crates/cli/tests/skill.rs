@@ -63,8 +63,9 @@ fn markdown_files(folder: &std::path::Path, files: &mut Vec<std::path::PathBuf>)
     }
 }
 
-// The skill holds the workflow for any harness: what only the web UI does, it tells its own
-// sessions (`packages/server/src/runner/instructions.ts`), and its users (`docs/web-ui.md`).
+// The skill holds the workflow for any harness: what only the app does, it tells its own
+// sessions (`crates/server/src/runtimes/built_in/instructions.rs`), and its users
+// (`docs/app.md`).
 #[test]
 fn the_skill_never_describes_the_web_ui() {
     let skill = repository().join("skills/uraeda");
@@ -84,8 +85,8 @@ fn the_skill_never_describes_the_web_ui() {
         ] {
             assert!(
                 !text.contains(phrase),
-                "{} names the web UI with \"{phrase}\": move it to the web UI's instructions or \
-                 docs/web-ui.md",
+                "{} names the app with \"{phrase}\": move it to the app's instructions or \
+                 docs/app.md",
                 file.display()
             );
         }

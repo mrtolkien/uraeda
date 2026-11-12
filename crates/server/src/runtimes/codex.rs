@@ -1,8 +1,7 @@
 //! Codex's runtime: the built-in `codex`, run through the installed `codex` command's
 //! `app-server`, its own JSON-RPC protocol over stdio, one process per open session.
 //!
-//! It is the Node server's `CodexAdapter`, of `packages/server/src/runner/codex.ts`, with what
-//! it imports. Codex's formats stay in this folder: the field names follow the protocol's
+//! It is the Node server's `CodexAdapter`, with what it imported, ported. Codex's formats stay in this folder: the field names follow the protocol's
 //! generated types (Codex 0.163.0).
 //!
 //! - **A process is one thread.** As it opens, it introduces the client, gives Codex the skill

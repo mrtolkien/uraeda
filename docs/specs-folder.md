@@ -14,11 +14,11 @@ the next step from the files alone, does it, commits, and stops when it needs yo
 approve by editing the file, by telling the agent, or with `ura answer` and `ura review`, and run it
 again later.
 
-Or hand it over from the web UI: "Commit and start the agent" commits your answers or your approval.
-It then opens the feature's session with the workflow's message ready to send. You read it, add a
-note, and send it. The agent works on the next step until it needs you again, while you watch, write
-to it, or stop it. See [the web UI's sessions](web-ui.md#sessions-with-claude-code-and-codex). A
-runner that starts the agent when you push an answer is planned.
+Or hand it over from the app: "Commit and start the agent" commits your answers or your approval. It
+then opens the feature's session with the workflow's message ready to send. You read it, add a note,
+and send it. The agent works on the next step until it needs you again, while you watch, write to
+it, or stop it. See [the app's sessions](app.md#sessions-with-claude-code-and-codex). A runner that
+starts the agent when you push an answer is planned.
 
 **A good fit** for features worth a spec. Getting the design wrong is costly there, and you would
 rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix: just ask
@@ -160,7 +160,7 @@ for your user, when your agents have none.
 
 The project is set up once it holds its constitution, written rather than the template, and two
 decisions, `code-quality.md` and `testing.md`. A `preview.md` decision is optional. Until then, the
-web UI's Home shows a Setup pane, and `ura status` lists the files missing.
+app's Home shows a Setup pane, and `ura status` lists the files missing.
 
 ## Features
 
@@ -173,11 +173,11 @@ When your answers raise new questions, a second round follows, `discovery-02.md`
 ## Changes
 
 Bug fixes and small changes take a lighter flow, a change. You type the request under Change on the
-web UI's New page, or accept the change the agent offers in a session. Its agent works in its own
+app's New page, or accept the change the agent offers in a session. Its agent works in its own
 branch and worktree. It investigates and asks only what you must decide. It makes the change with
-tests that fail first, has it reviewed by the reviewers you set in the web UI's settings, or by a
-fresh reviewer without the web UI, and opens a pull request. The review's findings are committed in
-the change's folder, `findings-NN.md`, before they are fixed.
+tests that fail first, has it reviewed by the reviewers you set in the app's settings, or by a fresh
+reviewer without the app, and opens a pull request. The review's findings are committed in the
+change's folder, `findings-NN.md`, before they are fixed.
 
 There is no spec and no plan, and often nothing to answer before the review. A change that turns out
 too big is offered to you as a feature, and becomes one in place, its code kept.
@@ -185,7 +185,7 @@ too big is offered to you as a feature, and becomes one in place, its code kept.
 ## The inbox
 
 Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
-`specs/INBOX.md`, in a few seconds. Use the web UI's ＋, or `ura note`. An agent's note is a file of
+`specs/INBOX.md`, in a few seconds. Use the app's ＋, or `ura note`. An agent's note is a file of
 its own in `specs/notes/`, written on its branch, which shows in the inbox once merged; `ura inbox`
 lists them all. You organize the notes later into proposals or changes, by hand or by answering an
 agent's proposed triage.

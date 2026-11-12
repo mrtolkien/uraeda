@@ -3121,7 +3121,7 @@ default branch's [scheduled jobs](../done/2026-11-10-scheduled-jobs.md) feature.
 
 - **Files:** `app/screens/jobs/`, and its line in `app/extensions/builtins/`
 - **Read:** [`packages/web/src/jobs/`](/packages/web/src/jobs/), `extensions/builtins/jobs.tsx`, and
-  "Scheduled jobs" in [`docs/web-ui.md`](/docs/web-ui.md), which words every state of the place
+  "Scheduled jobs" in [`docs/web-ui.md`](/docs/app.md), which words every state of the place
 - **Records and actions:** Jobs and its actions (task 63); Agent, for the agent, model, and effort
 - **Routes:** `/jobs`, `/jobs/<name>`, where a name the address cannot carry is written with a `~`
   before it
@@ -3796,12 +3796,12 @@ shrink by 66 to 91% alone; the long chat's 110 small `TurnLog`s by 33%.
 - Consumes: everything.
 - Produces: a repository that builds, tests, and releases without Node.
 
-- [ ] **Step 1: Leave the human's data alone.** `ura import-sessions` is theirs to run once, after
+- [x] **Step 1: Leave the human's data alone.** `ura import-sessions` is theirs to run once, after
       the build: say how in `INSTALL.md`. Nothing more is built for upgrades: the human is the only
       user.
 - [x] **Step 2: Delete the old code**, as the spec's
       [replaced behaviour](spec.md#replaced-behaviour) lists it, with its tests.
-- [ ] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
+- [x] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
       and test it, the web UI's page in `docs/`, and the guides of `specs/ui/` that named Astryx or
       the browser.
 - [ ] **Step 4: Run the full pass**, `just ready`, **and a release to a test tag.** Expected: PASS,

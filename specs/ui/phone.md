@@ -23,43 +23,43 @@ not a desktop squeezed down, and not a lesser version. Its reference is
 - **Text of more than one line takes the full width**, always, but in extremely rare cases: "On
   mobile, multi-line text should ALWAYS take up the full width". A row's icon, number, count, or
   date goes on a line of its own above the text, never in a column beside it that squeezes it.
-- **A card is a head line over its text**, on home and in the sidebar (`sidebar/ItemCard.tsx`): its
-  icon, its name, and its status on the head line, then its step or what it asks at the card's full
-  width. A card whose step waits on the human has no ＞: the whole card is the target, and leads to
-  the step, as the ＞ did. A button that leads elsewhere, the agent's at work on it, stays at the
-  head line's end, the head line as tall as it.
-- **The top tabs** stay in view, a terminal's tab line (`shell/Tabs.tsx`): the sidebar's toggle on
-  their far left, set apart, then Home, Inbox, Priorities, Sessions, Git, a `…`, and New. Git is
-  always there, the phone's way to the Git page. The `…` holds Decisions and Settings, the least
-  visited places, in a popover anchored to it; while one of them is open, the `…` is the current
-  tab. Nothing is filled: the current page's tab is in the accent, its icon and its count, with a
-  thin line in the accent under it on the bar's bottom edge; New is a ＋ framed in the accent. A
-  count is a small number after its icon, in the muted text, Home's needs-you count bold in the
-  Needs you pane's colour; Git counts what waits on it, the main checkout's changes and the commits
-  to pull, only while any do. Eight 44 px controls are what a 375 px phone holds, so from 375 px the
-  bar never scrolls sideways; a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as
-  there is no room for Apple's or Android's spacing, and take the bar's height. The sidebar opens
-  over the page, up to 400 px, animated, and holds no copy of the tabs' places, Git and New
-  included: its heading, then the panes.
+- **A card is a head line over its text**, on home and in the sidebar: its icon, its name, and its
+  status on the head line, then its step or what it asks at the card's full width. A card whose step
+  waits on the human has no ＞: the whole card is the target, and leads to the step, as the ＞ did.
+  A button that leads elsewhere, the agent's at work on it, stays at the head line's end, the head
+  line as tall as it.
+- **The top tabs** stay in view, a terminal's tab line: the sidebar's toggle on their far left, set
+  apart, then Home, Inbox, Priorities, Sessions, Git, a `…`, and New. Git is always there, the
+  phone's way to the Git page. The `…` holds Decisions and Settings, the least visited places, in a
+  popover anchored to it; while one of them is open, the `…` is the current tab. Nothing is filled:
+  the current page's tab is in the accent, its icon and its count, with a thin line in the accent
+  under it on the bar's bottom edge; New is a ＋ framed in the accent. A count is a small number
+  after its icon, in the muted text, Home's needs-you count bold in the Needs you pane's colour; Git
+  counts what waits on it, the main checkout's changes and the commits to pull, only while any do.
+  Eight 44 px controls are what a 375 px phone holds, so from 375 px the bar never scrolls sideways;
+  a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as there is no room for Apple's
+  or Android's spacing, and take the bar's height. The sidebar opens over the page, up to 400 px,
+  animated, and holds no copy of the tabs' places, Git and New included: its heading, then the
+  panes.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
 - **The home-screen app** is the phone's main way in: the page names its icon, its name, and
   `display: standalone` (`index.html`, `public/manifest.webmanifest`), and reaches under the
   screen's rounded corners and home indicator (`viewport-fit=cover`). Every bar pads by the safe
-  areas (`layout/safeArea.stylex.ts`): the tabs below the status bar, the bottom bar's tiles, a
-  sheet's buttons, and the sidebar's end above the home indicator, so no control sits where the
-  system takes the swipe home, and the bottom bar's glass goes on under it, as an iPhone's tab bar
-  does. A page's end scrolls clear of it too. A bar's bottom room is the safe area's inset alone,
-  never a margin added on top of it: the home indicator needs no more.
+  areas: the tabs below the status bar, the bottom bar's tiles, a sheet's buttons, and the sidebar's
+  end above the home indicator, so no control sits where the system takes the swipe home, and the
+  bottom bar's glass goes on under it, as an iPhone's tab bar does. A page's end scrolls clear of it
+  too. A bar's bottom room is the safe area's inset alone, never a margin added on top of it: the
+  home indicator needs no more.
 
 ## The bottom bar
 
 A page with a side column on wide screens, a round, a spec, a plan, a document, a data model, a
-session, and a feature, has a bottom bar on the phone (`layout/ColumnStatusLine.tsx`): one row of
-icon tiles in frosted glass, as tall as the top tabs, each with a small word under its icon. Its
-shape follows its count (`layout/NavBar.tsx`): one tile is a single square glass button at the
-bottom right, two are a button in each corner, and three or more the bar across the screen. A button
-sits inside the bar's row, so the page's end always shows above it.
+session, and a feature, has a bottom bar on the phone: one row of icon tiles in frosted glass, as
+tall as the top tabs, each with a small word under its icon. Its shape follows its count: one tile
+is a single square glass button at the bottom right, two are a button in each corner, and three or
+more the bar across the screen. A button sits inside the bar's row, so the page's end always shows
+above it.
 
 What goes in it, in this order:
 
@@ -94,7 +94,7 @@ glass box alone, nothing drawn around it: the transcript has the whole screen wh
 it. Empty and unfocused, it folds to one line, its field and Send; a tap opens it, its paperclip and
 actions on one line. Send is an icon, as the paperclip is, not a filled button. While it is typed
 in, the page scrolls so its end, Send included, stays above the keyboard, as a question's comment
-and its Save do (`layout/useAboveKeyboard.ts`): iOS scrolls only the caret into view.
+and its Save do: iOS scrolls only the caret into view.
 
 ## The decisions page
 
@@ -105,8 +105,8 @@ decision the previous and the next one. The constitution, read top to bottom, ha
 ## A row's actions
 
 When a row is selected, its actions float at the bottom as a glass bar of big icons over short
-words, above the keyboard when it is open (`lists/RowBar.tsx`). It sinks away when the page scrolls,
-and a tap on a row brings it back. It covers the bottom bar while it shows.
+words, above the keyboard when it is open. It sinks away when the page scrolls, and a tap on a row
+brings it back. It covers the bottom bar while it shows.
 
 Its tiles are a finger wide at least, 3.5 rem, with a small step of room beside each word, so five
 actions, a row's most, fit a 360 px phone on one line in every bundled font. Where a font leaves too
@@ -117,13 +117,13 @@ never wraps.
 
 - **Sheets, not dialogs**: pickers, short forms, confirmations, and the side column's tabs rise from
   the bottom as sheets, each in the address, so Back closes it. They are one sheet
-  (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make them
-  all 3 the same component"). A side column's sheet, the session's Activity or Changes, draws its
-  title in its content, which scrolls it away, and its Close alone stays. It opens with the focus in
-  its field. A swipe on its top, its handle and title row, moves it: down closes it, up takes it to
-  the whole screen. Over the keyboard, a sheet shorter than the screen lifts by the whole keyboard
-  and shrinks to the room left under the tabs, its form scrolled to its end, so the field and its
-  last button show together.
+  ([`Sheet.tsx`](/app/ui/surfaces/Sheet.tsx)), whatever it holds: its title on top, a Close, in
+  frosted glass ("make them all 3 the same component"). A side column's sheet, the session's
+  Activity or Changes, draws its title in its content, which scrolls it away, and its Close alone
+  stays. It opens with the focus in its field. A swipe on its top, its handle and title row, moves
+  it: down closes it, up takes it to the whole screen. Over the keyboard, a sheet shorter than the
+  screen lifts by the whole keyboard and shrinks to the room left under the tabs, its form scrolled
+  to its end, so the field and its last button show together.
 - **Menus and selectors are popovers**, as on wide screens, not sheets: a `…`'s actions, a sort, a
   category to choose ("Decision sort should just open a selector… It shouldn't be a sheet").
 - **Pages for anything read**: a proposal file, a session, a spec.
@@ -143,7 +143,7 @@ focus to its composer, its send button in view: "new -> pick -> composer".
 ## Touch
 
 - Every target is a thumb's size, 44 px at least. A one-line field is 44 px tall on a touch screen,
-  frame included, as Astryx's controls there, its text in its middle (`fields/editor/theme.ts`).
+  frame included, as every control there, its text in its middle.
 - Every keyboard action has a tap: a row's bar, a tile, a sheet.
 - Dragging works on touch after a long press, nesting included.
 - Keys still work with a keyboard attached; nothing hints them.

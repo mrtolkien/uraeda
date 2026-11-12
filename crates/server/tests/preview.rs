@@ -33,7 +33,7 @@ const PATIENCE: Duration = Duration::from_secs(10);
 const MINUTE: Duration = Duration::from_secs(60);
 
 /// A repository whose main checkout has a stories file and an active preview decision, running
-/// the fake Storybook in `packages/web`, with the log of its starts.
+/// the fake Storybook in its preview folder, `packages/web`, with the log of its starts.
 struct Project {
     repo: TestRepo,
     log: PathBuf,

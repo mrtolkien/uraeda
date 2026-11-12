@@ -1,6 +1,6 @@
 //! The sample project: the fixture repository's todo app, with a feature at every step of the
-//! workflow and a change at each of its states, as the Node sandbox's builders made it
-//! (`packages/web/samples/`), and an `origin` with a commit to pull and one to push.
+//! workflow and a change at each of its states, as the Node sandbox's builders made it,
+//! and an `origin` with a commit to pull and one to push.
 
 use std::path::Path;
 

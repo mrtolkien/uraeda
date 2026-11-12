@@ -31,14 +31,14 @@ heading.
 
 Each role has its font, picked in Settings, Fonts, or with `Space u f` then the role's key, each
 font's name drawn in its own face: the UI, headings, prose, code and keys, and markdown prose
-(`theme/fonts.ts`). By default the UI and markdown prose are Monaspace Neon, headings Xenon, and
-prose Atkinson Hyperlegible Next: "Make hyperlegible + monaspace fonts the default". Markdown prose
-was the human's sent messages' font, "Your messages", renamed "markdown prose" when the editor took
-it too; Radon, a handwriting face, was "weird" for it: "the normal monaspace font" instead. Code and
-keys are in JetBrains Mono: Krypton was "too aggressive" in the editor, "go back to a standard
-monospace one". `Space u f d` restores them, after a confirmation. Each font sets its own reading
-measure, so a line holds about 80 characters whatever font is picked. Lines are 1.4 high everywhere:
-"just do 1.4 everywhere".
+([`fonts.ts`](/app/ui/tokens/fonts.ts)). By default the UI and markdown prose are Monaspace Neon,
+headings Xenon, and prose Atkinson Hyperlegible Next: "Make hyperlegible + monaspace fonts the
+default". Markdown prose was the human's sent messages' font, "Your messages", renamed "markdown
+prose" when the editor took it too; Radon, a handwriting face, was "weird" for it: "the normal
+monaspace font" instead. Code and keys are in JetBrains Mono: Krypton was "too aggressive" in the
+editor, "go back to a standard monospace one". `Space u f d` restores them, after a confirmation.
+Each font sets its own reading measure, so a line holds about 80 characters whatever font is picked.
+Lines are 1.4 high everywhere: "just do 1.4 everywhere".
 
 ## Line length
 
@@ -54,8 +54,7 @@ measure, so a line holds about 80 characters whatever font is picked. Lines are 
   since `ch` would be measured in the font of whatever element reads it.
 - **Text wraps the plain way**, each line as full as its words allow. Safari's `text-wrap: pretty`
   and `balance` even out every line of a paragraph, so each stops short of the border: "Why is the
-  right border so much bigger than the left". The lint refuses both in a style, and no view passes
-  them to Astryx's `Text` or `Heading` either.
+  right border so much bigger than the left". No view sets either.
 - **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `reading` kind: the
   round, the spec, the plan, a document, the data model) is at most a reading pane, the measure and
   the pane's own padding and border, so its text fills it and never stops short of the border: a
@@ -77,16 +76,16 @@ Every page and pane takes one width of a short scale, picked by what it holds, n
 own ([UI layout](../decisions/ui-layout.md)). On semi-wide and wide screens, at the default fonts;
 each width made of the measure follows the reading font and size picked:
 
-| Width        | Token                    | At default fonts          | Holds                                                               |
-| ------------ | ------------------------ | ------------------------- | ------------------------------------------------------------------- |
-| Reading pane | `--size-reading-pane`    | 692 px                    | prose at about 80 characters, and the text column of a page of rows |
-| Big text     | `--size-big-text`        | 865 px                    | a pane of large text: a spec's decision cards                       |
-| Split card   | `--size-split-card`      | about 1,080 px            | a question card's two columns, about 50 and 60 characters a line    |
-| Two panes    | `--size-two-panes`       | 1,424 px                  | two reading panes and their gap: the home, New, a reading page      |
-| Whole window | none                     | the window                | the priorities' columns                                             |
-| Code         | `--size-code`            | 108 characters            | the proposal editor's formatted file                                |
-| Session      | `--size-session-max`     | 95 characters             | a session's page                                                    |
-| Side column  | `documentColumnWidth.ts` | 400 px, dragged to 720 px | a page's companions                                                 |
+| Width        | Token                  | At default fonts          | Holds                                                               |
+| ------------ | ---------------------- | ------------------------- | ------------------------------------------------------------------- |
+| Reading pane | `--size-reading-pane`  | 692 px                    | prose at about 80 characters, and the text column of a page of rows |
+| Big text     | `--size-big-text`      | 865 px                    | a pane of large text: a spec's decision cards                       |
+| Split card   | `--size-split-card`    | about 1,080 px            | a question card's two columns, about 50 and 60 characters a line    |
+| Two panes    | `--size-two-panes`     | 1,424 px                  | two reading panes and their gap: the home, New, a reading page      |
+| Whole window | none                   | the window                | the priorities' columns                                             |
+| Code         | `--size-code`          | 108 characters            | the proposal editor's formatted file                                |
+| Session      | `--size-session-max`   | 95 characters             | a session's page                                                    |
+| Side column  | the side stack's width | 400 px, dragged to 720 px | a page's companions                                                 |
 
 - **A page's text column is a reading pane.** A pane may grow past it only by what sits beside its
   text: a control, a tab, an inset, a row's marker. "When there's tabs, insets, or similar info,
@@ -98,13 +97,11 @@ each width made of the measure follows the reading font and size picked:
   outside its panes, as its review line (`pageText`).
 - A question's card, split into the question and its answers, is a split card wide, centred under
   the round's context; with less room, it keeps one column. A card of one column is a reading pane.
-- The scale's widths are theme tokens (`theme/scale.ts`), declared again on the fonts' root, so they
-  follow the fonts picked. A view that needs a width the scale lacks adds it to the scale, with the
-  human's approval.
+- The scale's widths are theme tokens, declared again on the fonts' root, so they follow the fonts
+  picked. A view that needs a width the scale lacks adds it to the scale, with the human's approval.
 
 These widths are tokens of the theme, of `Page`, or of `Prose`'s styles, never numbers in a view: a
-page does not set the reading size, line, or measure itself, which the lint test of `Prose.tsx`
-checks.
+page does not set the reading size, line, or measure itself.
 
 ## Hierarchy
 
@@ -136,10 +133,9 @@ complaint to avoid. Air is not emptiness: a pane ends right after its last line,
 pane's own room under it (see [Space and motion](space-and-motion.md)).
 
 **One rhythm for all prose.** A document's blocks and every markdown text, an agent's message and a
-thought included, share the theme's `--prose-*` tokens through `Prose.tsx`'s `proseRhythm`: the same
+thought included, share the theme's `--prose-*` tokens through the one document renderer: the same
 room between paragraphs, before and after a list, and between items, and the same bullet, in the
-secondary colour, its text a list room in. Astryx's markdown lists take it from the theme's
-`markdown` rule. "Bullet points should look the same everywhere."
+secondary colour, its text a list room in. "Bullet points should look the same everywhere."
 
 ## Lists
 

@@ -1,6 +1,6 @@
 //! The other sample projects: "empty", a project just set up; "broken", whose features carry the
 //! problems `ura check` reports; "bare", a repository not set up; and "realistic", a full day's
-//! load, as the Node sandbox's builders made them (`packages/web/samples/`).
+//! load, as the Node sandbox's builders made them.
 
 use std::fs;
 use std::path::Path;

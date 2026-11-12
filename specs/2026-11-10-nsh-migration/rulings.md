@@ -3140,7 +3140,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   change; another theme's popovers and borders take the new `raised` and `rule` there until task 61.
 - **Where**: `ROLES` in [`themes.rs`](/crates/core/src/themes.rs), the files of
   [`crates/core/themes/`](/crates/core/themes/), [`schemas/theme.json`](/schemas/theme.json),
-  [`docs/web-ui.md`](/docs/web-ui.md), and the design language's "Roles this adds to a theme".
+  [`docs/web-ui.md`](/docs/app.md), and the design language's "Roles this adds to a theme".
 
 ## R134: The mixing rule lives in Rust, and the tokens read it through `uraeda/native`
 
