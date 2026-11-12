@@ -188,7 +188,10 @@ async fn a_time_is_skipped_while_the_last_run_works_or_its_change_is_open() {
         .await
         .expect("the job pauses");
     let refused = stage.call("jobs.runNow", json!({ "name": "Perf" })).await;
-    assert_eq!(refused.unwrap_err().1, "“Perf” still runs here.");
+    assert_eq!(
+        refused.unwrap_err().1,
+        "“Perf” still runs here: wait for its run to end, or stop it in its session."
+    );
     let paused = stage.jobs().await;
     assert_eq!(paused["jobs"][0]["next"]["why"], "paused");
     assert_eq!(paused["jobs"][0]["last"]["outcome"], "started");

@@ -11,6 +11,7 @@ import {
   Heading,
   Link,
   Progress,
+  Refusal,
   Spinner,
   StatusDot,
   Tabs,
@@ -85,6 +86,11 @@ export function words(narrow: boolean) {
         <Spinner label="Loading the plan…" />
         <Progress label="Importing sessions" value={0.42} />
         <Progress label="Pushing" value={1} words="12 of 12" />
+        <Refusal words="“Perf” still runs here: wait for its run to end, or stop it in its session." />
+        <Refusal
+          action={{ label: "Open its session", onPress: nothing }}
+          words="The agent is working: stop it in its session, with x, or wait for its turn to end."
+        />
         <Banner
           action={<Button label="Pull" state="rest" />}
           title="The branch is behind main"

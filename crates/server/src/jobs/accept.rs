@@ -179,7 +179,8 @@ fn accept(runner: &Runner, session: &str, turn: i64) {
         Err(fault) => {
             // The human got to the session first, by a message or by the card: that one decides.
             let why = fault.message();
-            if human_wrote(runner, session) || why.ends_with(refusals::AGENT_WORKING) {
+            let taken = [refusals::AGENT_WORKING, refusals::MOVING];
+            if human_wrote(runner, session) || taken.iter().any(|one| why.ends_with(one)) {
                 return;
             }
             let why = why.strip_prefix("refused: ").unwrap_or(why);

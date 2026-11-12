@@ -31,7 +31,7 @@ export function dismissRun(args: JobArgs) {
 
 /**
  * Runs the job now, whatever its schedule or its pause, and opens the session it started; a
- * refusal, as "“Dependencies” still runs here.", is kept for where it was asked.
+ * refusal, as "“Dependencies” still runs here: wait for its run to end, …", is kept for where it was asked.
  */
 export async function runNow(args: JobArgs): Promise<string | null> {
   dismissRun(args);

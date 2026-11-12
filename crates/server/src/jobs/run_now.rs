@@ -33,7 +33,11 @@ pub(crate) fn run_now(shared: &Shared, repository: &str, name: &str) -> Result<S
             "“{name}” does not run in {repository}."
         )));
     };
-    let still = || Fault::refused(format!("“{name}” still runs here."));
+    let still = || {
+        Fault::refused(format!(
+            "“{name}” still runs here: wait for its run to end, or stop it in its session."
+        ))
+    };
     let reserved = Reserved::take(&scheduler, (name.to_owned(), repository.to_owned()));
     let busy = locked(&scheduler.starts).is_busy(&(name.to_owned(), root.clone()));
     let store = shared.get::<crate::runner::Store>();

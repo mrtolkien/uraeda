@@ -4,6 +4,7 @@
 // glides there, as any content that moves.
 import { effect, type JSX, LayoutAnimation, type StyleProp, View, type ViewStyle } from "nsh";
 import { Icon } from "./Icon";
+import { Link } from "./Link";
 import { Text } from "./Text";
 import { tokens } from "../tokens";
 
@@ -17,17 +18,33 @@ export type UnderProps = {
   testID?: string;
 };
 
-/** A refusal's line: its mark and its words, in the removed role. */
-export function Refusal(props: { testID?: string; words: string }) {
+/**
+ * A refusal's line: its mark and its words, in the removed role, and, when the way out is a place
+ * of the app, a link there under the words: "Open its session".
+ */
+export function Refusal(props: {
+  action?: { label: string; onPress: () => void };
+  testID?: string;
+  words: string;
+}) {
   return (
     <View
       style={{ alignItems: "flex-start", alignSelf: "stretch", flexDirection: "row", gap: 6 }}
       testID={props.testID}
     >
       <Icon colour={tokens.control.tone("danger")} name="circle-alert" style={{ marginTop: 4 }} />
-      <Text size="under" style={{ flexShrink: 1 }} tone="danger">
-        {props.words}
-      </Text>
+      <View style={{ alignItems: "flex-start", flexShrink: 1, gap: 2 }}>
+        <Text size="under" tone="danger">
+          {props.words}
+        </Text>
+        <If when={props.action}>
+          {(action) => (
+            <Link alone onPress={action().onPress} size="under">
+              {action().label}
+            </Link>
+          )}
+        </If>
+      </View>
     </View>
   );
 }

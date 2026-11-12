@@ -115,8 +115,11 @@ impl Runner {
                 (live.is_some_and(Live::working), session_key(session))
             }
         };
-        if busy || !state.lives.moving.insert(key.clone()) {
+        if busy {
             return Err(Fault::refused(refusals::AGENT_WORKING));
+        }
+        if !state.lives.moving.insert(key.clone()) {
+            return Err(Fault::refused(refusals::MOVING));
         }
         Ok(Moving {
             runner: self.clone(),

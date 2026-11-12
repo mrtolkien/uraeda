@@ -192,7 +192,7 @@ impl Runner {
         {
             let mut state = self.state();
             if state.lives.is_moving(&row.id) {
-                return Err(Fault::refused(refusals::AGENT_WORKING));
+                return Err(Fault::refused(refusals::MOVING));
             }
             let live = state.lives.get(&row.id);
             let behind = live.is_some_and(|live| live.turn.is_some() || !live.queue.is_empty());

@@ -327,7 +327,10 @@ async fn a_dropped_features_sessions_are_archived_and_take_no_message() {
     let working = stage
         .refused("feature.drop", json!({ "folder": AGENT }))
         .await;
-    assert_eq!(working, "The agent is working");
+    assert_eq!(
+        working,
+        "The agent is working: stop it in its session, with x, or wait for its turn to end."
+    );
 
     stage
         .done("session.stop", json!({ "session": session }))

@@ -264,7 +264,7 @@ impl Runner {
     /// each wait.
     fn unmoved(&self, state: &State, session: &str) -> Result<(), Fault> {
         if state.lives.is_moving(session) {
-            return Err(Fault::refused(refusals::AGENT_WORKING));
+            return Err(Fault::refused(refusals::MOVING));
         }
         match of_dropped(&self.row(session)?) {
             true => Err(Fault::refused(refusals::DROPPED)),

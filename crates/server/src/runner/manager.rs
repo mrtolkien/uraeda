@@ -80,7 +80,10 @@ pub(crate) mod refusals {
     /// A new session of a repository with every runtime off there.
     pub const NO_RUNTIME: &str = "No agent runtime is on here: turn one on in Settings, Extensions";
     /// A session moved, or a change moved or dropped, while its agent works.
-    pub const AGENT_WORKING: &str = "The agent is working";
+    pub const AGENT_WORKING: &str =
+        "The agent is working: stop it in its session, with x, or wait for its turn to end.";
+    /// A session, a change, or a feature another move or drop holds.
+    pub const MOVING: &str = "It is being moved or dropped: wait for that to land.";
     /// A dismiss of a turn that runs or waits.
     pub const STILL_RUNNING: &str = "The run is still going.";
     /// A dismiss of a queued message taken back.
@@ -113,7 +116,7 @@ pub(crate) mod refusals {
 
     /// A message to a session of a change or a feature while another of its sessions works.
     pub fn other_working(kind: &str) -> String {
-        format!("Another session of this {kind} is working")
+        format!("Another session of this {kind} is working: wait for its turn to end, or stop it.")
     }
 }
 

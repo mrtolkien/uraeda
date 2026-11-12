@@ -119,7 +119,22 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
         pending={pending()}
         variant="danger"
       />
-      <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
+      <If when={refusal()}>
+        {(words) => (
+          <Refusal
+            action={
+              // Refused while its agent works: the way out is its session, where x stops it.
+              props.feature.status.status === "working"
+                ? {
+                    label: "Open its session",
+                    onPress: () => navigate({ folder: props.args.folder, page: "session" }),
+                  }
+                : undefined
+            }
+            words={words()}
+          />
+        )}
+      </If>
       <Confirm
         icon="trash-2"
         keep="Keep it"
