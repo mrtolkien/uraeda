@@ -194,7 +194,7 @@ fn serve_runs_until_it_is_stopped_and_a_second_start_hands_over() {
 }
 
 // The earlier server, the Node one, kept its sessions in `runner.sqlite`. Its data folder is
-// never this server's: the import reads it, and nothing of it is written (ruling T61.6).
+// never this server's: the import reads it, and nothing of it is written (ruling R492).
 #[test]
 fn serve_refuses_the_earlier_servers_data_folder_and_writes_nothing_there() {
     let folders = Folders::new();

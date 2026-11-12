@@ -510,7 +510,7 @@ testing decision asks.
 | Success: every route has a screen                  | 55     | `every old route is mapped or dropped`                  |
 | Success: 8.3 ms a frame at the 99th percentile     | 53     | the frame benchmark, on demand                          |
 | Success: 100 ms navigation                         | 53     | the navigation benchmark, on demand                     |
-| Success: builds without Node                       | 61     | the release workflow                                    |
+| Success: builds without Node                       | 61     | `just ready` with no Node, and the release's local run  |
 | Review focus: a change after an unsubscribe        | 23     | a row of `a reconnect resumes a reply without a gap`    |
 | Review focus: two clients, one record              | 6      | `two clients acting at once end equal`                  |
 | Review focus: the server stops during a VM call    | 17     | `stopping the server leaves no VM work behind`          |
@@ -3804,11 +3804,40 @@ shrink by 66 to 91% alone; the long chat's 110 small `TurnLog`s by 33%.
 - [x] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
       and test it, the web UI's page in `docs/`, and the guides of `specs/ui/` that named Astryx or
       the browser.
-- [ ] **Step 4: Run the full pass**, `just ready`, **and a release to a test tag.** Expected: PASS,
+- [x] **Step 4: Run the full pass**, `just ready`, **and a release to a test tag.** Expected: PASS,
       artifacts with no Node in them, and a dev shell with no Node in it. A check the old
       `vp run ready` held that the new stack still needs, as the toolchain configuration's tests
-      were, is rewritten as a Rust test or a recipe, or dropped with a ruling.
-- [ ] **Step 5: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.
+      were, is rewritten as a Rust test or a recipe, or dropped with a ruling. Seen: `just ready`
+      passes, 1,976 Rust tests and 199 of the app, in 315 s, with nothing calling Node (ruling
+      R497). **No tag was pushed**: a tag and its release are the owner's to make. In its place ran
+      `just web-build`, `just web-test`, `just release-plan`, `just package`, and the packaged `ura`
+      serving the app's page; ruling R496 says what a tag would add, and the command.
+- [x] **Step 5: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.
+
+**As built** (rulings R487 to R499), in commits that each build:
+
+- **Before the removal**: the parity lists are frozen and read no old code; the tests' two fakes
+  that ran on `node` are Rust programs of the server's crate, and the sandbox's Storybook is
+  `ura fake-storybook`; the fixtures' recorders are gone, and the recorded files frozen, with a
+  README each; `crates/xtask` (`uraeda-xtask`) holds `just release` and the toolchain's tests.
+- **The removal**: `packages/`, `crates/binding/`, the core's `napi` feature, Vite+'s files, the
+  TypeScript of `scripts/`, `npm.yml`, and Node and pnpm in the dev shell. `packages/benchmarks/`
+  goes too: `benchmarks/` keeps its data, and its runner waits for a port. The commit hook is
+  `.githooks/pre-commit`, turned on with `git config core.hooksPath .githooks`.
+- **The server**: `Options::port` is `Option<u16>`, the flag alone, and `uraeda_server::asked_port`
+  gives the port and what gave it: `--port`, `URAEDA_PORT`, the settings' `port`, then 4310.
+  `uraeda_core::repositories::data_dir` is the one data folder, `uraeda-next` or `URAEDA_DATA_DIR`;
+  `earlier_data_dir` is the Node server's, `uraeda`, which `ura import-sessions` reads and
+  `ura serve` refuses. `uraeda_server::default_data_dir` is gone. The sandbox's folder is
+  `.sandbox/`.
+- **The pages**: `docs/web-ui.md` is `docs/app.md`; the README's pictures are the app's.
+- **For task 67**: every commit of the default branch that changed `packages/`, `crates/binding/`,
+  `vite*.ts`, `package.json`, `pnpm-lock.yaml`, or `scripts/*.ts` conflicts with a deletion, and its
+  file stays deleted. What it did for the server is ported to `crates/server/` (the runner in
+  `src/runner/`, the runtimes in `src/runtimes/`, the records in `src/records/`), and for the UI to
+  `app/screens/`. A change to `docs/web-ui.md` goes to `docs/app.md`, and one to the Vite+ section
+  of `AGENTS.md` nowhere. 24 decisions changed here: one the default branch changed too is read
+  again. A new check goes in `just ready`, and `crates/xtask/tests/toolchain.rs` holds the list.
 
 ## Task 67: What the default branch gained since
 

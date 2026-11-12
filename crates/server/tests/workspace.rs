@@ -723,7 +723,7 @@ async fn host_names_given_by_the_environment_stay_whatever_the_file_lists() {
 }
 
 // The settings decision, for the port a start listens on: `--port`, then `URAEDA_PORT`, then the
-// settings file's `port`, then 4310, the port Uraeda's server always had (ruling T61.6).
+// settings file's `port`, then 4310, the port Uraeda's server always had (ruling R492).
 #[test]
 fn the_port_is_the_flags_then_the_variables_then_the_files_then_4310() {
     let variable = Source::Environment {

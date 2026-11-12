@@ -9705,3 +9705,292 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   names no id is dropped with a warning in the console.
 - **Where**: `crates/app/src/frames.rs`, `app/store/{line,connection,errors}.ts`,
   `app/ui/timing.ts`, `crates/server/tests/browser/{bench,protocol}.rs`.
+
+## R487: The tests' two fakes are Rust programs, and the sandbox's Storybook is `ura fake-storybook`
+
+- **Decision**: the fake Storybook (`fixtures/preview/serve.mjs`) is the module
+  `uraeda_server::sandbox::storybook`, and Codex's stand-in (`fixtures/runtimes/codex/stand-in.mjs`)
+  is `crates/server/tests/bin/fake_codex.rs`. The server's crate builds each as a program beside its
+  tests, `fake-storybook` and `fake-codex`, which a test finds with `CARGO_BIN_EXE_<name>`. The
+  sandbox runs the same Storybook as `ura fake-storybook`, a hidden command:
+  `sandbox::Prepare::storybook` gives the command, `ura sandbox` its own program's, a test the one
+  built beside it. The builders' stamp is 4.
+- **Rationale**: rulings R107 and R344 left both on `node`, which the dev shell loses. A test of the
+  server cannot start `ura`, which another crate builds, and the sandbox cannot find a test's
+  program: so one library function with two thin entries. Nothing of either is released as a
+  program: cargo-dist releases the CLI's crate alone, and `ura sandbox` was hidden already (R230).
+- **Left out**, since only the Node server's tests used them: the fake Storybook's `--delay`, its
+  modes `hang-later`, `bad-index`, `no-pick`, and `hold-modules`, and `/__index-reads`, `/__events`,
+  and `/__release`; the stand-in's pace between lines, which only the script that wrote the Node
+  runtime's events set.
+- **A race it showed**: `a_stale_frame_starts_no_preview` read a process's group after stopping it.
+  Node took long enough to die that `ps` still answered; the Rust program does not. The test reads
+  the group first.
+- **The fixtures are frozen**: `fixtures/runner/old.sqlite` and every `.events.jsonl` of
+  `fixtures/runtimes/` were written by scripts that drove the Node server's store, parser, and
+  runtime. The scripts went with that code, and `fixtures/runner/README.md` and
+  `fixtures/runtimes/README.md` say what each file holds and that it cannot be written again. The
+  by-hand check against the real `codex` ran through the recorder's wrapper, which made the sandbox
+  read-only: it now gives Codex the sandbox the runtime asks for, in its temporary folder.
+- **Where**: `crates/server/src/sandbox/storybook.rs` and `storybook/pages.rs`,
+  `crates/server/tests/bin/`, `crates/server/Cargo.toml`, `crates/cli/src/{main,sandbox}.rs`,
+  `crates/server/tests/{preview,codex/stage,codex/real,browser}.rs`.
+
+## R488: What the toolchain's tests hold now, in `crates/xtask`, and each one dropped
+
+- **Decision**: `crates/xtask/tests/toolchain.rs` holds what
+  `packages/server/src/__tests__/toolchain.test.ts` guarded that still means something:
+  - `just ready` runs every check (`fmt-check`, `lint`, `lint-app`, `lint-workflows`, `specs`,
+    `test`, `app-check`, `app-test`), no run that never ends, the whole workspace's tests, and a job
+    of CI runs `nix develop --command just ready`;
+  - no test is retried, in `.config/nextest.toml`, a recipe, a script, or a workflow, but the checks
+    that draw in real windows (`package(uraeda-app) & binary(outside)`, ruling R111);
+  - every library crate sets `doctest = false`, since cargo-nextest runs no doctest;
+  - every recipe that runs tests goes through `scripts/isolated.sh`, and `lint`, `test`, `task`, and
+    `app-test` take one of the machine's two heavy slots. It found `web-build`'s weight test outside
+    it, now inside.
+- **Dropped**, each a guard of Vite+ alone: a task's cache inputs and automatic tracking (Vite
+  Task's cache: Cargo and `nsh` skip what did not change); Vitest's `retry`, and `--retry` in a
+  task; a Vitest project no task selects; a fixed port in a Vitest or Storybook configuration (the
+  new tests take port 0, and no configuration holds a port); a configuration importing the binding
+  before it is rebuilt, and the binding's release flags; CI's shards covering every slice (CI runs
+  one `ready`); `ts:test` rerunning on a configuration's or the binding's change; cached checks
+  tracking the dev shell; `fast` selecting before optional builds (`just task <crates>` replaced
+  `vp run fast`, ruling R122). `rust:features`, which checked that `ura` never built napi, has
+  nothing left to check.
+- **Rationale**: ruling R18 asked task 61 to keep the test, and R122 to rewrite or drop each check
+  only `vp run ready` held. The retries' exception stands as R111 ruled it: the old test refused it,
+  and nothing ran that test since.
+- **Where**: `crates/xtask/tests/toolchain.rs`, `justfile`, `.github/workflows/ci.yml`.
+
+## R489: The old suites, by group, and what guards each now
+
+- **Decision**: 333 test files and 2,359 tests go with the code they tested. By group:
+  - **The Node server's records, mutations, and routes** (59 files of `src/__tests__/`): the Rust
+    server's `crates/server/tests/` (`workspace`, `features`, `writing`, `git`, `sessions`, `files`,
+    `live`, `mcp`, `pulls`, `jobs`, `accounts`, `skeleton`), over the core's own tests, and the
+    frozen parity list, which fails when a name stops being served.
+  - **Sign-in and the guard** (5 files, with `guard`, `allowed-hosts`): `sign_in.rs`, `skeleton.rs`.
+  - **The runner and the runtimes** (30 files): `claude.rs`, `codex.rs`, `runtimes.rs`, on the same
+    recordings, `runner_store.rs`, `sessions.rs`, `accounts.rs`.
+  - **Extensions** (13 files): `extensions_vm.rs`, `extension_pages.rs`, and
+    `crates/app/tests/extensions.rs`, on the rewritten API.
+  - **Jobs** (5) and **previews** (5): `jobs.rs` with the core's `jobs.rs`, and `preview.rs`.
+  - **The toolchain** (`toolchain`, `test-run`, `worktree-seed`, `coverage-summary`, `dev`, `env`,
+    `free-port`, `threadpool`): R488, and `crates/app/tests/isolated.rs` for the tests' own folders.
+  - **The React UI** (191 files): keys in `crates/app/tests/keys.rs` and `app/ui/keys/`; Vim in
+    `crates/vim`'s table; themes and tokens in `crates/app/tests/theme.rs` and `app/ui/tokens/`;
+    routes in `app/store/routes.test.ts` and the frozen list; each screen in its own test file of
+    `app/screens/`, on the sandbox; diagrams in `crates/server/tests/diagram.rs` and the outside
+    checks; the store in `app/store/store.test.ts`; the sandbox's samples in
+    `crates/server/tests/sandbox.rs`.
+  - **The binding** (39 tests), **the npm package's order** (3), **the benchmarks' runner** (102),
+    and **the fast check and CI's shards** (51): gone with what they tested.
+  - **The release's notes and version** (8): `crates/xtask`, case for case.
+- **Gaps**, each a guarantee the old tests held that no new test holds:
+  - the old lint rules of the UI's style, a colour by its role and never a hue, a style through
+    tokens, no raw element: the app's rule "no screen draws a raw primitive with its own colours" is
+    held by review alone;
+  - a TSX function's length (R491);
+  - the phone's behaviour in a browser, the keyboard's inset, a sheet's swipe: `just web-shots`
+    pictures them, as a tool, never a check, as the testing decision asks of UI tests;
+  - `scripts/worktree-seed.sh` and the lockfile seed of `scripts/nsh.sh`, whose TypeScript had
+    tests: none now, a new worktree's first build shows a failure at once;
+  - the installed package's first page within 2 seconds (`ui:smoke --timed`): `just web-test` opens
+    the build in a real browser, and times nothing;
+  - the sandbox's element picker, which went with the React UI: the sandbox decision changes (R494).
+- **Rationale**: the spec's "Replaced behaviour" lists the suites, so no ruling is owed for each
+  test; the workflow asks for the list of what guards the behaviour now, and for the gaps to be
+  said.
+- **Where**: the commit `feat(nsh-migration)!: remove the React UI and the Node server`.
+
+## R490: The benchmarks' runner goes with the Node server, and waits for a port
+
+- **Decision**: `packages/benchmarks/` is deleted: 2,923 lines of TypeScript and 2,058 of tests, run
+  by Node, which drove `ClaudeAdapter`, `runMessage`, and `FakeAdapter` of the Node server.
+  `benchmarks/` keeps every suite, case, guideline, and run's record, scores, specs, and diff,
+  untouched. Its README says the runner waits for a port, and the benchmarks decision gains a
+  consequence saying that nothing runs a benchmark until then.
+- **Rationale**: the decision asks a benchmark to reach agents through the server's adapter, which
+  is now Rust (`crates/server/src/runtimes/`). A port is a feature of its own, some 3,000 lines with
+  a grader, a judge, a simulated human, and a report: not a step of a removal.
+- **If wrong**: the runner's last source is the parent of the removal's commit:
+  `git show <that commit>^:packages/benchmarks/src/cli.ts`.
+- **Where**: `benchmarks/README.md`, `specs/decisions/benchmarks.md`.
+
+## R491: Oxlint holds the limits the app meets, and not a function's length
+
+- **Decision**: `.oxlintrc.json` gains `max-depth` 4, `max-params` 7, and `max-lines` 500 but for
+  tests, which the old configuration held with `max-lines-per-function` 100. That last one stays
+  out: 49 functions of `app/` pass 100 lines. `just lint-app` runs with
+  `--report-unused-disable-directives`. The code quality decision's rule on `@nkzw/oxlint-config`,
+  an npm package, names `.oxlintrc.json` instead, and a consequence says what is not checked.
+- **Rationale**: R122 said the old packages' lint rules were lost until task 61 rewrote or dropped
+  them. The three limits cost nothing: no file of the app breaks them. The decision forbids a new
+  marker without the human's approval, so the 49 functions cannot be marked, and splitting them is
+  not this task's.
+- **If wrong**: one line of `.oxlintrc.json` turns the limit on, once the functions are split:
+  mostly components whose markup is one function.
+- **Where**: `.oxlintrc.json`, `justfile`, `specs/decisions/code-quality.md`.
+
+## R492: `ura serve` listens on 4310, and keeps `uraeda-next`: the earlier folder is only read
+
+- **Decision**:
+  - **The port** is `--port`, else `URAEDA_PORT`, in the environment or the config folder's `.env`,
+    else the settings file's `port`, else 4310, the Node server's. The server resolves it as it
+    starts (`uraeda_server::asked_port`), `Options::port` is the flag alone, and the settings show
+    what gave the port in force. A variable that is no port stops the start.
+  - **The data folder** stays `uraeda-next` in the system's data folder, or `URAEDA_DATA_DIR` as it
+    is, with no `-next` added. The core owns it (`repositories::data_dir`), so `ura add` and
+    `ura extension` write where `ura serve`, `ura pair`, `ura key`, and the app read: they wrote the
+    earlier server's folder until now.
+  - **The earlier folder, `uraeda`, is never written.** `ura import-sessions` reads it by default
+    (`repositories::earlier_data_dir`), whatever the variable says. `ura serve` refuses a data
+    folder that holds `runner.sqlite`, saying how to import it.
+  - The sandbox's folder is `.sandbox/` (ruling R231), on 4420.
+- **Rationale**: rulings R3 and R32 kept the two servers apart until this task. The plan gives the
+  port. For the folder, the old one holds the owner's `runner.sqlite`, `sign-in.json`, and
+  `repositories.json`: taking it would have the Rust server write files the Node server made, with
+  no way back to that server. No `uraeda-next` exists on the owner's machine yet, so nothing moves:
+  the import copies the sessions, and the list of repositories is one file to copy, as `INSTALL.md`
+  says. The refusal covers a `URAEDA_DATA_DIR` left pointing at the old folder.
+- **Alternatives considered**: the old folder, the natural name: R2 kept `sign-in.json`'s fields for
+  it, but a first start would rewrite the owner's files in place. A third name: one more folder to
+  explain, for nothing.
+- **If wrong**: the name is one constant, `FOLDER` in `crates/core/src/repositories.rs`, and the
+  owner moves the folder with one `mv`.
+- **Where**: `crates/server/src/{port,start,lib}.rs`, `crates/core/src/repositories.rs`,
+  `crates/cli/src/{serve,import_sessions}.rs`, `crates/app/src/host/window.rs`, and the tests
+  `the_port_is_the_flags_then_the_variables_then_the_files_then_4310`,
+  `serve_refuses_the_earlier_servers_data_folder_and_writes_nothing_there`,
+  `serve_listens_on_the_port_its_variable_gives`,
+  `the_earlier_servers_data_folder_is_the_platforms_named_uraeda`.
+
+## R493: The commit hook is `.githooks/pre-commit`, turned on by its owner
+
+- **Decision**: `.githooks/pre-commit` formats the staged files with the dev shell's `rustfmt` and
+  `oxfmt`, entering the dev shell when they are not on the `PATH`. A file staged in part is checked,
+  never rewritten, and stops the commit when it is not formatted. It is turned on once in a clone:
+  `git config core.hooksPath .githooks`.
+- **Rationale**: the hook was `vp staged`, set by `vp config` at install, which is gone. No recipe
+  or dev shell sets the path: the repository's git configuration is shared by every worktree, and
+  the main checkout has no `.githooks/` until this branch is merged, so setting it from a worktree
+  would turn the owner's hook off there.
+- **If wrong**: an unformatted commit fails `just fmt-check`, in `just ready` and in CI.
+- **Where**: `.githooks/pre-commit`, `CONTRIBUTING.md`.
+
+## R494: The sandbox decision loses its picker, with the React sandbox
+
+- **Decision**: the sandbox decision no longer asks for a pick, an element pressed in the sandbox
+  and copied with its page and its source location. Its rule, the build plugin's, and the picker
+  kept out of the package go; the gallery replaces Storybook as the place for mockups.
+- **Rationale**: the picker was a Vite plugin of `packages/web/sandbox/`, loaded by the React
+  sandbox alone, and went with it. The new sandbox (R230) has none, and Native Shell gives no source
+  location of an element. A pick in a preview's page, a story or a mockup, is another thing, and
+  stays (`app/screens/preview/pick.ts`).
+- **If wrong**: the owner misses pointing at an element for the agent: the rule comes back with a
+  feature that builds it on Native Shell.
+- **Where**: `specs/decisions/sandbox.md`.
+
+## R495: The README's pictures are the app's, as PNG
+
+- **Decision**: the twelve pictures of `docs/images/screenshots/` are taken with
+  `just app-shots <address>` on the sandbox's realistic project, and committed as PNG, 2.9 MB in
+  place of 0.7 MB of WebP.
+- **Rationale**: they showed the React UI. The script that took them ran Playwright on Node, and
+  nothing in the dev shell writes WebP.
+- **If wrong**: a WebP encoder in the dev shell, and a recipe that takes and converts the twelve.
+- **Where**: `docs/images/screenshots/`, `README.md`, `CONTRIBUTING.md`.
+
+## R496: No test tag was pushed: what ran here in its place, and what a tag would add
+
+- **Decision**: the plan's step 4 asks for "a release to a test tag". No tag was made or pushed: a
+  tag, its release, and its artifacts are outside the branch, and theirs to make is the owner's
+  alone. In its place, everything the release's workflow runs that can run on this machine ran:
+  - `just ready`, the full pass (R497);
+  - `just web-build`: the app for a browser, its Rust as WebAssembly, 2,927,848 bytes compressed for
+    a first load, under its limit;
+  - `just web-test`: that build in the dev shell's headless Chromium, 16 tests;
+  - `just release-plan`: cargo-dist's plan, `uraeda-cli` 1.3.0 for its four platforms with the
+    installer script, and `release.yml` as `dist-workspace.toml` generates it. The two programs the
+    server's tests build are not in it;
+  - `just package`: the tarball, 86.8 MB, and the AppImage, 81.5 MB, with `ura` built by
+    `release-app` holding the web build. Its files are the launcher, `lib/ura`, `lib/uraeda`,
+    `lib/nsh/` (the bundle and 42 assets), the desktop entry, and the icons: no `.node` file, no
+    `package.json`, no `node_modules`. `ldd` names no library of Node for either program. The words
+    `node_modules` and `package.json` are in `ura` nine times, in Native Shell's bundler's resolver,
+    which is Rust, and in the preview's check of a project's dependencies;
+  - the packaged `ura`, started with `serve --port 0 --no-open` on temporary folders, with the
+    agents' stand-ins on its `PATH`: `GET /` asked as a browser asks it answers 200, the app's page,
+    19,387 bytes, titled "Uraeda", and so does `/r/repo/inbox`; `/session` answers 401. Its data
+    folder is `uraeda-next` under the temporary data folder.
+- **What a test tag would add**, which nothing here can show: the builds of `ura` on GitHub's
+  runners for the three platforms this machine is not, `aarch64-apple-darwin`,
+  `x86_64-apple-darwin`, and `aarch64-unknown-linux-gnu`, each fetching the web build the first job
+  uploaded (`build-web.yml`, then `build-setup.yml`'s two steps); the Linux app's package built on
+  `ubuntu-24.04` from a cold Nix store (`build-app.yml`); cargo-dist's installer script and Homebrew
+  formula made from those archives; the `host` job creating the GitHub release with every file at
+  once; and that no job installs Node. A prerelease tag publishes no Homebrew formula
+  (`publish_prereleases` is off), and `npm.yml` is gone, so nothing reaches npm.
+- **The command**, from this branch once it is pushed, for a prerelease that touches no user:
+  `sed -i 's/^version = "1.3.0"/version = "1.4.0-rc.1"/' Cargo.toml && cargo metadata --format-version 1 --offline >/dev/null && git commit -qam "chore: release v1.4.0-rc.1" && git tag v1.4.0-rc.1 && git push origin v1.4.0-rc.1`.
+  The tag must name the workspace's version, which is why the version moves first. The commit stays
+  local, on a branch to throw away: only the tag is pushed. Afterwards:
+  `gh release delete v1.4.0-rc.1 --cleanup-tag --yes`.
+- **Where**: the plan's task 61, step 4.
+
+## R497: The full pass, without Node
+
+- **Decision**: `just ready` passed on the third run, in 315 s: formatting, the lints, `ura check`
+  on the specs, 1,976 Rust tests passed and 31 skipped, the app's types, and 199 tests of the app.
+  - **The first run** failed on `the_ledger_reads_alone`: two decisions changed by this task passed
+    their shape's limits, five consequences for four in the benchmarks', two keywords in a rule of
+    the sandbox's. Both were fixed, in a commit of their own.
+  - **The second run** failed on `a_page_fetched_after_its_place_closed_never_runs`
+    (`crates/app/tests/extensions.rs`), "a page ran after its place closed", 3 engines for 2, at a
+    load of 20: the failure rulings R346 and R451 saw under load. Run alone, it passed. Nothing was
+    changed, and the third run, on a quieter machine, passed whole.
+  - **`just web-test`** failed once on `phone::a_tap_on_the_phones_more_places_opens_its_menu`,
+    "Settings opens: the page is /r/sample/", with sixteen browsers started at once. Alone it passed
+    in 3 s, and the whole recipe passed when run again: 16 tests.
+  - **Without Node**: `nix develop -i -c command -v node pnpm npm npx vp` finds nothing; the dev
+    shell's TypeScript, which `nsh check` runs, is the native compiler, 7.0.2, an ELF program. The
+    machine itself has a `node` in `/usr/bin`, which the dev shell inherits, so every run above had
+    a folder first on its `PATH` whose `node`, `pnpm`, `npm`, `npx`, `vp`, `vite`, and `vitest`
+    write down their call and fail: none was called, in the full pass, the web build, the browser
+    test, the release's plan, or the package.
+  - **What the dev shell does not hold**: `git`, `ps`, and the like, which the tests take from the
+    machine, as CI's runner has them.
+- **Rationale**: the plan's rule for a failure under load: run again once the machine is quiet, at
+  most twice, and name it. The race of `a_stale_frame_starts_no_preview`, which rulings R464 and
+  R483 met under load, is fixed: the test read a process's group after stopping it (R487).
+- **Where**: the plan's task 61, step 4.
+
+## R498: The app's page is `docs/app.md`, and the UI guides lose their pointers to deleted files
+
+- **Decision**: `docs/web-ui.md` is `docs/app.md`, with its sections on starting, sign-in, where a
+  setting comes from, and the data folder rewritten, and every other section kept as the tasks left
+  it. The 13 links to it in `specs/` follow. The guides of `specs/ui/` named 33 source files of the
+  React UI in passing: six follow the file with the same role in `app/`, and the others are dropped,
+  their sentences kept. The agents' instructions say "Uraeda's app" where they said its web UI.
+- **Rationale**: the page describes the app, in a window and in a browser. A link to deleted code
+  becomes its words. `ura check --fix` did not follow the rename, the page having changed too much
+  for git to call it one, so the links were changed by hand.
+- **If wrong**: a guide's sentence whose only proof was its file has none now: the guides were
+  written for the React UI's views, and a screen that departs from one says so in its own ruling.
+- **Where**: `docs/app.md`, `specs/ui/`, `crates/server/src/runtimes/built_in/instructions.rs`.
+
+## R499: The decisions this task changed
+
+- **Decision**: 24 decisions change, in commits named `decision(nsh-migration)`:
+  - twenty for their words alone, in one commit: `packages/web/` is `app/` and `packages/server/` is
+    `crates/server/` in "Applies to", and "the web UI" is "the app";
+  - [code quality](../decisions/code-quality.md): the lint configuration is `.oxlintrc.json`, and a
+    function's length in TSX is not checked (R491);
+  - [preview](../decisions/preview.md): `just ready` checks the gallery, through `just app-check`;
+  - [sandbox](../decisions/sandbox.md): the picker's three rules go (R494);
+  - [benchmarks](../decisions/benchmarks.md): the runner waits for a port (R490).
+- **Rationale**: the human said decisions may change in this feature, and reads them in the pull
+  request. `ura check` warns that each changed after the spec's approval, and reports no problem in
+  them.
+- **Where**: `specs/decisions/`.
