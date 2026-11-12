@@ -18,8 +18,8 @@ components the same way, is still embedded live in specs, questions, and session
 - The gallery MUST draw with the app's own framework and tokens, on each platform the app ships on.
 - Gallery pages MUST NOT run as tests: the rare UI tests run elsewhere, as [Testing](testing.md)
   says.
-- The full check, `vp run ready`, MUST build the gallery, so a page that does not compile fails it.
-  Checked by the gallery's build task.
+- The full check, `just ready`, MUST check the gallery, so a page that does not compile fails it.
+  Checked by `just app-check`, which checks the types of every TSX file of `app/`.
 - A project's own preview MUST be the command its `preview-folder` and `preview-command` fields
   hold. Checked by `ura check`.
 - A native client MUST draw a project's preview in a web view, apart from the app's own views.
