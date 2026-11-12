@@ -8,9 +8,7 @@ import type { Workspace } from "../../store/protocol";
 import { Banner, Button } from "../../ui/controls";
 
 /** The banner's words, or none for a repository set up. */
-function setUpWords(
-  workspace: Workspace | undefined,
-): { title: string; words: string } | null {
+function setUpWords(workspace: Workspace | undefined): { title: string; words: string } | null {
   if (workspace === undefined) return null;
   const chat =
     "then start a chat, Space n s, and ask the agent to set Uraeda up: it writes the constitution and the decisions with you.";

@@ -97,6 +97,13 @@ export const unknownRepository = definePane<{ name: string }>({
   stack: "main",
   title: "No such repository",
   view: (props) => {
+    const open = () => {
+      const name = recent();
+      if (name === undefined) return false;
+      navigate({ page: "home", repo: name });
+      return undefined;
+    };
+    registerKey({ hint: "⏎", hintLabel: "open", keys: "Enter", label: "Open", run: open });
     return (
       <View style={{ gap: 16, maxWidth: 560 }}>
         <Head
@@ -109,7 +116,7 @@ export const unknownRepository = definePane<{ name: string }>({
               <Button
                 icon="house"
                 label={`Open ${name()}`}
-                onPress={() => navigate({ page: "home", repo: name() })}
+                onPress={() => void open()}
                 variant="main"
               />
             </View>
@@ -136,6 +143,13 @@ function MissingFolder(props: { name: string; path: string }) {
     }
     pending.set(false);
   };
+  registerKey({
+    hint: "d",
+    hintLabel: "remove from Uraeda",
+    keys: "d",
+    label: "Remove it from Uraeda",
+    run: () => void remove(),
+  });
   return (
     <View style={{ gap: 16, maxWidth: 560 }}>
       <Head
