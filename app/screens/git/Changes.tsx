@@ -291,11 +291,7 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
         onConfirm={discard}
         open={discarding() !== null}
         title={`Discard the changes to ${discarded()?.path ?? "the file"}?`}
-        words={
-          discarded()?.isNew === true
-            ? "The file is new: it is deleted. Nothing can bring it back."
-            : "The file goes back to its last commit. Nothing can bring the changes back."
-        }
+        words={discardWords(discarded()?.isNew === true)}
       />
       <Confirm
         loses
@@ -311,6 +307,12 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
     </PaneScroll>
   );
 }
+
+/** What discarding a file's changes loses, as its confirmation says it, here and in the Diff pane. */
+export const discardWords = (isNew: boolean) =>
+  isNew
+    ? "The file is new: it is deleted. Nothing can bring it back."
+    : "The file goes back to its last commit. Nothing can bring the changes back.";
 
 /** Whether the picked row is a file of the page: the Diff pane says when it no longer is. */
 export function isListed(page: GitPage): boolean {

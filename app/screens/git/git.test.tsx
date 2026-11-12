@@ -62,3 +62,23 @@ test("c writes the message of the group the cursor is in, as the cursor crosses 
     ),
   );
 });
+
+test("a file's changes are discarded by the pointer too, asked first", async () => {
+  const app = await open("./__checks__/Git.tsx", {
+    height: 800,
+    network: "live",
+    platform: "linux",
+    width: 1400,
+  });
+  const shows = () => app.texts().join(" ");
+  await app.waitUntil(() => shows().includes("README.md"), { timeout: 30_000 });
+  // The row opens its diff, whose Discard asks first, naming the file; Keep leaves it.
+  await app.press("id:git-changes >> text:README.md");
+  await app.press("id:git-discard");
+  await app.waitUntil(() => shows().includes("Discard the changes to specs/README.md?"), {
+    timeout: 10_000,
+  });
+  await app.press("text:Keep them");
+  await app.waitUntil(() => !shows().includes("Discard the changes to"), { timeout: 10_000 });
+  expect(app.shows("label:Stage specs/README.md")).toBe(true);
+});

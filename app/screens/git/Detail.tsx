@@ -2,15 +2,15 @@
 // needs. A changed file's diff, with Stage or Unstage; a commit's message and every file's change,
 // one under the other; a conflicted text file in the editor, saved with `Ctrl+Enter` once its
 // markers are gone, or a side taken whole. Each state says what it is, and why there is nothing.
-import { computed, View } from "nsh";
+import { computed, signal, View } from "nsh";
 import { gitPage } from "./Sync";
-import { isListed } from "./Changes";
+import { discardWords, isListed } from "./Changes";
 import { type Picked, picked } from "./picked";
 import { ago } from "./when";
 import { isPending, refusalAt, write } from "./writes";
 import { record } from "../../store";
 import type { GitCommitFile, GitDiff, GitFile, GitGroup, GitPage } from "../../store/protocol";
-import { Button, Heading, Refusal, Spinner, Text } from "../../ui/controls";
+import { Button, Confirm, Heading, Refusal, Spinner, Text } from "../../ui/controls";
 import { Diff } from "../../ui/document";
 import { Empty } from "../../ui/lists";
 import { registerKey } from "../../ui/keys";
@@ -94,6 +94,15 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
       `${unstage ? "Unstaging" : "Staging"} ${props.path} in ${target.name}`,
     );
   };
+  // Discard, the Changes row's `d`, as a button too: the pointer's way, asked first.
+  const discarding = signal(false);
+  const discard = () =>
+    void write(
+      where(),
+      "git.discard",
+      { folder: props.folder, path: props.path, repo: props.repo },
+      `Discarding ${props.path}`,
+    );
   // Its Stage under the same key as the Changes' row: the file read is the one staged.
   registerKey({
     hint: "s",
@@ -137,6 +146,31 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
               onPress={stage}
               pending={isPending(where())}
             />
+          )}
+        </If>
+        <If when={file()}>
+          {(shown) => (
+            <>
+              <Button
+                disabled={pageHeld(page(), props.folder)}
+                icon="trash-2"
+                label="Discard…"
+                onPress={() => discarding.set(true)}
+                testID="git-discard"
+                variant="danger"
+              />
+              <Confirm
+                loses
+                icon="trash-2"
+                keep="Keep them"
+                label="Discard the changes"
+                onClose={() => discarding.set(false)}
+                onConfirm={discard}
+                open={discarding()}
+                title={`Discard the changes to ${props.path}?`}
+                words={discardWords(shown().state === "new")}
+              />
+            </>
           )}
         </If>
       </View>
