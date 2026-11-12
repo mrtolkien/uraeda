@@ -1,6 +1,6 @@
 // The key map's content, pure: every key that works where the human is, from the registry, in
-// sections, and the search over them. A page's own keys come first, under the page's name, then
-// the shell's single keys, then the leader's sequences by the group the menu names, then the go
+// sections, and the search over them. The focused pane's own keys come first, under its title,
+// then the page's and the frame's, each under its name, then the shell's single keys, then the leader's sequences by the group the menu names, then the go
 // keys. Keys with one label share a row, `j` beside `↓`. With the single-key switch off, only the
 // keys that still work are listed: the leader's sequences, written from the chord that opens the
 // menu then, and a fallback only with the keys nothing else listed takes.
@@ -25,11 +25,9 @@ const LAST = [SHELL, MENU, ...Object.values(GROUPS).map((group) => group.label),
 /** Whether a binding is a sequence of the leader's menu: Space, then a key. */
 const isLeader = (path: ReadonlyArray<string>) => path[0] === LEADER && path.length > 1;
 
-/** The scope a key is listed under: its page's or its layer's, whose panes and selections it holds. */
+/** The scope a key is listed under: its pane's, its page's, or its layer's, with its selections. */
 const home = (scope: Scope): Scope =>
-  (scope.kind === "pane" || scope.kind === "selection") && scope.parent !== null
-    ? home(scope.parent)
-    : scope;
+  scope.kind === "selection" && scope.parent !== null ? home(scope.parent) : scope;
 
 /** Where a binding is listed: its group for a sequence of the leader or of `g`, else its place. */
 function sectionOf({ scope, spec }: Declared): string {
@@ -89,8 +87,11 @@ export function keyMapSections(
   refused: ReadonlyArray<Refused> = [],
 ): Array<KeySection> {
   const sections = new Map<string, Map<string, KeyRow>>();
+  /** The pane's sections, which come first: the keys of where the focus is. */
+  const panes = new Set<string>();
   for (const { entry, tokens } of working(on, where)) {
     const title = sectionOf(entry);
+    if (title === home(entry.scope).name && home(entry.scope).kind === "pane") panes.add(title);
     const rows = sections.get(title) ?? new Map<string, KeyRow>();
     sections.set(title, rows);
     const label = capital(entry.spec.label);
@@ -106,9 +107,10 @@ export function keyMapSections(
     keys: [spec.keys.split(" ")],
     label: problem,
   }));
+  const first = [...pages.filter((title) => panes.has(title)), ...pages];
   return [
     ...(unbound.length === 0 ? [] : [{ rows: unbound, title: NOT_BOUND }]),
-    ...[...pages, ...LAST].flatMap((title) => {
+    ...[...new Set([...first, ...LAST])].flatMap((title) => {
       const rows = sections.get(title);
       return rows === undefined ? [] : [{ rows: [...rows.values()], title }];
     }),

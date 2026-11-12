@@ -87,8 +87,9 @@ function PaneBody(props: { focused: boolean; pane: PaneRef; width: WidthClass })
     <PaneContext.Provider value={here}>
       <KeyScope kind="pane" name={titleOf(props.pane)} on={() => props.focused}>
         <StopsContext.Provider value={stops}>
-          <TabKeys stops={stops} />
           <Drawn args={props.pane.args} focused={props.focused} width={props.width} />
+          {/* After the pane's own keys, which the key map lists first. */}
+          <TabKeys stops={stops} />
         </StopsContext.Provider>
       </KeyScope>
     </PaneContext.Provider>

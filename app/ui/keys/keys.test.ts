@@ -374,6 +374,22 @@ test("the key map lists what works where the focus is, and its search finds it",
   ]);
 });
 
+test("the key map lists the focused pane's keys first, under its title, apart from the frame's", () => {
+  const store = createKeyStore();
+  const frame = store.scope({ name: "Layout" });
+  const pane = store.scope({ kind: "pane", name: "Needs you" }, frame);
+  store.register(store.shell, [key("b", "Back")]);
+  store.register(frame, [key("[", "Fold the sidebar"), key("space w z", "Zoom the pane")]);
+  store.register(pane, [key("j", "Move down"), key("Tab", "Next control")]);
+  const all = keyMapSections(store.on(), { keepsSpace: false, singleKeys: true });
+  expect(titles(all)).toEqual([
+    ["Needs you", "j: Move down", "Tab: Next control"],
+    ["Layout", "[: Fold the sidebar"],
+    ["Everywhere", "b: Back"],
+    ["Panes", "space w z: Zoom the pane"],
+  ]);
+});
+
 test("the picker's search ranks a title's start over a word's, then the rest", () => {
   const items = [
     { summary: "How the app is built", title: "Stack" },

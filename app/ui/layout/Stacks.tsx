@@ -212,7 +212,7 @@ export function Stacks(props: StacksProps) {
         style={{ flex: 1 }}
         testID="frame"
       >
-        <KeyScope name="Panes">
+        <KeyScope name="Layout">
           <MoveKeys mover={mover} />
           <FrameKeys
             hasSide={hasSide}

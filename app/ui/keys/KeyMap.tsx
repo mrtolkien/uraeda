@@ -53,6 +53,8 @@ function Rows(props: { sections: ReadonlyArray<KeySection> }) {
         lines="one"
         onChange={(value) => query.set(value)}
         placeholder="Search…"
+        // Its whole height, over a list taller than the map: shrunk, it was drawn over the titles.
+        style={{ flexShrink: 0 }}
         testID="key-map-search"
         value={query()}
       />
