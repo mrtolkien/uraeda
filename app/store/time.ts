@@ -9,12 +9,6 @@ export type { ZonedClock };
 
 const zone = signal<string | undefined>(undefined);
 
-/**
- * The server's IANA time zone, `Europe/Paris`, once the shell read it: until then, times read in
- * the device's own.
- */
-export const serverZone = () => zone();
-
 /** The store's alone: the zone the server's `welcome` names, at each connection. */
 export function setServerZone(next: string | undefined) {
   if (next !== undefined && next !== zone()) zone.set(next);

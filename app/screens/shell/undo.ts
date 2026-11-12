@@ -222,12 +222,3 @@ export function redo(): boolean {
 export function quiet(id: number) {
   if (said()?.id === id) said.set(null);
 }
-
-/** Empties the stack: for tests, which share the app's memory. */
-export function forgetAll() {
-  done.set([]);
-  undone.set([]);
-  said.set(null);
-  lastMove = null;
-  epoch += 1;
-}

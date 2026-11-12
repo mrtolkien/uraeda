@@ -12,7 +12,7 @@ import type {
   RuntimeRecord,
   StepOptions,
 } from "../../store/protocol";
-import { type IconName, isIconName } from "../../ui/controls";
+import type { IconName } from "../../ui/controls";
 
 /** The workflow's steps, in their order. */
 export const STEPS = ["discovery", "spec", "plan", "build", "review", "comments"] as const;
@@ -48,10 +48,6 @@ export function agentsOf(runtimes: ReadonlyArray<RuntimeRecord>, setting: string
   const set = on.find((one) => one.id === setting);
   return { fallback: set ?? on[0], fallbackIsSet: set !== undefined, on };
 }
-
-/** An agent's mark, a name of the app's icon set. */
-export const agentIcon = (agent: RuntimeRecord | undefined): IconName =>
-  agent !== undefined && isIconName(agent.icon) ? agent.icon : "bot";
 
 /** No options: everything follows. */
 export const NONE: RunOptions = {
