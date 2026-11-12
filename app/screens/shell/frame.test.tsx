@@ -80,3 +80,16 @@ test("a refused commit stays shown until it is retried or dismissed", async () =
   await app.press("id:write-refused >> label:Dismiss");
   await app.waitUntil(() => !app.shows("id:write-refused"), { timeout: 15_000 });
 }, 90_000);
+
+test("b goes back to the page before", async () => {
+  const app = await frame();
+  await app.host.send("go", "/r/sample/");
+  await app.waitFor("text:Due dates", { timeout: 20_000 });
+  // A place opened by its go key, then Back by `b`: Home again, the inbox's list gone.
+  await app.keyboard.press("g");
+  await app.keyboard.press("i");
+  await app.waitFor("text:New category", { timeout: 15_000 });
+  await app.keyboard.press("b");
+  await app.waitUntil(() => !app.shows("text:New category"), { timeout: 15_000 });
+  expect(app.shows("text:Due dates")).toBe(true);
+}, 90_000);

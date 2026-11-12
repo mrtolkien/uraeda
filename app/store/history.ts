@@ -117,6 +117,9 @@ const shownEntry = signal(current);
 let guard: LeaveGuard | undefined;
 /** Set once the human chose to leave by Back: the Back that leaves is not asked about again. */
 let leaving = false;
+// The app's own stack hears its moves as a bound one does: unbound, a Back popped a visit and
+// showed nothing, so `b` and Back did nothing anywhere the app keeps its own visits.
+adapter.listen(arrive);
 
 /** The route of the page shown: a signal, written by `navigate`, `redirect`, and `back` only. */
 export const route: Accessor<Route> = shownRoute;
