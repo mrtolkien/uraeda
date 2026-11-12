@@ -43,3 +43,22 @@ test("a commit holds exactly the staged files", async () => {
   await app.waitFor("id:git-commit-files >> text:notes/standup.md", { timeout: 15_000 });
   expect(app.count("id:git-commit-files >> text:/\\.md$/")).toBe(1);
 });
+
+test("c writes the message of the group the cursor is in, as the cursor crosses groups", async () => {
+  const app = await open("./__checks__/CommitBoxes.tsx", {
+    height: 800,
+    platform: "linux",
+    width: 1400,
+  });
+  await app.waitFor("label:The commit message of main");
+  // The box of the next group comes as the first goes: both are drawn for a moment.
+  await app.press("label:Next group");
+  await app.waitFor("label:The commit message of dark-mode");
+  await app.keyboard.press("c");
+  await app.keyboard.press("x");
+  await app.waitUntil(() =>
+    Object.entries(app.storage()).some(
+      ([key, kept]) => key.includes("dark-mode") && kept.includes("x"),
+    ),
+  );
+});

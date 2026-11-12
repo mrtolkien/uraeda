@@ -6,7 +6,7 @@
 // `Ctrl+Enter` or Commit commits. A conflict takes `o` or `t`, a side whole, after asking too: the
 // other side's changes to the file go.
 import { computed, effect, signal, untracked, View } from "nsh";
-import { CommitBox } from "./CommitBox";
+import { CommitBoxes } from "./CommitBox";
 import { gitPage, Sync } from "./Sync";
 import { pick, picked } from "./picked";
 import { CONFLICTS, folderOf, rowOf, treeOf } from "./tree";
@@ -261,31 +261,23 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
             testID="git-changes"
           />
         </View>
-        {/* Keyed by the group, so each keeps its own message as the cursor crosses them. */}
-        <Each key={(shown: GitGroup) => shown.id} of={group() === undefined ? [] : [group()!]}>
-          {(shown) => (
-            <View style={{ gap: 6 }}>
-              <If when={refusalAt(groupAt(shown().folder))}>
-                {(words) => (
-                  <View style={{ alignItems: "flex-start", gap: 6 }}>
-                    <Refusal testID="git-group-refusal" words={words()} />
-                    {/* Its way out, which its words name: the card elsewhere has it too. */}
-                    <Button
-                      label="Dismiss"
-                      onPress={() => dismissRefused(groupAt(shown().folder))}
-                    />
-                  </View>
-                )}
-              </If>
-              <CommitBox
-                group={shown()}
-                held={now() !== undefined && held(now()!, shown())}
-                repo={props.repo}
-                where={groupAt(shown().folder)}
-              />
-            </View>
+        <CommitBoxes
+          above={(shown) => (
+            <If when={refusalAt(groupAt(shown.folder))}>
+              {(words) => (
+                <View style={{ alignItems: "flex-start", gap: 6 }}>
+                  <Refusal testID="git-group-refusal" words={words()} />
+                  {/* Its way out, which its words name: the card elsewhere has it too. */}
+                  <Button label="Dismiss" onPress={() => dismissRefused(groupAt(shown.folder))} />
+                </View>
+              )}
+            </If>
           )}
-        </Each>
+          group={group}
+          held={(shown) => now() !== undefined && held(now()!, shown)}
+          repo={props.repo}
+          where={(shown) => groupAt(shown.folder)}
+        />
       </View>
       <Confirm
         loses
