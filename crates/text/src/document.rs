@@ -12,7 +12,7 @@ use pulldown_cmark::{
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use super::markdown::{Lines, options, slug};
+use crate::markdown::{Lines, options, slug};
 
 mod inline;
 

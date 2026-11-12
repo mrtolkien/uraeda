@@ -6,8 +6,8 @@
 use napi_derive::napi;
 use serde::Serialize;
 
-use super::document::{BlockKind, Document, Span, SpanLink};
-use crate::workspace::resolve;
+use crate::document::{BlockKind, Document, Span, SpanLink};
+use crate::links::resolve;
 
 /// The extensions a stories file may have, after `.stories.`.
 const EXTENSIONS: [&str; 6] = ["js", "jsx", "ts", "tsx", "mjs", "svelte"];

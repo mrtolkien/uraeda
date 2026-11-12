@@ -9706,6 +9706,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "toml_edit 0.23.10+spec-1.0.0",
+ "uraeda-text",
 ]
 
 [[package]]
@@ -9774,6 +9775,18 @@ dependencies = [
  "uraeda-protocol",
  "ureq",
  "url",
+]
+
+[[package]]
+name = "uraeda-text"
+version = "1.4.0"
+dependencies = [
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "pulldown-cmark",
+ "serde",
+ "sha2 0.10.9",
 ]
 
 [[package]]

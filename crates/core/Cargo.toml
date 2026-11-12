@@ -12,7 +12,7 @@ rust-version.workspace = true
 doctest = false
 
 [features]
-napi = ["dep:napi", "dep:napi-derive"]
+napi = ["dep:napi", "dep:napi-derive", "uraeda-text/napi"]
 
 [dependencies]
 gif.workspace = true
@@ -30,6 +30,8 @@ sha2.workspace = true
 serde-saphyr.workspace = true
 thiserror.workspace = true
 toml_edit.workspace = true
+# The readers of a text alone: the document tree, links, and stories.
+uraeda-text.workspace = true
 
 [target.'cfg(unix)'.dependencies]
 # Stops a process and everything it started, as a fetch past its deadline.

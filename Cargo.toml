@@ -12,6 +12,7 @@ default-members = [
   "crates/lsp",
   "crates/protocol",
   "crates/server",
+  "crates/text",
   "crates/vim",
 ]
 resolver = "3"
@@ -154,6 +155,7 @@ uraeda-core = { path = "crates/core" }
 uraeda-lsp = { path = "crates/lsp" }
 uraeda-protocol = { path = "crates/protocol" }
 uraeda-server = { path = "crates/server" }
+uraeda-text = { path = "crates/text" }
 uraeda-vim = { path = "crates/vim" }
 
 [workspace.lints.clippy]

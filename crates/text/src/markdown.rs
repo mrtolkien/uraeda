@@ -52,7 +52,7 @@ pub struct Document {
     pub line_count: usize,
 }
 
-pub(crate) fn options() -> Options {
+pub fn options() -> Options {
     Options::ENABLE_GFM
         | Options::ENABLE_TABLES
         | Options::ENABLE_TASKLISTS
@@ -62,10 +62,10 @@ pub(crate) fn options() -> Options {
 }
 
 /// The 1-based line of each byte offset.
-pub(crate) struct Lines(Vec<usize>);
+pub struct Lines(Vec<usize>);
 
 impl Lines {
-    pub(crate) fn new(text: &str) -> Lines {
+    pub fn new(text: &str) -> Lines {
         Lines(
             std::iter::once(0)
                 .chain(text.match_indices('\n').map(|(index, _)| index + 1))
@@ -73,7 +73,7 @@ impl Lines {
         )
     }
 
-    pub(crate) fn of(&self, offset: usize) -> usize {
+    pub fn of(&self, offset: usize) -> usize {
         self.0.partition_point(|&start| start <= offset)
     }
 }
@@ -230,7 +230,7 @@ fn first_paragraph(text: &str, start: usize, end: usize) -> String {
 }
 
 /// A link's or an image's text, with `[`, `]`, and `\` escaped, so it stays one link.
-pub(crate) fn link_text(text: &str) -> String {
+pub fn link_text(text: &str) -> String {
     let mut escaped = String::new();
     for c in text.chars() {
         if matches!(c, '[' | ']' | '\\') {
@@ -255,7 +255,7 @@ pub fn slug(heading: &str) -> String {
 /// Turns the first `> [!IMPORTANT]` block into a `> [!NOTE]` record whose first paragraph is
 /// `outcome`, its items kept. `None` when the text has no such block.
 pub fn record_block(text: &str, outcome: &str) -> Option<String> {
-    super::with_unix_newlines(text, |text| {
+    with_unix_newlines(text, |text| {
         let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
         let marker = lines
             .iter()
@@ -282,4 +282,16 @@ pub fn record_block(text: &str, outcome: &str) -> Option<String> {
         Ok::<_, ()>(lines.join("\n"))
     })
     .ok()
+}
+
+/// Runs an edit on the text with `\n` line endings, and gives the result the text's own endings.
+pub fn with_unix_newlines<T>(
+    text: &str,
+    edit: impl FnOnce(&str) -> Result<String, T>,
+) -> Result<String, T> {
+    if text.contains("\r\n") {
+        edit(&text.replace("\r\n", "\n")).map(|edited| edited.replace('\n', "\r\n"))
+    } else {
+        edit(text)
+    }
 }
