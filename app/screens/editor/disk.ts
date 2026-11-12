@@ -1,9 +1,8 @@
-// The file as an editor counts it on disk: the `Buffer` record's text and hash, or, from a save's
+// The file as an editor counts it on disk: its record's text and hash, or, from a save's
 // answer until the record says so too, the text just saved and the hash the server answered. So a
 // save's own change never reads as the file changing underneath, and any other change does: an
 // agent's write, a pull, another device's save.
 import { type Accessor, computed, signal } from "nsh";
-import type { Buffer } from "../../store/protocol";
 
 /** A version of the file: its whole text, and the hash a save over it names. */
 export type Disk = { hash: string; text: string };
@@ -15,7 +14,7 @@ export type TrackedDisk = {
   saved: (from: string, to: Disk) => void;
 };
 
-export function trackDisk(read: Accessor<Buffer>): TrackedDisk {
+export function trackDisk(read: Accessor<Disk>): TrackedDisk {
   const answered = signal<{ from: string; to: Disk } | null>(null);
   const disk = computed(() => {
     const buffer = read();

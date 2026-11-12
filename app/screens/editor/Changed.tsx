@@ -1,34 +1,46 @@
 // What an editor says when the file changed on disk while the human edited it, an agent's write
 // or a pull: in place, over the text, which stays the human's. Three ways out, each deliberate:
 // see what changed (the patch from the file to their text, which is what saving theirs would do),
-// keep the file's version, or save theirs over it. The two that lose something ask first.
+// keep the file's version, or save theirs over it. The two that lose something ask first. Its
+// keys, `v`, `F`, and `w`, are free in every pane that holds an editor: a buffer's, a proposal's,
+// beside its nested lines' `d`, and a conflicted file's, beside its `t`.
 import { signal, View } from "nsh";
 import { Button, Text } from "../../ui/controls";
 import { Banner } from "../../ui/controls";
 import { Dialog } from "../../ui/surfaces";
+import type { Edited } from "./edited";
 
 export type ChangedProps = {
+  /** The file edited (`editedFile`): the banner shows while it changed under its text. */
+  edited: Edited;
   /** The file's name: "spec.md". */
   name: string;
-  /** Drops the human's text: the file's version shows. */
-  onTakeFile: () => void;
-  /** Saves the human's text over the file as it is now. */
-  onSaveMine: () => void;
   /** Shows the patch, or the text again. */
-  onToggleDiff: () => void;
+  onShowsDiff: (shows: boolean) => void;
   /** Whether the patch is shown in place of the text. */
   showsDiff: boolean;
 };
 
 type Asking = "take" | "save" | null;
 
+/** The banner and its ways out, while the file changed under the text: nothing otherwise. */
 export function Changed(props: ChangedProps) {
+  return (
+    <If when={props.edited.changed()}>
+      <Ways {...props} />
+    </If>
+  );
+}
+
+function Ways(props: ChangedProps) {
   const asking = signal<Asking>(null);
   const answer = (yes: boolean) => {
     const asked = asking();
     asking.set(null);
-    if (yes && asked === "take") props.onTakeFile();
-    if (yes && asked === "save") props.onSaveMine();
+    if (!yes) return;
+    props.onShowsDiff(false);
+    if (asked === "take") props.edited.takeFile();
+    if (asked === "save") void props.edited.saveOver();
   };
   return (
     <>
@@ -44,14 +56,14 @@ export function Changed(props: ChangedProps) {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Button
             icon="git-compare"
-            keys="d"
+            keys="v"
             label={props.showsDiff ? "Back to your text" : "See what changed"}
-            onPress={props.onToggleDiff}
+            onPress={() => props.onShowsDiff(!props.showsDiff)}
             selected={props.showsDiff}
           />
           <Button
             icon="undo-2"
-            keys="t"
+            keys="F"
             label="Take the file's version"
             onPress={() => asking.set("take")}
           />

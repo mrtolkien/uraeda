@@ -2,9 +2,19 @@
 // real shell at `/r/sample/priorities/git-listener`, "Git listener process", whose file is
 // `specs/proposals/git-listener.md`. Each start the app sends is posted as `starts`, and refused
 // here, never sent: the shared sandbox keeps its proposal. The test sends `go` with an address,
-// which the app opens as a link would.
-import { host, mount } from "nsh";
-import { navigate, type Opener, parseRoute, redirect } from "../../../store";
+// which the app opens as a link would. It changes the proposal's file on disk through another
+// action, `write`, as an agent would, and reads what the disk holds from `disk`, posted at each
+// change of the record.
+import { effect, host, mount, signal } from "nsh";
+import {
+  call,
+  connection,
+  navigate,
+  type Opener,
+  parseRoute,
+  record,
+  redirect,
+} from "../../../store";
 import { openSocket } from "../../../store/line";
 import { boot } from "../../shell/boot";
 import type { ShellHost } from "../../shell/host";
@@ -56,7 +66,41 @@ const played: ShellHost = {
 
 host.on("go", (to) => navigate(parseRoute(String(to))));
 
+const FILE = "specs/proposals/git-listener.md";
+let hash = "";
+
+host.on("write", (text) => {
+  void call("text.save", { hash, path: FILE, repo: "sample", text: String(text) }).then(() =>
+    host.post("written", null),
+  );
+});
+
+/** Posts what the disk holds as the server says it changed. */
+function Disk() {
+  const file = record("ProposalFile", { id: FILE, repo: "sample" });
+  effect(() => {
+    const read = file();
+    if (read) {
+      hash = read.hash;
+      host.post("disk", read.text);
+    }
+  });
+  return null;
+}
+
+/** Whether the shell's connection is live: the disk is read from then on. */
+const live = signal(false);
+const look = () => (connection()?.status() === "live" ? live.set(true) : setTimeout(look, 50));
+
 void boot().then(() => {
   redirect(parseRoute("/r/sample/priorities/git-listener"));
-  mount(() => <Root host={played} open={open} />);
+  mount(() => (
+    <>
+      <Root host={played} open={open} />
+      <If when={live()}>
+        <Disk />
+      </If>
+    </>
+  ));
+  look();
 });

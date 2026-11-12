@@ -2,11 +2,12 @@
 // or a workflow file's source (`/edit/<path>`). The text typed is kept on the device as it is
 // typed, and comes back; `Ctrl+Enter` or `:w` saves it on the file's branch, never committing, over
 // the version it was typed over, so a file changed on disk meanwhile is never overwritten silently:
-// the editor says so in place, and keeps the text. While nothing is typed, it follows the disk.
+// the editor says so in place, and keeps the text (`editedFile`). While nothing is typed, it
+// follows the disk.
 // Any other text file of the repository, code, is highlighted in its language, and only read.
-import { type Accessor, computed, effect, signal, untracked, View } from "nsh";
+import { type Accessor, computed, effect, signal, View } from "nsh";
 import { Changed } from "./Changed";
-import { trackDisk } from "./disk";
+import { editedFile } from "./edited";
 import { FileDiff } from "./FileDiff";
 import { lineAsked } from "./jump";
 import { Where } from "./Where";
@@ -16,15 +17,7 @@ import { Banner, Button, Spinner } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
-import {
-  SaveStatus,
-  saving,
-  TextField,
-  type TextFieldRef,
-  unsavedKey,
-  unsavedText,
-  vimMode,
-} from "../../ui/text";
+import { SaveStatus, TextField, type TextFieldRef, unsavedKey, vimMode } from "../../ui/text";
 import { tokens } from "../../ui/tokens";
 
 export type FileEditorProps = {
@@ -63,48 +56,28 @@ export function FileEditor(props: FileEditorProps) {
 function Editing(props: FileEditorProps & { buffer: Accessor<Buffer> }) {
   const pane = usePane();
   const name = nameOf(props.path);
-  const tracked = trackDisk(props.buffer);
-  const disk = tracked.disk;
-  const text = unsavedText(bufferKey(props.repo, props.path), () => disk().text, { exact: true });
+  const edited = editedFile({
+    exact: true,
+    key: bufferKey(props.repo, props.path),
+    name: () => name,
+    read: props.buffer,
+    send: (value, hash) =>
+      call("buffer.save", { hash, path: props.path, repo: props.repo, text: value }),
+  });
+  const { changed, disk, saves, text } = edited;
   const readOnly = () => props.buffer().readOnly;
-  // The file changed under the text typed: the text was typed over another version than the disk's.
-  const changed = () => {
-    const typed = text.entry();
-    return typed !== undefined && text.dirty() && typed.base !== disk().text;
-  };
   const showsDiff = pane.remember("diff", false);
   let field: TextFieldRef | undefined;
 
-  // `over`: the human chose to save over the file as it is now, after it changed.
-  let over = false;
-  const saves = saving(text, async (value) => {
-    const from = untracked(disk);
-    if (!over && untracked(changed)) {
-      throw new Error(`${name} changed on disk: see what changed, then take a version.`);
-    }
-    over = false;
-    const input = { hash: from.hash, path: props.path, repo: props.repo, text: value };
-    const answer = await call("buffer.save", input);
-    tracked.saved(from.hash, { hash: answer.hash, text: value });
-  });
   // The save on its way, which `:wq`'s quit waits for: a refused one keeps the text unsaved, which
   // the leave guard then asks about.
   let inFlight: Promise<boolean> = Promise.resolve(true);
   const save = async () => {
     if (readOnly() !== null || !text.dirty()) return;
-    inFlight = saves.save();
+    inFlight = edited.save();
     if ((await inFlight) && props.leavesOnSave) props.onLeave();
   };
   const quit = () => void inFlight.then(() => props.onLeave());
-  const saveMine = () => {
-    over = true;
-    showsDiff.set(false);
-    void save();
-  };
-  const takeFile = () => {
-    showsDiff.set(false);
-    text.discard();
-  };
 
   // The outline's heading, asked from the side stack: the caret goes to its line.
   effect(() => {
@@ -167,15 +140,7 @@ function Editing(props: FileEditorProps & { buffer: Accessor<Buffer> }) {
           </Banner>
         )}
       </If>
-      <If when={changed()}>
-        <Changed
-          name={name}
-          onSaveMine={saveMine}
-          onTakeFile={takeFile}
-          onToggleDiff={() => showsDiff.set(!showsDiff())}
-          showsDiff={showsDiff()}
-        />
-      </If>
+      <Changed edited={edited} name={name} onShowsDiff={showsDiff.set} showsDiff={showsDiff()} />
       <View onLayout={(event) => room.set(event.bounds.size.height)} style={{ flex: 1 }}>
         <If
           when={changed() && showsDiff()}

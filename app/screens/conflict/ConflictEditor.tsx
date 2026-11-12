@@ -3,13 +3,19 @@
 // should be, or takes a side block by block from the bar over the field (`1` ours, `2` theirs, `3`
 // both, `n` the next block), as typing would: the text stays unsaved until `Ctrl+Enter` or Save,
 // once no marker is left. Or a side is taken whole (`o`, `t`), named by its branch. A save names
-// the file as it was read, and is refused when it changed since, with the way out.
+// the version the text was typed over: a file changed on disk meanwhile is never overwritten
+// silently, the editor says so over the field and gives the ways out, as a buffer does
+// (`editedFile`).
 import { computed, signal, View } from "nsh";
 import { conflictBlocks, takeConflict } from "uraeda/native";
 import { call, pathOf, record, type StoreError } from "../../store";
+import type { Actions } from "../../store/protocol";
 import { Button, Refusal, Spinner, Text } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
-import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
+import { TextField, type TextFieldRef, unsavedKey } from "../../ui/text";
+import { Changed } from "../editor/Changed";
+import { editedFile } from "../editor/edited";
+import { FileDiff } from "../editor/FileDiff";
 
 /** Whether a text still holds one of git's conflict markers, at a line's start. */
 const hasMarkers = (text: string) => /^(<<<<<<<|=======|>>>>>>>)( |$)/m.test(text);
@@ -22,11 +28,19 @@ export function ConflictEditor(props: { path: string; repo: string }) {
   const page = record("GitPage", { repo: props.repo });
   const stopped = () => page()?.stopped ?? null;
   const conflict = () => page()?.conflicts.find((one) => one.path === props.path);
-  const text = unsavedText(
-    unsavedKey(props.repo, `git#conflict:${props.path}`),
-    () => file()?.text ?? "",
-    { exact: true },
-  );
+  const name = props.path.split("/").pop() ?? props.path;
+  const edited = editedFile({
+    exact: true,
+    key: unsavedKey(props.repo, `git#conflict:${props.path}`),
+    name: () => name,
+    read: () => ({ hash: file()?.hash ?? "", text: file()?.text ?? "" }),
+    send: (typed, hash) => {
+      const saving = { hash, path: props.path, repo: props.repo, text: typed };
+      return write("git.saveConflict", saving, `Saving ${props.path}`);
+    },
+  });
+  const { text } = edited;
+  const showsDiff = pane.remember("diff", false);
   const blocks = computed(() => conflictBlocks(text.text()));
   // The block the bar acts on: kept in the visit, and never past the last one.
   const at = pane.remember("conflict", 0);
@@ -35,31 +49,33 @@ export function ConflictEditor(props: { path: string; repo: string }) {
 
   const pending = signal(false);
   const refusal = signal<string | null>(null);
-  const write = async (name: "git.saveConflict" | "git.resolve", input: object, label: string) => {
+  /** A write of the Git page, named in the queue: its answer, or its refusal, in git's words. */
+  async function write<A extends "git.saveConflict" | "git.resolve">(
+    action: A,
+    input: Omit<Actions[A]["input"], "write">,
+    label: string,
+  ): Promise<Actions[A]["output"]> {
     refusal.set(null);
     pending.set(true);
-    const named = { ...input, write: { href: pathOf({ page: "git", repo: props.repo }), label } };
+    const href = pathOf({ page: "git", repo: props.repo });
     try {
-      await call(name, named as never);
-      return true;
+      return await call(action, { ...input, write: { href, label } } as Actions[A]["input"]);
     } catch (error) {
-      const words = (error as StoreError | undefined)?.message ?? String(error);
-      refusal.set(words.trim() === "" ? "Git refused it, and said nothing more." : words.trim());
-      return false;
+      const words = ((error as StoreError | undefined)?.message ?? String(error)).trim();
+      throw new Error(words === "" ? "Git refused it, and said nothing more." : words, {
+        cause: error,
+      });
     } finally {
       pending.set(false);
     }
-  };
+  }
+  const said = (error: Error) => refusal.set(error.message);
   const save = () => {
     const read = file();
     if (read === undefined || read === null || hasMarkers(text.text())) return;
-    const { path, repo } = props;
     // The text as it is now: what is typed while it is saved stays, unsaved.
-    void text.save(async (typed) => {
-      const saving = { hash: read.hash, path, repo, text: typed };
-      if (!(await write("git.saveConflict", saving, `Saving ${path}`))) {
-        throw new Error("The save was refused.");
-      }
+    void edited.save().then((saved) => {
+      if (!saved) refusal.set(edited.saves.refusal());
     });
   };
   const takeWhole = (resolution: "ours" | "theirs") =>
@@ -67,7 +83,7 @@ export function ConflictEditor(props: { path: string; repo: string }) {
       "git.resolve",
       { path: props.path, repo: props.repo, resolution },
       `Taking ${resolution} for ${props.path}`,
-    );
+    ).catch(said);
   /** Goes to block `index`, its marker's line in the middle of the field. */
   const goTo = (index: number) => {
     const block = blocks()[index];
@@ -145,6 +161,7 @@ export function ConflictEditor(props: { path: string; repo: string }) {
         </View>
       </If>
       <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
+      <Changed edited={edited} name={name} onShowsDiff={showsDiff.set} showsDiff={showsDiff()} />
       <If
         when={file()}
         else={
@@ -153,18 +170,25 @@ export function ConflictEditor(props: { path: string; repo: string }) {
           </If>
         }
       >
-        <TextField
-          label={`The text of ${props.path}`}
-          language={props.path.endsWith(".md") ? undefined : props.path}
-          normalFirst
-          onChange={text.change}
-          onSave={save}
-          ref={(made) => {
-            field = made;
-          }}
-          rows={{ min: 12 }}
-          value={text.text()}
-        />
+        <If
+          when={edited.changed() && showsDiff()}
+          else={
+            <TextField
+              label={`The text of ${props.path}`}
+              language={props.path.endsWith(".md") ? undefined : props.path}
+              normalFirst
+              onChange={text.change}
+              onSave={save}
+              ref={(made) => {
+                field = made;
+              }}
+              rows={{ min: 12 }}
+              value={text.text()}
+            />
+          }
+        >
+          <FileDiff mine={text.text()} on={edited.disk().text} path={props.path} />
+        </If>
       </If>
     </View>
   );

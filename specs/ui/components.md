@@ -107,6 +107,12 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   is not submitted while its notes are not saved. Never read a field's text after an `await`, and
   never `discard()` after one: `discard` is the human's own "drop my text". A field closes only once
   it holds nothing unsaved (`dirty()`).
+- **A file is saved over the version its text was typed over.** An editor of a file's text is
+  `editedFile` ([`app/screens/editor/edited.ts`](/app/screens/editor/edited.ts)), with `Changed`
+  over its field and `FileDiff` in the field's place: a file changed on disk meanwhile is never
+  overwritten silently. The save is refused in place, the text stays, and the human sees what
+  changed, takes the file's version, or saves theirs over it. Never send a record's newest hash with
+  a text typed over an older version.
 - **One main action per view**, a `Button` of `variant="main"`; the rest are tubes. An action that
   starts work is a button or `Ctrl+Enter`, never Enter in a field.
 - **A key is declared where it acts**, by `registerKey` or a `Button`'s `keys`, and shown by `Kbd`:

@@ -76,6 +76,12 @@ file's start, as Vim opens a file. `:w` or `Ctrl+Enter` saves it, without commit
 on the Git page. `:q`, or `b` outside the text, goes back, asking first while the text is not saved;
 `:wq` saves, then goes back. `Escape` leaves the text for the page's keys, as in any field.
 
+A file that changed on disk while it is edited, by an agent's write or a pull, is never overwritten
+by a save: the editor says so over the text, which stays, and gives three ways out, each with its
+key: `v` shows what changed, the patch a save of the text would make; `F` takes the file's version;
+`w` saves the text over it. The last two ask first, as each loses something. Every editor of a file
+does the same: a buffer, a proposal, a conflicted file.
+
 ## Selection
 
 - **One selection per view, always visible.** Moving it clears the old one at once; a selection

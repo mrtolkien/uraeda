@@ -1,22 +1,18 @@
 // A proposal file's text, in the app's one text field: Ctrl+Enter or `:w` saves it over the version
-// it was read at, its unsaved text kept on the device until then, so leaving asks first and the
-// text comes back (`LeaveGuard`). Its research effort, its images by picker, paste, and drop, each
-// attached to the file and linked where the caret is, then its start. A save refused, as when the
-// file changed elsewhere, says why under the field, with the way to load the new version.
+// it was typed over, its unsaved text kept on the device until then, so leaving asks first and the
+// text comes back (`LeaveGuard`). A file changed on disk meanwhile, by an agent or a pull, is never
+// overwritten silently: the editor says so over the field, keeps the text, and gives the ways out,
+// as a buffer does (`editedFile`). Its research effort, its images by picker, paste, and drop, each
+// attached to the file and linked where the caret is, then its start.
 import { Clipboard, signal, View } from "nsh";
 import { call, record } from "../../store";
 import type { ProposalFileView } from "../../store/protocol";
 import { Banner, Button, IconButton, Segmented, sent, Spinner, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
-import {
-  moveUnsaved,
-  SaveStatus,
-  saving,
-  TextField,
-  type TextFieldRef,
-  unsavedKey,
-  unsavedText,
-} from "../../ui/text";
+import { moveUnsaved, SaveStatus, TextField, type TextFieldRef, unsavedKey } from "../../ui/text";
+import { Changed } from "../editor/Changed";
+import { editedFile } from "../editor/edited";
+import { FileDiff } from "../editor/FileDiff";
 import { attachToFile, droppedImages, type Held, pastedImage, pickImages } from "../images";
 import type { Started } from "../new/Landing";
 import { StartPart } from "./StartPart";
@@ -33,22 +29,27 @@ type EditorProps = {
 
 function Editor(props: EditorProps) {
   const path = () => props.file().path;
-  const field = unsavedText(unsavedKey(props.repo, path()), () => props.file().text);
-  const saves = saving(field, async (text) => {
-    await call("text.save", { hash: props.file().hash, path: path(), repo: props.repo, text });
+  const name = () => path().split("/").pop() ?? path();
+  const edited = editedFile({
+    key: () => unsavedKey(props.repo, path()),
+    name,
+    read: () => ({ hash: props.file().hash, text: props.file().text }),
+    send: (text, hash) => call("text.save", { hash, path: path(), repo: props.repo, text }),
   });
+  const { saves, text: field } = edited;
+  const showsDiff = signal(false);
   const said = signal<string | null>(null);
   const typing = signal(false);
   let editor: TextFieldRef | undefined;
   /** Saves what was typed, if anything: says whether the text is saved. */
-  const save = () => (field.dirty() ? saves.save() : Promise.resolve(true));
+  const save = () => (field.dirty() ? edited.save() : Promise.resolve(true));
   const effort = sent(
     () => props.file().discovery ?? "high",
     async (level: string) => {
       if (!(await save()))
         throw new Error("Your text is not saved: the research effort was not set.");
       await call("text.discovery", {
-        hash: props.file().hash,
+        hash: edited.disk().hash,
         level,
         path: path(),
         repo: props.repo,
@@ -106,24 +107,34 @@ function Editor(props: EditorProps) {
           />
         </View>
       </If>
-      <TextField
-        hint="Ctrl+Enter saves it."
-        label="The proposal"
-        onBlur={() => typing.set(false)}
-        onChange={(value) => {
-          field.change(value);
-          said.set(null);
-        }}
-        onFocus={() => typing.set(true)}
-        onSave={() => void save()}
-        ref={(made) => {
-          editor = made;
-        }}
-        refusal={saves.refusal() ?? said()}
-        rows={{ max: 40, min: 10 }}
-        testID="proposal-text"
-        value={field.text()}
-      />
+      <Changed edited={edited} name={name()} onShowsDiff={showsDiff.set} showsDiff={showsDiff()} />
+      <If
+        when={edited.changed() && showsDiff()}
+        else={
+          <TextField
+            hint="Ctrl+Enter saves it."
+            label="The proposal"
+            onBlur={() => typing.set(false)}
+            onChange={(value) => {
+              field.change(value);
+              said.set(null);
+            }}
+            onFocus={() => typing.set(true)}
+            onSave={() => void save()}
+            ref={(made) => {
+              editor = made;
+            }}
+            refusal={saves.refusal() ?? said()}
+            rows={{ max: 40, min: 10 }}
+            testID="proposal-text"
+            value={field.text()}
+          />
+        }
+      >
+        <View style={{ height: 420 }}>
+          <FileDiff mine={field.text()} on={edited.disk().text} path={path()} />
+        </View>
+      </If>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <If when={field.dirty()}>
           <Button icon="save" label="Save" onPress={() => void save()} />
@@ -137,9 +148,6 @@ function Editor(props: EditorProps) {
           {props.file().committed ? "Committed" : "Not committed: its start commits it"}
         </Text>
         <SaveStatus dirty={field.dirty()} state={saves.state()} testID="proposal-save" />
-        <If when={field.dirty() && saves.refusal() !== null}>
-          <Button icon="undo-2" label="Load the saved version" onPress={field.discard} />
-        </If>
       </View>
       <If when={props.file().kind === "proposal-file"}>
         <StartPart

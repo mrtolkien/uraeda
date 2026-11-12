@@ -6,6 +6,6 @@
     "process": {
       "env": ["URAEDA_SANDBOX"]
     },
-    "host": ["uraeda.*", "starts", "go"]
+    "host": ["uraeda.*", "starts", "disk", "written", "go"]
   }
 }

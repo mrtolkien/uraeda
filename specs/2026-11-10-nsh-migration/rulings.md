@@ -8574,3 +8574,37 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   both. Without the hold, the sandbox refuses within the frame the driver waits for, and the test
   passed on the code that lost the message.
 - **Where**: `app/screens/session/session.test.tsx`, `app/screens/shell/__checks__/Places.tsx`.
+
+## T89.4: One home for a file's text edited over the version it was read at
+
+- **Decision**: `editedFile` (`app/screens/editor/edited.ts`) is the buffer editor's logic, moved
+  out of it: the unsaved text over the file as the disk has it (`trackDisk`), `changed`, true while
+  the text was typed over another version than the disk's, a `save` that is refused then, and
+  `saveOver` and `takeFile`, the two deliberate ways out. `Changed` takes it and draws the banner
+  and the three ways out, and `FileDiff` the patch, in the field's place. The buffer's editor, the
+  proposal's (`proposal/FileEditor.tsx`), and the conflicted file's (`conflict/ConflictEditor.tsx`)
+  all use it. `Changed`'s keys are `v` (see what changed), `F` (take the file's version), and `w`
+  (save yours over it): they were `d` and `t`, which a proposal's nested lines (`d`, remove) and a
+  conflicted file (`t`, take theirs) already hold in the same pane. The proposal's "Load the saved
+  version", shown after any refused save, is gone: the banner's "Take the file's version" is that
+  way out, where it applies.
+- **Rationale**: Codex's P1, confirmed and seen: `proposal.test.tsx`'s "a proposal changed on disk
+  while it is edited is not overwritten silently" failed with the agent's line gone from the disk
+  and the typed text in its place (`expected [false,true] to equal [true,false]`). Both editors sent
+  the record's newest hash with a text typed over an older version, so the server's own check
+  passed. Task 47 built the guard for buffers only. The research effort's write now names the
+  tracked version's hash too, not the record's, which lags a save's answer.
+- **If wrong**: a file whose record cannot give its text and hash together cannot use it.
+- **Where**: `app/screens/editor/{edited.ts,disk.ts,Changed.tsx,FileEditor.tsx}`,
+  `app/screens/proposal/FileEditor.tsx`, `app/screens/conflict/ConflictEditor.tsx`,
+  `app/screens/proposal/proposal.test.tsx` and its page; `specs/ui/keyboard.md`, "The buffer";
+  `specs/ui/components.md`.
+
+## T89.5: The Git test waits for its message before its key
+
+- **Decision**: `git.test.tsx` waits until the device holds the commit's message before
+  `Ctrl+Enter`, as `session.test.tsx`'s `typed` does.
+- **Rationale**: it failed once in three runs, alone on a quiet sandbox, its commit never showing
+  under the message typed: the key came before the field's last change, and the commit took what the
+  field held before. The code before this fix read the message the same way.
+- **Where**: `app/screens/git/git.test.tsx`.

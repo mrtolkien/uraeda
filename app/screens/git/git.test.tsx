@@ -23,6 +23,11 @@ test("a commit holds exactly the staged files", async () => {
 
   // Commit, with a message typed, by Ctrl+Enter in the field.
   await app.type("id:git-message", "docs: the standup's notes");
+  // Once the field holds it: Ctrl+Enter right after the last key may come before the field's
+  // change does, and commit what it held before.
+  await app.waitUntil(() =>
+    Object.values(app.storage()).some((kept) => kept.includes("docs: the standup's notes")),
+  );
   await app.keyboard.press("ctrl+Enter");
   // The commit lands: the staged file leaves Changes, the other stays, unstaged.
   await app.waitUntil(() => !shows().includes("standup.md"), { timeout: 15_000 });
