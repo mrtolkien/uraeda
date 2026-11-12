@@ -9306,3 +9306,163 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the forged problem, and the test stopped at "the page never showed Counter"; a page naming another
   extension's record: `stolen` true.
 - **Where**: `crates/server/tests/browser/{extensions.rs,cdp.rs}`, `fixtures/extensions/`.
+
+## T60.1: What `/live` sends each screen, and the rule says build compression: task 69
+
+- **Decision**: measured by `just bench-navigation web` (`crates/server/tests/browser/bench.rs`,
+  `protocol.rs`), from the browser's own record of the socket's frames: Chromium at 390 by 844 with
+  touch, the processor slowed four times, on the sandbox with `--long-chat`, each screen's first
+  visit, from the navigation to its page drawn with its records. "Compressed" is each message
+  deflated alone (`flate2`, its default level), as a per-message compression without a shared window
+  would send it. "Waiting" is from the page's first `sub` to the last first value it asked for, in
+  the browser's clock; the share is of the time to settle. The machine's load was 4.4 to 4.1 (the
+  run before the task's fixes, at 16 to 9, read the same bytes).
+
+  | Screen                                   | Settled       | First frame | Waiting for first values | Records | Sent     | Compressed         | Largest message: bytes, compressed, record |
+  | ---------------------------------------- | ------------- | ----------- | ------------------------ | ------- | -------- | ------------------ | ------------------------------------------ |
+  | A reload, the shell's                    | 888 ms        | 10 ms       | 301 ms (34%)             | 13      | 181.0 KB | 28.7 KB (84% less) | 122.7 KB, 20.4 KB, `Themes`                |
+  | Priorities                               | 242 ms        | 34 ms       | 92 ms (38%)              | 1       | 5.8 KB   | 1.3 KB (78% less)  | 5.8 KB, 1.2 KB, `Priorities`               |
+  | Sessions                                 | 472 ms        | 38 ms       | 416 ms (88%)             | 13      | 80.6 KB  | 27.4 KB (66% less) | 69.5 KB, 22.4 KB, `Session`                |
+  | Decisions (realistic)                    | 346 ms        | 28 ms       | 385 ms (all of it)       | 5       | 534.3 KB | 51.3 KB (90% less) | 532.5 KB, 50.7 KB, `Ledger`                |
+  | Git                                      | 249 ms        | 41 ms       | 116 ms (47%)             | 2       | 4.6 KB   | 1.7 KB (63% less)  | 4.4 KB, 1.5 KB, `GitPage`                  |
+  | Jobs                                     | 207 ms        | 34 ms       | 55 ms (27%)              | 1       | 956 B    | 453 B (53% less)   | 874 B, 378 B, `Jobs`                       |
+  | A feature                                | 271 ms        | 42 ms       | 225 ms (83%)             | 5       | 9.0 KB   | 2.3 KB (74% less)  | 6.5 KB, 1.1 KB, `Feature`                  |
+  | A long plan (realistic)                  | 350 ms        | 30 ms       | 306 ms (88%)             | 2       | 40.4 KB  | 3.7 KB (91% less)  | 34.3 KB, 2.6 KB, `WorkflowFile`            |
+  | A session                                | 534 ms        | 34 ms       | 293 ms (55%)             | 5       | 10.6 KB  | 3.0 KB (72% less)  | 4.2 KB, 741 B, `TurnLog`                   |
+  | The chat of 20,000                       | 767 ms        | 83 ms       | 659 ms (86%)             | 110     | 38.9 KB  | 25.9 KB (33% less) | 402 B, 271 B, `TurnLog`                    |
+  | Inbox, Settings, Home (both), a decision | 115 to 184 ms | 44 to 68 ms | none                     | 0       | 82 B     | 75 B               | the answer of `repositories.open`          |
+
+  The last row's screens open no record of their own: theirs are the shell's, or the page they were
+  opened from already held them. Their one message was an action's refusal, sent at every
+  navigation: see T60.5.
+
+- **The rule's verdict: build.** Two loads pass both of its numbers: the realistic Decisions sends
+  534.3 KB before it settles, which compression would bring to 51.3 KB (90% less), and a reload
+  181.0 KB, to 28.7 KB (84% less). No other screen passes 100 KB. Task 69 is added after this one,
+  with step C's requirements word for word, and wave 29 holds it. Checked again for its first
+  requirement: tungstenite 0.28 and 0.29, the versions locked, and 0.30 implement no per-message
+  deflate; only a test of their header parser names it.
+- **Fewer or smaller first values save more than compression for the two worst, as proposed, not
+  built**:
+  - `Ledger` holds each of the 27 decisions whole, its text (71 KB of Markdown in all) and its
+    parsed tree as JSON beside it, for a list that shows titles, summaries, states, and dates. A
+    `Ledger` of rows, about 11 KB, and the decision shown as a record of its own (`Decision`, its
+    tree about 20 KB), read ahead for the selected row as the performance decision asks, would send
+    about 30 KB before the screen settles, less than compression's 51.3 KB, and its own reader would
+    wait for one decision, not 27.
+  - `Themes` holds every theme's roles and palette, 122.7 KB, for a picker that shows names and a
+    shell that draws one theme. The names and modes, a few KB, and the theme shown as its own
+    record, would send less than compression's 20.4 KB.
+  - The long chat's wait is not bytes: 110 `TurnLog`s of 400 bytes each, 659 ms of its 767 in their
+    answers, where compression saves 33%. One record for its first rows near its end, R416's
+    proposal, would save more.
+  - Compression stays worth task 69 for the rest: every message above 1 KB in the table shrinks by
+    63 to 91%, and a reply's appends are left as they are.
+- **Where**: `crates/server/tests/browser/{bench.rs,protocol.rs}`, `plan.md` (task 69, wave 29).
+
+## T60.2: In a browser the fonts come as a device shows them: the first load is 2.84 MB
+
+- **Decision**: the engine registers only Monaspace Neon's regular face as the app starts in a
+  browser (`registered()` in `crates/app/src/fonts.rs`, on `wasm32` only), and each family comes in
+  a chunk of its own, `app/ui/tokens/faces/<id>.web.ts`, which `applyFonts` imports in a browser for
+  the families a device shows, Neon's other faces always (`showFaces`, `faces.ts`). Native Shell's
+  page fetches a crate's font with the first chunk whose code names its `asset:/` address, not
+  before the first frame (`font_loads` in `nsh-cli` 0.5.0); the chunk registers it with
+  `font(uri, family)` of `nsh:rt`, what NSH's bundler writes for a font's import, declared in
+  `faces/nsh-rt.d.ts`. On GTK nothing changes: the crate registers every face before the first
+  frame, and `the_bundled_fonts_are_the_ones_drawn` reads what it did.
+  - **Measured**, the build compressed with brotli (`the_first_load_is_within_its_limit`): 5,002,592
+    bytes before, 2,840,454 after: the module 2.36 MB, Neon's regular face 0.20 MB, the TSX 0.16 MB,
+    NSH's page scripts and the page 0.12 MB. The limit is now 2.9 MB. In Chromium, to the sign-in
+    page shown: 4.85 MB in 41 requests, against task 56's 5.77 MB in 54, the syntaxes (0.80 MB) and
+    the default families' faces now after the first frame, and the five families no device shows
+    never.
+  - `every_face_is_registered_in_a_browser` (`fonts.rs`) fails when a face of `assets/fonts/` is
+    named by no chunk, or by two: such a face would never be drawn in a browser, and nothing else
+    would say so. Seen failing with Xenon's 700 dropped from its chunk.
+  - The web pictures show the faces drawn: Xenon's headings, Atkinson's prose, Neon's weights.
+- **What it costs**: the first frame draws in Neon's regular face, and the default families' faces
+  come within the next few hundred milliseconds, every text measured again as they do; the Monaspace
+  families share their metrics, so only prose and code move. A reload, its files cached, measured
+  888 ms to its page with its records, against 726 ms before the fixes (load 16 then, 4 now): the
+  faces registered as it starts, then the texts measured again, at a quarter of the machine's speed.
+  Within the second the decision allows.
+- **The other cuts R445 proposed**: screens as chunks, to move the editor, the diff, and `naga`
+  behind the first screen, was not needed for 3 MB, and NSH links one runtime per app with a Rust
+  crate: left. The syntaxes already come after the first frame.
+- **If wrong**: `nsh:rt` is NSH's internal module, which apps never import. A release that renames
+  `font` fails `just app-check` at the declaration; one that registers a chunk's fonts otherwise
+  shows the faces in Neon in a browser, with the console's `font failed`, and `just web-test` fails
+  on it.
+- **Where**: `crates/app/src/{fonts.rs,native.rs}`, `app/ui/tokens/faces.ts`,
+  `app/ui/tokens/faces/`, `app/ui/theme.ts`, `crates/server/tests/web.rs`.
+
+## T60.3: A streaming reply's finished blocks are rows of the transcript
+
+- **Decision**: a reply that streams in a session's transcript is split as it finishes blocks: each
+  finished block is a row of the list of its own (`${turn}/${item}~${block}#${page}`, before the
+  reply's row, `pages.ts`), drawn by `ReplyBlock`, and the reply's row draws only the block still
+  growing (`Reply`'s `onFinished`). It stays split once ended, for the life of the feed; a reply
+  read whole is one row, as before. The gallery's scene feeds no split, and draws its reply in its
+  row, as it did.
+- **Measured**, `just frames streaming web` (T60.4's scene: the chat of 20,000 messages, a reply of
+  about 12,000 words for a minute), at loads of 4 to 6, each build with the following fix of T60.4:
+  the reply in one row, 35.2 frames a second, falling from 49 to 27 as it grew, the 95th percentile
+  50 ms, 3 frames over 100 ms; split, 54.8, steady from 52 to 58, the 95th percentile 33 ms, 1 frame
+  over 100 ms, 250 ms in the first second. The profile of the one-row reply, before the fixes and
+  loaded: the main thread busy all 50 seconds, 14.6 of them the browser's layout, paint, and layers,
+  as the row grew under each piece.
+- **Rationale**: the plan's own constraint, "a long reply is drawn as blocks, each its own row",
+  which `Reply` met only within one row: Native Shell's list on the web keeps a row whole in the
+  page, so a long reply's every block was laid out and painted again at each piece.
+- **Where**: `app/screens/session/{pages.ts,Rows.tsx}`, `app/ui/document/Reply.tsx`,
+  `app/screens/session/panels/Activity.tsx`.
+
+## T60.4: The web build on a slow phone, before and after, against the spike's
+
+- **Decision**: `just frames <scene> web` and `just bench-navigation web` run the benchmarks in the
+  dev shell's Chromium at 390 by 844 with touch, the processor slowed four times
+  (`crates/server/tests/browser/{bench.rs,frames.rs}`), on a sandbox with the long chat, after
+  `just web-build`; `web-profile` adds a trace and the profiler's samples. Frames are the page's
+  `requestAnimationFrame` deltas. Navigation is the app's own timing (`app/ui/timing.ts`), which a
+  release build turns on only for a page holding `uraedaBench`, as the benchmark's does; the
+  benchmark opens pages through `uraedaBench.go`, as a link does. `just web-test` skips both: they
+  run only with `URAEDA_BENCH`. The sandbox's fake answers a message `at length` with a reply eight
+  times `slowly`'s, about 12,000 words in a minute: the spike's 40 times a usual one.
+
+  | Scene, phone slowed 4 times | Spike | Before (load)                      | After (load)                           |
+  | --------------------------- | ----- | ---------------------------------- | -------------------------------------- |
+  | `streaming`                 | 57    | 42.7 fps, 4 frames over 100 ms (9) | 54.8 fps, 1 frame over 100 ms, 250 (4) |
+  | `scrolling` its history     | 37    | 53.8 fps, 1 frame of 133 ms (9)    | 60.3 fps, the worst 17 ms (4.5)        |
+  | `reading` a spec it opens   |       | 57.9 fps, 1 frame of 150 ms (6)    | 57.0 fps, 2 frames of 233 ms (5)       |
+  - **Streaming**: before, the transcript stopped following on a phone, so a run showed what was
+    left on screen: 42.7 fps once, 59.9 another time with the reply out of view. The list read the
+    offset Native Shell moved up, as rows above were measured shorter than estimated, as the reader
+    going up; it now counts only what a shrink of the content does not explain (`VirtualList.tsx`),
+    and the reply stays followed. With that fix alone, 35.2 fps; with T60.3, 54.8, 2 short of the
+    spike's, and its one frame over 100 ms as the turn starts.
+  - **Reading**: task 57's stall of 2.5 to 3 seconds did not come back in four runs, the spec opened
+    as its frames were counted: one or two frames of 150 to 233 ms as it first draws, then 60. One
+    run read 1 frame a second, each 1,017 ms: the browser's pace for a page it holds hidden, not the
+    app's; run again, 57.0.
+  - **Navigation**, medians of three, on the slowed phone: 118 to 224 ms after, 110 to 242 before,
+    the first visits 115 to 767 ms; the long chat 224 ms warm and 767 ms cold, its 110 records'
+    answers most of it (T60.1). No target of the plan is the slowed phone's: the decision's 100 ms
+    is the desktop's, which R416 measured. A reload is 888 ms, within its second (T60.2).
+
+- **Rationale**: a quiet machine's timing or nothing: each number with its load, one run each but
+  where said.
+- **Where**: `crates/server/tests/browser/`, `crates/server/src/sandbox/agent.rs`,
+  `app/ui/timing.ts`, `app/App.tsx`, `app/ui/lists/VirtualList.tsx`, the `justfile`.
+
+## T60.5: Two small findings of the measurements
+
+- **Decision**:
+  - The shell asked the server `repositories.open` at every navigation, not once for each repository
+    opened, as its comment said: its effect read the repository's row, which every route makes
+    again. It now reads the row's name (`Frame.tsx`). The sandbox refuses the action, which is how
+    T60.1's table saw it.
+  - The browser tests did not compile on the feature's branch: `browser/app.rs` called
+    `sign_in::first_key`, which R452 had made `key_at_start`. It calls that now, so `just web-test`
+    runs.
+- **Where**: `app/screens/shell/Frame.tsx`, `crates/server/tests/browser/app.rs`.

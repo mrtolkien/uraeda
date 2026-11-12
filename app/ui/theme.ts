@@ -13,6 +13,7 @@ import {
   tokensOf,
   wholeFonts,
 } from "./tokens";
+import { showFaces } from "./tokens/faces";
 import { wholeRoles } from "./tokens/roles";
 
 /** The themes picked on a device: which mode it shows, and the theme of each mode, by its id. */
@@ -72,6 +73,7 @@ export function applyTheme(next: ThemeSource): boolean {
 /** Shows the fonts `picked`, the default for each part it leaves out or names no bundled font for. */
 export function applyFonts(picked: Partial<Fonts> | undefined) {
   const next = wholeFonts(picked);
+  showFaces(Object.values(next));
   fonts.set(next);
   showTokens(tokensOf(theme(), next));
   showNative(theme(), next);

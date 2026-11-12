@@ -218,22 +218,68 @@ fn real_build() -> PathBuf {
     )
 }
 
-/// The most a first load may weigh, compressed. The plan's 3 MB is the goal, and does not hold
-/// yet: the build weighs 5.0 MB, of which the fonts are 2.4 MB, all nine families before the
-/// first frame. Ruling R445 says what holds it, and what brings it under 3 MB. This limit keeps
-/// what was gained, and only goes down.
-const FIRST_LOAD: u64 = 5_100_000;
+/// The most a first load may weigh, compressed: under the plan's 3 MB. The build weighs 2.84 MB,
+/// of which Native Shell's engine and the app's Rust are 2.36 MB, and the one font face before the
+/// first frame 0.2 MB; the others come with the chunks that register them (ruling T60.2). This
+/// limit keeps what was gained, and only goes down.
+const FIRST_LOAD: u64 = 2_900_000;
 
 /// What a first load never fetches: the syntaxes and the formulas' fonts, which come with the
-/// first code block and the first formula, the icons a browser picks one of, and the licences.
-fn comes_later(path: &str) -> bool {
+/// first code block and the first formula, the icons a browser picks one of, the licences, and
+/// what the page fetches with a chunk the app imports later, `later`: its script and its fonts.
+fn comes_later(path: &str, later: &[String]) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
-    name.starts_with("nsh-syntaxes.")
+    later.iter().any(|chunk| *chunk == unhashed(path))
+        || name.starts_with("nsh-syntaxes.")
         || name.starts_with("nsh-math.")
         || name.starts_with("nsh-emoji.")
         || name.starts_with("LICENSE")
         || path.starts_with("icons/")
         || name == "manifest.webmanifest"
+}
+
+/// A file's path without the digest of its content Native Shell names it with:
+/// `assets/a.0123456789.woff2` is `assets/a.woff2`.
+fn unhashed(path: &str) -> String {
+    let parts: Vec<&str> = path.split('.').collect();
+    let digest = |part: &&str| part.len() == 10 && part.bytes().all(|b| b.is_ascii_hexdigit());
+    match parts.iter().rposition(digest) {
+        Some(at) if at > 0 => [&parts[..at], &parts[at + 1..]].concat().join("."),
+        _ => path.to_owned(),
+    }
+}
+
+/// What the page fetches with its chunks, as it names them: each chunk's script, and the fonts
+/// that come with it (`assets/<path>`), without their digests.
+fn chunked(build: &Path) -> Vec<String> {
+    let page = fs::read_to_string(build.join("index.html")).unwrap();
+    let value = |key: &str| {
+        let at = page
+            .find(&format!("\"{key}\":"))
+            .map(|at| at + key.len() + 3);
+        let rest = at.map_or("{}", |at| &page[at..]);
+        let mut values = serde_json::Deserializer::from_str(rest).into_iter::<serde_json::Value>();
+        values.next().and_then(Result::ok).unwrap_or_default()
+    };
+    let mut later = Vec::new();
+    for script in value("chunks")
+        .as_object()
+        .into_iter()
+        .flat_map(|chunks| chunks.values())
+    {
+        let url = script.as_str().unwrap_or_default();
+        later.push(unhashed(url.trim_start_matches("./")));
+    }
+    for fonts in value("chunkFonts")
+        .as_object()
+        .into_iter()
+        .flat_map(|fonts| fonts.values())
+    {
+        for font in fonts.as_array().into_iter().flatten() {
+            later.push(format!("assets/{}", font.as_str().unwrap_or_default()));
+        }
+    }
+    later
 }
 
 /// Every file under `folder`, by its path from it.
@@ -260,6 +306,7 @@ fn the_first_load_is_within_its_limit() {
     );
     let mut found = Vec::new();
     files(&build, "", &mut found);
+    let later = chunked(&build);
     let size = |path: &str| {
         found
             .iter()
@@ -270,7 +317,7 @@ fn the_first_load_is_within_its_limit() {
     let mut loaded: Vec<(u64, &str)> = found
         .iter()
         .filter(|(path, _)| !path.ends_with(".br") && !path.ends_with(".gz"))
-        .filter(|(path, _)| !comes_later(path))
+        .filter(|(path, _)| !comes_later(path, &later))
         .map(|(path, raw)| (size(&format!("{path}.br")).unwrap_or(*raw), path.as_str()))
         .collect();
     loaded.sort_unstable_by(|a, b| b.cmp(a));
@@ -281,6 +328,6 @@ fn the_first_load_is_within_its_limit() {
     }
     assert!(
         total <= FIRST_LOAD,
-        "the first load is {total} bytes, over {FIRST_LOAD}: see ruling R445"
+        "the first load is {total} bytes, over {FIRST_LOAD}: see rulings R445 and T60.2"
     );
 }

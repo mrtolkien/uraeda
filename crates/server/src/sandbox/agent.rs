@@ -1,8 +1,9 @@
 //! The sandbox's agent: the fake runtime, registered as `fake`, `claude`, and `codex`, each with
 //! its own mark, so the sample sessions show every agent's and no agent of the machine runs. It
 //! answers every message with a canned reply, streamed as a real agent's; a message that asks
-//! for it `slowly` with a long reply streamed over a minute; and a workflow's message with a turn
-//! at work, tool calls and sub-agents for twelve hours. It runs nothing, and changes no file.
+//! for it `slowly` with a long reply streamed over a minute, and one `at length` with a reply eight
+//! times as long, about 12,000 words, in the same minute, as the web benchmark streams; and a
+//! workflow's message with a turn at work, tool calls and sub-agents for twelve hours. It runs nothing, and changes no file.
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -22,6 +23,9 @@ pub const CANNED_REPLY: &str = "This is the sandbox's fake agent: it answers eve
 /// The word in a message that asks for the long reply, streamed slowly.
 pub const SLOWLY: &str = "slowly";
 
+/// The words in a message that ask for the very long reply, 40 times a usual one, as the spike
+/// measured a phone's browser with.
+pub const AT_LENGTH: &str = "at length";
 /// How long the canned reply streams, and the long one.
 const REPLY: Duration = Duration::from_secs(3);
 const SLOW_REPLY: Duration = Duration::from_secs(60);
@@ -71,6 +75,9 @@ pub(crate) fn register(shared: &Shared) -> Result<(), Failure> {
 fn answer(message: &Outgoing) -> Script {
     if message.text.starts_with("/uraeda ") {
         return at_work();
+    }
+    if message.text.to_lowercase().contains(AT_LENGTH) {
+        return Script::reply(&long_reply().repeat(8), SLOW_REPLY);
     }
     if message.text.to_lowercase().contains(SLOWLY) {
         return Script::reply(&long_reply(), SLOW_REPLY);

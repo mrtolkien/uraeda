@@ -3,7 +3,7 @@
 
 use tempfile::TempDir;
 use uraeda_server::Server;
-use uraeda_server::sandbox::Sandbox;
+use uraeda_server::sandbox::{Prepare, Sandbox};
 
 use super::cdp::{Browser, DESKTOP, PHONE, Size};
 use super::signed_sandbox;
@@ -23,7 +23,7 @@ impl Served {
 
     /// As [`Served::start`], with `before` adding to the sandbox before its server starts.
     pub async fn with(size: Size, mode: &str, before: impl FnOnce(&Sandbox)) -> Served {
-        let (folder, server, key) = signed_sandbox(before).await;
+        let (folder, server, key) = signed_sandbox(Prepare::default(), before).await;
         let mut browser = Browser::start().await;
         browser.show(size, mode).await;
         browser

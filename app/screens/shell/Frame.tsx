@@ -61,11 +61,16 @@ export function Frame() {
       untracked(() => redirect({ ...route(), repo: first.name }));
     }
   });
-  // The repository shown moves first in the list, once each time it is opened.
-  effect(() => {
+  // The repository shown moves first in the list, once each time it is opened: by its name, not
+  // its row, which every navigation makes again, and asked the server for at each page.
+  const opened = computed(() => {
     const shown = row();
-    if (shown !== undefined && !shown.missing) {
-      untracked(() => void call("repositories.open", { name: shown.name }).catch(() => undefined));
+    return shown === undefined || shown.missing ? undefined : shown.name;
+  });
+  effect(() => {
+    const name = opened();
+    if (name !== undefined) {
+      untracked(() => void call("repositories.open", { name }).catch(() => undefined));
     }
   });
   // The theme picked on this device, among the server's, kept for the next start's first frame.

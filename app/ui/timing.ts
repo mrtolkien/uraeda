@@ -8,6 +8,11 @@
 // frame's callback runs before that frame is painted, so the next one's comes after it. It may
 // overstate by a frame, never understate. A new interaction ends the one before it, unmeasured.
 // The navigation benchmark listens (`onTimed`), and prints every interaction it caused.
+//
+// In a browser, a release build times too while its page holds `uraedaBench`, which the browser's
+// benchmark (`crates/server/tests/browser/bench.rs`) puts there before the app starts: each
+// interaction goes into its `timed`, with the page's own clock, and the page's load is timed as
+// `reload`, from the app's start to its first page drawn with its records.
 
 /**
  * An interaction drawn: what started it, the milliseconds from it to the frame drawn, to the first
@@ -21,8 +26,15 @@ export const TARGET = 100;
 /** How long an interaction is followed at most, past which it is left untimed: 10 s. */
 const LONGEST = 10_000;
 
-const timing = process.env.NODE_ENV !== "production";
-let settled: () => boolean = () => true;
+/** What the browser's benchmark puts on the page around the app, before the app starts. */
+type Bench = { timed: Array<Timed & { at: number }>; now(): number };
+
+/** The page's benchmark, in a browser that runs one: the frame's `top` is the page. */
+const bench = (globalThis as { top?: { uraedaBench?: Bench } }).top?.uraedaBench;
+
+const timing = process.env.NODE_ENV !== "production" || bench !== undefined;
+/** Nothing is drawn with its records before the store connects, which says when they came. */
+let settled: () => boolean = () => bench === undefined;
 const listeners = new Set<(timed: Timed) => void>();
 let current = 0;
 /** Whether an interaction started in this turn of the JavaScript, which a second one joins. */
@@ -71,6 +83,7 @@ export function interaction(what: string, options: { joins?: boolean } = {}) {
 
 function done(timed: Timed) {
   following = false;
+  bench?.timed.push({ ...timed, at: bench.now() });
   if (timed.ms > TARGET) {
     console.warn(
       `[uraeda] ${timed.what} took ${Math.round(timed.ms)} ms to draw, over the ${TARGET} ms target`,
@@ -78,3 +91,5 @@ function done(timed: Timed) {
   }
   for (const listener of listeners) listener(timed);
 }
+
+if (bench !== undefined) interaction("reload");

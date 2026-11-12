@@ -175,7 +175,6 @@ impl Browser {
         self.command("Emulation.setEmulatedMedia", scheme).await;
     }
 
-    #[allow(dead_code, reason = "for the benchmarks of the plan's task 60")]
     /// Slows the page's processor `times` over, as a slow phone's: 1 is the machine's own.
     pub async fn slow(&mut self, times: u32) {
         self.command("Emulation.setCPUThrottlingRate", json!({ "rate": times }))
@@ -386,6 +385,14 @@ impl Browser {
             .collect();
         requests.sort_unstable_by(|a, b| b.cmp(a));
         requests
+    }
+
+    /// What the page said since this was last asked, each event's method and parameters, in
+    /// order, as the browser told them: the benchmarks read a page's socket and its traces.
+    pub async fn heard(&mut self) -> Vec<(String, Value)> {
+        // The answers of the last commands carried the last events.
+        self.evaluate("0").await;
+        std::mem::take(&mut self.events)
     }
 
     /// What the page complained of since it was opened: an error of its console, a throw, a

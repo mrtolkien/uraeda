@@ -8,9 +8,15 @@
 // A row's id is `${turn}/${item}` for an item, `${turn}#${page}` for a page not read, and the
 // turn's id for a turn not read. Its object is kept for as long as its id is in the rows, so the
 // list keeps its cell; the rows change when an item comes or goes, never for a piece of a reply.
+//
+// A reply that streams is split into its blocks as they finish (ruling T60.3): each finished block
+// is a row of its own, `${turn}/${item}~${block}#${page}`, before the reply's row, which draws only
+// the block still growing. So the list lays out and paints the rows shown, and a long reply costs
+// a frame what a short one does.
 import { type Accessor, computed, effect, signal, untracked } from "nsh";
 import { list, type Live, record, type RowOf, text } from "../../store";
 import type { Item, Session, Turn, TurnLog } from "../../store/protocol";
+import type { Read } from "../../ui/document";
 import { isChats } from "./words";
 
 /** What a row of the transcript stands for. */
@@ -23,7 +29,9 @@ export type Entry =
       text: Accessor<string>;
       turn: string;
     }
-  | { kind: "waiting"; turn: string };
+  | { kind: "waiting"; turn: string }
+  /** A finished block of a reply split into rows: the reply's first or a later one. */
+  | { kind: "block"; read: () => Read | undefined; first: boolean; reply: string; turn: string };
 
 /** What the transcript's list reads: its rows, what each stands for, and where it is. */
 export type Feed = {
@@ -31,6 +39,13 @@ export type Feed = {
   entry: (row: string) => Entry | undefined;
   /** The list says which rows it shows, by index: the window follows them. */
   shown: (first: number, last: number) => void;
+  /**
+   * A reply's row hears its finished blocks, each a row before it: a feed without draws a reply
+   * whole, in its row, as the gallery's scene does.
+   */
+  finished?: (row: string, blocks: ReadonlyArray<Read>) => void;
+  /** How many of a reply's blocks are rows of their own: none for a reply drawn whole. */
+  split?: (row: string) => number;
 };
 
 /** How many rows past those shown are read, at the least, either way. */
@@ -73,6 +88,9 @@ export function transcriptFeed(
 ): Feed {
   const keep = options.keep ?? isChats;
   const shown = signal({ first: -1, last: -1 });
+  /** The finished blocks of the replies split into rows, by their rows, and how many, by row. */
+  const blocks = new Map<string, ReadonlyArray<Read>>();
+  const counts = signal<ReadonlyMap<string, number>>(new Map());
   /** What is read now, sorted and joined: the window changes it, as the rows and the list move. */
   const keys = signal("");
   const objects = new Map<string, RowOf>();
@@ -135,10 +153,15 @@ export function transcriptFeed(
           out.push(rowOf(key));
           continue;
         }
+        const split = counts();
         for (const { id } of items.rows()) {
           const item = untracked(() => items.item(id));
           if (item !== undefined && !keep(item)) continue;
-          out.push(rowOf(`${turn}/${id}#${key}`));
+          const row = `${turn}/${id}#${key}`;
+          for (let block = 0; block < (split.get(row) ?? 0); block += 1) {
+            out.push(rowOf(`${turn}/${id}~${block}#${key}`));
+          }
+          out.push(rowOf(row));
         }
       }
       // A head stays when nothing is under it: a turn read must never take its rows away, or the
@@ -193,6 +216,15 @@ export function transcriptFeed(
           const turn = row.slice(0, slash);
           const page = row.slice(row.indexOf("#", slash) + 1);
           const id = row.slice(slash + 1, row.indexOf("#", slash));
+          const tilde = id.indexOf("~");
+          if (tilde !== -1) {
+            const reply = `${turn}/${id.slice(0, tilde)}#${page}`;
+            const block = Number(id.slice(tilde + 1));
+            const read = () => blocks.get(reply)?.[block];
+            entry = { first: block === 0, kind: "block", read, reply, turn };
+            entries.set(row, entry);
+            return entry;
+          }
           // Read through the page held now: a page let go and read again is another record.
           entry = {
             item: () => itemsOf(page)?.item(id),
@@ -208,7 +240,13 @@ export function transcriptFeed(
       }
       return entry;
     },
+    finished: (row, finished) => {
+      blocks.set(row, finished);
+      if (untracked(counts).get(row) === finished.length) return;
+      counts.set(new Map(untracked(counts)).set(row, finished.length));
+    },
     rows,
+    split: (row) => counts().get(row) ?? 0,
     shown: (first, last) => {
       const now = untracked(shown);
       if (now.first !== first || now.last !== last) shown.set({ first, last });

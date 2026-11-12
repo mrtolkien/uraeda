@@ -95,6 +95,8 @@ function Calls(props: { repo: string; session: () => Session }) {
     if (entry === undefined) return undefined;
     // A turn's own row is its head, read or not: its calls follow once its pages are read.
     if (entry.kind === "waiting") return row.includes("#") ? READING : head(entry.turn);
+    // A reply's blocks are rows of the transcript's only: its texts are never split here.
+    if (entry.kind === "block") return undefined;
     const item = entry.item();
     if (item === undefined) return undefined;
     const line = activityLine(item, subOf(item, subs()), now);

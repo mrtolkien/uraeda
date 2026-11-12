@@ -8,12 +8,18 @@
 
 #[path = "browser/app.rs"]
 mod app;
+#[path = "browser/bench.rs"]
+mod bench;
 #[path = "browser/cdp.rs"]
 mod cdp;
 #[path = "browser/extensions.rs"]
 mod extensions;
+#[path = "browser/frames.rs"]
+mod frames;
 #[path = "browser/pictures.rs"]
 mod pictures;
+#[path = "browser/protocol.rs"]
+mod protocol;
 
 use std::path::{Path, PathBuf};
 
@@ -45,11 +51,14 @@ pub fn shots() -> PathBuf {
     folder
 }
 
-/// A sandbox that keeps sign-in, serving the web build, in a temporary folder: the server, and
-/// its access key. `before` adds to the sandbox before the server starts.
-async fn signed_sandbox(before: impl FnOnce(&Sandbox)) -> (TempDir, Server, String) {
+/// A sandbox of `prepare` that keeps sign-in, serving the web build, in a temporary folder: the
+/// server, and its access key. `before` adds to the sandbox before the server starts.
+async fn signed_sandbox(
+    prepare: Prepare,
+    before: impl FnOnce(&Sandbox),
+) -> (TempDir, Server, String) {
     let folder = TempDir::new().unwrap();
-    let built = sandbox::prepare(&folder.path().join("sandbox"), Prepare::default()).unwrap();
+    let built = sandbox::prepare(&folder.path().join("sandbox"), prepare).unwrap();
     before(&built);
     // The process's environment, as `ura sandbox` gives it, with the build to serve.
     let mut environment: Vec<(String, String)> = std::env::vars()
@@ -67,7 +76,7 @@ async fn signed_sandbox(before: impl FnOnce(&Sandbox)) -> (TempDir, Server, Stri
 #[tokio::test]
 #[ignore = "needs the real web build and a browser: `just web-test` runs it"]
 async fn a_browser_signs_in_with_the_access_key_and_sees_the_home_page() {
-    let (_folder, server, key) = signed_sandbox(|_| ()).await;
+    let (_folder, server, key) = signed_sandbox(Prepare::default(), |_| ()).await;
     let home = format!("{}/r/sample/", server.address());
     let shots = shots();
 

@@ -96,8 +96,10 @@ export function VirtualList(props: VirtualListProps) {
   const atEnd =
     props.follow === true && props.offset === undefined && untracked(cursor.reveal) === undefined;
   const following = signal(atEnd);
-  // Where it was at its last scroll: a reader moves away from the end by going up from there.
+  // Where it was at its last scroll, and how long its content was: a reader moves away from the
+  // end by going up from there.
   let rested = props.offset ?? 0;
+  let length = 0;
   const follows = (now: boolean) => {
     if (untracked(following) !== now) {
       following.set(now);
@@ -192,10 +194,15 @@ export function VirtualList(props: VirtualListProps) {
           // At its end it follows. It stops only as the reader goes up from where it was: content
           // that grows under a list at rest, rows measured or a row that came, leaves it
           // following, where the same offset against a longer content read as "scrolled away".
+          // Rows above measured shorter than their estimates shrink the content, and Native Shell
+          // moves the offset up by as much to keep what shows in place: in a browser that was
+          // read as the reader going up, and a streaming reply was left behind (ruling T60.4).
+          const shrunk = Math.max(0, length - event.contentSize.height);
           if (now + event.size.height >= event.contentSize.height - NEAR_END) follows(true);
-          else if (now < rested) follows(false);
+          else if (now < rested - shrunk - 1) follows(false);
         }
         rested = now;
+        length = event.contentSize.height;
       }}
       onViewableItemsChange={({ viewableItems }) => {
         let first = Number.POSITIVE_INFINITY;

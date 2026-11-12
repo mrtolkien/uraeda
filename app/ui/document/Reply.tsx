@@ -1,7 +1,9 @@
 // An agent's reply as it streams: a list of blocks, each drawn once as it finishes, and the last
 // one, still being written, as plain text, or as code while its fence is open. Rust splits the
 // text (`ReplySplitter`), reading each appended piece once: TSX never scans the reply, and a
-// finished block never draws again while the last one grows.
+// finished block never draws again while the last one grows. A list that holds the reply hears
+// its finished blocks instead (`onFinished`), and draws each as a row of its own (`ReplyBlock`),
+// so the browser lays out and paints the rows shown, not the whole reply at each piece.
 import { type Accessor, batch, effect, signal, Text, untracked, View } from "nsh";
 import { type ReplySplit, ReplySplitter } from "uraeda/native";
 import type { Document as Tree } from "../../store/protocol";
@@ -21,6 +23,11 @@ export type ReplyProps = DocumentHands & {
   done?: Accessor<boolean>;
   align?: "center" | "start";
   testID?: string;
+  /**
+   * Hears every block finished so far, each time one more finishes, and from none again for
+   * another reply: the reply then draws only the block still growing.
+   */
+  onFinished?: (blocks: ReadonlyArray<Read>) => void;
 };
 
 type Finished = { key: number; read: Read };
@@ -51,6 +58,7 @@ export function Reply(props: ReplyProps) {
           read: read(JSON.parse(json) as Tree),
         }));
         finished.set([...finished(), ...added]);
+        props.onFinished?.(finished().map((block) => block.read));
       }
       growing.set({ code: split.code, language: split.language, text: split.growing });
     });
@@ -68,6 +76,7 @@ export function Reply(props: ReplyProps) {
           finished.set([]);
           growing.set(NOTHING);
         });
+        props.onFinished?.([]);
       }
       if (text.length > fed) {
         let piece = text.slice(fed);
@@ -91,7 +100,7 @@ export function Reply(props: ReplyProps) {
       override={props.override}
       testID={props.testID}
     >
-      <Each key={(block: Finished) => block.key} of={finished()}>
+      <Each key={(block: Finished) => block.key} of={props.onFinished ? [] : finished()}>
         {(block) => <Blocks after={block().key > 0} read={block().read} />}
       </Each>
       <If when={growing().text !== ""}>
@@ -103,6 +112,23 @@ export function Reply(props: ReplyProps) {
           )}
         </View>
       </If>
+    </Measured>
+  );
+}
+
+/** A finished block of a reply whose list draws its blocks as rows (`Reply`'s `onFinished`). */
+export function ReplyBlock(
+  props: DocumentHands & { after: boolean; align?: "center" | "start"; read: Read },
+) {
+  return (
+    <Measured
+      align={props.align}
+      image={props.image}
+      mark={props.mark}
+      onLink={props.onLink}
+      override={props.override}
+    >
+      <Blocks after={props.after} read={props.read} />
     </Measured>
   );
 }

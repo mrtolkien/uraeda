@@ -162,21 +162,43 @@ gallery-shots filter="":
 # percentiles, and the worst frame. It draws on the GPU's hidden display (`hidden-display --gpu`),
 # at 120 Hz; `just frames <scene> software` on Xvfb's, which paints in software at 60 Hz. Run it
 # once, on a quiet machine: it is a benchmark, never part of a check.
+# `just frames <scene> web` runs `streaming`, `scrolling`, or `reading` in the web build instead,
+# in the dev shell's headless Chromium at a phone's size, its processor slowed four times, after
+# `just web-build`; `web-profile` also says where the page's time went
+# (`crates/server/tests/browser/frames.rs`).
 # What a frame of a scene of the gallery costs, on the hidden display: `just frames glass`.
 frames scene on="gpu":
-    @echo "load before: $(cut -d' ' -f1-3 /proc/loadavg)"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "{{ on }}" == web* ]]; then
+      exec just _bench-web "frames {{ scene }}" "{{ on }}" frames::the_frames_on_a_slow_phone
+    fi
+    echo "load before: $(cut -d' ' -f1-3 /proc/loadavg)"
     {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} {{ nsh }} test gallery/frames.test.tsx --target linux --fps -v --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}-{{ on }}.log
-    @echo "load after: $(cut -d' ' -f1-3 /proc/loadavg)"
-    @FRAMES_LOG=target/frames-{{ scene }}-{{ on }}.log scripts/frames.sh < target/frames-{{ scene }}-{{ on }}.log
+    echo "load after: $(cut -d' ' -f1-3 /proc/loadavg)"
+    FRAMES_LOG=target/frames-{{ scene }}-{{ on }}.log scripts/frames.sh < target/frames-{{ scene }}-{{ on }}.log
 
 # The navigation benchmark: the time from a key to the frame that draws its result with its records,
 # for every page and action the performance decision names, over a fresh sandbox with its chat of
 # 20,000 messages, printed as a table, against 100 ms and a reload's 1 s. On the GPU's hidden
 # display, or Xvfb's with `software`. The app times itself in a development build, which warns past
-# 100 ms (`app/ui/timing.ts`). Run it once, on a quiet machine: it is never part of a check.
+# 100 ms (`app/ui/timing.ts`). `just bench-navigation web` opens the same screens in the web
+# build, in the dev shell's headless Chromium at a phone's size, its processor slowed four times,
+# after `just web-build`, and says what `/live` sent each one, compressed and not
+# (`crates/server/tests/browser/bench.rs`). Run it once, on a quiet machine: it is never part of a check.
 bench-navigation on="gpu":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{ on }}" = web ]; then
+      exec just _bench-web navigation web bench::the_navigation_on_a_slow_phone
+    fi
     URAEDA_SANDBOX_ARGS=--long-chat {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} scripts/sandboxed.sh {{ nsh }} test tools/navigation.test.tsx --target linux 2>&1 | tee target/bench-navigation-{{ on }}.log
-    @sed -n '/^navigation:/,/^[^|n]/p' target/bench-navigation-{{ on }}.log | sed 's/\x1b\[[0-9;]*m//g'
+    sed -n '/^navigation:/,/^[^|n]/p' target/bench-navigation-{{ on }}.log | sed 's/\x1b\[[0-9;]*m//g'
+
+# A benchmark of the web build, over a sandbox that serves `target/web/`.
+[private]
+_bench-web what on test:
+    URAEDA_BENCH="{{ what }}" {{ if on == "web-profile" { "URAEDA_BENCH_PROFILE=1" } else { "" } }} URAEDA_WEB_BUILD="$PWD/target/web" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact {{ test }} 2>&1 | tee "target/bench-web-$(echo '{{ what }}' | tr ' ' -).log"
 
 # The whole app to review, on sample projects with a fake agent and no sign-in: the server, `ura
 # sandbox`, at http://127.0.0.1:4420, its state in `.sandbox-next/` until `just sandbox --reset`,

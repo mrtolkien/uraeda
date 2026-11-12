@@ -552,8 +552,9 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 26. Task 56, alone.
 27. Tasks 57, 58: browser behaviour, and extension pages, in separate files.
 28. Tasks 59, 60.
-29. Task 61, alone.
-30. Task 67, alone, last: what the default branch gained while the plan was built.
+29. Task 69, alone: compressed first values, which task 60's rule asked for.
+30. Task 61, alone.
+31. Task 67, alone, last: what the default branch gained while the plan was built.
 
 ### The join of wave 6
 
@@ -3608,8 +3609,9 @@ here: iOS and macOS are the human's, later. Ruling R424 says what NSH 0.5.0 give
 
 **Files:**
 
-- Modify: `just frames` (task 35's `scripts/frames.sh` and `app/gallery/frames.test.tsx`),
-  `app/tools/navigation.ts` (a `--web` form of each)
+- Modify, as built: the `justfile`'s `frames` and `bench-navigation` (a `web` form of each),
+  `crates/server/tests/browser/` (`bench.rs`, `frames.rs`, `protocol.rs`), `app/ui/timing.ts`,
+  `crates/app/src/fonts.rs`, `app/ui/tokens/faces/`, `app/screens/session/`, `app/ui/lists/`
 
 **Interfaces:**
 
@@ -3622,21 +3624,21 @@ record's first value arrives whole, as JSON text, with no compression, and a scr
 records at once, 3 to 9, plus the shell's 10. The steps below measure it, and decide by a rule,
 without stopping for the human.
 
-- [ ] **Step A: Measure what `/live` sends.** For each screen the navigation benchmark visits, on
+- [x] **Step A: Measure what `/live` sends.** For each screen the navigation benchmark visits, on
       the sandbox with `--long-chat`, record the bytes the server sends on `/live` from the
       navigation to the screen being settled: the total, and the largest single message with its
       record's name. Include a reload, which reads the shell's records too. Record the same totals
       with each message compressed, to show what compression would save. On the slow-phone setting
       this task uses, record the time to the first settled frame, and how much of it is waiting for
       the records' first values. Write the numbers in a ruling, as a table per screen.
-- [ ] **Step B: Decide by this rule.** Build compression if any screen, or the reload, sends more
+- [x] **Step B: Decide by this rule.** Build compression if any screen, or the reload, sends more
       than 100 KB before it settles and compression would save at least half of it. Otherwise do not
       build it: the ruling says so with the numbers, and the work ends there. The rule's numbers are
       the human's, chosen without a measurement: on a link of about 50 KB a second, 100 KB is two
       seconds of waiting. In the same ruling as the table, say whether fewer or smaller first
       values, by paging or a read-ahead of the selected row, would save more than compression for
       the worst screens: a proposal, not built.
-- [ ] **Step C: Only if the rule says build, add a task after this one** to the plan, as any task is
+- [x] **Step C: Only if the rule says build, add a task after this one** to the plan, as any task is
       added, with these requirements:
   - The standard per-message compression of WebSockets is not available: the server's library,
     tungstenite through axum, does not implement it in the versions locked. Check that again first.
@@ -3657,12 +3659,85 @@ without stopping for the human.
     message and an append stay text; a client reconnecting resumes as before.
   - Then step A's measurement runs again, with before and after in the commit's body.
 
-- [ ] **Step 1: Run both benchmarks** on the sandbox, and on a session with a very long reply.
-- [ ] **Step 2: Compare with the spike's numbers**: 57 frames a second streaming, 37 scrolling.
+- [x] **Step 1: Run both benchmarks** on the sandbox, and on a session with a very long reply.
+- [x] **Step 2: Compare with the spike's numbers**: 57 frames a second streaming, 37 scrolling.
       Expected: no worse, and no frame over 100 ms while a long reply streams.
-- [ ] **Step 3: Fix what misses**, then run them again and record the numbers in the commit's body.
-- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 5: Commit**: `perf(nsh-migration): the web build on a slow phone`.
+- [x] **Step 3: Fix what misses**, then run them again and record the numbers in the commit's body.
+- [x] **Step 4: Run the task's validation**: `just task-app`,
+      `just task uraeda-server uraeda-app uraeda-protocol`, `just web-build`, `just web-test`.
+      Expected: PASS.
+- [x] **Step 5: Commit**: `perf(nsh-migration): the web build on a slow phone`.
+
+**As built** (rulings T60.1 to T60.5):
+
+- **The benchmarks in a browser**: `just bench-navigation web` and `just frames <scene> web`
+  (`streaming`, `scrolling`, `reading`; `web-profile` adds a trace and the profiler's samples) run
+  `crates/server/tests/browser/bench.rs` and `frames.rs`, in Chromium at 390 by 844 with touch,
+  slowed four times, on a sandbox with the long chat, after `just web-build`; not
+  `app/tools/navigation.ts` or `frames.sh`, which drive GTK. A release build times itself only on a
+  page holding `uraedaBench` (`app/ui/timing.ts`), and opens pages through its `go` (`App.tsx`). The
+  sandbox's fake answers `at length` with a reply of about 12,000 words.
+- **What `/live` sends**: the table of T60.1, by `browser/protocol.rs`; the rule said build, and
+  task 69 follows. `Browser::heard()` (`cdp.rs`) gives a test what the page said.
+- **The first load** is 2.84 MB, under 3: the fonts come as a device shows them (T60.2), and the
+  size test's limit is 2.9 MB.
+- **Fixed**: a streaming reply's finished blocks are rows of the transcript (T60.3); the transcript
+  follows a streaming reply on a phone (T60.4); `repositories.open` once per repository opened
+  (T60.5).
+- **Numbers**, on the slowed phone: streaming 42.7 to 54.8 fps (the spike's 57), scrolling 53.8 to
+  60.3 (37), no frame over 100 ms but one, 250 ms, as the turn starts (T60.4).
+
+## Task 69: Compressed first values
+
+Added by task 60 on 2026-11-12, as its step C asks, because its rule said build: the realistic
+project's Decisions sends 534 KB before it settles, of which compression would save 90%, and a
+reload 181 KB, of which it would save 84% (ruling T60.1, with the table of every screen).
+
+**Files:**
+
+- Modify: `crates/server/src/live/` (the socket's sending), `app/store/line.ts` and
+  `app/store/connection.ts` (the client's reading), `crates/app/` if the inflating is Rust's,
+  [`contracts/protocol.md`](contracts/protocol.md) with its fixtures, `PROTOCOL` on both sides
+- Test: `crates/server/tests/live.rs`, `app/store/store.test.ts`
+
+**Interfaces:**
+
+- Consumes: the live engine (task 6), the client store (task 23), `just bench-navigation web` (task
+  60).
+- Produces: a first value above the threshold sent as a compressed binary frame, read the same by
+  the Linux app and the browser.
+
+**Requirements**, as task 60's step C lists them:
+
+- The standard per-message compression of WebSockets is not available: the server's library,
+  tungstenite through axum, does not implement it in the versions locked. Check that again first. If
+  the pin now has it and the browser's and Native Shell's sockets both negotiate it, use it and skip
+  the rest of this list.
+- Otherwise it is the protocol's own: a message above a size threshold is sent as a compressed
+  binary frame, and small ones stay text. Pick the threshold from the table. Streaming appends stay
+  as they are.
+- Use `flate2` or `zstd`, which are already in the lockfile. Another crate only if neither can be
+  inflated on the client, with a ruling that says why.
+- The client inflates before it parses, in the Linux app and in the browser, with the same store
+  code on both. Find out what Native Shell's engine offers, and whether the app's Rust module is the
+  better place, before choosing, and record the choice in a ruling.
+- [`contracts/protocol.md`](contracts/protocol.md) says every message is one text frame: the
+  contract, its fixtures, and the protocol's version change with it. Breaking compatibility is fine:
+  there is one user.
+- Tests first, as every task: a large first value arrives compressed and reads the same; a small
+  message and an append stay text; a client reconnecting resumes as before.
+- Then step A's measurement runs again, with before and after in the commit's body.
+
+What task 60 found for it: tungstenite 0.28 and 0.29, the versions locked, and 0.30 implement no
+per-message deflate (only a test of their header parser names it). The table's messages above 1 KB
+shrink by 66 to 91% alone; the long chat's 110 small `TurnLog`s by 33%.
+
+- [ ] **Step 1: Write the failing tests** above, and run them. Expected: FAIL.
+- [ ] **Step 2: Implement.**
+- [ ] **Step 3: Run `just bench-navigation web` again**, and record step A's table before and after.
+- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`,
+      `just task-app`, `just web-build`, `just web-test`. Expected: PASS.
+- [ ] **Step 5: Commit**: `perf(nsh-migration): compressed first values`.
 
 ## Task 61: Remove the React UI and the Node server
 

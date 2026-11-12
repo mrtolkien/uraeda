@@ -29,7 +29,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-pub use agent::{CANNED_REPLY, SLOWLY, long_reply};
+pub use agent::{AT_LENGTH, CANNED_REPLY, SLOWLY, long_reply};
 pub use sessions::{LONG_CHAT, LONG_CHAT_MESSAGES};
 
 use uraeda_protocol::{SessionPick, Trigger};

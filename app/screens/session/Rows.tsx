@@ -8,7 +8,7 @@ import { markdownTree } from "uraeda/native";
 import { chatImage, serverTime } from "../../store";
 import type { Block, Item, Document as Tree } from "../../store/protocol";
 import { Icon, Link, Refusal, Text } from "../../ui/controls";
-import { Document, Reply } from "../../ui/document";
+import { Document, Reply, ReplyBlock } from "../../ui/document";
 import { tokens } from "../../ui/tokens";
 import { OfferCard } from "./Offer";
 import { applies, isClosed, offerOf } from "./offers";
@@ -77,8 +77,16 @@ export function TranscriptRow(props: { feed: Feed; hands: RowHands; id: Accessor
     return shown === undefined || rendered() ? undefined : lineWords(shown);
   };
   const body = () => {
+    if (entry()?.kind === "block") return [props.id()];
     const kind = item()?.kind;
     return kind !== undefined && (BODIED.has(kind) || rendered()) ? [props.id()] : [];
+  };
+  // A reply split into rows reads as one: its blocks' rows have no room between them.
+  const padding = (): [number, number] => {
+    const shown = entry();
+    if (shown?.kind === "block") return [shown.first ? 7 : 0, 0];
+    if (item()?.kind !== "text") return [3, 3];
+    return [(props.feed.split?.(props.id()) ?? 0) > 0 ? 0 : 7, 7];
   };
   return (
     // The row draws its own selection, a fill and the bar of light at its left edge, as `Row`
@@ -96,7 +104,8 @@ export function TranscriptRow(props: { feed: Feed; hands: RowHands; id: Accessor
         borderLeftWidth: tokens.row.bar,
         paddingLeft: tokens.space.panePadding - tokens.row.bar,
         paddingRight: tokens.space.panePadding,
-        paddingVertical: item()?.kind === "text" ? 7 : 3,
+        paddingBottom: padding()[1],
+        paddingTop: padding()[0],
       }}
     >
       <View
@@ -126,15 +135,31 @@ export function TranscriptRow(props: { feed: Feed; hands: RowHands; id: Accessor
         </Text>
       </View>
       <Each of={body()}>
-        {(row) => <Body entry={props.feed.entry(row())} hands={props.hands} row={row()} />}
+        {(row) => (
+          <Body entry={props.feed.entry(row())} feed={props.feed} hands={props.hands} row={row()} />
+        )}
       </Each>
     </View>
   );
 }
 
 /** What a row of words draws, made once for its row: its kind never changes. */
-function Body(props: { entry: Entry | undefined; hands: RowHands; row: string }) {
+function Body(props: { entry: Entry | undefined; feed: Feed; hands: RowHands; row: string }) {
   const entry = props.entry;
+  if (entry?.kind === "block") {
+    return (
+      <If when={entry.read()}>
+        {(read) => (
+          <ReplyBlock
+            after={!entry.first}
+            align="start"
+            override={offerOverride(props.hands, entry.reply, entry.turn)}
+            read={read()}
+          />
+        )}
+      </If>
+    );
+  }
   if (entry?.kind !== "item") return null;
   const kind = entry.item()?.kind;
   if (kind === "tool") {
@@ -153,6 +178,7 @@ function Body(props: { entry: Entry | undefined; hands: RowHands; row: string })
   if (kind === "text") {
     return (
       <AgentText
+        feed={props.feed}
         hands={props.hands}
         item={entry.item as () => Of<"text">}
         row={props.row}
@@ -247,40 +273,25 @@ function Picture(props: { id: string; repo: string }) {
 
 /** The agent's words, drawn as blocks as they stream, with an offer's card in place of its block. */
 function AgentText(props: {
+  feed: Feed;
   hands: RowHands;
   item: () => Of<"text">;
   row: string;
   text: Accessor<string>;
   turn: string;
 }) {
-  const override = (block: Block) => {
-    const kind = offerOf(block);
-    if (kind === undefined) return undefined;
-    const live = () =>
-      props.hands.offerTurn() === props.turn &&
-      applies(kind, props.hands.kind()) &&
-      !isClosed(props.row);
-    return (
-      <View>
-        <OfferCard
-          body={(block.text ?? "").trim()}
-          cardKey={props.row}
-          folder={props.hands.folder()}
-          kind={kind}
-          live={live()}
-          repo={props.hands.repo}
-          session={props.hands.session}
-        />
-      </View>
-    );
-  };
+  const override = offerOverride(props.hands, props.row, props.turn);
   // A text whole when its row is drawn is a document, its tree read once for its row; one that
-  // streams is a reply, whose blocks come as they finish.
-  const streaming = untracked(props.item)?.streaming === true;
+  // streams is a reply, whose blocks come as they finish, each a row before this one where the
+  // feed splits it, and stays one once split.
+  const split = untracked(() => props.feed.split?.(props.row) ?? 0) > 0;
+  const streaming = untracked(props.item)?.streaming === true || split;
+  const finished = props.feed.finished;
   return streaming ? (
     <Reply
       align="start"
       done={() => props.item()?.streaming === false}
+      onFinished={finished && ((blocks) => finished(props.row, blocks))}
       override={override}
       testID="agent-text"
       text={props.text}
@@ -293,6 +304,28 @@ function AgentText(props: {
       testID="agent-text"
     />
   );
+}
+
+/** What a reply's row, or a row of its blocks, draws in place of an offer's block: its card. */
+function offerOverride(hands: RowHands, row: string, turn: string) {
+  return (block: Block) => {
+    const kind = offerOf(block);
+    if (kind === undefined) return undefined;
+    const live = () => hands.offerTurn() === turn && applies(kind, hands.kind()) && !isClosed(row);
+    return (
+      <View>
+        <OfferCard
+          body={(block.text ?? "").trim()}
+          cardKey={row}
+          folder={hands.folder()}
+          kind={kind}
+          live={live()}
+          repo={hands.repo}
+          session={hands.session}
+        />
+      </View>
+    );
+  };
 }
 
 /** The trees of the texts read whole, by row: a text that ended never changes. */
