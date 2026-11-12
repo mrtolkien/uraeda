@@ -2,19 +2,11 @@
 // the page, and the sign-in is a session's cookie, which the server sets for the access key, the
 // browser keeps and sends by itself, and no script reads. So the shell gets a server that asks
 // for no token, as a sandbox does: the cookie goes with the WebSocket's request.
-import { UrlScheme } from "nsh";
+import { page } from "./page";
 import type { ShellHost } from "../screens/shell/host";
 
 /** The server's address, the page's own origin: `http://127.0.0.1:4320`. */
-export function origin(): string {
-  return new URL(UrlScheme.url() ?? "", "http://127.0.0.1").origin;
-}
-
-/** The page's own address within the app: its path, its query, and its hash. */
-export function pageAddress(): string {
-  const url = new URL(UrlScheme.url() ?? "", "http://127.0.0.1");
-  return `${url.pathname}${url.search}${url.hash}`;
-}
+export const origin = (): string => page().location.origin;
 
 /** Whether the browser is signed in at the server: it answers its own session's check. */
 export async function signedIn(address: string): Promise<boolean> {

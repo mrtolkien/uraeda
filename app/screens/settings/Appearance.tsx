@@ -6,7 +6,11 @@ import { wordsOf } from "./categories";
 import { onOff } from "./Row";
 import { chooseMode, chooseTheme, themeChoice } from "./look";
 import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
-import { desktopNotifications, setDesktopNotifications } from "../shell/Notifications";
+import {
+  desktopNotifications,
+  notifyRefusal,
+  setDesktopNotifications,
+} from "../shell/Notifications";
 import { openPicker } from "../shell/pickers";
 import { record } from "../../store";
 import type { Theme, ThemeFile } from "../../store/protocol";
@@ -116,7 +120,7 @@ export function Appearance() {
     { act: () => openPicker("themes"), id: "dark" },
     { act: () => openPicker("themes"), id: "light" },
     { id: "yours" },
-    { act: () => setDesktopNotifications(!desktopNotifications()), id: "notify" },
+    { act: () => void setDesktopNotifications(!desktopNotifications()), id: "notify" },
   ];
   const yours = wordsOf("appearance", "Your themes");
   return (
@@ -171,13 +175,14 @@ export function Appearance() {
         control={
           <Switch
             label={onOff(desktopNotifications())}
-            onChange={setDesktopNotifications}
+            onChange={(on) => void setDesktopNotifications(on)}
             value={desktopNotifications()}
           />
         }
         from={ON_DEVICE}
         icon="bell"
         id="notify"
+        refusal={notifyRefusal()}
       />
     </FieldRows>
   );

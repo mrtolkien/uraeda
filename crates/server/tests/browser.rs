@@ -6,8 +6,12 @@
 //! access key signs a browser in, the home page draws, and what the first load weighed on the
 //! wire. Its pictures, in `URAEDA_SHOTS`, are for the eye: the same page as on GTK?
 
+#[path = "browser/app.rs"]
+mod app;
 #[path = "browser/cdp.rs"]
 mod cdp;
+#[path = "browser/pictures.rs"]
+mod pictures;
 
 use std::path::{Path, PathBuf};
 
@@ -17,7 +21,7 @@ use uraeda_server::sandbox::{self, Mode, Prepare};
 use uraeda_server::{Server, sign_in};
 
 /// The folder of the web build to serve.
-fn web_build() -> String {
+pub fn web_build() -> String {
     let build = std::env::var("URAEDA_WEB_BUILD").unwrap_or_else(|_| {
         let checkout = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/web");
         checkout.to_string_lossy().into_owned()
@@ -30,7 +34,7 @@ fn web_build() -> String {
 }
 
 /// Where the pictures go.
-fn shots() -> PathBuf {
+pub fn shots() -> PathBuf {
     let folder = std::env::var("URAEDA_SHOTS").map_or_else(
         |_| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/shots/web"),
         PathBuf::from,

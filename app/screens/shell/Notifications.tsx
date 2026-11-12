@@ -10,17 +10,21 @@
 // - The desktop's notifications are the app's own switch, kept on this device: Linux asks no
 //   permission, so the app asks itself, once, after saying what will notify, at the first item
 //   that comes; "Not now" is kept, and never asked again. The settings' Appearance changes it.
-// - The window's title counts what needs the human.
+// - In a browser they are the browser's, which asks its owner: the app asks the same way, then
+//   the browser asks, and a refusal there is kept by the browser, so the app never asks again.
+// - The window's title, and a browser's tab, count what needs the human.
 //
 // Only the app's Linux host sends to the desktop: a run without it, a test's or `just app-dev`'s,
 // never reaches the desktop of the machine it runs on.
-import { effect, host, lifecycle, signal, untracked, View } from "nsh";
+import { effect, host, lifecycle, platform, signal, untracked, View } from "nsh";
 import { isAvailable, Window } from "nsh/desktop";
+import { Head } from "nsh/web";
 import { nextNotificationClick, notifyDesktop } from "uraeda/native";
 import { device, navigate, parseRoute, pathOf, record, route } from "../../store";
 import type { NeedsYouRow } from "../../store/protocol";
 import { Button, IconButton, Text } from "../../ui/controls";
 import { Toast } from "../../ui/surfaces";
+import { askBrowser, browserMayNotify, notifyBrowser } from "../../web/notify";
 
 /** The asks shown at once, the newest first: more wait in the sidebar's Needs you. */
 const SHOWN = 3;
@@ -35,16 +39,27 @@ const question = signal(false);
 const opens = new Map<number, string>();
 let listening = false;
 
-/** Whether the app runs in its Linux host, the one that may reach the desktop. */
-const inHost = () => host.params.local !== undefined;
+const web = platform.os === "web";
+
+/** Whether the app may reach the desktop: in its Linux host, or a browser that has not refused. */
+const mayNotify = () => (web ? browserMayNotify() : host.params.local !== undefined);
 
 /** Whether the desktop's notifications are on, on this device. */
 export const desktopNotifications = () => device.get("notifications") === true;
 
-/** Turns the desktop's notifications on or off, on this device. */
-export function setDesktopNotifications(on: boolean) {
-  device.set("notifications", on);
+/** Why turning them on did nothing: the browser refused. */
+export const notifyRefusal = signal<string | undefined>(undefined);
+
+/** Turns the desktop's notifications on or off, on this device: a browser is asked first. */
+export async function setDesktopNotifications(on: boolean) {
   question.set(false);
+  notifyRefusal.set(undefined);
+  device.set("notifications", on);
+  if (!on || !web || (await askBrowser())) return;
+  device.set("notifications", false);
+  notifyRefusal.set(
+    "This browser refuses Uraeda's notifications: allow them in its settings for this site.",
+  );
 }
 
 /** Whether the human looks at `href` now: the window focused, on its page. */
@@ -77,8 +92,10 @@ function listen() {
 
 /** Tells the desktop about `row`, while the window is not focused. */
 function toDesktop(row: NeedsYouRow) {
-  if (!inHost() || !desktopNotifications() || lifecycle() === "active") return;
-  notifyDesktop(`${row.label} needs you`, row.message)
+  if (!mayNotify() || !desktopNotifications() || lifecycle() === "active") return;
+  const title = `${row.label} needs you`;
+  if (web) return notifyBrowser(title, row.message, row.key, () => navigate(parseRoute(row.href)));
+  notifyDesktop(title, row.message)
     .then((id) => {
       opens.set(id, row.href);
       listen();
@@ -89,6 +106,12 @@ function toDesktop(row: NeedsYouRow) {
 /** Watches what needs the human, and tells of what comes. */
 /** What needs the human, in every repository: read where the caller is drawn. */
 const rows = () => record("NeedsYouList", null)()?.rows;
+
+/** The window's title, with the count of what waits. */
+function windowTitle() {
+  const count = rows()?.length ?? 0;
+  return count > 0 ? `(${count}) Uraeda` : "Uraeda";
+}
 
 export function Notifier() {
   // Turned off, as the Notifications extension is in a repository, it forgets: turned on again, it
@@ -112,7 +135,7 @@ export function Notifier() {
       const told = fresh.filter((row) => !looksAt(row.href));
       asks.set([...told.toReversed(), ...asks().filter((row) => keys.has(row.key))]);
       for (const row of told) toDesktop(row);
-      if (told.length > 0 && inHost() && device.get("notifications") === undefined) {
+      if (told.length > 0 && mayNotify() && device.get("notifications") === undefined) {
         question.set(true);
       }
     });
@@ -125,12 +148,11 @@ export function Notifier() {
       if (left.length !== asks().length) asks.set(left);
     });
   });
-  // The window's title counts what waits.
+  // The window's title counts what waits, and so does a browser's tab.
   effect(() => {
-    const count = rows()?.length ?? 0;
-    if (isAvailable) Window.get("main")?.set({ title: count > 0 ? `(${count}) Uraeda` : "Uraeda" });
+    if (isAvailable) Window.get("main")?.set({ title: windowTitle() });
   });
-  return null;
+  return <Head title={windowTitle()} />;
 }
 
 const close = (key: string) => asks.set(asks().filter((row) => row.key !== key));
@@ -165,14 +187,19 @@ export function NeedsYouToasts() {
         )}
       </Each>
       <If when={question()}>
-        <Toast icon="message-square" testID="notify-question" title="Desktop notifications">
+        <Toast
+          icon="message-square"
+          testID="notify-question"
+          title={web ? "Browser notifications" : "Desktop notifications"}
+        >
           <Text>
-            Uraeda can tell you on this desktop when questions, a review, a pull request, or a
-            blocked agent wait, while its window is in the background. A click opens what waits.
+            {web
+              ? "Uraeda can tell you through this browser when questions, a review, a pull request, or a blocked agent wait, while its tab is in the background. A click opens what waits. Your browser asks you next."
+              : "Uraeda can tell you on this desktop when questions, a review, a pull request, or a blocked agent wait, while its window is in the background. A click opens what waits."}
           </Text>
           <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-            <Button label="Not now" onPress={() => setDesktopNotifications(false)} />
-            <Button label="Turn on" onPress={() => setDesktopNotifications(true)} />
+            <Button label="Not now" onPress={() => void setDesktopNotifications(false)} />
+            <Button label="Turn on" onPress={() => void setDesktopNotifications(true)} />
           </View>
         </Toast>
       </If>

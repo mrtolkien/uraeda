@@ -1,7 +1,8 @@
 // The one view of the app that shows a web page: a preview's story, a mockup, a project's
 // Storybook. Nothing else draws a web view or a frame. On GTK it is Native Shell's web view, a
 // WebKitGTK page drawn inside the app's own views: its pane clips it, and a dialog or the leader
-// menu draws over it. On the web (task 57) it becomes a sandboxed frame, with the same props.
+// menu draws over it. In a browser it is an `<iframe>`, sandboxed: a page of the server's own
+// origin loads without it, so its scripts run apart from the app's (`frame.web.ts`).
 //
 // The page lays out at `width`, its own width in CSS pixels, scaled down to fit its room and
 // never up, centred: a phone's story shows at a phone's size. While it loads it says so; a load
@@ -14,12 +15,16 @@
 // Native Shell focuses its text fields and, since 0.5.0, the views Tab stops at, never a web
 // view: there it does nothing (rulings R341 and R422).
 //
+// In a browser the keys go into the page by a press in it, or Tab, and come back by a press
+// outside it, or Tab past its last stop: the browser gives the page every key, Escape too.
+//
 // Messages: the page posts with `window.nsh.postMessage(text)`, or, as a story's pick script
-// does, `window.parent.postMessage({ uraeda })`, which at the top is the page itself: both reach
-// `onMessage`, parsed from JSON when they are. `post(value)` sends the page a `message` event,
-// as an object a frame's parent would send.
-import { cleanup, signal, View, WebView, type WebViewRef } from "nsh";
+// does, `window.parent.postMessage({ uraeda })`, which at the top is the page itself, and in a
+// browser the page around the app: all reach `onMessage`, parsed from JSON when they are.
+// `post(value)` sends the page a `message` event: an object on GTK, its JSON in a browser.
+import { cleanup, platform, signal, View, WebView, type WebViewRef } from "nsh";
 import { Banner, Button, Spinner } from "../controls";
+import { hearFrame } from "./frame.web";
 import { Surface } from "./Surface";
 
 /** What a screen does with the page it shows. */
@@ -114,9 +119,9 @@ export function WebFrame(props: WebFrameProps) {
     reload: () => (failed() === undefined ? web?.reload() : failed.set(undefined)),
   });
 
-  const heard = (data: string) => {
+  const heard = (data: string) => hearMessage(parsed(data));
+  const hearMessage = (message: unknown) => {
     if (!live) return;
-    const message = parsed(data);
     if (typeof message === "object" && message !== null && "uraeda" in message) {
       const { on, uraeda } = message as { on?: unknown; uraeda: unknown };
       if (uraeda === "keys") {
@@ -126,6 +131,15 @@ export function WebFrame(props: WebFrameProps) {
     }
     props.onMessage?.(message);
   };
+  if (platform.os === "web") {
+    cleanup(
+      hearFrame(
+        () => (props.html === undefined ? props.src : undefined),
+        hearMessage,
+        (inPage) => live && props.onKeys?.(inPage),
+      ),
+    );
+  }
 
   return (
     <View

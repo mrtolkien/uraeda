@@ -230,6 +230,107 @@ impl Browser {
         }
     }
 
+    /// Reloads the page, forgetting what it said.
+    pub async fn reload(&mut self) {
+        self.events.clear();
+        self.command("Page.reload", json!({})).await;
+    }
+
+    /// The page's address within the app: its path and its query.
+    pub async fn path(&mut self) -> String {
+        let path = self.evaluate("location.pathname + location.search").await;
+        path.as_str().unwrap_or_default().to_owned()
+    }
+
+    /// Waits until the page's address is `path`, its path and its query.
+    pub async fn at(&mut self, path: &str) {
+        let started = std::time::Instant::now();
+        loop {
+            let now = self.path().await;
+            if now == path {
+                return;
+            }
+            assert!(
+                started.elapsed() < PATIENCE,
+                "the address never became {path}: it is {now}"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+
+    /// The middle of the first innermost element whose own text is `words`, whole on the screen.
+    pub async fn middle_of(&mut self, words: &str) -> (f64, f64) {
+        let found = format!(
+            "(() => {{
+                const words = {};
+                const all = [...document.querySelectorAll('body *')].filter((el) =>
+                    el.childElementCount === 0 && el.textContent.trim() === words);
+                const shown = all.map((el) => el.getBoundingClientRect())
+                    .filter((box) => box.width > 0 && box.height > 0 && box.y >= 0
+                        && box.bottom <= innerHeight && box.x >= 0 && box.right <= innerWidth);
+                const box = shown[0];
+                return box ? [box.x + box.width / 2, box.y + box.height / 2] : null;
+            }})()",
+            json!(words)
+        );
+        let started = std::time::Instant::now();
+        loop {
+            if let Some(at) = self.evaluate(&found).await.as_array() {
+                return (at[0].as_f64().unwrap(), at[1].as_f64().unwrap());
+            }
+            assert!(
+                started.elapsed() < PATIENCE,
+                "nothing on the page reads {words:?}"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+
+    /// Clicks what reads `words`, with the mouse's main button.
+    pub async fn click(&mut self, words: &str) {
+        let at = self.middle_of(words).await;
+        self.click_at(at).await;
+    }
+
+    /// The middle of the page's first text field, once it shows one.
+    pub async fn field(&mut self) -> (f64, f64) {
+        let found = "(() => { const box = document.querySelector('.nsh-field')?.getBoundingClientRect(); \
+            return box && box.width > 0 ? [box.x + box.width / 2, box.y + box.height / 2] : null; })()";
+        let started = std::time::Instant::now();
+        loop {
+            if let Some(at) = self.evaluate(found).await.as_array() {
+                return (at[0].as_f64().unwrap(), at[1].as_f64().unwrap());
+            }
+            assert!(started.elapsed() < PATIENCE, "the page shows no field");
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+
+    /// Clicks a point with the mouse's main button.
+    pub async fn click_at(&mut self, (x, y): (f64, f64)) {
+        for kind in ["mouseMoved", "mousePressed", "mouseReleased"] {
+            let event = json!({
+                "type": kind, "x": x, "y": y, "button": "left", "buttons": 1, "clickCount": 1,
+            });
+            self.command("Input.dispatchMouseEvent", event).await;
+        }
+    }
+
+    /// Taps a point with a finger, as a phone's touch screen does.
+    pub async fn tap_at(&mut self, (x, y): (f64, f64)) {
+        let point = json!([{ "x": x, "y": y }]);
+        let start = json!({ "type": "touchStart", "touchPoints": point });
+        self.command("Input.dispatchTouchEvent", start).await;
+        let end = json!({ "type": "touchEnd", "touchPoints": [] });
+        self.command("Input.dispatchTouchEvent", end).await;
+    }
+
+    /// Turns the mouse's wheel over a point: `by` pixels down.
+    pub async fn wheel(&mut self, (x, y): (f64, f64), by: f64) {
+        let event = json!({ "type": "mouseWheel", "x": x, "y": y, "deltaX": 0, "deltaY": by });
+        self.command("Input.dispatchMouseEvent", event).await;
+    }
+
     /// Writes a picture of the page as it shows, a PNG.
     pub async fn picture(&mut self, path: &PathBuf) {
         let shot = self

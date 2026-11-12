@@ -9,6 +9,7 @@ import { computed, effect, Scroll, untracked, View } from "nsh";
 import { deviceTheme, keepsShownTheme, scheme } from "./boot";
 import { ShellKeys } from "./keys";
 import { NeedsYouToasts, Notifier } from "./Notifications";
+import { DroppedFiles } from "../../web/Drops";
 import { nothingFor } from "./panes";
 import { openPicker, Pickers } from "./pickers";
 import { placesIn } from "./places";
@@ -153,6 +154,7 @@ export function Frame() {
         <NeedsYouToasts />
         <UndoToast />
         <LandingWrites />
+        <DroppedFiles />
       </Toasts>
       <UndoQuestion />
     </>

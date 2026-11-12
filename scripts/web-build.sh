@@ -45,8 +45,18 @@ replace 'content="#000000" media="(prefers-color-scheme: dark)"' \
 replace '</head>' "$(<"$root/app/web/head.html")
 </head>"
 
-# The app's icon, the one its desktop entry has: a browser's tab shows it.
+# The app's icon, the one its desktop entry has: a browser's tab shows it. NSH's own, from
+# `app/web/icon.png` (`nsh.json`'s `icon`), are the manifest's and a phone's home screen's.
 cp "$root/app/package/dev.uraeda.app.svg" "$site/icon.svg"
+
+# The manifest, what "Add to Home Screen" installs: NSH gives it white, where the app's first
+# paint is the default light theme's backdrop, as the page's own light colour is.
+manifest="$site/manifest.webmanifest"
+grep -q '"background_color": "#ffffff"' "$manifest" || {
+  echo "web-build: Native Shell's manifest no longer holds its white" >&2
+  exit 1
+}
+sed -i 's/"#ffffff"/"#dce0e8"/g' "$manifest"
 
 compress() {
   rm -f "$1.br" "$1.gz"

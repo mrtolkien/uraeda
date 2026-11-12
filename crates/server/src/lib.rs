@@ -79,6 +79,7 @@ const DOMAINS: &[Mount] = &[
     runner::mount,
     runtimes::mount,
     http::open::mount,
+    http::diagram::mount,
     http::socket::mount,
     files::mount,
     mcp::mount,

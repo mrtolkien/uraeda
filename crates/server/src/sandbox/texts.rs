@@ -34,12 +34,18 @@ const REPLACED: &str = "## Replaced behaviour\n\n- **A completed task gets no ne
      interval.** Guarded by `tests/tasks/repeat-every-n-days.test.tsx`\n  and \
      `tests/tasks/repeat-end-of-month.test.tsx`.\n\n";
 
-/// The recurring tasks' spec at a status, with a replaced behaviour added.
+/// A diagram and code, which a spec's reader draws: a diagram's picture, and highlighting.
+const SKETCH: &str = "## Flow\n\n```mermaid\nflowchart LR\n  done[Task completed] --> next{Repeats?}\n  \
+     next -- yes --> date[Next date set]\n  next -- no --> archive[Archived]\n```\n\n```ts\n\
+     export function nextDate(task: Task, today: Date): Date | undefined {\n  \
+     return task.rule ? task.rule.after(today) : undefined;\n}\n```\n\n";
+
+/// The recurring tasks' spec at a status, with a replaced behaviour, a diagram, and code added.
 pub(super) fn spec(status: &str) -> Result<String, String> {
     let spec = recurring("spec.md")?;
     let spec = spec.replacen(
         "## Architecture\n",
-        &format!("{REPLACED}## Architecture\n"),
+        &format!("{REPLACED}{SKETCH}## Architecture\n"),
         1,
     );
     Ok(with_status(&spec, status))

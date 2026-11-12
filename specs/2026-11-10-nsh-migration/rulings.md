@@ -9006,3 +9006,176 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `specs/ui/keyboard.md`, `specs/ui/components.md`, and the test
   `Enter in a confirmation that loses something changes nothing`
   (`app/ui/controls/controls.test.tsx`).
+
+## R454: The tab's history is the app's, and Native Shell's own entries are off
+
+- **Decision**: in a browser, `app/store/history.web.ts` is the history's adapter, bound in
+  `App.tsx` before the app mounts. Each visit is an entry of the tab's history: `push` and `replace`
+  are `pushState` and `replaceState` with the visit as the state, under `uraeda`, and
+  `pathOf(visit.route)` as the address; `back` is `history.back()`; `listen` hears `popstate`;
+  `start` is the entry's own visit, as a reload or a Back from another site finds it, or a first
+  visit of the page's address. `bindHistory` writes that address again, so an old one (`/commit`)
+  becomes the page's (`/r/<repository>/git`).
+  - `nsh.json`'s `web.history` is `false`: Native Shell keeps no entries of its own, for its stack
+    and its dialogs, and `UrlScheme` neither reads nor sets the page's address. The app's code runs
+    in a frame of the page's own origin, so the page's window is the frame's `top`
+    (`app/web/page.ts`), which `app/web/host.ts` reads the origin from too.
+  - The mouse's Back and Forward buttons, which Native Shell keeps from the browser when it keeps no
+    entries, move the tab's history as the browser's buttons do.
+- **Rationale**: Native Shell 0.5.0 offers `UrlScheme.setUrl(url, { history: "push" })` and
+  `on("change")`, an address without a state. Its own entries for an open dialog took the address of
+  the turn that opened it: the leave guard's question, a dialog opened in the same turn as the visit
+  put back, left the tab at the page reached while the app showed the page left, and its "leave"
+  went back twice. With the entries the app's alone, the guard's path is the memory stack's (R127),
+  and the browser keeps each visit's state through a reload, with no storage of the app's.
+- **If wrong**: a dialog no longer closes by the browser's Back (Escape closes it). An app that
+  needs NSH's stacks in a browser turns `web.history` on again, and keeps its visits' states beside
+  NSH's (`history.state` keeps the keys of both).
+- **Where**: `app/store/history.web.ts`, `app/web/{page.ts,host.ts}`, `app/App.tsx`, `app/nsh.json`,
+  `crates/server/tests/browser/app.rs`.
+
+## R455: A reload keeps the visit: its layout, what its panes remember, and its scroll
+
+- **Decision**: what a visit keeps (`Entry`: its `kept`, the panes' layout and what each pane
+  remembers, and `positions`, where each scroller came to rest) is the entry's state, so a reload
+  shows the page as it was left, at its address. The test `a_reload_keeps_the_page_and_its_scroll`
+  reads a spec scrolled to 1,200 pixels; the reload lands at 1,052.
+  - The difference is Native Shell's list: `contentOffset` is placed over the rows' estimated
+    heights (`estimatedItemSize`) before the rows above it are measured. The same holds for Back on
+    GTK. The test allows 200 pixels: what it guards is the visit's offset coming back at all.
+- **If wrong**: a reader that must land on its line keeps the block at its top (`onPlace`) beside
+  the offset, and opens at it with `initialScrollIndex`, whose position Native Shell measures.
+- **Where**: `crates/server/tests/browser/app.rs`, `app/ui/document/DocumentScroll.tsx`.
+
+## R456: Glass in a browser is its backdrop blur, by measure
+
+- **Decision**: `Glass` draws the browser's `backdrop-filter` on the web, and the shader on GTK
+  alone, as it did. Measured in the dev shell's headless Chromium at 390 by 844 with touch, dark,
+  scrolling the page's longest scroller by 9 pixels a frame for 5 seconds under the phone's glass
+  bar, both forms in one build:
+
+  | Page, processor                 | Backdrop blur       | Shader             |
+  | ------------------------------- | ------------------- | ------------------ |
+  | Decisions' list, as it is       | 60 fps, p95 16.7 ms | 36 fps, p95 117 ms |
+  | Decisions' list, slowed 4 times | 60 fps, p95 16.7 ms | 9 fps, p95 150 ms  |
+  | A spec's reader, as it is       | 60 fps, p95 16.8 ms | 57 fps, p95 33 ms  |
+  | A spec's reader, slowed 4 times | 26 fps, p95 33 ms   | 22 fps, p95 50 ms  |
+
+  The reader's slowed runs hold one stall of 2.5 to 3 seconds each, its rows measuring as they come:
+  the same in both forms, and task 60's. The spike's phone numbers were 57 fps streaming and 37
+  scrolling.
+
+- **Rationale**: the shader takes a picture of the page under it each frame on the web
+  (`paintTree`), where the browser's blur is its compositor's. The blur reads the same: the plate,
+  the rim, and the tint are the same tokens; the shader's bent edge and grain are what the browser
+  leaves out.
+- **Where**: `app/ui/surfaces/Glass.tsx`.
+
+## R457: A diagram in a browser is the server's picture
+
+- **Decision**: `POST /diagram`, `{ source, colours }`, answers `{ src, width, height }`, the
+  picture `uraeda_app::diagram::picture` draws on GTK, or 422 with `{ error }`: Merman's words, or
+  "it took more than 2 seconds". It is closed as every route, and draws on a blocking thread within
+  2 seconds. `Diagram` asks it in a browser, at the page's own origin with the session's cookie, and
+  waits 3 seconds there, the way included; on GTK it draws as it did. Its source shows when it
+  fails, on both.
+  - The sandbox's sample specs gained a diagram and a block of code (`SKETCH` in
+    `sandbox/texts.rs`), so a spec's reader shows both.
+- **Rationale**: Merman and `usvg` are 3 MB of every first load in a browser (R443), for a picture
+  few pages show. A route, not an action: a picture is bytes, and the live line carries records.
+- **Where**: `crates/server/src/http/diagram.rs`, `crates/server/tests/diagram.rs`,
+  `app/ui/document/Diagram.tsx`.
+
+## R458: What a browser has of the machine, part by part
+
+- **Decision**: each part of `uraeda/native` and of the host, against the web build, after R443:
+
+  | Part                                         | In a browser                                                                                                                                                                                                        |
+  | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Vim, `TextEditor`, themes, Markdown, patches | Run (R443). Vim's Ctrl+R is a binding of NSH's keymap, which the page cancels: it redoes, and never reloads.                                                                                                        |
+  | Highlighting                                 | Runs: seen in Chromium, a spec's `ts` block in its colours (`target/shots/web/spec-*`).                                                                                                                             |
+  | Time zone conversion                         | Builds and runs; no test reads a time in a browser.                                                                                                                                                                 |
+  | Diagrams                                     | The server's picture (R457).                                                                                                                                                                                        |
+  | Notifications                                | The browser's `Notification` (R459).                                                                                                                                                                                |
+  | The window's title                           | `Head` of `nsh/web`: the tab counts what needs the owner, `(13) Uraeda`.                                                                                                                                            |
+  | The clipboard                                | NSH's, the browser's `navigator.clipboard`: reading needs a secure context, which `127.0.0.1` and HTTPS are, and may ask the owner once.                                                                            |
+  | The picker of images                         | NSH's, a file input: it runs.                                                                                                                                                                                       |
+  | Files dropped                                | Absent: NSH 0.5.0's web runtime passes no drop to a view. The page keeps the drop, which the browser would open in the app's place, and says to paste or pick (`app/web/Drops.tsx`). An upstream change is the fix. |
+  | Opening an address                           | NSH's `openUrl`, a new tab.                                                                                                                                                                                         |
+  | The host channel and the secret store        | Absent, and not offered: `webHost` answers the server, the page's origin, and no token; a stopped server offers "Try now", never "Start it", and pairing is never asked: the cookie signs in.                       |
+  | The extension view                           | Absent: task 58.                                                                                                                                                                                                    |
+
+- **Where**: `app/web/`, `app/screens/shell/Notifications.tsx`.
+
+## R459: A browser's notifications are asked of the browser, after saying why
+
+- **Decision**: the notifier's rule holds in a browser: at the first item that comes, a toast says
+  what will notify, "Your browser asks you next"; "Turn on" asks the browser
+  (`Notification.requestPermission`), "Not now" is kept on the device. A browser that refused is
+  never asked again: the question shows only while the browser's permission is `default` or
+  `granted`. Turning them on in the settings asks the browser too, and a refusal says under the
+  switch how to allow them. A notification is sent while the tab is not focused, tagged by the
+  item's key; its click focuses the tab and opens the item.
+- **Where**: `app/web/notify.ts`, `app/screens/shell/Notifications.tsx`,
+  `app/screens/settings/Appearance.tsx`.
+
+## R460: The keys a browser keeps
+
+- **Decision**: a key the app declares where the focus is goes through NSH's keymap, whose match
+  cancels the browser's default: measured in Chromium on a spec's reader, Ctrl+D, Ctrl+U, Ctrl+K,
+  Space, and `j` were cancelled; Ctrl+R, Ctrl+L, `/`, Backspace, and Ctrl+W were not, as no binding
+  of the reader takes them. So the app owns its keys wherever a browser lets a page have them, and
+  nothing more is written for it. The browser keeps:
+  - Ctrl+W, Ctrl+T, Ctrl+N, Ctrl+Tab, and Ctrl+Shift+T, which no page receives;
+  - Ctrl+L, Ctrl+F, and Ctrl+R or F5 where the app binds none: Vim's normal mode binds Ctrl+R, so
+    there it redoes;
+  - `/`, Firefox's quick find, where no binding takes it;
+  - Alt+Left and Alt+Right, the browser's Back and Forward, which are the app's history now.
+  - Backspace navigates in no current browser.
+- **Where**: `app/ui/keys/registry.tsx`, NSH's `nsh.js` (`keyDown`).
+
+## R461: A frame in a browser hears its page through the page around the app
+
+- **Decision**: `WebFrame` stays one component. In a browser NSH's web view is an `<iframe>`; a page
+  of the server's own origin, a mockup or a preview, loads sandboxed without that origin, and NSH
+  runs no injected script in it and passes none of its messages. So `frame.web.ts` hears the page's
+  `window.parent.postMessage({ uraeda })`, which reaches the page around the app, from the frame
+  showing that address, and tells `onKeys` when the frame takes and gives back the focus. `post`
+  sends its JSON there, which the pick script now parses.
+  - Keys: a press or Tab gives them to the page, a press outside or Tab past its last stop gives
+    them back; Escape is the page's.
+- **Where**: `app/ui/surfaces/{WebFrame.tsx,frame.web.ts}`,
+  `skills/uraeda/assets/storybook/uraeda-pick.js`.
+
+## R462: The manifest is NSH's, with the app's icon and its colour
+
+- **Decision**: NSH writes `manifest.webmanifest`: the name, `display: standalone`, so "Add to Home
+  Screen" opens without the browser's bars, and the icons, at 192 and 512 pixels, with a favicon and
+  an Apple touch icon, from `app/web/icon.png` (`nsh.json`'s `icon` for the web: the app's SVG,
+  drawn once at 1,024 pixels). The build script changes its white to the default light theme's
+  backdrop, `#dce0e8`, as the page's first paint. No `app/web/manifest.webmanifest`, which the plan
+  named: a second manifest would be one to keep in step.
+- **Where**: `app/nsh.json`, `app/web/icon.png`, `scripts/web-build.sh`.
+
+## R463: The web pictures against GTK's
+
+- **Decision**: seen in `target/shots/web/` beside `target/shots/app/`: Home, a session, a spec
+  scrolled to its diagram and code, a mockup in its frame, and the settings' appearance, in both
+  themes at 1400 by 800 and 390 by 844. The same app: panes, cards, fonts, the phone's bars and
+  tabs, the status line.
+  - A spec's diagram draws, and its code is highlighted, in a browser.
+  - A wide diagram scrolls sideways at a phone's width, as on GTK.
+  - Left for task 59: the phone's top bar and the bottom tabs sit under the browser's own bars, with
+    no `viewport-fit=cover` and no safe area tried on a real phone; the settings' row still says
+    "Desktop notifications" in a browser.
+- **Where**: `target/shots/web/`, `crates/server/tests/browser/pictures.rs`.
+
+## R464: One test failed once while the machine was loaded
+
+- **Decision**: `a_stale_frame_starts_no_preview` (`crates/server/tests/preview.rs`) failed once in
+  `just task uraeda-server uraeda-app`, "a running process's group: ParseIntError { kind: Empty }",
+  at a load of 18 beside other builds. Run again, the whole task passed: 387 tests. Nothing was
+  changed.
+- **Rationale**: the plan's rule for a failure of timing under load. The test reads a process's
+  group as it ends, and touches nothing this task changed.
+- **Where**: `crates/server/tests/preview.rs`.

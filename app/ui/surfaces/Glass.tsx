@@ -4,6 +4,8 @@
 // Where the platform draws a blur of what is behind a view, glass is the platform's: Apple's own
 // material where there is one, a backdrop blur elsewhere. GTK draws neither, so there it is the
 // shader of `glass.wgsl.ts`, which reads the picture Native Shell takes of what is behind the box.
+// A browser draws both: its backdrop blur, which kept a slowed phone at 60 frames a second where
+// the shader, which takes a picture of the page each frame, fell to 9 (ruling R456).
 // No caller knows which: a later client maps a height to its system's material here, and nowhere
 // else. Only `Surface` draws glass: every other component gets it by sitting at a height.
 import { type JSX, platform, Shader, type StyleProp, View, type ViewStyle } from "nsh";

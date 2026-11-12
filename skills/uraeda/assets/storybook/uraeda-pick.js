@@ -468,7 +468,15 @@
   };
 
   page.addEventListener("message", (event) => {
-    const data = event.data;
+    // An object, or its JSON, as the app in a browser sends it through its frame.
+    let data = event.data;
+    if (typeof data === "string") {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        return;
+      }
+    }
     if (event.source !== page.parent || data?.uraeda !== "pick") {
       return;
     }

@@ -3491,18 +3491,41 @@ here: iOS and macOS are the human's, later. Ruling R424 says what NSH 0.5.0 give
   browser's backdrop blur; `WebFrame` as a frame; browser notifications; the page's title with the
   count of what needs the owner; the web app manifest.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a feature's address opens it, and Back returns`.
   - `a reload keeps the page and its scroll`.
   - `a touch in a field keeps the focus`: the keyboard bug fixed upstream in
     [longbridge/nsh#1482](https://github.com/longbridge/nsh/pull/1482). If the pin lacks the fix,
     this test fails, and the pin moves.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** Known gaps of NSH on the web, from the spike: a list's first scroll
+- [x] **Step 2: Run them**. Expected: FAIL. Seen: "the address never became
+      /r/sample/f/2026-10-17-due-dates: it is /r/sample/", and the reload's page not found again.
+      The touch passed at once: the pin, 0.5.0, holds longbridge/nsh#1482.
+- [x] **Step 3: Implement.** Known gaps of NSH on the web, from the spike: a list's first scroll
       position is not honoured, so scroll to the end after the first layout; a web build has no
       native components, so every native component of `crates/app/` needs its web form.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): addresses, history, and browser behaviour`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): addresses, history, and browser behaviour`.
+
+**As built** (rulings R454 to R463):
+
+- **The tests** are Rust, in `crates/server/tests/browser/app.rs` (`just web-test`), on the served
+  build, not `app/web/web.test.ts`: `nsh test --target web` runs on NSH's development page (R448).
+  `browser/pictures.rs` takes the web pictures, and fails when a spec's diagram is not drawn.
+- **The history**: `browserHistory(page)` in `app/store/history.web.ts`, bound in `App.tsx`;
+  `nsh.json` `web.history: false`; the page's window is `page()` in `app/web/page.ts`. `pageAddress`
+  is gone: the history's `start` reads the address.
+- **Diagrams**: `POST /diagram` (`crates/server/src/http/diagram.rs`); `Diagram.tsx` asks it in a
+  browser.
+- **Glass**: the browser's backdrop blur, measured (R456). **`WebFrame`**: `frame.web.ts`.
+  **Notifications** and the tab's title: `app/web/notify.ts`, `Head` in the notifier. **Drops**:
+  `app/web/Drops.tsx`. **The manifest**: NSH's, with `app/web/icon.png`.
+- **What each later task finds**:
+  - **Task 58**: the page around the app is `page()` (`app/web/page.ts`); a frame's messages reach
+    it, not the app's realm.
+  - **Task 59**: `Served::start(PHONE, mode)` in `browser/app.rs` signs a phone in; the safe area
+    and the browser's bars are untried on a real phone; files dropped do not reach a view.
+  - **Task 60**: glass's numbers are R456; a long document's first offset drifts by its rows'
+    estimates (R455).
 
 ## Task 58: Extension pages in the browser
 

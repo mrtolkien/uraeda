@@ -1,14 +1,21 @@
 // A Mermaid diagram, drawn in Rust by Merman as a picture of shapes, in the theme's colours: a
 // theme change draws it again. It never runs a script. One Merman cannot read, or that takes more
 // than 2 seconds, shows its source as code, and why, as the diagrams decision asks.
-import { effect, Image, Scroll, signal, Text, View } from "nsh";
+//
+// The app draws it itself, but in a browser: its web build leaves Merman out, 3 MB every first
+// load would carry, and asks the server that served the page, which links the same drawing
+// (`POST /diagram`). The browser sends its session's cookie with it.
+import { effect, Image, platform, Scroll, signal, Text, View } from "nsh";
 import { type DiagramPicture, diagramPicture } from "uraeda/native";
 import { tokens } from "../tokens";
 import { Code } from "./Code";
 import { measure, prose } from "./look";
 
-/** How long a diagram may take before its source shows. */
-const PATIENCE = 2000;
+/**
+ * How long a diagram may take before its source shows: in a browser the server keeps the 2
+ * seconds, and the way there gets one more.
+ */
+const PATIENCE = platform.os === "web" ? 3000 : 2000;
 
 /** A colour as Mermaid reads it: `#rrggbb`, a theme's alpha dropped. */
 const solid = (colour: string) => colour.slice(0, 7);
@@ -54,6 +61,23 @@ function colours() {
   return pairs.map(([name, value]) => ({ name, value: solid(value) }));
 }
 
+type Colours = ReturnType<typeof colours>;
+
+/** The server's picture, for a browser: the page's own origin, signed in by its cookie. */
+async function served(source: string, theme: Colours): Promise<DiagramPicture> {
+  const answer = await fetch("/diagram", {
+    body: JSON.stringify({ colours: theme, source }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  const said = (await answer.json().catch(() => ({}))) as DiagramPicture & { error?: string };
+  if (!answer.ok) throw new Error(said.error ?? `the server answered ${answer.status}`);
+  return said;
+}
+
+/** The picture, drawn here, or by the server in a browser. */
+const draw = platform.os === "web" ? served : diagramPicture;
+
 type Drawn = { picture: DiagramPicture } | { failed: string } | undefined;
 
 export function Diagram(props: { source: string }) {
@@ -66,7 +90,7 @@ export function Diagram(props: { source: string }) {
       if (!done) drawn.set({ failed: "it took more than 2 seconds" });
       done = true;
     }, PATIENCE);
-    diagramPicture(props.source, theme).then(
+    draw(props.source, theme).then(
       (picture) => {
         if (!done) drawn.set({ picture });
         done = true;
