@@ -31,6 +31,13 @@ fn checkout_dir(root: &Path, folder: &str) -> Option<PathBuf> {
     Some(root.join(feature.worktree?))
 }
 
+/// Whether a folder still has a checkout a preview could start in: its repository is listed,
+/// and its checkout's folder is there.
+pub(super) fn exists(shared: &Shared, repository: &str, folder: &str) -> bool {
+    let dir = main_checkout(shared, repository).and_then(|root| checkout_dir(&root, folder));
+    dir.is_some_and(|dir| dir.is_dir())
+}
+
 /// A folder's checkout to run, under its base, `/r/<name>/preview/<secret>/<folder>/`, with the
 /// current frame secret, at its current code version: none without a checkout, or without an
 /// active preview decision in it.

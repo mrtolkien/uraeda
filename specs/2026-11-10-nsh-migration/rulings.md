@@ -8424,3 +8424,31 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/files/pick.rs`;
   `a_mockup_page_asked_for_picking_carries_the_pick_script` (`crates/server/tests/files.rs`), whose
   page now takes the script first in its head.
+
+## T88.4: Only a page shown again wakes a preview that stopped, once a minute
+
+- **Decision**: the proxy wakes a preview that runs no more (R343) only for a request that shows its
+  page to somebody: a `GET` that navigates, `Sec-Fetch-Mode: navigate`, not made ahead of a visit
+  (`Sec-Purpose` or `Purpose` naming a prefetch), and no upgrade. A client that sends no fetch
+  metadata is believed on the path: the base itself, or an `.html` page. A base is woken at most
+  once a minute, on the server's clock (`WAKE_EVERY`), and never when its repository left the list
+  or its folder has no checkout. The 503 of a request that woke it carries `Retry-After: 5`: the
+  page is worth asking for again, and no other answer says so.
+- **Rationale**: the first review's finding 7 is right about the request, and wrong about two of its
+  cases. Right: every request under the base woke it, so a frame left open, whose hot reload pings
+  the address it lost and whose page loads scripts, started the preview the idle sweep had just
+  stopped, and the two cycled all night. Seen failing: with the `Retry-After` alone added to the
+  code the review read, `a_stale_frame_starts_no_preview` failed at its first request, a script's.
+  Wrong: no action stops a preview on purpose, only `preview.restart` exists, so nothing deliberate
+  is undone; and a wake never started a preview whose repository or folder was gone, since the
+  records read again find no checkout and answer `none`. The check is now made before the records
+  are told, so the answer says the truth. The limit is for a preview that does not stay: a failed
+  one is kept, and was never woken, but one stopped again at once would start at each look.
+- **Alternatives considered**: counting only a holder of the records as the viewer, as before.
+  Rejected: the app holds a round's records for as long as its pane is open, which is what made
+  every request of a stale frame a start.
+- **If wrong**: a web view that sends neither fetch metadata nor asks for an `.html` page is not
+  woken: `shows_a_page` (`preview/proxy.rs`) is where its request is named. `preview.restart` still
+  starts any preview.
+- **Where**: `crates/server/src/preview/{proxy,mod,checkout}.rs`; `only_a_navigation_shows_a_page`
+  and `a_stale_frame_starts_no_preview`.

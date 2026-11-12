@@ -31,7 +31,7 @@ mod warm;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use percent_encoding::percent_decode_str;
 use tokio::sync::Notify;
@@ -47,6 +47,10 @@ use runner::{Checkout, Runner, State};
 
 /// How often the previews nobody views are stopped.
 const SWEEP: Duration = Duration::from_secs(60);
+
+/// How long after a frame woke a preview no frame wakes it again: one that does not stay is
+/// not started by each look at it.
+const WAKE_EVERY: Duration = Duration::from_secs(60);
 
 /// Who reads a checkout's preview: the records to read again when it changes.
 #[derive(Clone, Debug)]
@@ -90,6 +94,8 @@ pub(crate) struct Previews {
     bus: Bus,
     /// Told when the frame secret was replaced: the previews start again under their new base.
     renew: Notify,
+    /// When a frame last woke each base, for [`WAKE_EVERY`].
+    woken: Mutex<HashMap<String, SystemTime>>,
 }
 
 impl Previews {
@@ -141,24 +147,48 @@ impl Previews {
         self.bus.changed_all::<Mockup>();
     }
 
-    /// A frame asked for the page of a preview that does not run: one stopped after 30 minutes
+    /// A frame showed the page of a preview that does not run: one stopped after 30 minutes
     /// without a view, as a client that held its records all along shows it again. The records
     /// of its checkout somebody holds are read again, which is a view, and starts it: the frame
     /// gets 503 until it is ready, and its records say so. Nobody holding them, nothing starts.
-    pub(crate) fn wake(&self, base: &str) {
+    ///
+    /// Whether it was woken: not a base whose repository left the list or whose folder has no
+    /// checkout any more, which nothing can start, nor one woken less than [`WAKE_EVERY`] ago.
+    /// It reads the folder's files: call it from a blocking thread.
+    pub(crate) fn wake(&self, shared: &Shared, base: &str) -> bool {
         let parts: Vec<String> = base
             .trim_matches('/')
             .split('/')
             .map(|part| percent_decode_str(part).decode_utf8_lossy().into_owned())
             .collect();
         let [_, repo, _, _, folder] = parts.as_slice() else {
-            return;
+            return false;
         };
+        if !checkout::exists(shared, repo, folder) || !self.may_wake(base, shared.now()) {
+            return false;
+        }
         let (repo, folder) = (repo.clone(), folder.clone());
         let ours = format!("{folder}:");
         self.bus
             .changed_where::<Story>(|args| args.repo == repo && args.id.starts_with(&ours));
         self.bus.changed::<Preview>(&PreviewArgs { repo, folder });
+        true
+    }
+
+    /// Whether `base` may be woken at `now`, which then counts as its last wake: not within
+    /// [`WAKE_EVERY`] of the one before.
+    fn may_wake(&self, base: &str, now: SystemTime) -> bool {
+        let mut woken = self.woken.lock().unwrap_or_else(PoisonError::into_inner);
+        // The ones whose time is up are forgotten: a clock set back forgets them all.
+        woken.retain(|_, at| {
+            let since = now.duration_since(*at);
+            since.is_ok_and(|since| since < WAKE_EVERY)
+        });
+        let may = !woken.contains_key(base);
+        if may {
+            woken.insert(base.to_owned(), now);
+        }
+        may
     }
 }
 
@@ -189,6 +219,7 @@ pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure>
         watched,
         bus,
         renew: Notify::new(),
+        woken: Mutex::default(),
     });
     proxy::mount(routes);
     let previews = shared.get::<Previews>();

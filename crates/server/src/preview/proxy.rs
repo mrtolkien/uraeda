@@ -94,10 +94,10 @@ async fn answer(shared: &Shared, request: Request) -> Response {
     }
     let state = previews.runner.state(&base);
     let Some(Preview::Ready { port }) = state else {
-        if state.is_none() {
-            previews.wake(&base);
-        }
-        return not_running();
+        // Only a page shown again starts a preview that stopped: what an open frame asks for
+        // by itself, a script, a ping, a page fetched ahead, leaves it stopped.
+        let woken = state.is_none() && shows_a_page(&request, rest) && wake(shared, &base).await;
+        return not_running(woken);
     };
     // A page that asks for what it shows is looked at: the preview runs on.
     previews.runner.seen(shared, &base);
@@ -132,9 +132,48 @@ fn split(path: &str) -> Option<(String, Option<&str>)> {
     Some((base, rest))
 }
 
-/// What a preview that does not run answers.
-fn not_running() -> Response {
-    (StatusCode::SERVICE_UNAVAILABLE, NOT_RUNNING).into_response()
+/// Whether a request shows a preview's page to somebody: the navigation of a frame's or a web
+/// view's document, as the fetch metadata says where a browser sends it, and not one made ahead
+/// of a visit. A client that sends none is believed on the path: the base itself, or a page.
+fn shows_a_page(request: &Request, rest: &str) -> bool {
+    let headers = request.headers();
+    let said = |name: &str| {
+        let value = headers.get(name).and_then(|value| value.to_str().ok());
+        value.map(str::to_ascii_lowercase)
+    };
+    let ahead = ["sec-purpose", "purpose"]
+        .iter()
+        .filter_map(|name| said(name))
+        .any(|purpose| purpose.contains("prefetch") || purpose.contains("prerender"));
+    if request.method() != Method::GET || headers.contains_key(header::UPGRADE) || ahead {
+        return false;
+    }
+    match said("sec-fetch-mode") {
+        Some(mode) => mode == "navigate",
+        None => rest == "/" || rest.ends_with(".html"),
+    }
+}
+
+/// Wakes the preview under `base`, if it may be: see [`Previews::wake`]. It reads the checkout's
+/// files, off the async threads.
+async fn wake(shared: &Shared, base: &str) -> bool {
+    let (shared, base) = (shared.clone(), base.to_owned());
+    let woken = tokio::task::spawn_blocking(move || shared.get::<Previews>().wake(&shared, &base));
+    woken.await.unwrap_or(false)
+}
+
+/// How long a frame whose request woke its preview waits before it asks again, in seconds.
+const RETRY_AFTER: &str = "5";
+
+/// What a preview that does not run answers: with `Retry-After` when the request woke it, so
+/// the page is worth asking for again.
+fn not_running(woken: bool) -> Response {
+    let mut response = (StatusCode::SERVICE_UNAVAILABLE, NOT_RUNNING).into_response();
+    if woken {
+        let after = HeaderValue::from_static(RETRY_AFTER);
+        response.headers_mut().insert(header::RETRY_AFTER, after);
+    }
+    response
 }
 
 /// The names a header's value lists, in lower case.
@@ -180,7 +219,7 @@ async fn forward(port: u16, request: ForPreview) -> Response {
     };
     match upstream::send(port, request).await {
         Ok(response) => relayed(response),
-        Err(_) => not_running(),
+        Err(_) => not_running(false),
     }
 }
 
@@ -244,7 +283,7 @@ async fn socket(shared: &Shared, port: u16, target: &str, mut asked: Request) ->
     }
     let frame = hyper::upgrade::on(&mut asked);
     let Ok(mut response) = upstream::send(port, request).await else {
-        return not_running();
+        return not_running(false);
     };
     if response.status() != StatusCode::SWITCHING_PROTOCOLS {
         return relayed(response);
@@ -311,5 +350,57 @@ mod tests {
             assert_eq!(as_preview(CHANNEL, asked), sent, "{asked}");
         }
         assert_eq!(as_preview("/other", "?page=manager"), "?page=manager");
+    }
+
+    /// A request for `rest` under a preview's base, with these headers.
+    fn asked(method: Method, rest: &str, headers: &[(&'static str, &'static str)]) -> bool {
+        let mut request = Request::new(Body::empty());
+        *request.method_mut() = method;
+        for (name, value) in headers {
+            let name = HeaderName::from_static(name);
+            request
+                .headers_mut()
+                .insert(name, HeaderValue::from_static(value));
+        }
+        shows_a_page(&request, rest)
+    }
+
+    // A preview that stopped starts again for a page somebody is shown, and for nothing an open
+    // frame asks by itself: each of these, taken for a view, kept a Storybook running all night.
+    #[test]
+    fn only_a_navigation_shows_a_page() {
+        const NAVIGATE: (&str, &str) = ("sec-fetch-mode", "navigate");
+        let get = |rest: &str, headers: &[(&'static str, &'static str)]| {
+            asked(Method::GET, rest, headers)
+        };
+
+        // A frame's document, and a web view's.
+        assert!(get(
+            "/iframe.html",
+            &[NAVIGATE, ("sec-fetch-dest", "iframe")]
+        ));
+        assert!(get("/", &[("sec-fetch-mode", "Navigate")]));
+        assert!(
+            get("/story.js", &[NAVIGATE]),
+            "a navigation, whatever its path"
+        );
+        // What a page loads, and its hot reload's ping.
+        assert!(!get("/iframe.html", &[("sec-fetch-mode", "no-cors")]));
+        assert!(!get("/", &[("sec-fetch-mode", "cors")]));
+        assert!(!get(
+            "/",
+            &[("sec-fetch-mode", "websocket"), ("upgrade", "websocket")]
+        ));
+        // A page fetched ahead of a visit that may never come.
+        assert!(!get(
+            "/",
+            &[NAVIGATE, ("sec-purpose", "prefetch;prerender")]
+        ));
+        assert!(!get("/", &[NAVIGATE, ("purpose", "prefetch")]));
+        assert!(!asked(Method::HEAD, "/", &[NAVIGATE]));
+        // A client without fetch metadata: the base, or a page, never what a page loads.
+        assert!(get("/", &[]) && get("/iframe.html", &[]));
+        assert!(!get("/story.js", &[]) && !get("/__events", &[]));
+        assert!(!get("/", &[("upgrade", "websocket")]));
     }
 }

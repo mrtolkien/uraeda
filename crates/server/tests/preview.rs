@@ -870,6 +870,79 @@ async fn a_preview_that_stopped_restarts_when_it_is_shown() {
     server.stop().await;
 }
 
+/// A frame's request for a stopped preview, with the fetch metadata a browser sends: whether
+/// it woke the preview, which the answer's `Retry-After` says.
+async fn woke(server: &TestServer, path: &str, metadata: &[(&str, &str)]) -> bool {
+    let mut asked = server.get(path).header("origin", "null");
+    for (name, value) in metadata {
+        asked = asked.header(name, value);
+    }
+    let answer = asked.send().await;
+    assert_eq!(answer.status, 503, "{path}");
+    answer.header("retry-after").is_some()
+}
+
+// Only a page shown again starts a preview that stopped (ruling T88.4). A frame left open asks
+// on by itself, for a script, a ping of its hot reload, a page fetched ahead: answered as a
+// view, each started the preview the idle sweep had just stopped, all night. And a preview that
+// goes again right after it was woken is not started in a loop, nor one whose repository left.
+#[tokio::test]
+async fn a_stale_frame_starts_no_preview() {
+    let project = project("repo", "ok");
+    let server = serving(&project).await;
+    let mut records = Records::of(&server).await;
+    let base = ready(&mut records, 1).await;
+    let page = format!("{base}iframe.html?id=sidebar--dragging");
+    let navigation = [("sec-fetch-dest", "iframe"), ("sec-fetch-mode", "navigate")];
+    server.clock().advance(31 * MINUTE);
+    preview::sweep(server.shared());
+    assert_eq!(gone(group_of(project.pid(0))).await, Vec::<u32>::new());
+
+    // What an open frame asks for by itself wakes nothing.
+    let script = [("sec-fetch-dest", "script"), ("sec-fetch-mode", "no-cors")];
+    assert!(!woke(&server, &format!("{base}story.js"), &script).await);
+    let ping = [("sec-fetch-dest", "empty"), ("sec-fetch-mode", "no-cors")];
+    assert!(!woke(&server, &base, &ping).await, "a hot reload's ping");
+    let ahead = [navigation[0], navigation[1], ("sec-purpose", "prefetch")];
+    assert!(!woke(&server, &page, &ahead).await, "a page fetched ahead");
+    // Without fetch metadata, only the page itself is one.
+    assert!(!woke(&server, &format!("{base}story.js"), &[]).await);
+
+    // The page shown again does, and its records follow.
+    assert!(woke(&server, &page, &navigation).await);
+    records
+        .until(1, |preview| preview["state"] == "starting")
+        .await;
+    records
+        .until(1, |preview| preview["state"] == "ready")
+        .await;
+    assert_eq!(project.starts().len(), 2);
+
+    // Gone again within the minute, it is left: a preview that does not stay is not started
+    // again by each look at it.
+    preview::repository_removed(server.shared(), "repo");
+    assert_eq!(gone(group_of(project.pid(1))).await, Vec::<u32>::new());
+    assert!(!woke(&server, &page, &navigation).await, "a second wake");
+    server.clock().advance(2 * MINUTE);
+    assert!(woke(&server, &page, &navigation).await, "a minute later");
+    records
+        .until(1, |preview| preview["state"] == "starting")
+        .await;
+    records
+        .until(1, |preview| preview["state"] == "ready")
+        .await;
+
+    // Its repository gone from the list, nothing is left to start.
+    records
+        .call("repositories.remove", json!({ "name": "repo" }))
+        .await;
+    assert_eq!(gone(group_of(project.pid(2))).await, Vec::<u32>::new());
+    server.clock().advance(2 * MINUTE);
+    assert!(!woke(&server, &page, &navigation).await, "no repository");
+    assert_eq!(project.starts().len(), 3);
+    server.stop().await;
+}
+
 // A mockup's page is shown in a web view, which sends no cookie: its record gives its address
 // with the frame secret, which opens it, and none for a file that is not a mockup's.
 #[tokio::test]
