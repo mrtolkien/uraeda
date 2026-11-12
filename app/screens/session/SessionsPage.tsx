@@ -164,7 +164,9 @@ function SessionCard(props: {
         onPress={props.onPress}
         selected={props.selected}
         state={{
-          label: props.row.archived ? "Archived" : rowState(props.row),
+          label: props.row.archived
+            ? "Archived"
+            : rowState(props.row, session()?.statusReason ?? null),
           running: working(),
           tone: props.row.archived ? "quiet" : statusTone(props.row.status),
         }}

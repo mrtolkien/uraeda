@@ -241,11 +241,28 @@ export function turnWords(turn: Pick<Turn, "kind" | "reason" | "state">): string
   return undefined;
 }
 
-/** A session row's state, with its cause where it has one: "Waiting · goes on at 15:08". */
+/** Why a session needs the human, in a card's few words: "an action to allow". */
+const REASON_WORDS: Partial<Record<StatusReason, string>> = {
+  blocked: "an action to allow",
+  capped: "it keeps stopping",
+  conflict: "a conflict to settle",
+  failed: "its run failed",
+  halted: "stopped before a gate",
+  interrupted: "the server stopped it",
+  step: "its step waits on you",
+  stopped: "you stopped it",
+};
+
+/**
+ * A session row's state, with its cause where it has one: "Needs attention · its run failed",
+ * "Working · 2 sub-agents at work". `reason` is the session's, which the row does not carry.
+ */
 export function rowState(
   row: Pick<SessionRow, "statusLabel" | "subagents" | "backgroundCommands">,
+  reason: StatusReason | null = null,
 ) {
   const extra = [
+    (reason === null ? undefined : REASON_WORDS[reason]) ?? "",
     row.subagents > 0 ? `${row.subagents} sub-agent${row.subagents === 1 ? "" : "s"} at work` : "",
     row.backgroundCommands > 0
       ? `${row.backgroundCommands} background command${row.backgroundCommands === 1 ? "" : "s"}`
