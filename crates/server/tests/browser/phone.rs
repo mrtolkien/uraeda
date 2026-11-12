@@ -186,10 +186,21 @@ pub async fn tap_selector(browser: &mut Browser, selector: &str) -> bool {
     }
 }
 
-/// Taps the middle of the box a script finds, waiting up to 5 s for it.
+/// Taps the middle of the box a script finds, once it stands still, waiting up to 5 s for it:
+/// a menu that opens moves as it comes, and a tap where an item was a frame before misses it.
 async fn tap_found(browser: &mut Browser, script: &str) -> bool {
+    let still = format!(
+        "(async () => {{
+            const at = () => {script};
+            const before = at();
+            if (!before) return null;
+            await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+            const after = at();
+            return JSON.stringify(before) === JSON.stringify(after) ? after : null;
+        }})()"
+    );
     for _ in 0..50 {
-        if let Some(at) = browser.evaluate(script).await.as_array() {
+        if let Some(at) = browser.evaluate(&still).await.as_array() {
             let number = |index: usize| at[index].as_f64().unwrap_or_default();
             let middle = (number(0) + number(2) / 2.0, number(1) + number(3) / 2.0);
             browser.tap_at(middle).await;

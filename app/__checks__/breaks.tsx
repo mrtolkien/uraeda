@@ -21,9 +21,11 @@ host.on("loop", () => {
   }
 });
 host.on("grow", () => {
+  // Large arrays filled by the engine itself: one element at a time through a callback took
+  // longer than the call's budget on a loaded machine, which cut the call off first.
   const kept: Array<Array<number>> = [];
   for (;;) {
-    kept.push(Array.from({ length: 100_000 }, (_, index) => index));
+    kept.push(new Array<number>(1 << 20).fill(kept.length));
   }
 });
 host.on("ping", () => host.post("alive"));

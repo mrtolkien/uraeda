@@ -277,13 +277,23 @@ fn a_diagram_is_drawn_without_a_browser() {
         let size = next("Rust draws the diagram", &drawn);
         assert!(size["width"].as_f64() > Some(200.0), "{size}");
         next("NSH shows the picture", &shown);
-        let picture = wait_for("GTK draws the diagram", 30, || {
+        // A frame taken as the picture comes may hold part of it: the whole is waited for.
+        let mut counted = (0, 0, 0);
+        let whole = (0..3000).any(|_| {
+            stage::spin(std::time::Duration::from_millis(10));
             let picture = stage.picture();
-            (picture.count(is_box) > 0).then_some(picture)
+            counted = (
+                picture.count(is_box),
+                picture.count(is_arrow),
+                picture.count(is_text),
+            );
+            counted.0 > 5000 && counted.1 > 50 && counted.2 > 300
         });
-        assert!(picture.count(is_box) > 5000, "the boxes are filled");
-        assert!(picture.count(is_arrow) > 50, "the arrows are drawn");
-        assert!(picture.count(is_text) > 300, "the text is drawn");
+        let (boxes, arrows, text) = counted;
+        assert!(
+            whole,
+            "within 30 s, the boxes are filled ({boxes} pixels), the arrows drawn ({arrows}), the text drawn ({text})"
+        );
     });
 }
 

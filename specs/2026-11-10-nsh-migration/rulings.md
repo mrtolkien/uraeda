@@ -10165,6 +10165,32 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   element; stopping it as its view leaves the window would reload a pane each time it moves.
 - **Where**: `crates/app/tests/extensions.rs`, `crates/app/src/extension_view.rs`.
 
+## T82.2: The tests the rulings name as failing under load wait on what they check
+
+- **Decision**: each was read for why it can fail on a loaded machine.
+  - `a_diagram_is_drawn_without_a_browser` took the first frame with any box's pixel as the picture,
+    then counted boxes, arrows, and text in it: a frame of a picture still coming fails. It now waits,
+    30 s at most, for the whole, and says the three counts when it times out.
+  - `a_broken_page_is_reported_to_its_host`: the page's `grow` filled its arrays one element at a
+    time through a callback, in an interpreter with no JIT; on a loaded machine that passed the
+    call's budget of wall time before the 64 MiB heap, and the report said "interrupted", not "out
+    of memory". It now pushes arrays of a million, filled by the engine itself.
+  - `a_tap_on_the_phones_more_places_opens_its_menu` tapped where `Settings` was the moment it was
+    found, as the menu still came in. A tap now waits until what it taps stands still across two
+    frames (`tap_found`, `crates/server/tests/browser/phone.rs`), and nextest runs four browser
+    tests at once, not sixteen (the group `browsers`, `.config/nextest.toml`).
+  - Already fixed, and left: `a_stale_frame_starts_no_preview` reads a process's group before
+    stopping it (R487), and `git.test.tsx` waits for the device to hold the message before its
+    `Ctrl+Enter` (R437). The key and the text change come in order from the native editor
+    (`vim_bridge.rs`): the race was the test driver's, not a person's.
+  - Not explained, and left: `serve_runs_until_it_is_stopped_and_a_second_start_hands_over` met a
+    `ConnectionReset` once, in its first request after the server printed its address. The server
+    serves before it prints, and the test waits on nothing by time: no cause was found in the code.
+- **Rationale**: the human's rule, tests "run smoothly, and actually pull their weight": a wait on
+  the observable thing, not a retry.
+- **Where**: `crates/app/tests/outside.rs`, `app/__checks__/breaks.tsx`,
+  `crates/server/tests/browser/phone.rs`, `.config/nextest.toml`.
+
 ## T82.3: A record's whole value shares the record's own, not a copy
 
 - **Decision**: a topic holds its value as `Arc<Value>`, and `Whole` takes that `Arc`: a large record

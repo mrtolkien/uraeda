@@ -14,6 +14,15 @@ leak-timeout = { period = "500ms", result = "fail" }
 filter = "package(uraeda-app) & binary(outside)"
 retries = 2
 
+# Each browser test starts a Chromium of its own: sixteen at once made a tap land before its
+# page was drawn. Four run at a time.
+[[profile.default.overrides]]
+filter = "package(uraeda-server) & binary(browser)"
+test-group = "browsers"
+
+[test-groups]
+browsers = { max-threads = 4 }
+
 # CI's profile, selected with NEXTEST_PROFILE=ci: every test runs, to report every failure at once.
 [profile.ci]
 fail-fast = false
