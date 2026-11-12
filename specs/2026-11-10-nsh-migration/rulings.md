@@ -10087,3 +10087,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the choice belongs to the text the human saw when they chose; nothing outlives it.
 - **Where**: `app/screens/editor/edited.ts`, `app/ui/text/{SaveStatus.tsx,unsaved.ts}`; the test
   `app/screens/editor/edited.test.ts`, both failure scenarios of the finding.
+
+## T81.3: An unreadable frame stops its subscription, asks once more, then fails with words
+
+- **Decision**: a frame the app cannot read ended the subscription only on the client: the server
+  kept sending it, and the record stayed in error until the line dropped. Now the client sends
+  `unsub`, then a fresh `sub` (never a `resume` from what may be wrong), once: a frame corrupted on
+  its way heals without an error shown. Unreadable again before a value came, the record fails with
+  the frame's words, nothing left streaming; a value read resets the one retry.
+- **Rationale**: one retry costs one whole value; looping would stream a broken large value forever.
+- **Where**: `app/store/connection.ts`; the store's test against the real server, by injected
+  frames.

@@ -67,6 +67,8 @@ export type Entry = {
   leaving: number | undefined;
   /** The callbacks told after each value or error: an extension page's reads. */
   listeners: Set<() => void>;
+  /** Whether a frame of it could not be read since its last value: it was asked for again. */
+  unread: boolean;
 };
 
 type Waiting = { resolve: (output: unknown) => void; reject: (error: StoreError) => void };
@@ -200,6 +202,7 @@ export class Connection {
         name,
         refs: 0,
         sub: undefined,
+        unread: false,
       };
       this.entries.set(key, entry);
     }
@@ -283,7 +286,7 @@ export class Connection {
   private receive(message: Inbound, told: Set<Entry>) {
     switch (message.type) {
       case "unreadable":
-        this.failed(message.id, new StoreError("unreadable", message.message), told);
+        this.unreadable(message.id, message.message, told);
         return;
       case "welcome":
         this.heardZone(message.timeZone);
@@ -298,6 +301,7 @@ export class Connection {
         const entry = this.subs.get(message.id);
         if (entry === undefined) return;
         entry.held.data(message.value, message.seq);
+        entry.unread = false;
         entry.epoch = this.epoch;
         entry.error.set(undefined);
         told.add(entry);
@@ -367,6 +371,28 @@ export class Connection {
     this.subs.delete(id);
     entry.sub = undefined;
     entry.error.set(error);
+    told.add(entry);
+  }
+
+  /**
+   * A frame that could not be read: a call's fails. A subscription's stops on the server too, and
+   * is asked for again whole, once, which heals a frame corrupted on its way; unreadable again
+   * before a value came, the record fails with the frame's words.
+   */
+  private unreadable(id: number, words: string, told: Set<Entry>) {
+    const entry = this.subs.get(id);
+    if (entry === undefined) {
+      this.failed(id, new StoreError("unreadable", words), told);
+      return;
+    }
+    this.unsubscribe(entry);
+    if (!entry.unread) {
+      entry.unread = true;
+      entry.held.seq = undefined;
+      this.subscribe(entry);
+      return;
+    }
+    entry.error.set(new StoreError("unreadable", words));
     told.add(entry);
   }
 

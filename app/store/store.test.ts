@@ -144,22 +144,48 @@ test("a long first value arrives compressed and reads as it was; a short one sta
   expect(read.rows!.length).toBeGreaterThan(20);
 });
 
-test("a frame the app cannot read fails its record with words, and the app goes on", async () => {
+/** Whether connection `a` stopped the subscription `id`. */
+const stopped = (id: number) => (f: Facts) =>
+  f.conns.a!.sent.some((one) => one.type === "unsub" && one.id === id);
+
+test("a frame the app cannot read is asked for again once, then fails its record with words", async () => {
   const app = await harness();
   await step(app, { conn: "a", do: "connect" });
   await until(app, (f) => f.conns.a?.status === "live");
   await step(app, { conn: "a", do: "hold" });
   await step(app, { args: null, conn: "a", do: "read", key: "vim", name: "Settings", pick: VIM });
   await until(app, (f) => f.conns.a!.sent.some((one) => one.type === "sub"));
-  const id = facts(app).conns.a!.sent.find((one) => one.type === "sub")!.id!;
-
+  const subs = () => facts(app).conns.a!.sent.filter((one) => one.type === "sub");
   // A frame that declares more than the 16 MiB the app inflates: it is refused before it is read.
-  const head = `{"type":"data","id":${id},"seq":1,"size":999999999}\n`;
-  const bytes = [...head].map((char) => char.charCodeAt(0)).concat([0x4b, 0x04, 0x00]);
-  await step(app, { bytes, conn: "a", do: "inject" });
+  const bad = async (id: number) => {
+    const head = `{"type":"data","id":${id},"seq":1,"size":999999999}\n`;
+    const bytes = [...head].map((char) => char.charCodeAt(0)).concat([0x4b, 0x04, 0x00]);
+    await step(app, { bytes, conn: "a", do: "inject" });
+  };
+
+  // The server stops sending it, and a fresh subscription reads it whole: a frame corrupted once
+  // heals, and the record never shows an error.
+  const first = subs()[0]!.id!;
+  await bad(first);
+  await until(app, (f) => stopped(first)(f) && subs().length === 2);
+  await step(app, { conn: "a", do: "release" });
+  await until(app, (f) => typeof last(f.reads.vim?.values) === "boolean");
+  expect(facts(app).reads.vim!.error).toBe(null);
+
+  // Read again, and unreadable twice in a row: the second fails the record with its words, and
+  // nothing is left streaming.
+  await step(app, { conn: "a", do: "hold" });
+  await bad(subs()[1]!.id!);
+  await until(app, () => subs().length === 3);
+  const third = subs()[2]!.id!;
+  await bad(third);
   await until(app, (f) => f.reads.vim?.error !== null && f.reads.vim?.error !== undefined);
   expect(facts(app).reads.vim!.error).toBe("unreadable");
-  expect(facts(app).conns.a!.status).toBe("live");
+  await until(app, stopped(third));
+  expect(subs().length).toBe(3);
+  const conn = facts(app).conns.a!;
+  expect(conn.open).toBe(0);
+  expect(conn.status).toBe("live");
 });
 
 test("a record's signal follows the server", async () => {
