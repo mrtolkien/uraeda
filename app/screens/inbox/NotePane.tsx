@@ -114,8 +114,16 @@ function Note(props: { category: string | null; inbox: Inbox; note: InboxNote; r
     picking.set({ category: props.category, kind, note: props.note });
   // The pane then says it is gone, with Undo, as after any move out of the inbox.
   const remove = () => said(() => deleteNote(props.repo, props.inbox, props.note));
-  // `c`, `p`, and `d` are its buttons' own keys.
+  // `c`, `p`, and `d` are its buttons' own keys; `i` edits its text, as everywhere else.
   registerKey([
+    {
+      hint: "i",
+      hintLabel: "edit",
+      icon: "pencil",
+      keys: "i",
+      label: "Edit the note",
+      run: () => (editor === undefined ? false : void editor.focus()),
+    },
     {
       // In its field too: an image is added to the note, and text goes in the field.
       inField: true,
