@@ -31,6 +31,9 @@ test("a commit holds exactly the staged files", async () => {
   // The commit is the history's newest: it holds the staged file alone.
   await app.press("label:History");
   await app.waitUntil(() => shows().includes("docs: the standup's notes"), { timeout: 15_000 });
+  // "Committed" stands over the side stack's first rows for a moment: a press waits for it to go,
+  // as a hand does. Native Shell 0.5.0's driver refuses a press on a view another covers.
+  await app.waitUntil(() => !shows().includes("Committing 1 file"), { timeout: 15_000 });
   await app.press("text:docs: the standup's notes");
   await app.waitFor("id:git-commit-files >> text:notes/standup.md", { timeout: 15_000 });
   expect(app.count("id:git-commit-files >> text:/\\.md$/")).toBe(1);

@@ -11,7 +11,8 @@
 // between what takes the focus, and keeps them until Escape, which the page does not use, gives
 // them back to the app. The page says when it gains and loses them, `onKeys`, so the screen's
 // status line says how to leave. `focus()` gives them by a key on the web and macOS; on GTK,
-// Native Shell 0.4.0 focuses only its text fields, and it does nothing (ruling R341).
+// Native Shell focuses its text fields and, since 0.5.0, the views Tab stops at, never a web
+// view: there it does nothing (rulings R341 and T68.1).
 //
 // Messages: the page posts with `window.nsh.postMessage(text)`, or, as a story's pick script
 // does, `window.parent.postMessage({ uraeda })`, which at the top is the page itself: both reach

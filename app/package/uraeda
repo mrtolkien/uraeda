@@ -12,7 +12,8 @@ if ! loaded=$("$app" --version 2>&1); then
   case "$loaded" in
     *"loading shared libraries: libwebkitgtk-6.0"* | *"loading shared libraries: libjavascriptcoregtk-6.0"*)
       need="WebKitGTK 6.0" ;;
-    # Every other library it links is GTK's or one GTK brings: Pango, cairo, HarfBuzz, GLib.
+    # Every other library it links is GTK's or one GTK or WebKitGTK brings: Pango, cairo,
+    # HarfBuzz, GLib, and GStreamer, which Native Shell links for its sounds.
     *"loading shared libraries: "*) need="GTK 4, version 4.14 or newer, and WebKitGTK 6.0" ;;
     *"undefined symbol: gtk_"* | *"undefined symbol: gdk_"* | *"undefined symbol: gsk_"*)
       need="GTK 4.14 or newer: this machine's GTK is older" ;;

@@ -1,7 +1,7 @@
 //! Whether Native Shell's `DiffView` can read a patch. It draws nothing for one it cannot, and says
 //! nothing: `Diff` asks here first, and shows a patch that fails as its plain text, with the cause.
-//! The rules are those of NSH 0.4.0's reader (`nsh-base/src/diff/patch.rs`): every hunk's header
-//! is `@@ -a,b +c,d @@`, and its lines are as many as the header counts.
+//! The rules are those of NSH's reader, unchanged in 0.5.0 (`nsh-base/src/diff/patch.rs`): every
+//! hunk's header is `@@ -a,b +c,d @@`, and its lines are as many as the header counts.
 
 use nsh_core::prelude::*;
 

@@ -64,14 +64,16 @@ napi-derive = "3.6.12"
 notify = "8.2.0"
 # Native Shell, at one exact version for every crate, the one of the `nsh` CLI in `flake.nix`: its
 # crates release together, and its Rust API changes between releases.
-nsh-base = "=0.4.0"
-nsh-bundler = { version = "=0.4.0", features = ["bundle"] }
-nsh-core = "=0.4.0"
-nsh-engine = "=0.4.0"
-nsh-package = "=0.4.0"
-# The GTK backend, without its default features: a crate names the ones it uses, `js` for TSX and
-# `webview` for web views, which links WebKitGTK.
-nsh-platform-linux = { version = "=0.4.0", default-features = false }
+nsh-base = "=0.5.0"
+nsh-bundler = { version = "=0.5.0", features = ["bundle"] }
+nsh-core = "=0.5.0"
+nsh-engine = "=0.5.0"
+nsh-package = "=0.5.0"
+# The GTK backend, with its default features, the parts NSH's own runner has: TSX, shaders, and
+# every part of `nsh/base` a page may import. Since 0.5.0 each is a feature, and a build without
+# one draws no shader, or fails a page at its import. A crate adds `webview` for web views, which
+# links WebKitGTK.
+nsh-platform-linux = "=0.5.0"
 # oxc, at one exact version for every crate: its crates release together, and 0.153 needs Rust 1.97.
 oxc_allocator = "=0.152.0"
 oxc_ast = "=0.152.0"
@@ -87,9 +89,10 @@ percent-encoding = "2"
 pulldown-cmark = { version = "0.13.4", default-features = false }
 # The QR code `ura pair` draws in the terminal: no dependency of its own.
 qrcodegen = "1.8.0"
-# rolldown's crates, at the version NSH's bundler holds rolldown itself at. NSH names four of them,
-# and those hold the ones that depend on them: these five depend on none, so a new release moved
-# them alone, and rolldown no longer built. A crate that takes `nsh-bundler` takes these too.
+# rolldown's crates, at the version NSH's bundler holds rolldown itself at, 1.2.13 in 0.5.0 as in
+# 0.4.0. NSH names four of them, and those hold the ones that depend on them: these five depend on
+# none, so a new release moved them alone, and rolldown no longer built. A crate that takes
+# `nsh-bundler` takes these too.
 rolldown_devtools = "=1.2.13"
 rolldown_devtools_action = "=1.2.13"
 rolldown_fs = "=1.2.13"
@@ -132,7 +135,8 @@ merman = { version = "=0.9.3", default-features = false, features = [
 merman-export = { version = "=0.9.3", default-features = false, features = ["native-fonts"] }
 usvg = { version = "0.46", default-features = false, features = ["text"] }
 # Code blocks' colours: the syntect and syntaxes (two-face's, bat's set) NSH's editor highlights
-# with, at its features, so the app holds one highlighter.
+# with, so the app holds one highlighter. NSH 0.5.0's own build adds Oniguruma's regexes
+# (`regex-onig`), which syntect then uses in every crate built with it.
 syntect = { version = "5.3.0", default-features = false, features = [
   "parsing",
   "regex-fancy",

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# `scripts/frames.sh < log`: what a scene's frames cost, from the `nsh::perf` lines Native Shell's
-# GTK backend logs once a second with `--fps`, between the scene's `frames: from` and `frames: to`.
+# `scripts/frames.sh < log`: what a scene's frames cost, from the `nsh::fps` lines Native Shell's
+# GTK backend logs once a second with `--fps`, shown with `-v`, between the scene's `frames: from` and `frames: to`.
 #
 # Each line gives the main thread's time per drawn frame over its last 120 frames, as
 # mean/p50/p95/max: no single frame is logged. So every other line is read, which at 60 frames a
@@ -33,7 +33,7 @@ sed 's/\x1b\[[0-9;]*m//g' |
       print f[4], n * 0.05
       seconds += every
     }
-    END { if (seconds == 0) { print "no nsh::perf line between the scene'"'"'s marks" > "/dev/stderr"; exit 1 } }
+    END { if (seconds == 0) { print "no nsh::fps line between the scene'"'"'s marks" > "/dev/stderr"; exit 1 } }
   ' |
   sort -n |
   awk '

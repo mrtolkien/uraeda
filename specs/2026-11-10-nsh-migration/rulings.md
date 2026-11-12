@@ -8113,3 +8113,175 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
      tab, `k` climbs every row of the outline before the tabs take `h` `l`. Propose: Vim's `g t` and
      `g T` switch the focused stack's tab from anywhere in it.
 - **Where**: `specs/ui/` once decided; the pictures in `target/shots/walk/`.
+
+## T68.1: Native Shell 0.5.0: what the release changed for Uraeda
+
+- **Decision**: the pin moves to NSH 0.5.0, the release `v0.5.0`, at commit
+  `f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1`, in its four places. Read: the release's notes, its 563
+  commits since `v0.4.0`, and the source of what Uraeda uses. Each item below was checked against
+  the source, and by a run where it says "seen".
+- **What broke, and how it was adapted**:
+  - **NSH's parts are Cargo features** (#898): shaders, the editor and the diff, highlighting,
+    formulas, and the standard modules `zlib` and `crypto` were always built; they are now features
+    of `nsh-platform-linux`, on by default. The workspace took the backend without its default
+    features: it takes them now, as NSH's own runner does, plus `webview`. Without them a shader
+    draws nothing, and a page that imports `Editor` fails at the import.
+  - **The GTK backend links GStreamer** (#955, sounds), whether or not an app plays one: the dev
+    shell holds it, and the package's program needs `libgstreamer-1.0`, `libgstbase-1.0`,
+    `libgstapp-1.0`, and `libgstaudio-1.0`, which WebKitGTK 6.0 brings on Debian, Fedora, and Arch.
+  - **The release's archive holds this machine's runtime alone** (#1302): the web runtime is a
+    component, `nsh-web.tar.gz`, which `nsh` downloads at the first web build. `flake.nix` fetches
+    it by a second hash and lays it out with its record, `components/web.json`, so `nsh` finds it
+    installed.
+  - **`KeyOptions` gained `pass_through`** (the Vim bridge's bindings: false, the field takes its
+    keys), and **`BundleOptions` gained `development`, `app`, and `asset_root_from`** (the server's
+    page build and two tests: `..BundleOptions::default()`).
+  - **The desktop's window API is replaced** (#1137, #1219): `Window.orderFront()` and
+    `Window.setTitle()` are `Window.get("main")?.focus()` and `.set({ title })`, in the notifier.
+  - **The frame log moved** (#1322): from the target `nsh::perf` to `nsh::fps`, shown only with
+    `-v`. `just frames` passes it. `--fps` also draws a panel of readings over the app now.
+  - **`nsh test`'s driver refuses a press on a view another is drawn over** (#881). The Git page's
+    test pressed the history's newest commit while "Committed" stood over it, the toast of the write
+    that just landed, which stays 2.5 s over the side stack's first rows: it waits for the toast to
+    go. A hand meets the same toast: R421's fourth proposal moves such cards.
+  - **A field keeps its own default width in a row unless it may shrink** (#927, #1461, #1625, the
+    sizing of rows by their content): the number field's unit and its step up were pushed out of its
+    well (`target/shots/diff-0.5.0-first/gallery/controls-choices-*.png`). Its input now takes the
+    room between the steps, and, before a unit, three digits' width: a unit adds its own width.
+  - **A list no longer comes to rest at its end by a scroll made after its first frame**, reads
+    itself as scrolled away once its rows are measured, and an animated scroll to a far end stops
+    short: ruling T68.4, and its own commit.
+- **What the release fixes or adds, with nothing to drop**:
+  - An `<Image>` draws an SVG's text (#1291), seen, in the machine's fonts: a font the app bundles
+    is not found. A diagram keeps its text as shapes, measured and drawn in the bundled font (R205).
+  - `queueMicrotask` is defined in a test file's own engine, seen.
+  - The documentation says `Input` is in `nsh/base`.
+  - A diff's syntax colours show as it opens (#1293), seen in
+    `target/shots/diff-0.5.0/gallery/document-diff-*.png`: the pictures on 0.4.0 were taken before
+    the colours came.
+  - `nsh run` takes a free port for another app (#972). `scripts/nsh.sh` keeps `--port 0`: 0.5.0
+    gives an app the port it had last and stops the session that holds it, so a second run in one
+    checkout would end the first.
+  - The phone keyboard's fix for the web, longbridge/nsh#1482, is in the release.
+- **What is still as it was, each seen or read in 0.5.0's source**: its comment names the release.
+  - An overlay's `onCancel` takes Escape from the views inside it (R197): `overlay_key_binding` is
+    still chained last in `Core::keymap()`. The report of R197 stands.
+  - `focus()` on a web view does nothing on GTK (R341), seen: 0.5.0's `focus()` reaches the views
+    Tab stops at (`nsh-platform-linux`'s `key_focus.rs`), and a web view's widget is not one.
+  - The editor's `line` part's style is not drawn, and a text on GTK wraps a line whose trailing
+    space passes its box (R198), both seen: the editor's rows keep `whitespace-nowrap`.
+  - The diff's token colours are fixed pairs (`Token::style`, R313), and its patch reader's rules
+    are unchanged.
+  - A `<Shader>` that fails to compile only logs (R199): the test that compiles every shader stays.
+  - A view embedded on GTK has no error callback (`Surface::set_error_handler` is private), and
+    NSH's runners set the process's logger (R207): a page says its own errors.
+  - An embedded view needs its asset location to find the app's fonts (R264).
+  - A test file's own engine has no network ("this host has no network stack"), reads only the
+    default variables, and no file ("native filesystem unavailable on this platform"), seen (R241).
+  - A list's cells are recycled for any row, and `maintainVisibleContentPosition` does not follow a
+    row appended in the headless runner, seen, `expected 1000 to be 1028` (R172).
+  - The editor inserts a paste's text alone; a drop gives `file:` URLs, now with their MIME types;
+    an `<Image>`'s source carries no header (R279). A web view's does, `load({ src, headers })`.
+  - `nsh package`'s program is NSH's runner built with the app's crate, without the host's calls
+    (R397): `just package` stays as it is. Seen on 0.5.0: the package builds, needs glibc 2.35, and
+    its launcher and its AppImage each started `ura serve` beside them and drew the home page of the
+    repository they were started in, on the hidden display.
+  - Storage holds 5 MB; a folder with an `App.tsx` is an app of its own (R234); `backdropFilter`
+    draws nothing on GTK (R129), and a view's border is painted over its children there.
+  - NSH holds `rolldown` at 1.2.13 and names four of its crates: the five others stay pinned (R16).
+- **Not broken, though the notes name it**: media loading now checks the app's `capabilities`
+  (#1417). The app declares them: its images are `data:`, `blob:`, and the server's addresses, and
+  dropped files are read from the home folder and `/tmp`, already granted. The app uses no
+  `focus-visible:` class, no `Theme::from_json_lenient`, and no layout spring.
+- **Rationale**: the human asked for the upgrade and the changelog read before the next task. The
+  rulings name each limit of NSH the build met, so each was checked, not assumed.
+- **If wrong**: the checks of `crates/app/tests/outside.rs` passed unchanged on 0.5.0, and name the
+  assumption a later release moves.
+- **Where**: `flake.nix`, `Cargo.toml`, `Cargo.lock`, `app/nsh.json`, `AGENTS.md`, `justfile`,
+  `scripts/frames.sh`, `crates/app/src/vim_bridge.rs`, `crates/server/src/extensions/pages.rs`,
+  `app/screens/shell/Notifications.tsx`, `app/ui/controls/NumberInput.tsx`,
+  `app/screens/git/git.test.tsx`.
+
+## T68.2: The pictures and the numbers, before and after
+
+- **Decision**: the pin moved with the gallery's and the walk's pictures compared, pixel by pixel,
+  and the frames and the navigation measured once each on both releases, on the GPU's hidden display
+  with the optimised build. On 0.5.0 they were taken twice: once as the pin moved, which showed what
+  broke, and once on the branch's head, with the fixes of T68.1 and T68.4 in. The numbers below are
+  the second's.
+- **The pictures**: `target/shots/before-0.5.0/`, `after-0.5.0/`, and `diff-0.5.0/`, where each
+  picture that differs stands before, after, and marked; `after-0.5.0-first/` and
+  `diff-0.5.0-first/` are the first run's, with what broke in them. A pair differs when more than
+  0.05% of its pixels differ by more than 16 of 255.
+  - The gallery, 228 pictures, 41 differ: the number field (fixed: its unit now adds its own width),
+    a diff's colours (better), the dashes of a dashed border, which start elsewhere along the edge,
+    and the four moving scenes with their end frames, where `--fps` now draws its panel.
+  - The walk, 174 pictures, 44 differ: the clock, and the sandbox's state, since one step of the
+    walk on 0.4.0 threw (`Error: not a live signal`, `RunMap.tsx:224`, in one run of two, before the
+    upgrade) and left its proposal not started; a list or a reader resting 1 to 12 points elsewhere
+    after a reveal; and a long chat opened at its end, which no longer shows "Jump to the latest"
+    there (better, T68.4). Every step of the walk passes on 0.5.0.
+- **The frames**, as `just frames` prints them, in ms: median, 95th and 99th percentile, worst. The
+  machine's load was 2 to 7 over the runs on 0.4.0, the first of which built the optimised target,
+  and 2 to 4 on 0.5.0.
+
+  | Scene     | 0.4.0                     | 0.5.0                      |
+  | --------- | ------------------------- | -------------------------- |
+  | streaming | 0.39 / 1.13 / 1.61 / 1.77 | 0.61 / 1.25 / 1.91 / 2.21  |
+  | scrolling | 2.04 / 2.79 / 3.40 / 3.57 | 2.71 / 3.39 / 3.90 / 4.68  |
+  | glass     | 2.32 / 2.98 / 3.70 / 3.93 | 2.97 / 3.70 / 4.52 / 4.84  |
+  | reading   | 3.82 / 5.45 / 6.45 / 8.62 | 4.23 / 5.86 / 7.73 / 17.60 |
+
+  Every scene stays inside a frame of 8.3 ms at the 99th percentile; the reading scene has 0.1% of
+  its frames over one. A frame costs 0.2 to 0.7 ms more at the median: in the scrolling scene its
+  `paint` went from 0.70 to 1.34 ms, while its `layout` went from 0.52 to 0.25 ms and NSH's own
+  snapshot stayed at 0.4 ms. Two causes are possible, and were not told apart: `--fps` now draws its
+  panel of readings over the app, which 0.4.0 only logged, so the measure itself costs more; and
+  0.5.0 makes a scroll view's native views only near its viewport (#1304), 114 mount items a commit
+  where there were 96.
+
+- **The navigation**, `just bench-navigation`, at a load of 2 to 5 on both: no pattern of loss. The
+  reload went from 573 to 466 ms. A page by its key takes 26 to 76 ms at the median on both. The
+  chat of 20,000 messages opens at its end in 95 ms at the median, 88 before, and 230 ms the first
+  time, 271 before. A dialog opens and closes one frame later (45 to 52 ms, 34 to 42 ms), and a key
+  in the inbox's note field shows after 23 ms at the median, 9 before; a key in the themes' search
+  after 10 ms, 18 before.
+- **If wrong**: the logs of every run are beside the pictures, in `target/shots/before-0.5.0/` and
+  `target/shots/after-0.5.0/`.
+- **Where**: `justfile`, `scripts/frames.sh`.
+
+## T68.3: What Native Shell 0.5.0 opens, for later tasks
+
+- **Decision**: none of these is built here. Each names the task that should read it first.
+  - **Task 56, the web build**: TSX runs in the browser's own JavaScript, with the engine in
+    WebAssembly, and an app's Rust crate is compiled into it: the dev shell then needs the target
+    `wasm32-unknown-unknown` and a clang that compiles to it. The web runtime is the component the
+    flake already holds. A published app is a site with markup, links, and a head (#1130), and
+    `--asset-url` serves its files from elsewhere. The web still has no registered native
+    components, so `uraeda.extension` needs its web form (task 58).
+  - **Task 57, browser behaviour**: `UrlScheme.url` and `setUrl` give the app an address, with
+    history entries and the reason of a change (#982, #1448, #1447), and `nsh.json` says whether
+    pages are history entries (#1158): read them before writing `history.web.ts`. `Notifications` of
+    `nsh` (#931, #933) shows a notification on every platform, the browser's included, and sets the
+    app's badge: on GTK it speaks the same service as `crates/app/src/notify.rs`, which it can
+    replace, with the thread and the `tokio` channel of R371. It needs `"notifications": true` in
+    the app's capabilities; `run_app` gives the app the process's notifications; a press brings the
+    window up, and its `id` can be the item's page. An extension's view must then carry the app's id
+    and title, since the last view made names the app to the desktop; and the fifth check of
+    `outside.rs` is pointed at a page that calls it. On the web a view's border is now painted under
+    its children (#1546).
+  - **Task 58, extension pages in the browser**: `host.post` reaches the page's host on the web
+    (#1668). `BundleOptions::asset_root_from` (#1592) names an asset from a root the caller gives: a
+    page's own images and fonts, which R116 left to NSH.
+  - **Task 59, the phone**: longbridge/nsh#1482 is in; `pointer-fine:` and `pointer-coarse:` (#1539)
+    tell a touch from a mouse in a class.
+  - **Task 60, web performance**: the runtime links only what the app imports (#1220, #1445, #1522);
+    `alignment="bottom"` and `measureScrollPosition()` (#983, #1617) are the release's chat list and
+    its kept reading place, which could replace `follow` and the kept offset.
+  - **The desktop app, after the port**: `singleInstance`, `window` with `restoreBounds`, and file
+    types in `nsh.json` (#1563, #1419, #1565), which the host's own `app.json` leaves out today;
+    `on_app_quit` (#1558) for the server the app started; the updater and signed code updates (#922,
+    #1189); `WebView.load({ src, headers })` (#1038) for a preview's token; `open(…, { modules })`
+    (#1379) to stand in for `uraeda/native` in a test; `shadersAvailable()` (#1476) for a machine
+    without a GPU; the selection as Markdown (#1045).
+- **Where**: the plan's tasks 56 to 60.

@@ -57,7 +57,7 @@ function nextClick() {
     .then((id) => {
       const href = opens.get(id);
       if (href !== undefined) {
-        if (isAvailable) Window.orderFront();
+        if (isAvailable) Window.get("main")?.focus();
         navigate(parseRoute(href));
       }
       nextClick();
@@ -128,7 +128,7 @@ export function Notifier() {
   // The window's title counts what waits.
   effect(() => {
     const count = rows()?.length ?? 0;
-    if (isAvailable) Window.setTitle(count > 0 ? `(${count}) Uraeda` : "Uraeda");
+    if (isAvailable) Window.get("main")?.set({ title: count > 0 ? `(${count}) Uraeda` : "Uraeda" });
   });
   return null;
 }

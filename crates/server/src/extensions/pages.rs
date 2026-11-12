@@ -182,6 +182,9 @@ fn bundled(shared: &Shared, name: &str, folder: &Path, page: &Path) -> Result<Bu
             SetDescription::from(nsh_base::registry()),
             SetDescription::from(uraeda_app::registry()),
         ],
+        // The page's identity is its package's, and its files the entry's folder's: the rest of
+        // the bundler's options stay as they come.
+        ..BundleOptions::default()
     };
     bundle(&options).map_err(|error| {
         let message = error.plain.trim();

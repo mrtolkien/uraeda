@@ -51,7 +51,7 @@ uraeda-vim.workspace = true
 nsh-engine = { workspace = true, optional = true }
 # The Linux host shows previews in web views, which link WebKitGTK: without `webview` a web view
 # shows a placeholder (ruling R24).
-nsh-platform-linux = { workspace = true, features = ["js", "webview"], optional = true }
+nsh-platform-linux = { workspace = true, features = ["webview"], optional = true }
 ureq = { workspace = true, optional = true }
 # The host stops the server it started with a signal (`server_start.rs`).
 libc = { workspace = true, optional = true }
@@ -74,7 +74,7 @@ log = "0.4"
 nsh-bundler.workspace = true
 nsh-engine.workspace = true
 nsh-package.workspace = true
-nsh-platform-linux = { workspace = true, features = ["js", "webview"] }
+nsh-platform-linux = { workspace = true, features = ["webview"] }
 # rolldown's crates that nothing else holds at rolldown's version: see the workspace's manifest.
 rolldown_devtools.workspace = true
 rolldown_devtools_action.workspace = true

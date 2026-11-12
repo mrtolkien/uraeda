@@ -31,6 +31,9 @@ export type NumberInputProps = {
   width?: number;
 };
 
+/** The width of the number before a unit: three digits in the code font, and its padding. */
+const DIGITS = 46;
+
 export function NumberInput(props: NumberInputProps) {
   let node: ViewRef | undefined;
   const stop = focusStop(() => node, {
@@ -62,7 +65,12 @@ export function NumberInput(props: NumberInputProps) {
         incrementButtonStyle={button}
         inputStyle={{
           ...textStyle({ font: "code" }),
-          flexGrow: 1,
+          // The room left between the steps, or, before a unit, three digits': on Native Shell
+          // 0.5.0 a field keeps its own default width unless it is told one or may shrink, which
+          // pushed the unit and the step up out of the well.
+          ...(props.unit === undefined
+            ? { flexBasis: 0, flexGrow: 1, flexShrink: 1, minWidth: 0 }
+            : { width: DIGITS }),
           paddingHorizontal: 9,
         }}
         max={props.max}
@@ -82,7 +90,8 @@ export function NumberInput(props: NumberInputProps) {
           boxShadow: tokens.height.recessed.lip,
           flexDirection: "row",
           height: pressHeight(),
-          width: props.width ?? 160,
+          // With a unit, as wide as the number and its unit; without, its width.
+          width: props.unit === undefined ? (props.width ?? 160) : undefined,
         }}
         suffix={
           props.unit === undefined ? undefined : (

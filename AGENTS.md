@@ -106,10 +106,11 @@ spikes measured.
   `crates/nsh-platform-*/` one backend each.
 - **For examples**: `examples/` in that repository, with `gallery` and `gallery-rs` for every
   element in TSX and in Rust, and `embedded` and `host-echo` for a view inside a host.
-- **Read the pinned version.** The migration pins NSH **0.4.0**, the release `v0.4.0`, at commit
-  `e626a8dd8f8d8b277b9507cfd5ac74d0e67020f3`. NSH's Rust API changes between releases: read the
-  source at that commit (`git clone --depth 1 --branch v0.4.0 https://github.com/longbridge/nsh.git`
-  in a temporary folder), not at `main`. The website follows `main`.
+- **Read the pinned version.** The migration pins NSH **0.5.0**, the release `v0.5.0`, at commit
+  `f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1`. NSH's Rust API changes between releases: read the
+  source at that commit (`git clone --depth 1 --branch v0.5.0 https://github.com/longbridge/nsh.git`
+  in a temporary folder), not at `main`. The website follows `main`. Ruling T68.1 lists what 0.5.0
+  changed for Uraeda, and which of NSH's limits it left.
 - **Trust the source over the website** when they disagree, and a run over both: the spikes found
   pages that were out of date.
 
@@ -123,17 +124,26 @@ What the spikes learned, which no page says plainly:
 - A view embedded on GTK has no error callback, and the process's log is NSH's runner's: a page says
   its own errors, through `ErrorBoundary`, which catches a throw while drawing, in an effect or a
   listener, and a call NSH cut off after 2 s, as `InternalError: interrupted` (ruling R207).
-- An `<Image>` draws an SVG's shapes only: no text, and no CSS variable.
+- An `<Image>` draws an SVG's text in the machine's fonts, never the app's bundled ones, and no CSS
+  variable: a picture of the app holds its text as shapes, as a diagram's does.
 - On GTK a view's border is painted over what it holds: where a child stands on its parent's edge,
-  the edge is a view of its own, under that child, as `Surface` draws it.
+  the edge is a view of its own, under that child, as `Surface` draws it. The web paints it under
+  the children.
+- `nsh test`'s driver refuses a press on a view another is drawn over, a toast over a row: wait for
+  what covers it to go, as a hand does.
 - Tests run without a display, with `nsh test`. Never open a window on the human's screen without
   asking: use the dev shell's `hidden-display`.
 
 Running it here:
 
-- **The pin is in four places**, which move together in one commit: `nsh`'s version and hash in
-  `flake.nix`, the `nsh-*` crates in `Cargo.toml`, `minRuntime` in `app/nsh.json`, and the version
-  and commit above.
+- **The pin is in four places**, which move together in one commit: `nsh`'s version and its two
+  hashes in `flake.nix` (the release's archive, and the web runtime, a component of the release),
+  the `nsh-*` crates in `Cargo.toml`, `minRuntime` in `app/nsh.json`, and the version and commit
+  above. A hash is what `nix store prefetch-file --hash-type sha256 <url>` prints.
+- **NSH's parts are Cargo features** of `nsh-platform-linux`: shaders, the editor and the diff,
+  highlighting, and the other large parts of `nsh/base`. The workspace takes its default features,
+  as NSH's own runner does: without one, a shader draws nothing, or a page fails at its import. The
+  backend links GStreamer, which the dev shell and a machine that runs the package hold.
 - **Run `nsh` through `node scripts/nsh.ts <command>`**, as the tasks do: `vp run app:check`
   (`cargo check` of the crate, then the TSX's types), `vp run app:test` (`nsh test`, with no
   display), and `vp run app:dev`. It runs `nsh` in `app/`, builds in the repository's `target/`, and
@@ -158,7 +168,7 @@ Running it here:
 - **A crate that takes `nsh-bundler` takes the five `rolldown_*` crates beside it** in `Cargo.toml`,
   as `crates/server/` does: NSH holds `rolldown` at 1.2.13, a new release moved those five alone,
   and `rolldown` no longer built.
-- Rust 1.97.0 is the first release that builds NSH 0.4.0: its bundler's `oxc` asks for it.
+- Rust 1.97 is the oldest release that builds NSH 0.5.0, which declares it (`rust-version`).
 
 ## Shell
 

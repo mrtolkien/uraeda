@@ -86,6 +86,9 @@ fn built(page: &Path) -> String {
             SetDescription::from(nsh_base::registry()),
             SetDescription::from(uraeda_app::registry()),
         ],
+        // The page's identity is its package's, and its files the entry's folder's: the rest of
+        // the bundler's options stay as they come.
+        ..BundleOptions::default()
     };
     match bundle(&options) {
         Ok(built) => built.code,

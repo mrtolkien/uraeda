@@ -173,9 +173,10 @@ export function pressHeld(stops: Stops): boolean {
  * then the field's, which is the overlay's own Escape once Vim is done with it. Says whether a
  * field took it.
  *
- * Native Shell 0.4.0 binds an overlay's `onCancel` after every view's binding
+ * Native Shell binds an overlay's `onCancel` after every view's binding
  * (`nsh-core/src/core/overlay.rs`, `overlay_key_binding`, chained last in `keymap()`), so it wins
- * over the field's own Escape: the overlay hands the key back here. Upstream report: ruling R197.
+ * over the field's own Escape: the overlay hands the key back here. Still so in 0.5.0. Upstream
+ * report: ruling R197.
  */
 export function escapeHeld(stops: Stops): boolean {
   const held = heldNow();

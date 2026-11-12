@@ -1,5 +1,5 @@
 // What a frame of each scene costs: `just frames <scene>` runs one on the hidden display, where
-// Native Shell logs its frame timing once a second, as `nsh::perf` lines, and sums them up. The
+// Native Shell logs its frame timing once a second, as `nsh::fps` lines, and sums them up. The
 // scene runs a few seconds before its frames count, and the lines between `frames: from` and
 // `frames: to` are the scene's. Without a display there is no frame to time.
 import { open, test } from "nsh/test";

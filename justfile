@@ -141,15 +141,15 @@ gallery-shots filter="":
     {{ isolated }} hidden-display {{ nsh }} test gallery/gallery.test.tsx --target linux --filter "{{ filter }}"
 
 # The scenes: `streaming`, a session of 20,000 messages with a reply growing; `scrolling`, the same
-# scrolling by itself; `glass`, the same under a bar of glass. Prints Native Shell's `nsh::perf`
-# line of each second, the machine's load before and after, then the median, the 95th and 99th
+# scrolling by itself; `glass`, the same under a bar of glass. Prints Native Shell's `nsh::fps`
+# line of each second, which `nsh` shows only with `-v`, the machine's load before and after, then the median, the 95th and 99th
 # percentiles, and the worst frame. It draws on the GPU's hidden display (`hidden-display --gpu`),
 # at 120 Hz; `just frames <scene> software` on Xvfb's, which paints in software at 60 Hz. Run it
 # once, on a quiet machine: it is a benchmark, never part of a check.
 # What a frame of a scene of the gallery costs, on the hidden display: `just frames glass`.
 frames scene on="gpu":
     @echo "load before: $(cut -d' ' -f1-3 /proc/loadavg)"
-    {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} {{ nsh }} test gallery/frames.test.tsx --target linux --fps --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}-{{ on }}.log
+    {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} {{ nsh }} test gallery/frames.test.tsx --target linux --fps -v --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}-{{ on }}.log
     @echo "load after: $(cut -d' ' -f1-3 /proc/loadavg)"
     @FRAMES_LOG=target/frames-{{ scene }}-{{ on }}.log scripts/frames.sh < target/frames-{{ scene }}-{{ on }}.log
 

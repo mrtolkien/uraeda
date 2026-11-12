@@ -30,6 +30,7 @@ fn built(name: &str, ui_sets: Vec<SetDescription>) -> String {
         minify: false,
         split: false,
         ui_sets,
+        ..BundleOptions::default()
     };
     match bundle(&options) {
         Ok(built) => built.code,

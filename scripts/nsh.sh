@@ -17,8 +17,10 @@ if [ ! -e "$generated" ] || [ "$root/Cargo.lock" -nt "$generated" ]; then
   cp "$root/Cargo.lock" "$generated"
 fi
 
-# A development session takes a free port unless one is asked for: several checkouts then run the
-# app at once, where NSH's fixed default let only one.
+# A development session takes a free port unless one is asked for: several runs of the app then
+# go on at once. NSH 0.5.0 takes a free port itself for another app, but gives an app the port it
+# had last, and stops the session that holds it: a second run of the same checkout, an agent's on
+# the hidden display beside a person's, would end the first.
 args=("$@")
 case "${1:-}" in
   run | dev)

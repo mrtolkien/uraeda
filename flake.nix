@@ -28,7 +28,7 @@
         );
 
       # Native Shell's CLI, `nsh`, with the runtimes it runs and packages a TSX app on: the release's
-      # prebuilt distribution, pinned by its version and its hash. The version is also the `nsh-*`
+      # prebuilt distribution, pinned by its version and its hashes. The version is also the `nsh-*`
       # crates' in `Cargo.toml` and `minRuntime` in `app/nsh.json`, and the release's commit is in
       # `AGENTS.md`: they move together. NSH releases it for x86_64 Linux only, so the app builds
       # there.
@@ -36,19 +36,29 @@
         pkgs:
         pkgs.stdenv.mkDerivation (finalAttrs: {
           pname = "nsh";
-          version = "0.4.0";
+          version = "0.5.0";
           src = pkgs.fetchurl {
             url = "https://github.com/longbridge/nsh/releases/download/v${finalAttrs.version}/nsh-linux-x86_64.tar.gz";
-            hash = "sha256-iAYSGuv0C7Ufj7aqcDci+7ASU/mkNXWcGNU77s4eyXY=";
+            hash = "sha256-pCK75dwqeuP/MI7lbgXXPVvsyB9XrfEUR/xXDc7mXg8=";
+          };
+          # The web runtime, a component of the release since 0.5.0: `nsh` would download it at the
+          # first web build, into its own folder, which the store does not allow. Its record,
+          # `components/web.json`, tells `nsh` it is installed. A new hash is what
+          # `nix store prefetch-file --hash-type sha256 <url>` prints.
+          web = pkgs.fetchurl {
+            url = "https://github.com/longbridge/nsh/releases/download/v${finalAttrs.version}/nsh-web.tar.gz";
+            hash = "sha256-F8TYtpDBKR/+7FnG3MbLlnvQPbtIZKyaYdPNPSGSxHc=";
           };
           nativeBuildInputs = [ pkgs.autoPatchelfHook ];
           buildInputs = gtkFor pkgs ++ [ pkgs.stdenv.cc.cc.lib ];
-          # `nsh` finds its runtimes in `bin/../runtime`. Android's, GPUI's, and the embedding
-          # kits, 650 MB of the distribution, are left out: the app targets GTK and the web.
+          # `nsh` finds its runtimes in `bin/../runtime`: Linux's, which the release holds, and the
+          # web's. Android's, GPUI's, the terminal's, and the embedding kits are other components,
+          # left out: the app targets GTK and the web.
           installPhase = ''
             mkdir -p $out/runtime
             cp -r bin $out/bin
-            cp -r runtime/linux runtime/web $out/runtime/
+            cp -r runtime/linux $out/runtime/
+            tar -xzf $web --strip-components=1 -C $out nsh/runtime/web nsh/components/web.json
           '';
           dontStrip = true;
         });
@@ -64,8 +74,9 @@
           hash = "sha256-L8qLRDySUQ8Ug6iD9gBhrQm0a5eLJjHIB82HOkfsJg0=";
         };
 
-      # What NSH's GTK backend builds against and runs on: GTK 4, which must be 4.14 or newer, and
-      # WebKitGTK 6.0 for web views.
+      # What NSH's GTK backend builds against and runs on: GTK 4, which must be 4.14 or newer,
+      # WebKitGTK 6.0 for web views, and, since NSH 0.5.0, GStreamer for its sounds, which the
+      # backend links whether or not an app plays one.
       gtkFor =
         pkgs: with pkgs; [
           gtk4
@@ -77,6 +88,8 @@
           graphene
           harfbuzz
           fontconfig
+          gst_all_1.gstreamer
+          gst_all_1.gst-plugins-base
         ];
 
       # `hidden-display <command>` runs a command on an X display of its own that no screen shows:

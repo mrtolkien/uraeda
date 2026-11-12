@@ -116,7 +116,8 @@ impl Field {
         // The editor wraps its rows itself, and a row keeps the space it broke after. Native Shell's
         // text on GTK wraps a line whose trailing space passes its box, where CSS and Pango let it
         // hang: a row that fits but for that space broke again, its last word drawn over the next
-        // row. So no row's text wraps; the placeholder, one text, still does. Ruling R198.
+        // row. So no row's text wraps; the placeholder, one text, still does. Ruling R198; still
+        // so in Native Shell 0.5.0, where the editor's `line` part's style is not drawn either.
         let mut classes = EditorClasses::default();
         classes.placeholder = Some("whitespace-normal".into());
         view()
@@ -216,9 +217,11 @@ impl Field {
     fn bind(&self, strokes: Vec<String>) {
         for stroke in strokes {
             let (field, repeat) = (self.clone(), !stroke.contains("enter"));
+            // The field takes its keys: none goes on to the platform (`pass_through`).
             let options = KeyOptions {
                 when: When::Always,
                 repeat,
+                pass_through: false,
             };
             on_key_with(&stroke, options, move |pressed| field.press(pressed));
         }

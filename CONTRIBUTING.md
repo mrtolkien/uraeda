@@ -31,7 +31,7 @@ its Rust crate in [`crates/app/`](crates/app/). It will talk to a Rust server,
 [`crates/server/`](crates/server/), over [`crates/protocol/`](crates/protocol/), and edit text
 through [`crates/vim/`](crates/vim/). `nix develop` on x86_64 Linux brings what they build with:
 NSH's CLI, `nsh`, GTK 4 and WebKitGTK 6.0, clang, and a display no screen shows. Without Nix,
-install NSH 0.4.0, the version of the `nsh-*` crates in [`Cargo.toml`](Cargo.toml), with what its
+install NSH 0.5.0, the version of the `nsh-*` crates in [`Cargo.toml`](Cargo.toml), with what its
 [installation page](https://nsh.dev/docs/installation) lists for Linux.
 
 ```sh
