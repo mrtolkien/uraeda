@@ -32,10 +32,17 @@ export type PickerFieldProps<Item extends PickerItem> = {
 /** A row's height: a finger's target on a narrow window, a row's elsewhere. */
 const rowHeight = () => (isNarrow() ? 44 : tokens.space.row);
 
-function Row(props: { held: boolean; item: PickerItem; onPress: () => void }) {
+function Row(props: {
+  held: boolean;
+  item: PickerItem;
+  /** The pointer moved onto it: the cursor comes there, as on a list's row. */
+  onPoint: () => void;
+  onPress: () => void;
+}) {
   return (
     <View
       focusable={false}
+      onMouseMove={props.onPoint}
       onPress={props.onPress}
       style={{
         alignItems: "center",
@@ -128,6 +135,7 @@ export function PickerField<Item extends PickerItem>(props: PickerFieldProps<Ite
             <Row
               held={found()[cursor()]?.id === item().id}
               item={item()}
+              onPoint={() => cursor.set(found().indexOf(item()))}
               onPress={() => pick(item())}
             />
           )}

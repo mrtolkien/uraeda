@@ -54,3 +54,33 @@ test("a note is added by its button too, as a hand that does not press Enter", a
   await app.waitFor(`text:${note}`, { timeout: 15_000 });
   app.dispose();
 }, 90_000);
+
+test("in a picker, the row under the pointer is the one Enter picks", async () => {
+  const app = await open("../shell/__checks__/Places.tsx", {
+    height: 800,
+    host: { handlers: { places: null, problem: null, shown: null } },
+    network: "live",
+    platform: "linux",
+    width: 1400,
+  });
+  await app.waitUntil(() => app.shows("id:frame"), { timeout: 30_000 });
+  const note = `pointed-${Date.now()}`;
+  await app.host.send("go", "/r/sample/inbox");
+  await app.waitFor("id:inbox-new-note", { timeout: 20_000 });
+  await app.type("id:inbox-new-note", note);
+  await app.keyboard.press("Enter");
+  await app.waitFor(`text:Added “${note}”.`, { timeout: 15_000 });
+  await app.host.send("go", `/r/sample/inbox/${note}`);
+  await app.waitFor("text:Move to a category", { timeout: 15_000 });
+  // The picker opens on its first category, UI; the pointer rests on CLI, and Enter takes it.
+  await app.press("text:Move to a category");
+  await app.waitFor("id:key-picker-filter", { timeout: 10_000 });
+  await app.hover("text:CLI >> nth=1");
+  await app.keyboard.press("Enter");
+  // The note's pane names its category over it: CLI, not UI, which Enter held before.
+  await app.waitUntil(
+    () => app.texts().join(" ").includes(`CLI ${note} c Move to a category`),
+    { timeout: 15_000 },
+  );
+  app.dispose();
+}, 90_000);

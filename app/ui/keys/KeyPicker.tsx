@@ -133,6 +133,9 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item>;
                 {(item: () => Item) => (
                   <View
                     focusable={false}
+                    // The pointer moving onto a row takes the cursor there, as a list's row does:
+                    // what it rests on is lit, previewed, and what Enter picks.
+                    onMouseMove={() => cursor.set(item().id)}
                     onPress={() => pick(item())}
                     style={{
                       alignItems: "center",
