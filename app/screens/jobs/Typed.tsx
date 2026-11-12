@@ -8,6 +8,8 @@ import { TextField, type TextFieldRef, unsavedText } from "../../ui/text";
 
 export type TypedProps = {
   at: Extract<Field, "name" | "prompt" | "time">;
+  /** Takes the focus as the form opens: a new job's name, typed into at once. */
+  autoFocus?: boolean;
   form: Form;
   /** Where the device keeps the text while it is not saved. */
   keptAs: string;
@@ -46,6 +48,7 @@ export function Typed(props: TypedProps) {
   };
   return (
     <TextField
+      autoFocus={props.autoFocus}
       label={props.label}
       lines={props.lines ?? "one"}
       onBlur={() => void leave()}

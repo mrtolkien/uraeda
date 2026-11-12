@@ -51,3 +51,18 @@ test("changes made during a save are sent in order", async () => {
   ]);
   expect(app.texts()).toContain("Shown: 09:30 report");
 });
+
+test("a new job's form opens typing into its name", async () => {
+  const app = await open("./__checks__/App.tsx", {
+    height: 900,
+    network: "live",
+    platform: "linux",
+    width: 1400,
+  });
+  await app.waitFor("id:job-name", { timeout: 30_000 });
+  // Typed at once, as a person does after `a`: into the name, never as the page's keys.
+  await app.keyboard.press("shift+q");
+  await app.keyboard.press("x");
+  await app.keyboard.press("z");
+  await app.waitUntil(() => app.texts().includes("Qxz"), { timeout: 5_000 });
+});

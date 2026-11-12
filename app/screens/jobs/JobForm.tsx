@@ -125,6 +125,7 @@ export function JobForm(props: JobFormProps) {
         control={
           <Typed
             at="name"
+            autoFocus={props.add !== undefined}
             form={form}
             isNew={isNew}
             keptAs={`${props.keptAs}:name`}
