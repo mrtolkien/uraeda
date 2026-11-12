@@ -219,7 +219,13 @@ export function Pane(props: PaneProps) {
           </>
         )}
       </Each>
-      {props.tabsEnd}
+      {/*
+        Centred on the titles' row, where a control's target is taller than the row, as on touch:
+        a column centres the row of controls, whatever each of them asks of its own alignment.
+      */}
+      <View style={{ height: tokens.pane.titleHeight - 1, justifyContent: "center" }}>
+        <View style={{ alignItems: "center", flexDirection: "row" }}>{props.tabsEnd}</View>
+      </View>
     </View>
   );
   return (
