@@ -39,9 +39,16 @@ scripts/nsh.sh build --release -o "$package/lib/nsh"
 rm -f "$package/lib/nsh/bundle.js" "$package/lib/nsh/bundle.js.map"
 printf '{"name":"Uraeda","id":"%s","version":"%s"}\n' "$id" "$version" > "$package/lib/nsh/app.json"
 
-echo "package: the app for a browser, which ura holds"
-scripts/web-build.sh
-export URAEDA_WEB_BUILD=$root/target/web
+# A web build already made, which `URAEDA_WEB_BUILD` names, is the one `ura` holds: the release
+# builds it once, and the `ura` of the archives and the package's then hold the same.
+if [ -n "${URAEDA_WEB_BUILD:-}" ]; then
+  [ -f "$URAEDA_WEB_BUILD/index.html" ] || { echo "package: no index.html in URAEDA_WEB_BUILD, $URAEDA_WEB_BUILD" >&2; exit 1; }
+  echo "package: the app for a browser, from $URAEDA_WEB_BUILD"
+else
+  echo "package: the app for a browser, which ura holds"
+  scripts/web-build.sh
+  export URAEDA_WEB_BUILD=$root/target/web
+fi
 
 # The newest glibc the binaries may need: Ubuntu 24.04's, the first release with GTK 4.14.
 floor=2.39

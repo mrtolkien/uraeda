@@ -104,6 +104,7 @@ app *args:
 # The Linux app as a release ships it, in `target/package/`: the folder `uraeda/`, the same as
 # `uraeda-app-x86_64-linux.tar.gz` and as `uraeda-app-x86_64.AppImage`, each with its `.sha256`.
 # It holds the app, `ura` beside it, the desktop entry, and the icons: see `scripts/package.sh`.
+# It makes the web build `ura` holds, unless `URAEDA_WEB_BUILD` names one, as the release's does.
 package:
     {{ heavy }} scripts/package.sh
 
