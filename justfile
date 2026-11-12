@@ -257,6 +257,16 @@ walk-session filter="":
     find target/shots/polish-5 -name '{{ filter }}*.png' -delete
     URAEDA_SANDBOX_ARGS=--long-chat {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/session.test.tsx --target linux --filter "{{ filter }}"
 
+# Lolly's walk: the mouse on a desktop (`specs/ui/personas.md`), her three errands and every page
+# by pointer alone, presses, hovers, right-clicks, drags, and scrolls, typing only in fields: the
+# steps of `app/tools/lolly.test.tsx`, each a numbered picture in `target/shots/polish-17/`. A tool,
+# never a check: `just walk-lolly 03` for the steps whose name holds it.
+walk-lolly filter="":
+    mkdir -p target/shots/polish-17
+    find target/shots/polish-17 -name '{{ filter }}*.png' -delete
+    URAEDA_SANDBOX_ARGS=--long-chat {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/lolly.test.tsx --target linux --filter "{{ filter }}"
+    @ls target/shots/polish-17
+
 # Whether a session's transcript follows a reply at length on GTK, as the owner meets it: the steps
 # of `app/tools/follow.test.tsx` on a fresh sandbox, watched, left by keys, `G`, left by a scroll,
 # "Jump to the latest", each counting the looks that found "Jump to the latest" (`follow:` lines),
