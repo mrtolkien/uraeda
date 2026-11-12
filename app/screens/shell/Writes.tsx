@@ -158,8 +158,12 @@ const retries = (write: QueuedWrite) =>
   write.failure === "failed" &&
   ((write.folder !== null && write.file !== null) || defaultRoundOf(write) !== undefined);
 
-/** A refused write's card: it stays until retried or dismissed. */
-function RefusedCard(props: Of) {
+/**
+ * A refused write's card: it stays until retried or dismissed. The first card's ways out have keys,
+ * as a toast's owner declares them: `Space x` dismisses it, `Space o` retries it or opens where it
+ * was made. Without them it sat over every page, a pointer's alone.
+ */
+function RefusedCard(props: Of & { first: boolean }) {
   const pending = signal(false);
   const refusal = signal<string | null>(null);
   const write = () => props.write;
@@ -208,13 +212,21 @@ function RefusedCard(props: Of) {
         )}
       </If>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-        <Button label="Dismiss" onPress={dismiss} />
+        <Button keys={props.first ? "space x" : undefined} label="Dismiss" onPress={dismiss} />
         <If
           when={retries(write())}
-          else={<Button icon="arrow-right" label="Open" onPress={open} />}
+          else={
+            <Button
+              icon="arrow-right"
+              keys={props.first ? "space o" : undefined}
+              label="Open"
+              onPress={open}
+            />
+          }
         >
           <Button
             icon="refresh-cw"
+            keys={props.first ? "space o" : undefined}
             label="Retry"
             onPress={() => void retry()}
             pending={pending()}
@@ -243,7 +255,7 @@ const refusedShown = () => writes(true).filter((one) => !shownWhereMade(one.writ
 export function RefusedWrites() {
   return (
     <Each key={(one: Of) => `${one.repo}/${one.write.id}`} of={refusedShown()}>
-      {(one) => <RefusedCard repo={one().repo} write={one().write} />}
+      {(one, index) => <RefusedCard first={index() === 0} repo={one().repo} write={one().write} />}
     </Each>
   );
 }
