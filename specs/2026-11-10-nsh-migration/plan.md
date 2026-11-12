@@ -548,7 +548,7 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 22. Task 51. Then task 66, alone: it moves every screen's panes.
 23. Tasks 52, 53.
 24. Task 54.
-25. Task 55, alone.
+25. Task 55, alone. Then task 68, alone: Native Shell 0.5.0, before the web build.
 26. Task 56, alone.
 27. Tasks 57, 58: browser behaviour, and extension pages, in separate files.
 28. Tasks 59, 60.
@@ -3349,6 +3349,43 @@ can become a full pane, as in a tiling window manager.
   reader's `say`. `[[left]]` now holds 20 brought back, 4 left (none a person misses: the inbox's
   outliner, Recent, the New page's `/`, a done reply's frame), and 14 replaced.
 
+## Task 68: Native Shell 0.5.0
+
+Added on 2026-11-12, at the human's request: "NSH released v0.5.0 while you were doing all that.
+Before the next task upgrade to 0.5.0 and read the changelog." It runs before phase 2, whose web
+build is the part of NSH that moves fastest.
+
+**Files:**
+
+- Modify: the pin's four places, `flake.nix`, `Cargo.toml` and `Cargo.lock`, `app/nsh.json`, and
+  [`AGENTS.md`](/AGENTS.md); every workaround of a defect the release fixes
+
+**Interfaces:**
+
+- Consumes: everything built on NSH 0.4.0, and the rulings that name one of its defects or limits.
+- Produces: the branch on NSH 0.5.0, with the gallery's and the app's pictures compared before and
+  after, as the plan's constraint on upgrades asks, and a ruling listing what the release changed
+  for Uraeda.
+
+- [ ] **Step 1: Read the changelog and the diff of what Uraeda uses**, from 0.4.0 to 0.5.0: every
+      breaking change of the Rust API and of TSX, every fix, and what is new. List in a ruling each
+      item that touches Uraeda: what breaks, what a workaround can now drop, and what is worth
+      adopting.
+- [ ] **Step 2: Take the pictures before**: the gallery's, the app's routes, and the frames and
+      navigation numbers, on 0.4.0.
+- [ ] **Step 3: Move the pin**, in its four places at once, and make the workspace build and its
+      checks pass. The checks of `crates/app/tests/outside.rs` say which assumption of NSH broke.
+- [ ] **Step 4: Drop each workaround the release makes needless**, one commit each, with its test:
+      the rulings name them, among them an overlay's Escape taking a field's, a web view that no key
+      can focus, the editor's `line` style, colours of the diff view, a `<Shader>`'s failure that
+      only logs, fonts of an embedded view, the `rolldown` crates held beside the bundler. Keep a
+      workaround whose defect is still there, with the release's number in its comment.
+- [ ] **Step 5: Take the pictures and the numbers again, and compare.** Fix what moved. Say in the
+      commit what differs, with the pictures' paths.
+- [ ] **Step 6: Run the checks**: `just check`, `just task-app`, and `just task` on the crates that
+      take NSH. Expected: PASS.
+- [ ] **Step 7: Commit**: `build(nsh-migration): Native Shell 0.5.0`.
+
 **Phase 2: the web build.** The same app in a browser, served by `ura serve`, then the removal of
 the React UI and the Node server. Read NSH's web pages before each task:
 [`website/docs/web.md`](https://github.com/longbridge/nsh/blob/main/website/docs/web.md) and
@@ -3468,6 +3505,47 @@ here: iOS and macOS are the human's, later.
 
 - Produces: the two benchmarks of task 53, run in a headless browser, at a phone's size with the
   processor slowed four times.
+
+**What the protocol sends**, added on 2026-11-12 at the human's request. The desktop app talks to a
+server on the same machine, so size never mattered. The web build and remote devices change that: a
+record's first value arrives whole, as JSON text, with no compression, and a screen opens several
+records at once, 3 to 9, plus the shell's 10. The steps below measure it, and decide by a rule,
+without stopping for the human.
+
+- [ ] **Step A: Measure what `/live` sends.** For each screen the navigation benchmark visits, on
+      the sandbox with `--long-chat`, record the bytes the server sends on `/live` from the
+      navigation to the screen being settled: the total, and the largest single message with its
+      record's name. Include a reload, which reads the shell's records too. Record the same totals
+      with each message compressed, to show what compression would save. On the slow-phone setting
+      this task uses, record the time to the first settled frame, and how much of it is waiting for
+      the records' first values. Write the numbers in a ruling, as a table per screen.
+- [ ] **Step B: Decide by this rule.** Build compression if any screen, or the reload, sends more
+      than 100 KB before it settles and compression would save at least half of it. Otherwise do not
+      build it: the ruling says so with the numbers, and the work ends there. The rule's numbers are
+      the human's, chosen without a measurement: on a link of about 50 KB a second, 100 KB is two
+      seconds of waiting. In the same ruling as the table, say whether fewer or smaller first
+      values, by paging or a read-ahead of the selected row, would save more than compression for
+      the worst screens: a proposal, not built.
+- [ ] **Step C: Only if the rule says build, add a task after this one** to the plan, as any task is
+      added, with these requirements:
+  - The standard per-message compression of WebSockets is not available: the server's library,
+    tungstenite through axum, does not implement it in the versions locked. Check that again first.
+    If the pin now has it and the browser's and Native Shell's sockets both negotiate it, use it and
+    skip the rest of this list.
+  - Otherwise it is the protocol's own: a message above a size threshold is sent as a compressed
+    binary frame, and small ones stay text. Pick the threshold from the table. Streaming appends
+    stay as they are.
+  - Use `flate2` or `zstd`, which are already in the lockfile. Another crate only if neither can be
+    inflated on the client, with a ruling that says why.
+  - The client inflates before it parses, in the Linux app and in the browser, with the same store
+    code on both. Find out what Native Shell's engine offers, and whether the app's Rust module is
+    the better place, before choosing, and record the choice in a ruling.
+  - [`contracts/protocol.md`](contracts/protocol.md) says every message is one text frame: the
+    contract, its fixtures, and the protocol's version change with it. Breaking compatibility is
+    fine: there is one user.
+  - Tests first, as every task: a large first value arrives compressed and reads the same; a small
+    message and an append stay text; a client reconnecting resumes as before.
+  - Then step A's measurement runs again, with before and after in the commit's body.
 
 - [ ] **Step 1: Run both benchmarks** on the sandbox, and on a session with a very long reply.
 - [ ] **Step 2: Compare with the spike's numbers**: 57 frames a second streaming, 37 scrolling.
