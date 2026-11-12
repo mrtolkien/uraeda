@@ -109,6 +109,8 @@ impl ExtensionView {
             ..AppOptions::default()
         };
         let view = AppView::new(options);
+        // What a test finds the page's view by in a window.
+        view.widget().set_widget_name(COMPONENT);
         // A page draws no page of its own: the app's components are every view's, its own too.
         view.register_component(COMPONENT, Rc::new(|_| Box::new(Nothing::default())));
         let channel = Channel::answer(view.host(), context);

@@ -167,15 +167,19 @@ fn act(action: &'static str) -> impl Fn(&Value) -> bool {
     move |call: &Value| call["name"] == "extensions.act" && call["input"]["name"] == action
 }
 
-/// How many widgets `widget` holds, itself included: a place's view is one of the window's.
-fn widgets(widget: &gtk::Widget) -> usize {
-    let mut count = 1;
+/// The first widget under `widget`, itself included, named `name`.
+fn named(widget: &gtk::Widget, name: &str) -> Option<gtk::Widget> {
+    if widget.widget_name() == name {
+        return Some(widget.clone());
+    }
     let mut child = widget.first_child();
     while let Some(next) = child {
-        count += widgets(&next);
+        if let Some(found) = named(&next, name) {
+            return Some(found);
+        }
         child = next.next_sibling();
     }
-    count
+    None
 }
 
 /// How many pages' engines run in this process: NSH names each engine's thread.
@@ -345,12 +349,13 @@ fn a_page_fetched_after_its_place_closed_never_runs() {
             (served.waiting() == 1).then_some(())
         });
         let before = engines();
-        let shown = widgets(app.stage.window.upcast_ref());
+        let view = named(app.stage.window.upcast_ref(), "uraeda.extension").expect("the page's view");
         app.show(&[]);
-        // The page comes once its place has left the window, and not before: the app closes
-        // the place when it gets to it, which a loaded machine makes later than the page.
-        wait_for("the place closes", 30, || {
-            (widgets(app.stage.window.upcast_ref()) < shown).then_some(())
+        // The page comes once its own view has left the window, and not before: the app closes
+        // the place when it gets to it, which a loaded machine makes later than the page, and
+        // the place's other parts may go before its view does.
+        wait_for("the page's view leaves the window", 30, || {
+            view.root().is_none().then_some(())
         });
         gate.send(()).expect("the gate opens");
         wait_for("the page is sent", 30, || {

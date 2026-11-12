@@ -10144,3 +10144,23 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/extensions/host.web.tsx`, `app/web/frame.html`,
   `crates/server/src/http/web/policy.rs`, `docs/extensions.md`; the test
   `an_extensions_frame_reaches_no_other_site_and_opens_no_popup`.
+## T82.1: The test of a page fetched after its place closed waits for the page's own view to leave
+
+- **Decision**: `a_page_fetched_after_its_place_closed_never_runs` opens the page's gate once the
+  page's own view has left the window: it finds the view by its widget's name, `uraeda.extension`,
+  which the component now sets, and waits until that widget has no root. The window's widget count,
+  ruling R432's barrier, is gone. Nothing else of the app changed.
+- **Rationale**: read from the code, not reproduced. The product's check is sound: the fetch ends in
+  a future on GTK's main thread, which reads the view's own `root()` at the moment the page would
+  run, and keeps the page waiting when there is none, the same thread on which NSH's mounter detaches
+  a removed element. "3 engines for 2" needs the page to have run while its view was still in the
+  window: the fetch ended before the place's removal reached the main thread. R432's barrier allowed
+  it, since a drop of the whole window's widget count says that some part left, and the place's
+  other parts (its `If`s of loading words) are disposed apart from its view. Once a page ran, its
+  engine lives until NSH deletes the element, which waits for the app's script to release the node
+  (`nsh-core`, "children are released by their own ops"): `Drop` stops it then, and joins its thread.
+- **If wrong**: the test fails again, 3 for 2, with this barrier: the page then ran in a view with no
+  root, which `Shown::load` (`crates/app/src/extension_view.rs`) forbids, and that is where to look.
+  Left to the human: a page that ran keeps its engine after its pane closed until NSH deletes the
+  element; stopping it as its view leaves the window would reload a pane each time it moves.
+- **Where**: `crates/app/tests/extensions.rs`, `crates/app/src/extension_view.rs`.
