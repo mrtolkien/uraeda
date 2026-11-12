@@ -349,7 +349,8 @@ fn a_page_fetched_after_its_place_closed_never_runs() {
             (served.waiting() == 1).then_some(())
         });
         let before = engines();
-        let view = named(app.stage.window.upcast_ref(), "uraeda.extension").expect("the page's view");
+        let view =
+            named(app.stage.window.upcast_ref(), "uraeda.extension").expect("the page's view");
         app.show(&[]);
         // The page comes once its own view has left the window, and not before: the app closes
         // the place when it gets to it, which a loaded machine makes later than the page, and

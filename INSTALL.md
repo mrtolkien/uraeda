@@ -132,8 +132,8 @@ the same port, with a data folder of its own: `~/.local/share/uraeda-next/`, bes
 1. Stop the web UI's server, and uninstall it: `npm uninstall -g @uraeda/ui`.
 2. Copy its sessions: `ura import-sessions`. It reads the old folder and changes nothing there.
 3. Copy its list of repositories, before the new server first starts, which would write a list of
-   its own: `cp -n ~/.local/share/uraeda/repositories.json ~/.local/share/uraeda-next/`. Or skip
-   it, and add each repository later with `ura add` in it.
+   its own: `cp -n ~/.local/share/uraeda/repositories.json ~/.local/share/uraeda-next/`. Or skip it,
+   and add each repository later with `ura add` in it.
 4. Start the new server: `ura serve` in a terminal, in a repository, or the desktop app.
 5. Sign in again. `ura serve` in a terminal prints a new access key at its first start; after the
    desktop app's start, `ura key` prints one. Each other device pairs with `ura pair`.

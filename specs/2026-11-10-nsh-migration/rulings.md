@@ -10144,7 +10144,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/extensions/host.web.tsx`, `app/web/frame.html`,
   `crates/server/src/http/web/policy.rs`, `docs/extensions.md`; the test
   `an_extensions_frame_reaches_no_other_site_and_opens_no_popup`.
-## T82.1: The test of a page fetched after its place closed waits for the page's own view to leave
+
+## R508: The test of a page fetched after its place closed waits for the page's own view to leave
 
 - **Decision**: `a_page_fetched_after_its_place_closed_never_runs` opens the page's gate once the
   page's own view has left the window: it finds the view by its widget's name, `uraeda.extension`,
@@ -10152,25 +10153,26 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   ruling R432's barrier, is gone. Nothing else of the app changed.
 - **Rationale**: read from the code, not reproduced. The product's check is sound: the fetch ends in
   a future on GTK's main thread, which reads the view's own `root()` at the moment the page would
-  run, and keeps the page waiting when there is none, the same thread on which NSH's mounter detaches
-  a removed element. "3 engines for 2" needs the page to have run while its view was still in the
-  window: the fetch ended before the place's removal reached the main thread. R432's barrier allowed
-  it, since a drop of the whole window's widget count says that some part left, and the place's
-  other parts (its `If`s of loading words) are disposed apart from its view. Once a page ran, its
-  engine lives until NSH deletes the element, which waits for the app's script to release the node
-  (`nsh-core`, "children are released by their own ops"): `Drop` stops it then, and joins its thread.
-- **If wrong**: the test fails again, 3 for 2, with this barrier: the page then ran in a view with no
-  root, which `Shown::load` (`crates/app/src/extension_view.rs`) forbids, and that is where to look.
-  Left to the human: a page that ran keeps its engine after its pane closed until NSH deletes the
-  element; stopping it as its view leaves the window would reload a pane each time it moves.
+  run, and keeps the page waiting when there is none, the same thread on which NSH's mounter
+  detaches a removed element. "3 engines for 2" needs the page to have run while its view was still
+  in the window: the fetch ended before the place's removal reached the main thread. R432's barrier
+  allowed it, since a drop of the whole window's widget count says that some part left, and the
+  place's other parts (its `If`s of loading words) are disposed apart from its view. Once a page
+  ran, its engine lives until NSH deletes the element, which waits for the app's script to release
+  the node (`nsh-core`, "children are released by their own ops"): `Drop` stops it then, and joins
+  its thread.
+- **If wrong**: the test fails again, 3 for 2, with this barrier: the page then ran in a view with
+  no root, which `Shown::load` (`crates/app/src/extension_view.rs`) forbids, and that is where to
+  look. Left to the human: a page that ran keeps its engine after its pane closed until NSH deletes
+  the element; stopping it as its view leaves the window would reload a pane each time it moves.
 - **Where**: `crates/app/tests/extensions.rs`, `crates/app/src/extension_view.rs`.
 
-## T82.2: The tests the rulings name as failing under load wait on what they check
+## R509: The tests the rulings name as failing under load wait on what they check
 
 - **Decision**: each was read for why it can fail on a loaded machine.
   - `a_diagram_is_drawn_without_a_browser` took the first frame with any box's pixel as the picture,
-    then counted boxes, arrows, and text in it: a frame of a picture still coming fails. It now waits,
-    30 s at most, for the whole, and says the three counts when it times out.
+    then counted boxes, arrows, and text in it: a frame of a picture still coming fails. It now
+    waits, 30 s at most, for the whole, and says the three counts when it times out.
   - `a_broken_page_is_reported_to_its_host`: the page's `grow` filled its arrays one element at a
     time through a callback, in an interpreter with no JIT; on a loaded machine that passed the
     call's budget of wall time before the 64 MiB heap, and the report said "interrupted", not "out
@@ -10191,12 +10193,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/tests/outside.rs`, `app/__checks__/breaks.tsx`,
   `crates/server/tests/browser/phone.rs`, `.config/nextest.toml`.
 
-## T82.3: A record's whole value shares the record's own, not a copy
+## R510: A record's whole value shares the record's own, not a copy
 
-- **Decision**: a topic holds its value as `Arc<Value>`, and `Whole` takes that `Arc`: a large record
-  is held once, beside the part written for the socket, where it was held twice before. An append
-  grows the value in place with `Arc::make_mut`, after the topic's `Whole` was dropped, so it copies
-  only while a subscriber's send still holds the value before.
+- **Decision**: a topic holds its value as `Arc<Value>`, and `Whole` takes that `Arc`: a large
+  record is held once, beside the part written for the socket, where it was held twice before. An
+  append grows the value in place with `Arc::make_mut`, after the topic's `Whole` was dropped, so it
+  copies only while a subscriber's send still holds the value before.
 - **Alternatives considered**: a `Whole` of only `seq` and its `Part`, built from a borrowed value,
   as the review proposed. Rejected: the part is written, and compressed, on a blocking thread the
   first time a connection sends it, and writing it in the topic's lock would hold every subscriber
