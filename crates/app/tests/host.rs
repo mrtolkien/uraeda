@@ -20,7 +20,7 @@ mod stand_in;
 
 use crate::outside::display;
 
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -45,7 +45,11 @@ fn ura() -> PathBuf {
                 .expect("the target folder")
                 .join("host-tests");
             let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
-            let built = Command::new(cargo)
+            let mut build = Command::new(cargo);
+            for (name, _) in std::env::vars_os().filter(|(name, _)| of_this_test(name)) {
+                build.env_remove(name);
+            }
+            let built = build
                 .args([
                     "build",
                     "-q",
@@ -62,6 +66,20 @@ fn ura() -> PathBuf {
             target.join("debug").join("ura")
         })
         .clone()
+}
+
+/// Whether a variable is one cargo sets for this test's own process, which the build of `ura`
+/// must not see: `ring` is built again when `CARGO_MANIFEST_DIR` changed, and everything above
+/// it, 50 s for every run of these tests.
+fn of_this_test(name: &OsStr) -> bool {
+    let name = name.to_string_lossy();
+    let prefixes = ["CARGO_PKG_", "CARGO_BIN_", "CARGO_MANIFEST_"];
+    let names = [
+        "CARGO_CRATE_NAME",
+        "CARGO_PRIMARY_PACKAGE",
+        "CARGO_TARGET_TMPDIR",
+    ];
+    prefixes.iter().any(|prefix| name.starts_with(prefix)) || names.contains(&name.as_ref())
 }
 
 /// A test's folders: a home, the config folder, the data folders, and the agents' stand-ins.
