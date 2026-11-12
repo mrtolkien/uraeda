@@ -25,6 +25,8 @@ host.on("grow", () => {
   // longer than the call's budget on a loaded machine, which cut the call off first.
   const kept: Array<Array<number>> = [];
   for (;;) {
+    // A length, filled by the engine: what this check needs.
+    // oxlint-disable-next-line unicorn/no-new-array
     kept.push(new Array<number>(1 << 20).fill(kept.length));
   }
 });
