@@ -23,8 +23,11 @@ permissions:
 jobs:
   ready:
     runs-on: ubuntu-latest
-    # Its first run builds Native Shell's crates, the app's headless runner, and every test.
-    timeout-minutes: 60
+    # Its first run builds Native Shell's crates, the app's headless runner, and every test: on
+    # a 32-thread development machine, cold, about 95 minutes of processor time, then
+    # `just app-test`, one test at a time, for 5 1/2 minutes. On a runner's four
+    # cores, an estimated 45 to 60 minutes; with the cache, far less.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
@@ -50,8 +53,9 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
-    # Its first run builds Native Shell's engine and the app's Rust for WebAssembly.
-    timeout-minutes: 45
+    # Its first run builds Native Shell's engine and the app's Rust for WebAssembly, then the
+    # server's tests: about 30 minutes of processor time, cold.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
@@ -68,8 +72,10 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    # The Linux app's package builds the app's crates in release, from a cold cache at first.
-    timeout-minutes: 60
+    # The Linux app's package builds the app's crates in release, from a cold cache at first: 98
+    # minutes of processor time, cold, then `ura` with full link-time optimisation, 30 more, most
+    # of it on one core.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup

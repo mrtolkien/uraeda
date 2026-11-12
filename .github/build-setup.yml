@@ -2,7 +2,7 @@
 # in dist-workspace.toml: the app's web build, which `build-web.yml` made once, goes where the
 # server's build script reads it, so the `ura` released holds the app for a browser.
 - name: Fetch the web build
-  uses: actions/download-artifact@v7
+  uses: actions/download-artifact@v8
   with:
     name: web-build
     path: target/web

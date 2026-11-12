@@ -1,9 +1,30 @@
 name: Set up the dev shell
-description: Nix, for the `flake.nix` dev shell every check runs in, and the Rust cache.
+description:
+  Room on the disk, Nix, for the `flake.nix` dev shell every check runs in, and the Rust cache.
+
+inputs:
+  cache:
+    description: >-
+      The Rust cache's name: the job's own by default. A release's job names the CI job that builds
+      what it builds, and reads that job's cache from `main`.
+    default: ${{ github.job }}
+  save:
+    description: Whether the job saves its Rust cache.
+    default: "true"
 
 runs:
   using: composite
   steps:
+    - name: Make room on the disk
+      # The dev shell's closure is about 8 GB, and a cold `just ready` leaves a `target/` of
+      # well over 10 GB: more than the 20-odd GB a runner has free. The runner's .NET, Android,
+      # Haskell, and CodeQL toolchains, which no step uses, hold about 25 GB of it.
+      shell: bash
+      run: |
+        df -h /
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+          /opt/hostedtoolcache/CodeQL
+        df -h /
     - uses: cachix/install-nix-action@v31
     - uses: Swatinem/rust-cache@v2
       with:
@@ -11,4 +32,5 @@ runs:
         # WebAssembly, the release's), and one cache for all held only the first job to save's.
         # Saved by pull requests too, which read their own and `main`'s, so a branch's runs reuse
         # its builds.
-        shared-key: ci-${{ github.job }}
+        shared-key: ci-${{ inputs.cache }}
+        save-if: ${{ inputs.save }}
