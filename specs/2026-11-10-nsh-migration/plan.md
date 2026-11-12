@@ -2649,6 +2649,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   and a mockup by `page: "mockup"`: task 41 declares their panes.
 - Keys: `n` the next action (Overview), `m` and `f` its folds, `S` a new session, `Enter` on a card,
   a step's file, or a decision. Git's go key became `g c` (R288).
+- "Postpone the feature…" (`Postpone.tsx`, T90.3) beside Drop, over the record `ErrandMessage`
+  (T90.2): a dialog with the message, then the feature's latest session.
 
 ## Task 41: Workflow files
 

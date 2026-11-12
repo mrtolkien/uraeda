@@ -112,7 +112,7 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
     pending.set(false);
   };
   return (
-    <View style={{ alignItems: "flex-start", paddingTop: 24 }}>
+    <>
       <Button
         icon="trash-2"
         label={`Drop the ${what}…`}
@@ -144,7 +144,7 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
           <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
         </View>
       </Dialog>
-    </View>
+    </>
   );
 }
 

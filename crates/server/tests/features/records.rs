@@ -4,8 +4,9 @@
 use serde_json::{Value, json};
 use uraeda_protocol::SessionStatus;
 use uraeda_protocol::{
-    AllBranchChanges, BranchChanges, BranchDecision, Feature, FileView, HistoryView, Inbox, Ledger,
-    Priorities, ProposalFileView, ProposalHints, RecommendedMessage, Trigger, WorkflowMessage,
+    AllBranchChanges, BranchChanges, BranchDecision, ErrandMessage, Feature, FileView, HistoryView,
+    Inbox, Ledger, Priorities, ProposalFileView, ProposalHints, RecommendedMessage, Trigger,
+    WorkflowMessage,
 };
 
 use super::{AGENT, HUMAN, Held, REPO, fixture_repo, of_item, of_repo, read, served, serving};
@@ -357,6 +358,50 @@ async fn workflow_message_answers_its_shape() {
         args("2026-01-01-nothing", "start"),
     )
     .await;
+    assert_eq!(unknown, Value::Null);
+}
+
+#[tokio::test]
+async fn errand_message_answers_its_shape() {
+    let (_repo, server) = served().await;
+    let args = |errand: &str, folder: Option<&str>| json!({ "repo": REPO, "errand": errand, "folder": folder });
+
+    let postpone = read(&server, "ErrandMessage", args("postpone", Some(AGENT))).await;
+    let check = read(&server, "ErrandMessage", args("check-decisions", None)).await;
+    let apply = read(
+        &server,
+        "ErrandMessage",
+        args("apply-decisions-check", None),
+    )
+    .await;
+    let unknown = read(
+        &server,
+        "ErrandMessage",
+        args("postpone", Some("2026-01-01-nothing")),
+    )
+    .await;
+
+    let message: ErrandMessage = typed::<Option<ErrandMessage>>(&postpone).expect("the message");
+    assert_eq!(message.refusal, None);
+    assert_eq!(
+        message.text,
+        format!(
+            "/uraeda Postpone the feature specs/{AGENT}/ on branch {AGENT}, following \"Postpone \
+             or block\" in skills/uraeda/references/projects.md: write its proposal, and move \
+             its line to Later.\nStop when it is postponed, and earlier only if you need a \
+             decision from me.\n"
+        )
+    );
+    assert_eq!(
+        check["text"],
+        "/uraeda Check the decisions: write specs/DECISIONS-CHECK.md, following \
+         references/decisions-check.md. Stop when the check waits for my answers."
+    );
+    assert_eq!(
+        apply["text"],
+        "/uraeda Apply my answers in specs/DECISIONS-CHECK.md, following \
+         references/decisions-check.md."
+    );
     assert_eq!(unknown, Value::Null);
 }
 

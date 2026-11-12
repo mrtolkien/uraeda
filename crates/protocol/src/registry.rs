@@ -181,6 +181,7 @@ fn features(catalog: Catalog) -> Catalog {
         .record::<features::AllBranchChanges>()
         .record::<features::BranchChanges>()
         .record::<features::BranchDecision>()
+        .record::<features::ErrandMessage>()
         .record::<features::Feature>()
         .record::<features::History>()
         .record::<features::Inbox>()

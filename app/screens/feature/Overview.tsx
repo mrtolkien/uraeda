@@ -11,6 +11,7 @@ import { Pane, Well } from "../../ui/surfaces";
 import type { Tone } from "../../ui/tokens";
 import { type Next, type NextAction, nextOf } from "./next";
 import { Drop, DroppedNote, Problems, Rename } from "./Parts";
+import { Postpone } from "./Postpone";
 import { ContinueDialog } from "../runs/ContinueDialog";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
 import { day, endedWords, kindWord, plural, waitWords } from "./words";
@@ -256,7 +257,19 @@ function Body(props: { args: FeatureArgs; feature: () => Feature }) {
       <Left feature={feature()} />
       <Notes args={props.args} feature={feature()} />
       <If when={feature().step.name !== "done"}>
-        <Drop args={props.args} feature={feature()} />
+        {/* Postpone and Drop, the rare and structural ones, at the foot, far from Next. */}
+        <View
+          style={{
+            alignItems: "flex-start",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 8,
+            paddingTop: 24,
+          }}
+        >
+          <Postpone args={props.args} feature={feature()} />
+          <Drop args={props.args} feature={feature()} />
+        </View>
       </If>
     </View>
   );

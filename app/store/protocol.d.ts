@@ -842,6 +842,38 @@ id: string,
 edits: number, };
 
 /**
+ * An errand an agent is asked to run outside a feature's steps, with the workflow's message.
+ */
+export type Errand = "postpone" | "check-decisions" | "apply-decisions-check";
+
+/**
+ * The workflow's message for an errand, which the human reads before it is sent. Its value is
+ * `null` for a postponement of a folder that is no feature's.
+ */
+export type ErrandMessage = { 
+/**
+ * Why it cannot be sent: a postponed feature with no branch left to close.
+ */
+refusal: string | null, 
+/**
+ * The message: empty with a refusal.
+ */
+text: string, };
+
+/**
+ * Which errand's message: a postponement names the feature's or the change's folder.
+ */
+export type ErrandMessageArgs = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, errand: Errand, 
+/**
+ * The feature's or the change's folder, for a postponement.
+ */
+folder?: string | null, };
+
+/**
  * What an `error` is about.
  */
 export type ErrorCode = "not-signed-in" | "bad-message" | "unknown-record" | "unknown-action" | "bad-args" | "bad-input" | "refused" | "conflict" | "hook" | "internal";
@@ -6178,6 +6210,7 @@ export type Records = {
   Buffer: { args: BufferArgs; value: Buffer };
   ConflictFile: { args: ConflictFileArgs; value: ConflictFile };
   Devices: { args: null; value: Devices };
+  ErrandMessage: { args: ErrandMessageArgs; value: ErrandMessage | null };
   ExtensionRecord: { args: ExtensionRecordArgs; value: ExtensionRecord };
   Extensions: { args: ExtensionsArgs; value: Extensions };
   Feature: { args: ItemArgs; value: Feature | null };

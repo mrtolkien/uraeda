@@ -67,7 +67,10 @@ pub use items::{
     RoundItems, RoundVerdict, Ruling, SettledComment, SettledGroup, SettledKind, SettledPoint,
     StepItem, TaskItem, VerdictKind,
 };
-pub use messages::{RecommendedMessage, Trigger, WorkflowMessage, WorkflowMessageArgs};
+pub use messages::{
+    Errand, ErrandMessage, ErrandMessageArgs, RecommendedMessage, Trigger, WorkflowMessage,
+    WorkflowMessageArgs,
+};
 pub use priorities::{
     LinkedFile, MergedFeature, NestedItem, Priorities, PrioritiesCommit, PrioritiesDiscard,
     ProposalItem, ProposalsAdd, ProposalsDrop, ProposalsEdit, ProposalsExpand, ProposalsMove,

@@ -7806,3 +7806,29 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/session/ask.ts`, `app/screens/round/Question.tsx`, `Settled.tsx`,
   `app/screens/file/Reader.tsx`, `app/screens/review/Comment.tsx`; the test
   `app/screens/round/ask.test.tsx`.
+
+## T90.2: The errands' messages are the server's record `ErrandMessage`
+
+- **Decision**: the messages an agent is asked with outside a feature's steps, postponing a feature
+  or a change and writing or applying the decisions check, are the record `ErrandMessage`
+  (`{ repo, errand: "postpone" | "check-decisions" | "apply-decisions-check", folder? }`), written
+  in `crates/server/src/records/features/messages/errands.rs` from the Node server's
+  `round-messages.ts`, word for word. A postponement without a branch to close is refused with the
+  workflow message's words; a folder that is no feature's answers `null`. A screen shows the message
+  whole before it is sent, and sends it as a plain message (`session.send` without `workflow`): an
+  errand is no step's run.
+- **Rationale**: the workflow's words are the server's (R287); one record serves the three, where a
+  `Trigger` would have made each a step's run, which the runner checks against the step.
+- **Where**: `crates/protocol/src/features/messages.rs`,
+  `crates/server/src/records/features/messages.rs`, the test `errand_message_answers_its_shape`.
+
+## T90.3: Postpone sits beside Drop, and asks first with its message
+
+- **Decision**: "Postpone the feature…" (or the change) is a quiet button beside Drop at the foot of
+  the feature's Overview, drawn only while the feature has a branch to close. It opens a dialog that
+  says what postponing does and shows the message; its main button sends it to the feature's latest
+  session, made when it has none, and opens that session, where the agent writes the proposal and
+  asks what it cannot settle.
+- **Rationale**: the old menu sent the message at once on a pick, an agent's run started by one
+  press (rule 2). The dialog is the deliberate step, as Drop's is.
+- **Where**: `app/screens/feature/Postpone.tsx`, `Overview.tsx`.

@@ -115,15 +115,14 @@ why = "the composer is the session's: a quote handed to it from another page was
 fate = "brought-back"
 now = "a round's question (Ask the agent, `s`), a settled point (Ask the agent, or \"Ask the agent instead\" in its comment field), a part of a spec or a plan under review (`s` at the cursor, or \"Ask the agent instead\" in its comment field): the feature's session opens beside, in the other stack, the point quoted in its focused composer, sent only by the human (`app/screens/session/ask.ts`)"
 
-# --- Left: each with what it needs, and who misses it ---------------------------------------------
-
 [[left]]
 what = "Postpone a feature"
 old = "Feature page (its menu)"
 why = "its message was written in the React UI's TSX: the workflow's words belong to the server, which has none (R287)"
-fate = "left"
-needs = "a server action that writes the postponement and moves its line, with its message, then a button beside Drop"
-missed = "a person will miss this now and then: today the feature is dropped or left as it is"
+fate = "brought-back"
+now = "the feature page's foot, beside Drop, far from Next: \"Postpone the feature…\" asks first, with the server's message whole (`ErrandMessage`, `postpone`), then sends it to the feature's latest session and opens it"
+
+# --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
 what = "Pick mode and comments on a story or a mockup"
