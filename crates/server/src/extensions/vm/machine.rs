@@ -17,7 +17,7 @@ use rquickjs::{
 };
 use serde_json::{Value, json};
 
-use super::{ACTIVATION, CALL, Command, End, Host, MEMORY, STACK, Thrown, Vm, over};
+use super::{ACTIVATION, Command, End, Host, MEMORY, STACK, Thrown, Vm, over};
 
 /// What the VM's thread keeps between two pieces of code.
 #[derive(Default)]
@@ -171,7 +171,12 @@ impl Machine {
     fn serve(&mut self, commands: &Receiver<Command>) -> Result<(), End> {
         let due = self.local.borrow_mut().due_timers();
         for id in due {
-            self.piece(CALL, "in a timer", "timer", &json!({ "id": id }))?;
+            self.piece(
+                self.vm.0.limits.call,
+                "in a timer",
+                "timer",
+                &json!({ "id": id }),
+            )?;
         }
         let next = self.local.borrow().timers.keys().next().map(|(at, _)| *at);
         let command = match next {
@@ -185,7 +190,7 @@ impl Machine {
         match command {
             Command::Stop => Err(End::Stopped),
             Command::Dispatch { kind, payload } => {
-                self.piece(CALL, "in a callback", kind, &payload)
+                self.piece(self.vm.0.limits.call, "in a callback", kind, &payload)
             }
             Command::Call { mut payload, reply } => {
                 payload["id"] = match reply {
@@ -196,7 +201,7 @@ impl Machine {
                     }
                     None => Value::Null,
                 };
-                self.piece(CALL, "in a call", "call", &payload)
+                self.piece(self.vm.0.limits.call, "in a call", "call", &payload)
             }
         }
     }

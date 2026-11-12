@@ -55,6 +55,7 @@ async fn server(folders: &Path) -> Server {
         clock: Clock::fixed(SystemTime::now()),
         no_scheduled_jobs: false,
         sandbox: None,
+        extension_call_limit: None,
     };
     Server::start(start).await.expect("the server starts")
 }

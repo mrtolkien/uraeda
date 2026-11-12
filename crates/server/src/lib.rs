@@ -121,6 +121,9 @@ pub struct Options {
     /// `ura sandbox`: the sample projects' server, on the fake agent alone, its list locked, and
     /// without sign-in unless its mode keeps it. Only code sets it.
     pub sandbox: Option<sandbox::Mode>,
+    /// How long a piece of an extension's server code may run once it is loaded: none for its
+    /// 10 seconds. Only a test of that limit sets it, to see it cut off sooner.
+    pub extension_call_limit: Option<Duration>,
 }
 
 /// A running server.

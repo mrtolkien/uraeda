@@ -316,6 +316,7 @@ pub fn options(
         clock: Clock::system(),
         no_scheduled_jobs: true,
         sandbox: Some(mode),
+        extension_call_limit: None,
     }
 }
 

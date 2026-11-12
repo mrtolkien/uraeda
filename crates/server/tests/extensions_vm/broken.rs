@@ -9,10 +9,13 @@ use serde_json::json;
 use uraeda_protocol::ErrorCode;
 
 use super::support::{self, Held, Live, fixture_repo, gone, group_members};
-use super::{REPO, act, in_state, loaded, no_vm_threads, row, started};
+use super::{REPO, act, in_state, loaded, no_vm_threads, row, started, with};
 
 /// How long a test that waits on a VM's limits may take, before it fails in place of hanging.
 const LONGEST: Duration = Duration::from_secs(90);
+
+/// The limit on a call, in place of its 10 seconds, for the test that waits it out.
+const CALL_LIMIT: Duration = Duration::from_secs(2);
 
 // The extensions decision: a broken extension MUST NOT stop Uraeda or another extension. Each
 // of these is broken its own way, as it loads or after, and names its problem in the record
@@ -62,13 +65,15 @@ async fn an_extension_that_throws_at_load_leaves_the_others_running() {
 }
 
 // The extensions decision's limit on time: an activation that never returns is cut off at 2
-// seconds, and a call at 10. The extension is broken, its VM's thread ends, and the server
-// answers meanwhile.
+// seconds, and a call at 10, here at 2 not to wait for it. The extension is broken, its VM's
+// thread ends, and the server answers meanwhile.
 #[tokio::test]
 async fn an_extension_that_never_returns_is_cut_off() {
     let cut_off = async {
         let repo = fixture_repo(REPO);
-        let server = started(&repo, &["busy", "endless"]).await;
+        let setup = support::setup().folder(repo.path());
+        let setup = setup.extension_call_limit(CALL_LIMIT);
+        let server = with(setup, &["busy", "endless"]).start().await;
 
         let endless = in_state(&server, "endless", "broken").await;
         let slow =
@@ -84,7 +89,7 @@ async fn an_extension_that_never_returns_is_cut_off() {
         let listed = support::read(&server, "Repositories", json!(null)).await;
         assert_eq!(listed["rows"][0]["name"], REPO);
 
-        // Past its 10 seconds, the call is refused, and the extension is broken with why.
+        // Past its limit, the call is refused, and the extension is broken with why.
         let mut all = Held::open(&server, "Extensions", json!({ "repo": null })).await;
         let mut broken = false;
         for _ in 0..40 {
@@ -101,7 +106,7 @@ async fn an_extension_that_never_returns_is_cut_off() {
             row(&all.value, "busy")
         );
         let problems = &row(&all.value, "busy")["problems"];
-        assert_eq!(problems[0]["message"], "took more than 10 s in a call");
+        assert_eq!(problems[0]["message"], "took more than 2 s in a call");
         let (code, _) = live
             .answer(spinning)
             .await

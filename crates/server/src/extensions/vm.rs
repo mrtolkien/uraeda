@@ -40,6 +40,10 @@ pub(crate) const ACTIVATION: Duration = Duration::from_secs(2);
 /// waits for its answer.
 pub(crate) const CALL: Duration = Duration::from_secs(10);
 
+/// How long a piece of an extension's code may run once it is loaded, in place of [`CALL`]:
+/// provided only by a test of that limit, through `Options::extension_call_limit`.
+pub(crate) struct CallLimit(pub Duration);
+
 /// The most memory a VM's values take: an allocation past it throws in the extension.
 const MEMORY: usize = 256 * 1024 * 1024;
 
@@ -126,6 +130,8 @@ struct Limits {
     /// The piece that runs ran over its time.
     cut: AtomicBool,
     stop: AtomicBool,
+    /// How long a piece of its code may run once it is loaded: [`CALL`], but in a test.
+    call: Duration,
 }
 
 impl Limits {
@@ -184,6 +190,7 @@ impl Vm {
     pub(crate) fn start(
         name: &str,
         graph: Value,
+        call: Duration,
         host: Box<dyn Host>,
         tasks: tokio::runtime::Handle,
         on_end: impl FnOnce(End) + Send + 'static,
@@ -199,6 +206,7 @@ impl Vm {
                 deadline: AtomicU64::new(0),
                 cut: AtomicBool::new(false),
                 stop: AtomicBool::new(false),
+                call,
             },
             ended: Mutex::new(Some(ended)),
             listens: Mutex::default(),
@@ -390,7 +398,14 @@ mod tests {
         let host = Box::new(Panics(released.clone()));
         let code = "__exports.default = (api) => api.log('hello');";
 
-        let started = Vm::start("panics", graph(code), host, tokio.handle().clone(), |_| {});
+        let started = Vm::start(
+            "panics",
+            graph(code),
+            CALL,
+            host,
+            tokio.handle().clone(),
+            |_| {},
+        );
 
         let thrown = started.err().expect("the VM did not load");
         assert_eq!(thrown.message, "its VM failed: the host's `log` is broken");

@@ -63,6 +63,7 @@ pub(crate) use self::events::{files_changed, repository_left};
 pub(crate) use self::graph::Problem;
 use self::loader::{State, Wake};
 use self::signing::Signer;
+pub(crate) use self::vm::CallLimit;
 use self::vm::{CALL, Vm};
 use crate::http::Routes;
 use crate::live::{Fault, locked};

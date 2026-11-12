@@ -22,7 +22,7 @@ use uraeda_protocol::{ExtensionRecord, ExtensionState, Extensions as ExtensionsR
 use super::api::ServerHost;
 use super::graph::{self, Problem};
 use super::pages::{self, Outcome};
-use super::vm::{End, Thrown, Vm};
+use super::vm::{CALL, CallLimit, End, Thrown, Vm};
 use super::watch::Watches;
 use super::{Extensions, events, status};
 use crate::live::Bus;
@@ -368,7 +368,10 @@ impl Loader {
                 });
             }
         };
-        let started = Vm::start(name, graph.to_json(), host, self.tasks.clone(), on_end);
+        let call = self.shared.find::<CallLimit>();
+        let call = call.map_or(CALL, |limit| limit.0);
+        let tasks = self.tasks.clone();
+        let started = Vm::start(name, graph.to_json(), call, host, tasks, on_end);
         started.map_err(|thrown| failure(&thrown, name, graph.entry()))
     }
 

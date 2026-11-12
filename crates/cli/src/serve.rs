@@ -47,6 +47,7 @@ pub fn run(
         clock: Clock::system(),
         no_scheduled_jobs,
         sandbox: None,
+        extension_call_limit: None,
     };
     let at_terminal = std::io::stdout().is_terminal();
     let opens = !no_open && at_terminal;

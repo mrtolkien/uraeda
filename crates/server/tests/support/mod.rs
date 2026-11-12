@@ -72,6 +72,7 @@ pub fn setup() -> Setup {
         folder: None,
         environment: Vec::new(),
         allow_origins: Vec::new(),
+        extension_call_limit: None,
     }
 }
 
@@ -86,6 +87,7 @@ pub struct Setup {
     folder: Option<PathBuf>,
     environment: Vec<(String, String)>,
     allow_origins: Vec<String>,
+    extension_call_limit: Option<Duration>,
 }
 
 impl Setup {
@@ -129,7 +131,14 @@ impl Setup {
             clock: Clock::fixed(SystemTime::UNIX_EPOCH + START),
             no_scheduled_jobs: false,
             sandbox: None,
+            extension_call_limit: self.extension_call_limit,
         }
+    }
+
+    /// Cuts off a piece of an extension's server code past `limit`, in place of 10 seconds.
+    pub fn extension_call_limit(mut self, limit: Duration) -> Self {
+        self.extension_call_limit = Some(limit);
+        self
     }
 
     /// The folder the server starts in, whose repository joins its list.

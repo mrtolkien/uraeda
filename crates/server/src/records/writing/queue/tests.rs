@@ -25,6 +25,7 @@ async fn no_write_opens_a_queue_once_the_stop_began() {
         clock: Clock::fixed(SystemTime::UNIX_EPOCH),
         no_scheduled_jobs: true,
         sandbox: None,
+        extension_call_limit: None,
     };
     let shared = Shared::new(options, 0, String::new());
     shared.provide::<Bus>(live::test_bus(&shared));
