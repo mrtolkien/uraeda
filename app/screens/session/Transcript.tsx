@@ -11,6 +11,8 @@ import { keysWorkHere, registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
 import { createCursor, Empty, VirtualList, type VirtualListRef } from "../../ui/lists";
 import { say } from "../../ui/announce";
+import { keyboardUp } from "../../ui/surfaces";
+import { isNarrow } from "../../ui/width";
 import { droppedImages } from "../images";
 import { attach, draftKey, putBack, SessionComposer } from "./Composer";
 import { SessionBanners, SessionHead } from "./Head";
@@ -258,7 +260,11 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
       style={{ flex: 1 }}
     >
       <AllowQuestion session={props.session().id} />
-      <SessionHead repo={repo} runtime={runtime()} session={props.session()} />
+      {/* On a phone with the keyboard up, the room it leaves goes to what is answered: the head,
+          a third of the screen, folds away until the keyboard does. */}
+      <View style={{ display: isNarrow() && keyboardUp() ? "none" : "flex" }}>
+        <SessionHead repo={repo} runtime={runtime()} session={props.session()} />
+      </View>
       <SessionBanners repo={repo} session={props.session()} />
       <View style={{ flex: 1, minHeight: 0 }}>
         <VirtualList
