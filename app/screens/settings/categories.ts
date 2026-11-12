@@ -203,6 +203,11 @@ export function search(text: string, extra: ReadonlyArray<Words>): ReadonlyArray
     );
   return CATEGORIES.flatMap((category) => {
     const own = category.id === "extensions" ? extra : category.settings;
-    return own.filter(holds).map((words) => ({ category, words }));
+    const settings = own.filter(holds).map((words) => ({ category, words }));
+    // A category found by its own name comes first, as a row of its own: "extensions" finds the
+    // Extensions, which no setting's words held.
+    const named = category.label.toLowerCase().includes(needle);
+    const itself = { category, words: { help: category.about, label: category.label } };
+    return named ? [itself, ...settings] : settings;
   });
 }

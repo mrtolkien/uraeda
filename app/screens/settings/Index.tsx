@@ -75,7 +75,11 @@ export function Index() {
     icon: "search",
     keys: "/",
     label: "Search the settings",
-    run: () => field?.focus(),
+    // A new search, as Vim's `/`: the last one's words do not stay in front of the new ones.
+    run: () => {
+      text.set("");
+      field?.focus();
+    },
   });
   return (
     <View style={{ gap: 10 }}>
