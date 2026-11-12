@@ -17,6 +17,12 @@ use uraeda_server::sandbox::Prepare;
 use super::cdp::{Browser, PHONE};
 use shots::Shots;
 
+#[path = "phone_persona.rs"]
+mod persona;
+#[path = "phone_persona_glance.rs"]
+mod persona_glance;
+#[path = "phone_persona_sizes.rs"]
+mod persona_sizes;
 #[path = "phone_shots.rs"]
 mod shots;
 #[path = "phone_states.rs"]
@@ -412,6 +418,16 @@ async fn phone_pictures() {
     std::fs::write(super::shots().join("summary.txt"), format!("{summary}\n"))
         .expect("the summary is written");
     println!("{report}");
+}
+
+#[tokio::test]
+#[ignore = "a tool: `just web-walk [word]` runs it"]
+async fn phone_persona() {
+    if std::env::var("URAEDA_PHONE_PERSONA").is_err() {
+        println!("skipped: `just web-walk` walks the phone's persona");
+        return;
+    }
+    println!("{}", persona::all().await);
 }
 
 #[tokio::test]

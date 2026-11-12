@@ -134,6 +134,15 @@ web-shots word="":
     rm -rf target/shots/phone && mkdir -p target/shots/phone
     URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/phone" URAEDA_PHONE_SHOTS=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test tests -- --ignored --nocapture --exact browser::phone::phone_pictures
 
+# The owner away from the desk, walked on the phone in a browser, flow by flow: signed in, a
+# check-in, a round, a session, a spec, a note, the rest, the phone turned and other phones, a
+# slow phone on a slow link, each step a numbered picture in `target/shots/polish-6/`, with
+# `report.txt` (`crates/server/tests/browser/phone_persona.rs`). `just web-walk 03-` walks the
+# round alone. After `just web-build`. A tool, never a check.
+web-walk word="":
+    rm -rf target/shots/polish-6 && mkdir -p target/shots/polish-6
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/polish-6" URAEDA_PHONE_PERSONA=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact phone::phone_persona
+
 # A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
 # fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
 # `pairing`, `refused`, `stopped`, `starting`, or `states` for all four. Each in both themes, 1400
