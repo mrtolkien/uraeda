@@ -15,7 +15,8 @@ export function StatusDot(props: StatusDotProps) {
   return (
     <View
       accessibilityLabel={props.label}
-      style={{ alignItems: "center", flexDirection: "row", gap: 6 }}
+      // Narrower than its words, as a card's state in a side pane, the words wrap, never cut.
+      style={{ alignItems: "center", flexDirection: "row", flexShrink: 1, gap: 6, minWidth: 0 }}
       testID={props.testID}
     >
       <View
@@ -26,7 +27,13 @@ export function StatusDot(props: StatusDotProps) {
           width: tokens.control.status,
         }}
       />
-      <If when={props.label}>{(label) => <Text tone="quiet">{label()}</Text>}</If>
+      <If when={props.label}>
+        {(label) => (
+          <View style={{ flexShrink: 1, minWidth: 0 }}>
+            <Text tone="quiet">{label()}</Text>
+          </View>
+        )}
+      </If>
     </View>
   );
 }
