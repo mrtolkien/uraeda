@@ -90,7 +90,7 @@ function MockupLive(props: {
 }
 
 /**
- * The page's mockup, live. While the spec waits for review and shows it, a comment on it (`c`), or
+ * The page's mockup, live. While the spec waits for review and shows it, a comment on it (`i`), or
  * on an element picked in it (`p`), opens the spec beside it, the field under the block that
  * shows it: a review comment, as the old page wrote.
  */

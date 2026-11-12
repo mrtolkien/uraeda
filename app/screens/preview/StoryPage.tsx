@@ -108,7 +108,7 @@ function Words(props: Checkout & { keys?: boolean; story: Story }) {
 const linkOf = (story: string) => ({ export: exportOf(story), path: fileOf(story) });
 
 /**
- * The page's story, live. While the spec waits for review and shows it, a comment on it (`c`), or
+ * The page's story, live. While the spec waits for review and shows it, a comment on it (`i`), or
  * on an element picked in it (`p`), opens the spec beside it, the field under the block that shows
  * it.
  */

@@ -96,6 +96,8 @@ function Head(props: { args: FileArgs; file: FileView; onVerdict?: () => void })
           <If when={!isNarrow()}>
             <Button
               icon="badge-check"
+              // The keyboard guide's review `n`: from the reading, the verdict, in one key.
+              keys="n"
               label="Go to your verdict"
               onPress={() => props.onVerdict?.()}
               testID="review-verdict"

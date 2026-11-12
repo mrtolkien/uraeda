@@ -169,7 +169,7 @@ export function LiveFrame(props: LiveFrameProps) {
           {(comment) => (
             <Button
               icon="message-square"
-              keys={props.keys === true ? "c" : undefined}
+              keys={props.keys === true ? "i" : undefined}
               label="Comment"
               onPress={() => comment()()}
               testID="preview-comment"
