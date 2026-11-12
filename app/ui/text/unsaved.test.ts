@@ -68,6 +68,25 @@ test("text typed back to the saved text while a save is on its way stays, over w
   expect(field.dirty()).toBe(true);
 });
 
+test("text typed back while a save is on its way stays when the record arrives before the result", async () => {
+  const saved = signal("Original");
+  const field = unsavedText("test:back-record", saved);
+  field.change("Snapshot");
+  const server = answer();
+  const save = field.save(async () => {
+    await server.given;
+  });
+  field.change("Original");
+  // The server's record of the save comes first, its answer after.
+  saved.set("Snapshot");
+  expect(field.text()).toBe("Original");
+  server.pass();
+  expect(await save).toEqual({ ok: true, value: undefined });
+  expect(field.text()).toBe("Original");
+  expect(field.dirty()).toBe(true);
+  expect(readUnsaved("test:back-record")).toMatchObject({ base: "Snapshot", text: "Original" });
+});
+
 test("a refused save keeps the text, and tells its caller, so what follows it stops", async () => {
   const field = unsavedText("test:refused", () => "");
   field.change("The notes");

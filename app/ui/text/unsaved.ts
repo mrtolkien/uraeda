@@ -85,11 +85,20 @@ function dropUnsaved(key: string) {
 
 /**
  * Keeps `text` as the unsaved text of `key`, over `base`: nothing when it is the saved text and no
- * text of the key is on its way.
+ * text of the key is on its way. `hold` keeps it even then, while a save is on its way: the saved
+ * text is about to change, and what was typed must outlive it, whichever of the record and the
+ * save's answer comes first.
  */
-function keep(key: string, text: string, base: string, exact: boolean, extra?: unknown) {
+function keep(
+  key: string,
+  text: string,
+  base: string,
+  exact: boolean,
+  extra?: unknown,
+  hold = false,
+) {
   const held = peek(key);
-  if (!differ(text, base, exact) && held?.sent === undefined) {
+  if (!hold && !differ(text, base, exact) && held?.sent === undefined) {
     dropUnsaved(key);
     return;
   }
@@ -261,7 +270,7 @@ export function unsavedText(
     change(value) {
       const at = untracked(keyNow);
       typed.set({ key: at, over: untracked(saved), text: value });
-      keep(at, value, untracked(settled), exact, options.extra?.());
+      keep(at, value, untracked(settled), exact, options.extra?.(), untracked(saves) > 0);
     },
     dirty: () => differ(text(), settled(), exact),
     discard() {
@@ -282,12 +291,11 @@ export function unsavedText(
         try {
           const value = await run(snapshot);
           const here = untracked(keyNow) === at;
-          // What the field shows, whether or not an entry holds it: typed back to the text saved
-          // before, it holds none, and is still an edit over the snapshot.
-          const shows = here ? untracked(text) : (peek(at)?.text ?? snapshot);
+          // What was typed while the save was on its way is in the entry, even typed back to the
+          // text saved before: it stays, an edit over the snapshot.
+          const shows = here ? untracked(text) : snapshot;
           settleUnsaved(at, snapshot, exact);
           if (here) {
-            if (peek(at) === undefined) keep(at, shows, snapshot, exact, options.extra?.());
             kept.set({ key: at, over: untracked(saved), text: snapshot });
             // The field keeps the text it shows, until the record holds it too.
             if (peek(at) === undefined) {
@@ -303,6 +311,17 @@ export function unsavedText(
             1,
           );
           saves.update((count) => count - 1);
+          // The last save answered: an entry kept only while it was on its way, typed back to the
+          // text it began over, goes.
+          const held = peek(at);
+          if (
+            untracked(saves) === 0 &&
+            held !== undefined &&
+            held.sent === undefined &&
+            !differ(held.text, held.base, exact)
+          ) {
+            dropUnsaved(at);
+          }
         }
       });
       queued.push({ done, key: at, kind, text: snapshot });
