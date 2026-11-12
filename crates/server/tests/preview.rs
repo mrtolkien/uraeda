@@ -771,6 +771,71 @@ async fn a_waiting_folders_preview_starts_with_the_server_and_compiles_its_stori
     server.stop().await;
 }
 
+// The stack decision: the server stops with everything it started. The look-ahead waits up to
+// three minutes for a preview to be ready: a wait on a blocking thread outlives the stop, and the
+// runtime then waits for it as it is dropped, so `ura serve` hangs on its signal until the app
+// kills it, its other work unstopped. Here the preview never answers its index: the server and
+// its runtime are gone within a second all the same.
+#[test]
+fn a_server_stopped_while_a_preview_warms_ahead_stops_at_once() {
+    let project = project("repo", "hang");
+    add_feature(&project.repo);
+    let modules = format!(".worktrees/{FEATURE}/packages/web/node_modules");
+    fs::create_dir_all(project.repo.path().join(modules)).unwrap();
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let stopping = runtime.block_on(async {
+        let server = serving(&project).await;
+        warming(&project).await;
+        let stopping = std::time::Instant::now();
+        server.stop().await;
+        stopping
+    });
+    drop(runtime);
+
+    let taken = stopping.elapsed();
+    assert!(taken < PATIENCE, "stopped in {taken:?}");
+}
+
+// The look-ahead belongs to the server's runtime, and never holds it: a wait of minutes on a
+// blocking thread is one the runtime waits for as it is dropped, whatever became of the server,
+// as after a test's failed assertion, or a stop that raced the preview's start. Here nothing
+// stops the server, and its preview never answers: its runtime is gone at once all the same.
+#[test]
+fn a_warm_up_does_not_outlive_the_servers_runtime() {
+    let project = project("repo", "hang");
+    add_feature(&project.repo);
+    let modules = format!(".worktrees/{FEATURE}/packages/web/node_modules");
+    fs::create_dir_all(project.repo.path().join(modules)).unwrap();
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let server = runtime.block_on(async {
+        let server = serving(&project).await;
+        warming(&project).await;
+        server
+    });
+
+    let dropping = std::time::Instant::now();
+    drop(runtime);
+
+    let taken = dropping.elapsed();
+    assert!(taken < PATIENCE, "dropped in {taken:?}");
+    drop(server);
+}
+
+/// Waits until the look-ahead started the project's preview: it then waits for it.
+async fn warming(project: &Project) {
+    let deadline = tokio::time::Instant::now() + MINUTE;
+    while project.starts().is_empty() {
+        assert!(tokio::time::Instant::now() < deadline, "nothing warmed");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
 // A preview stops 30 minutes after its last view, telling nobody: a client that held its
 // records all along still shows it ready. When it shows the page again, the frame's request
 // starts it again, its records say so, and the page answers once it is ready. Without it, a

@@ -8339,3 +8339,42 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the plan's rule for a failure of timing under load. The test does not touch Native
   Shell.
 - **Where**: `crates/cli/tests/serve.rs`.
+
+## T88.1: The look-ahead waits on the runtime's timer, and the stop already ended it
+
+- **Decision**: the look-ahead (`preview/ahead.rs`) is one async task: it waits for a preview and
+  for each story's compile on tokio's timer, and is dropped as the server stops, or with its
+  runtime. Only a folder's reads (its files, one `git`) run on a blocking thread, each to its end.
+  The first review's finding 1 is right about the design and wrong about the stop: a server stopped
+  while a warm-up waited already stopped at once.
+- **Rationale**: checked with a test before any change.
+  `a_server_stopped_while_a_preview_warms_ahead_stops_at_once`, a preview that never answers its
+  index, the server stopped, its runtime dropped, passed on the code the review read, in 0.47 s: the
+  wait looked at the runner's state every 250 ms, the previews' stop empties the runner, and a
+  preview that is gone ended the wait. The stop could not cancel the wait, as the finding says, but
+  it did not have to. What was true is what the wait hung on: nothing but the runner's state ended a
+  wait of 180 s on a blocking thread, which the runtime waits for as it is dropped. A runtime
+  dropped without a stop waited the whole time (`a_warm_up_does_not_outlive_the_servers_runtime`:
+  120 s and cut by the test runner before the change, 0.28 s after), as after a test's failed
+  assertion; and so would a stop that raced `Runner::view` between its check of `closed` and its
+  lock, which leaves an entry `Starting` in a closed runner. The async task ends in both, whatever
+  the runner holds.
+- **The class**, every `spawn_blocking`, `thread::sleep`, and `thread::spawn` of
+  `crates/server/src`, read for a wait the stop does not end:
+  - the look-ahead's was the only `thread::sleep`, and the only poll;
+  - joined by a registered stop: the write queues' landing threads (`write queues`), the extensions'
+    loader (`extensions`), the turns (`turns`), the scheduler's look (`jobs`);
+  - cancelled at the stop: `gh` (`records/pulls/gh.rs`, a `select!` on `shared.stopping()`);
+  - bounded by a timeout of their own: a runtime's version (5 s), its models (15 s), the Claude
+    accounts' usage (10 s), an extension's call (10 s);
+  - bounded by a file's read or one `git`: every other one (the records' reads, the files' routes,
+    the fetcher, the sweep, the sandbox's first start);
+  - the files' watcher is a thread of its own, not the runtime's: it ends with its watch, and holds
+    nothing at the process's end.
+- **Left**: an extension's `fetch` (`extensions/fetch.rs`) is a blocking request with a timeout of
+  30 s that the stop does not cut: a server stopped while an extension waits for a slow host is held
+  up to 30 s as its runtime is dropped, past the 10 s the app gives it. And a `git fetch` in flight
+  is waited for by the write queues' stop, for as long as git takes. Neither is the preview's, and
+  both are bounded by the network's own timeouts: named here for the next review.
+- **If wrong**: a warm-up that must go on past a stop does not exist: the next start warms again.
+- **Where**: `crates/server/src/preview/ahead.rs`; `crates/server/tests/preview.rs`.
