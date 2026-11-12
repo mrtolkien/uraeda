@@ -193,7 +193,7 @@ pub(super) async fn slowed(
     error: &str,
 ) -> Response {
     tokio::time::sleep(SLOWED).await;
-    eprintln!("uraeda: failed {what} from {}", sender(shared, headers));
+    say_err!("uraeda: failed {what} from {}", sender(shared, headers));
     (StatusCode::UNAUTHORIZED, Json(json!({ "error": error }))).into_response()
 }
 

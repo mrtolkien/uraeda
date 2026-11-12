@@ -254,7 +254,7 @@ impl Runner {
         let reopened = store.reopen_turn(id, self.now());
         let reopened = reopened.and_then(|()| store.append(id, self.now(), &line(RESUMED)));
         if let Err(error) = reopened {
-            eprintln!("uraeda: turn {id} could not open again: {error}");
+            say_err!("uraeda: turn {id} could not open again: {error}");
             return false;
         }
         Self::track(state, id);
@@ -388,7 +388,7 @@ impl Runner {
         let store = self.store();
         let ended = store.end_turn(id, &end, self.now());
         let row = ended.and_then(|()| store.turn(id)).unwrap_or_else(|error| {
-            eprintln!("uraeda: the end of turn {id} could not be recorded: {error}");
+            say_err!("uraeda: the end of turn {id} could not be recorded: {error}");
             None
         });
         if was_running && ends_sub_sessions(&end, limit.as_ref()) {
@@ -466,7 +466,7 @@ impl Runner {
             Reading::Read | Reading::Pending => Event::Accepted { id },
         };
         if let Err(error) = self.store().append(turn, self.now(), &event) {
-            eprintln!("uraeda: a message of turn {turn} could not be marked: {error}");
+            say_err!("uraeda: a message of turn {turn} could not be marked: {error}");
         }
         self.page_changed(&repo, turn, page);
         Self::forget(state, session, turn);

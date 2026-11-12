@@ -17,8 +17,14 @@
 //!   domain that is only records and actions is a file of `records/`, with its line there.
 //!
 //! A rule every request passes, as the guard, is a layer in `http::router`. A process the server
-//! runs starts from `shared.environment().command(..)`. A time is `shared.now()`.
+//! runs starts from `shared.environment().command(..)`. A time is `shared.now()`. A line printed
+//! is `say!` or `say_err!`, which never panic.
 
+// A closed stdout or stderr makes `println!` and `eprintln!` panic: see `say`.
+#![warn(clippy::print_stdout, clippy::print_stderr)]
+
+#[macro_use]
+mod say;
 pub mod browser;
 mod clock;
 mod env;

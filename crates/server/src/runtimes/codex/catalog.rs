@@ -104,7 +104,7 @@ impl Catalogs {
         let catalog = writing.await;
         locked(&self.running).remove(cwd);
         if let Err(problem) = &catalog {
-            eprintln!(
+            say_err!(
                 "uraeda: Codex's sub-agents stay on in a session: its model catalog could not \
                  be written ({problem})"
             );

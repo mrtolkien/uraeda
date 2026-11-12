@@ -76,7 +76,7 @@ impl Host for ServerHost {
         match op {
             "log" => {
                 let message = payload["message"].as_str().unwrap_or_default();
-                println!("{}: {message}", vm.name());
+                say!("{}: {message}", vm.name());
             }
             "listen" => {
                 vm.listen(payload["event"].as_str().unwrap_or_default());

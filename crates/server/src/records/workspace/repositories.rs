@@ -176,7 +176,7 @@ impl Read {
     /// The file could not be read: the rows stay, and the problem is printed once.
     fn fails(&mut self, problem: String) {
         if self.problem.as_ref() != Some(&problem) {
-            eprintln!("uraeda: {problem}");
+            say_err!("uraeda: {problem}");
         }
         self.problem = Some(problem);
     }

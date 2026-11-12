@@ -62,7 +62,7 @@ pub(super) fn write(shared: &Shared, extensions: &Extensions) {
         .and_then(|text| fs::write(&temporary, text))
         .and_then(|()| fs::rename(&temporary, &path));
     if let Err(error) = written {
-        eprintln!("uraeda: the extensions' status file: {error}");
+        say_err!("uraeda: the extensions' status file: {error}");
     }
 }
 

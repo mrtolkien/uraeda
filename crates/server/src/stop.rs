@@ -56,7 +56,7 @@ impl Stops {
         for (name, work) in registered.into_iter().rev() {
             // In a task of its own: work that panics names itself, and the rest still stops.
             if tokio::spawn(work).await.is_err() {
-                eprintln!("uraeda: stopping {name} failed");
+                say_err!("uraeda: stopping {name} failed");
             }
         }
     }

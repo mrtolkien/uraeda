@@ -78,7 +78,7 @@ pub(crate) fn reload(shared: &Shared) {
 
 /// Prints the problem of a settings file that cannot be read: once, until it changes.
 fn report(problem: &str) {
-    eprintln!("uraeda: {problem} The server uses its defaults until the file is fixed.");
+    say_err!("uraeda: {problem} The server uses its defaults until the file is fixed.");
 }
 
 /// The settings in force now, and the file's problem when it cannot be read.

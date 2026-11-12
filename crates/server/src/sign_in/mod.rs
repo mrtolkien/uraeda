@@ -166,7 +166,7 @@ pub fn link(shared: &Shared, to: &str) -> String {
 /// One with a connection open is in use. The server does it every hour.
 pub fn sweep(shared: &Shared) {
     if let Err(problem) = state(shared).store.sweep(shared.now()) {
-        eprintln!("uraeda: {problem}");
+        say_err!("uraeda: {problem}");
     }
 }
 

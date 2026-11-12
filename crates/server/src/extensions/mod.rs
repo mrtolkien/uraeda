@@ -121,7 +121,7 @@ pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure>
     // The app's modules a page is built with, before the loader builds the first page.
     let written = modules::write(&shared.data_dir().join("extensions").join("modules"));
     if let Err(error) = written {
-        eprintln!("uraeda: the app's modules for extension pages were not written: {error}");
+        say_err!("uraeda: the app's modules for extension pages were not written: {error}");
     }
     let (loading, loaded) = (shared.clone(), extensions.clone());
     let tasks = tokio::runtime::Handle::current();
@@ -133,7 +133,7 @@ pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure>
     shared.on_stop("extensions", async move {
         let _ = extensions.0.wake.send(Wake::Stop);
         if tokio::task::spawn_blocking(|| loader.join()).await.is_err() {
-            eprintln!("uraeda: the extensions' loader did not stop");
+            say_err!("uraeda: the extensions' loader did not stop");
         }
         status::remove(stopping.data_dir());
     });

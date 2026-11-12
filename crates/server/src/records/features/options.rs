@@ -47,7 +47,7 @@ impl Store {
     pub(super) fn own(&self, root: &Path, folder: &str) -> RunOptions {
         let _turn = self.turn.lock().unwrap_or_else(PoisonError::into_inner);
         let stored = self.read().unwrap_or_else(|problem| {
-            eprintln!("uraeda: {problem}");
+            say_err!("uraeda: {problem}");
             Stored::new()
         });
         let own = stored.get(&key(root)).and_then(|rows| rows.get(folder));

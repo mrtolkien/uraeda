@@ -129,7 +129,7 @@ fn refresh(watcher: &Mutex<RecommendedWatcher>, places: &Mutex<Places>, targets:
     for folder in wanted.folders.difference(&held.folders) {
         if let Err(error) = watcher.watch(&folder.path, RecursiveMode::NonRecursive) {
             let path = folder.path.display();
-            eprintln!("uraeda: {path} is not watched: {error}. Its changes show after a restart.");
+            say_err!("uraeda: {path} is not watched: {error}. Its changes show after a restart.");
         }
     }
 }

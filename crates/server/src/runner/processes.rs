@@ -352,7 +352,7 @@ impl Runner {
                     runner.take(&session, serial, event);
                 });
                 if recorded.await.is_err() {
-                    eprintln!("uraeda: the session manager could not record an event");
+                    say_err!("uraeda: the session manager could not record an event");
                 }
             }
         });
@@ -379,7 +379,7 @@ impl Runner {
         // A write that fails does not stop the session.
         if let Err(fault) = recorded {
             let why = fault.message();
-            eprintln!("uraeda: the session manager could not record an event of {session}: {why}");
+            say_err!("uraeda: the session manager could not record an event of {session}: {why}");
         }
     }
 
@@ -456,7 +456,7 @@ impl Runner {
         };
         proc.baseline = Some(total);
         if let Err(error) = self.store().add_turn_tokens(turn, counts) {
-            eprintln!("uraeda: the tokens of turn {turn} were not counted: {error}");
+            say_err!("uraeda: the tokens of turn {turn} were not counted: {error}");
         }
     }
 }

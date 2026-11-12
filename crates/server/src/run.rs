@@ -31,12 +31,12 @@ pub fn run(options: Options, opens: bool, shows_key: bool) -> Result<(), NotStar
             .then(|| sign_in::key_at_start(server.shared()))
             .transpose()
             .unwrap_or_else(|problem| {
-                eprintln!("uraeda: no access key was made: {problem}");
+                say_err!("uraeda: no access key was made: {problem}");
                 None
             })
             .flatten();
         let key = key.map(|key| sign_in::key_lines(&key)).unwrap_or_default();
-        print!("Uraeda server on {}\n{key}", server.address());
+        crate::say::out(format_args!("Uraeda server on {}\n{key}", server.address()));
         if opens {
             browser::open_at_start(&server);
         }

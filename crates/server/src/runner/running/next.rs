@@ -117,7 +117,7 @@ impl Runner {
             });
         }
         if let Err(error) = started {
-            eprintln!("uraeda: turn {} could not start: {error}", queued.id);
+            say_err!("uraeda: turn {} could not start: {error}", queued.id);
         }
         self.run(&mut state, session, queued.id, queued.message);
     }

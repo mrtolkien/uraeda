@@ -86,7 +86,7 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     }
     if let Err(problem) = http::open::open_folder(&shared, folder).await {
         // The list's problem shows where the list does: it never keeps the server from starting.
-        eprintln!("uraeda: {problem}");
+        say_err!("uraeda: {problem}");
     }
     server.routes = routes.paths();
     let router = http::router(&shared, routes);

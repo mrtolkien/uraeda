@@ -109,7 +109,7 @@ impl Groups {
             groups: recorded.to_vec(),
         };
         if let Err(error) = self.store(&record) {
-            eprintln!("uraeda: {}: {error}", self.file.display());
+            say_err!("uraeda: {}: {error}", self.file.display());
         }
     }
 

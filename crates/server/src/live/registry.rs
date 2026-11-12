@@ -185,7 +185,7 @@ pub(super) async fn blocking<T: Send + 'static>(
     if let Err(fault) = &result
         && fault.code() == ErrorCode::Internal
     {
-        eprintln!("uraeda: the server failed: {}", fault.message());
+        say_err!("uraeda: the server failed: {}", fault.message());
     }
     result
 }

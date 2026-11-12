@@ -62,7 +62,7 @@ impl Runner {
             images: Vec::new(),
         };
         if let Err(error) = self.steer_into(state, session, id, shown, Vec::new()) {
-            eprintln!("uraeda: turn {id} could not be asked about its background tasks: {error:?}");
+            say_err!("uraeda: turn {id} could not be asked about its background tasks: {error:?}");
         }
         if let Some(turn) = state.lives.get(session).and_then(|live| live.turn.as_mut()) {
             turn.asked = true;

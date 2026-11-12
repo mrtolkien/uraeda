@@ -88,7 +88,7 @@ async fn read(repo: PathBuf, path: String) -> Result<String, StatusCode> {
         Ok(Err(error)) => error.to_string(),
         Err(panicked) => panicked.to_string(),
     };
-    eprintln!("uraeda: the server could not read {asked}: {problem}");
+    say_err!("uraeda: the server could not read {asked}: {problem}");
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
 

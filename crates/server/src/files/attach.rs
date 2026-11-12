@@ -274,7 +274,7 @@ fn answer(written: Result<Result<Value, String>, tokio::task::JoinError>) -> Res
         Ok(Ok(value)) => Json(value).into_response(),
         Ok(Err(error)) => refused(error),
         Err(panicked) => {
-            eprintln!("uraeda: an upload failed: {panicked}");
+            say_err!("uraeda: an upload failed: {panicked}");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

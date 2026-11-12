@@ -118,7 +118,7 @@ impl Runner {
                 // A refusal leaves the feature as it was, still asking: the others go on.
                 if fault.code() != ErrorCode::Refused {
                     let why = fault.message();
-                    eprintln!("uraeda: Continue all skipped {}: {why}", feature.folder);
+                    say_err!("uraeda: Continue all skipped {}: {why}", feature.folder);
                 }
                 refused.push(RefusedRun {
                     id: feature.folder,
@@ -215,7 +215,7 @@ impl Runner {
             let key = (root.to_owned(), feature.folder.clone(), commit);
             if self.state().catching.printed.insert(key) {
                 let why = fault.message();
-                eprintln!(
+                say_err!(
                     "uraeda: the catch-up of {} was refused: {why}",
                     feature.folder
                 );

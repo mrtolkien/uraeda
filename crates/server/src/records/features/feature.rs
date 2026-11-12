@@ -125,7 +125,7 @@ fn drop(call: &Call, input: FeatureDrop) -> Result<Dropped, Fault> {
             let archived = landed.and_then(|()| runner.archive_folder(&root, &folder));
             if let Err(fault) = archived {
                 let why = fault.message();
-                eprintln!("uraeda: {folder} dropped, but its sessions stay: {why}");
+                say_err!("uraeda: {folder} dropped, but its sessions stay: {why}");
             }
         });
     }

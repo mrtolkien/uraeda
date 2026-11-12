@@ -133,7 +133,7 @@ const UNSENT_KEPT: std::time::Duration = std::time::Duration::from_secs(24 * 60 
 pub(crate) fn clean(shared: &Shared) {
     let held = match shared.get::<crate::runner::Store>().images_in_use() {
         Ok(held) => held,
-        Err(error) => return eprintln!("uraeda: the chat images were not cleaned: {error}"),
+        Err(error) => return say_err!("uraeda: the chat images were not cleaned: {error}"),
     };
     let images = ChatImages::of(shared);
     let Ok(files) = std::fs::read_dir(&images.dir) else {

@@ -74,7 +74,7 @@ impl Scheduler {
     /// Prints a problem once.
     pub(crate) fn print_once(&self, key: String, text: &str) {
         if locked(&self.printed).insert(key) {
-            eprintln!("uraeda: {text}");
+            say_err!("uraeda: {text}");
         }
     }
 }

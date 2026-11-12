@@ -88,7 +88,7 @@ pub(crate) async fn serve(listener: TcpListener, router: Router, shared: Shared)
         .with_graceful_shutdown(stopping)
         .await
     {
-        eprintln!("uraeda: the server stopped listening: {error}");
+        say_err!("uraeda: the server stopped listening: {error}");
     }
 }
 

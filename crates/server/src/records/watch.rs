@@ -124,7 +124,7 @@ fn follow(shared: &Shared, watches: &Watches, joined: &[fn(&Shared, &str)]) {
             match watch(&path, changed) {
                 Ok(watcher) => drop(running.insert(name, (path, watcher))),
                 // The repository is still served: its records are read again when asked again.
-                Err(error) => eprintln!("uraeda: {name}: {error}"),
+                Err(error) => say_err!("uraeda: {name}: {error}"),
             }
         }
     }

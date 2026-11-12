@@ -197,7 +197,7 @@ fn send_kept(runner: &Runner, root: &str, folder: &str) {
             Ok(went) => session = went.session,
             Err(fault) => {
                 let why = fault.message();
-                return eprintln!("uraeda: a message to {folder} was not sent: {why}");
+                return say_err!("uraeda: a message to {folder} was not sent: {why}");
             }
         }
     }
@@ -280,7 +280,7 @@ fn typed_feature(call: &Call, input: FeatureStartText) -> Result<StartPlan, Faul
 fn forget(store: &options::Store, root: &Path, folder: &str) {
     if let Err(fault) = store.set(root, folder, RunOptions::default()) {
         let why = fault.message();
-        eprintln!("uraeda: the run options of {folder}, whose start was refused, stay: {why}");
+        say_err!("uraeda: the run options of {folder}, whose start was refused, stay: {why}");
     }
 }
 
@@ -317,12 +317,12 @@ fn first_run(shared: &Shared, repo: &str, options: Option<RunOptions>) -> impl T
             && let Err(fault) = options::keep(&shared, &root, folder, options)
         {
             let why = fault.message();
-            eprintln!("uraeda: {folder} started, but its run options were not kept: {why}");
+            say_err!("uraeda: {folder} started, but its run options were not kept: {why}");
         }
         let sent = runs::send(&shared, &repo, folder, Trigger::Start, First::default());
         sent.unwrap_or_else(|fault| {
             let why = fault.message();
-            eprintln!("uraeda: {folder} started, but its first run was not sent: {why}");
+            say_err!("uraeda: {folder} started, but its first run was not sent: {why}");
             None
         })
     }
@@ -486,7 +486,7 @@ fn from_note(call: &Call, input: ChangeFromNote) -> Result<ChangeStarted, Fault>
     });
     if let Err(fault) = removed {
         let (folder, why) = (&started.folder, fault.message());
-        eprintln!("uraeda: {folder} started, but its note stayed in the inbox: {why}");
+        say_err!("uraeda: {folder} started, but its note stayed in the inbox: {why}");
     }
     let session = first_run(call.shared(), &input.repo, None)(&started);
     Ok(ChangeStarted {

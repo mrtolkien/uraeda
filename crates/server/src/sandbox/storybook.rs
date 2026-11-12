@@ -72,7 +72,7 @@ pub fn run(args: impl IntoIterator<Item = String>) -> ExitCode {
     let asked = match asked(args) {
         Ok(asked) => asked,
         Err(problem) => {
-            eprintln!("fake-storybook: {problem}");
+            say_err!("fake-storybook: {problem}");
             return ExitCode::from(2);
         }
     };
@@ -83,23 +83,23 @@ pub fn run(args: impl IntoIterator<Item = String>) -> ExitCode {
             "base": base, "cwd": folder, "pid": std::process::id(), "port": asked.port,
         });
         if let Err(error) = logged(log, &start) {
-            eprintln!("fake-storybook: {}: {error}", log.display());
+            say_err!("fake-storybook: {}: {error}", log.display());
             return ExitCode::FAILURE;
         }
     }
     if asked.mode == "fail" {
-        eprint!(
+        crate::say::err(format_args!(
             "│\n▲  Failed to load preset: \".storybook/main.ts\"\n│\n\
              ■  \u{1b}[31mError: Cannot find module 'storybook'\u{1b}[39m\n│\n\
              └  Storybook exited with an error\n"
-        );
+        ));
         return ExitCode::FAILURE;
     }
     if asked.mode == "child" {
         // In the process's group, holding its output, and outliving it.
         let mut child = Command::new("sleep");
         if let Err(error) = child.arg("1000000").stdin(Stdio::null()).spawn() {
-            eprintln!("fake-storybook: sleep: {error}");
+            say_err!("fake-storybook: sleep: {error}");
             return ExitCode::FAILURE;
         }
     }
@@ -115,11 +115,11 @@ pub fn run(args: impl IntoIterator<Item = String>) -> ExitCode {
     match runtime.map(|runtime| runtime.block_on(serve(fake, asked.port))) {
         Ok(Ok(())) => ExitCode::SUCCESS,
         Ok(Err(error)) if error.kind() == ErrorKind::AddrInUse => {
-            eprintln!("Port {} is not available", asked.port);
+            say_err!("Port {} is not available", asked.port);
             ExitCode::FAILURE
         }
         Ok(Err(error)) | Err(error) => {
-            eprintln!("fake-storybook: {error}");
+            say_err!("fake-storybook: {error}");
             ExitCode::FAILURE
         }
     }
@@ -155,7 +155,7 @@ fn logged(log: &Path, start: &Value) -> std::io::Result<()> {
 /// Listens on loopback, says so as Storybook does, and answers until the process is killed.
 async fn serve(fake: Arc<Fake>, port: u16) -> std::io::Result<()> {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await?;
-    println!("Storybook ready on http://127.0.0.1:{port}/");
+    say!("Storybook ready on http://127.0.0.1:{port}/");
     axum::serve(listener, Router::new().fallback(answer).with_state(fake)).await
 }
 

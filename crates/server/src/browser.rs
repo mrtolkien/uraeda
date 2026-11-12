@@ -78,7 +78,7 @@ pub(crate) fn open_at_start(server: &Server) {
         // The opener ends once the browser has the page: it is waited for, off the server's
         // threads, so it leaves no process behind.
         Ok(mut child) => drop(std::thread::spawn(move || child.wait())),
-        Err(error) => eprintln!("uraeda: could not open a browser: {error}"),
+        Err(error) => say_err!("uraeda: could not open a browser: {error}"),
     }
 }
 

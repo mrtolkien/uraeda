@@ -279,7 +279,7 @@ impl Store {
         });
         if let Err(problem) = written {
             // The sign-in holds for this run of the server: only its last use is not kept.
-            eprintln!("uraeda: {problem}");
+            say_err!("uraeda: {problem}");
         }
         found
     }

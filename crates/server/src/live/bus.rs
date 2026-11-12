@@ -133,7 +133,7 @@ impl Engine {
         match Key::of(args) {
             Ok((key, _)) => locked(&self.topics).get(&(R::NAME, key)).cloned(),
             Err(error) => {
-                eprintln!(
+                say_err!(
                     "uraeda: the arguments of `{}` are not JSON: {error}",
                     R::NAME
                 );

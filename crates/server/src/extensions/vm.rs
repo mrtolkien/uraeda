@@ -296,7 +296,7 @@ impl Vm {
             |ended: Receiver<()>| ended.recv_timeout(PATIENCE) == Err(RecvTimeoutError::Timeout);
         if ended.is_some_and(late) {
             let name = &self.0.name;
-            eprintln!("uraeda: {name}: its VM did not stop in 5 s");
+            say_err!("uraeda: {name}: its VM did not stop in 5 s");
         }
     }
 }
@@ -334,7 +334,7 @@ fn run(
     // After the engine is gone, whatever ended it: a host that panics here ends nothing else.
     let released = catch_unwind(AssertUnwindSafe(|| host.borrow_mut().release()));
     if released.is_err() {
-        eprintln!(
+        say_err!(
             "uraeda: {}: releasing what its VM started failed",
             vm.name()
         );

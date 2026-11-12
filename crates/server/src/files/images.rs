@@ -76,7 +76,7 @@ pub(super) async fn remove(
         match removed {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
             Err(error) => {
-                eprintln!("uraeda: the server could not delete the chat image {id}: {error}");
+                say_err!("uraeda: the server could not delete the chat image {id}: {error}");
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }

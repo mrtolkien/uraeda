@@ -93,7 +93,7 @@ pub(crate) fn sent_or_said(
     let sent = send(shared, repository, folder, trigger, first);
     sent.unwrap_or_else(|fault| {
         let why = fault.message();
-        eprintln!("uraeda: {folder} moved, but its run was not sent: {why}");
+        say_err!("uraeda: {folder} moved, but its run was not sent: {why}");
         None
     })
 }

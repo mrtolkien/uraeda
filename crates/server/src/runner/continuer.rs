@@ -271,7 +271,7 @@ impl Runner {
         let cancelled = self.cancel(&mut state, session, false);
         let taken = state.continues.taken(session);
         if let Err(error) = store.set_continues(session, 0) {
-            eprintln!("uraeda: the continues of {session} were not set back: {error}");
+            say_err!("uraeda: the continues of {session} were not set back: {error}");
         }
         Taken {
             cancelled,
@@ -300,7 +300,7 @@ impl Runner {
             return;
         }
         if let Err(error) = store.set_continues(session, taken.count) {
-            eprintln!("uraeda: the continues of {session} were not given back: {error}");
+            say_err!("uraeda: the continues of {session} were not given back: {error}");
         }
         let runs = self.runs();
         for turn in &taken.cancelled {
@@ -376,7 +376,7 @@ impl Runner {
                 queued
                     .inspect_err(|fault| {
                         let why = fault.message();
-                        eprintln!("uraeda: the continue of turn {} failed: {why}", claimed.id);
+                        say_err!("uraeda: the continue of turn {} failed: {why}", claimed.id);
                     })
                     .ok()
             }

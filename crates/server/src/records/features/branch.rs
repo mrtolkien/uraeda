@@ -24,7 +24,7 @@ fn no_specs(error: &ApiError) -> bool {
 /// Prints why changes could not be read, by the error's first line: their record says `failed`.
 fn failed(what: &str, error: &ApiError) {
     let line = error.message.lines().next().unwrap_or_default();
-    eprintln!("uraeda: {what} could not be read: {line}");
+    say_err!("uraeda: {what} could not be read: {line}");
 }
 
 /// The value of the record `BranchChanges`, by the feature's folder. A folder that is no

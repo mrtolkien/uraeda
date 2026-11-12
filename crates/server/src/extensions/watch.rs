@@ -42,7 +42,7 @@ impl Watches {
             let (force, done) = (None, None);
             let _ = scan.send(Wake::Scan { force, done });
         });
-        let folder = watched.map_err(|error| eprintln!("uraeda: the extensions' folder: {error}"));
+        let folder = watched.map_err(|error| say_err!("uraeda: the extensions' folder: {error}"));
         Watches {
             wake,
             folder: folder.ok(),
@@ -84,7 +84,7 @@ impl Watches {
         });
         match watched {
             Ok(watch) => drop(self.extensions.insert(name.clone(), (print, watch))),
-            Err(error) => eprintln!("uraeda: {name}: {error}"),
+            Err(error) => say_err!("uraeda: {name}: {error}"),
         }
     }
 

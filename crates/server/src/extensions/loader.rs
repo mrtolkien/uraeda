@@ -387,7 +387,7 @@ impl Loader {
             })
         };
         if let Some(vm) = ended {
-            eprintln!("uraeda: {name}: {}", thrown.message);
+            say_err!("uraeda: {name}: {}", thrown.message);
             stop(vm);
             self.changed.insert(name.to_owned());
         }

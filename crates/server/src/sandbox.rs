@@ -370,7 +370,7 @@ pub(crate) fn mount(shared: &Shared, _routes: &mut Routes) -> Result<(), Failure
                 ..First::default()
             };
             if let Err(fault) = runs::send(&shared, repository, folder, Trigger::Manual, first) {
-                eprintln!(
+                say_err!(
                     "uraeda: the sandbox's {folder} did not start: {}",
                     fault.message()
                 );
