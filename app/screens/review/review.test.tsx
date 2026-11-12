@@ -57,6 +57,8 @@ test("a and r in the verdict ask first, naming what they commit", async () => {
   const words = () => app.texts().join(" ");
   // `n` goes to the verdict, `a` asks: the approval names the decision it accepts.
   await app.keyboard.press("n");
+  // The pane takes the focus: its keys are hinted once they work.
+  await app.waitUntil(() => words().includes("approve"), { timeout: 10_000 });
   await app.keyboard.press("a");
   await app.waitUntil(() => words().includes("Approve the spec of"), { timeout: 10_000 });
   expect(words()).toContain("it changes Keyboard");
