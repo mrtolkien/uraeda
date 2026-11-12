@@ -118,7 +118,7 @@ export function End(props: EndProps) {
     pending.set(false);
   };
 
-  const count = () => questions(asked().length).replace(/questions?/, "answers");
+  const count = () => questions(asked().length).replace(/question(s?)/, "answer$1");
   const resumes = () => target.kind === "feature" && props.file().resumable;
   const act = () =>
     resumes()
