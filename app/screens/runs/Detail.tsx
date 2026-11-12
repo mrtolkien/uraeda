@@ -152,7 +152,7 @@ export function Detail(props: DetailProps) {
         <If when={!props.disabled && isSet(props.own, props.place)}>
           <Button
             icon="undo-2"
-            label={props.over === null ? "Back to the default" : "Back to the settings'"}
+            label={props.over === null ? "Back to the default" : "Back to the settings"}
             onPress={() => props.onReset(props.place)}
           />
         </If>

@@ -137,8 +137,8 @@ export function AgentPick(props: AgentPickProps) {
     const fallback = agents().fallback;
     if (fallback === undefined) return "No agent is on here: Settings › Extensions turns one on.";
     return agents().fallbackIsSet
-      ? `The default agent, ${fallback.name}, as Settings › Runs names it.`
-      : `The default agent, ${fallback.name}, the first one on: Settings › Runs names one.`;
+      ? `The default agent is ${fallback.name}, as Settings › Runs names it.`
+      : `The default agent is ${fallback.name}, the first agent on: Settings › Runs names none.`;
   };
 
   return (
