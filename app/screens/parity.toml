@@ -185,6 +185,13 @@ why = "left by task 37 to task 38, which built the proposal's file instead"
 fate = "brought-back"
 now = "the proposal's pane: \"Its nested lines\", an outline with a cursor: `>` `<` indent and outdent, `J` `K` move, `o` adds below, Enter edits, `d` removes, \"Add a nested line\" at the end, each over `proposals.outline` and on the undo stack. Dragging across proposals (`proposals.drop`) stays out"
 
+[[left]]
+what = "The screen-reader announcer"
+old = "Session"
+why = "Native Shell 0.4.0 has no live region to speak through (R337)"
+fate = "brought-back"
+now = "`app/ui/announce.ts`'s `say`, over NSH's `announce` (GTK's `gtk_accessible_announce`): every toast's title as it shows, and a session's agent starting and ending, never the words it streams"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -210,14 +217,6 @@ why = "its source lists are short, and the extensions' New sections lost `search
 fate = "left"
 needs = "a filter field over the `new-sources` pane's entries"
 missed = "nobody will: the lists fit a screen"
-
-[[left]]
-what = "The screen-reader announcer"
-old = "Session"
-why = "Native Shell 0.4.0 has no live region to speak through (R337)"
-fate = "left"
-needs = "a live region in Native Shell, then the transcript's new turns told through it"
-missed = "nobody now: its one user reads the screen"
 
 [[left]]
 what = "The reply's frame on a done turn's last text"

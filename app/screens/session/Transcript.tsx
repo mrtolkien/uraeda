@@ -10,6 +10,7 @@ import { Button, Spinner } from "../../ui/controls";
 import { keysWorkHere, registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
 import { createCursor, Empty, VirtualList, type VirtualListRef } from "../../ui/lists";
+import { say } from "../../ui/announce";
 import { droppedImages } from "../images";
 import { attach, draftKey, putBack, SessionComposer } from "./Composer";
 import { SessionBanners, SessionHead } from "./Head";
@@ -19,6 +20,7 @@ import { type Feed, transcriptFeed } from "./pages";
 import { allow, answerable } from "./Permission";
 import { type SessionArgs, sessionIdOf } from "./place";
 import { type RowHands, TranscriptRow } from "./Rows";
+import { statusNews } from "./words";
 
 /**
  * The pane's view: the session its arguments name, or why there is none. `beside`, opened beside
@@ -150,6 +152,16 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
       following.set(false);
       cursor.set(row.id, { reveal: true });
     });
+  });
+
+  // A screen reader hears the agent start and end, never what the page found as it opened.
+  let heard = untracked(props.session).status;
+  effect(() => {
+    const now = props.session().status;
+    if (now === heard) return;
+    const words = statusNews(heard, now);
+    heard = now;
+    if (words !== undefined) say(words);
   });
 
   // Shown: the human saw its latest turn, whatever its status says, as "Needs you" at a gate.

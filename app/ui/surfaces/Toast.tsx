@@ -2,8 +2,18 @@
 // stacked from the window's top, the most important first. A toast never takes the focus or the
 // keys: what it offers is pressed, or has a key its owner declares. It is for an undo, a
 // confirmation from another page, and the writes still landing, never for an error alone, which
-// stays next to what it concerns. How long one stays is its owner's.
-import { type JSX, Overlay as Layer, type StyleProp, Text, View, type ViewStyle } from "nsh";
+// stays next to what it concerns. How long one stays is its owner's. A screen reader hears its
+// title as it shows.
+import {
+  effect,
+  type JSX,
+  Overlay as Layer,
+  type StyleProp,
+  Text,
+  View,
+  type ViewStyle,
+} from "nsh";
+import { say } from "../announce";
 import { presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
@@ -56,6 +66,10 @@ export function Toast(props: ToastProps) {
     () => props.open !== false,
     () => ({ y: -tokens.motion.rise }),
   );
+  // A screen reader hears its title as it shows, and as its title changes.
+  effect(() => {
+    if (props.open !== false) say(props.title);
+  });
   return (
     <If when={there.shown()}>
       <View style={there.style}>

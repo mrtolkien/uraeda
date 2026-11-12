@@ -7893,3 +7893,16 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   not. Keys over a list cost a component; drag to nest, the old page's most fragile part, costs a
   week.
 - **Where**: `app/screens/proposal/Nested.tsx`, `ProposalPane.tsx`.
+
+## T90.8: Native Shell announces: the toasts and a session's agent speak through it
+
+- **Decision**: NSH 0.4.0 has `announce(message)` (`nsh`), which GTK speaks with
+  `gtk_accessible_announce`, and the prop `accessibilityLiveRegion`: R337's "no live region to speak
+  through" was wrong. `app/ui/announce.ts`'s `say` wraps it, saying the same words once within 1.5
+  s; `Toast` says its title as it shows, and a session's conversation says its agent starting,
+  finishing, waiting for the human, or stopping, as the old `SessionAnnouncer` did, never the words
+  it streams nor the state found as the page opened.
+- **Rationale**: one helper, two callers, where the old UI had a live region per page. A toast is
+  the app's one way of saying what just happened away from the focus.
+- **Where**: `app/ui/announce.ts`, `app/ui/surfaces/Toast.tsx`,
+  `app/screens/session/Transcript.tsx`, `words.ts`.

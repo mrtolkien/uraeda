@@ -238,3 +238,12 @@ export function rowState(
   ].filter((part) => part !== "");
   return extra.length === 0 ? row.statusLabel : `${row.statusLabel} · ${extra.join(", ")}`;
 }
+
+/** What a screen reader hears as a session's status moves from `before` to `now`, if anything. */
+export function statusNews(before: Session["status"], now: Session["status"]): string | undefined {
+  if (now === "working") return "The agent started";
+  if (before !== "working") return undefined;
+  if (now === "needs-you") return "The agent finished: it waits for you";
+  if (now === "attention") return "The agent stopped: it needs your attention";
+  return "The agent finished";
+}
