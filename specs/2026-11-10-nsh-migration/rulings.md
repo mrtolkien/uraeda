@@ -10506,18 +10506,18 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 - **Decision**: `.oxlintrc.json` holds the layers as `no-restricted-imports`, one override per
   folder, each saying the fix: `app/ui/` imports no screen, extension, gallery, or tool, and of
-  `app/store/` only `device`, `history`, `routes`, and the protocol's types; `app/store/` imports
-  no screen, and of `app/ui/` and `app/extensions/` only types, and `ui/timing`, a leaf;
+  `app/store/` only `device`, `history`, `routes`, and the protocol's types; `app/store/` imports no
+  screen, and of `app/ui/` and `app/extensions/` only types, and `ui/timing`, a leaf;
   `app/extensions/` imports no screen. `crates/app/tests/layers.rs` follows the imports a build
-  keeps from `uraeda/ui` and `uraeda/page` (`app/ui/index.ts`, `app/extensions/page.tsx`) and
-  fails, naming the chain, on any file outside `app/ui/` and `app/extensions/`. Screens still
-  import each other freely: 35 pairs of screen folders, with no seam declared.
+  keeps from `uraeda/ui` and `uraeda/page` (`app/ui/index.ts`, `app/extensions/page.tsx`) and fails,
+  naming the chain, on any file outside `app/ui/` and `app/extensions/`. Screens still import each
+  other freely: 35 pairs of screen folders, with no seam declared.
 - **Rationale**: the rule "`ui` imports nothing of the store" is not the code's: the layout shell
   keeps panes in the history, and `unsavedText` keeps its text on the device, as the store's README
   says. What broke once (R355) is a page's build reaching the store through a file the library
   re-exports, which a rule per file cannot see: re-exporting `FieldRow` again fails the test with
-  `ui/index.ts -> ui/lists/index.ts -> ui/lists/FieldRow.tsx -> ui/layout/panes.tsx ->
-  store/history.ts`, in 0.03 s, where the server's test caught it only in a GTK run.
+  `ui/index.ts -> ui/lists/index.ts -> ui/lists/FieldRow.tsx -> ui/layout/panes.tsx -> store/history.ts`,
+  in 0.03 s, where the server's test caught it only in a GTK run.
 - **If wrong**: a store file the components need joins the list of `app/ui/`'s override, with the
   reason; a seam between screens becomes a screens-shared file and a rule of its own.
 - **Where**: `.oxlintrc.json`, `crates/app/tests/layers.rs`, `app/__checks__/breaks.tsx` (Oxlint
@@ -10529,15 +10529,15 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Decision**: `.oxlintrc.json` turns `max-lines-per-function` back on, at 150 lines, blank lines
   and comments not counted. The 18 functions over it are marked in place
   (`oxlint-disable-next-line max-lines-per-function -- <what it holds; how to split it>`), so
-  `--report-unused-disable-directives` fails a marker once its function is split: the list can
-  only shrink. `InboxPane.tsx`'s `Notes` is held by an override of its file at 260 instead, since a
+  `--report-unused-disable-directives` fails a marker once its function is split: the list can only
+  shrink. `InboxPane.tsx`'s `Notes` is held by an override of its file at 260 instead, since a
   marker above it collided with another polish branch's change of the same lines.
-- **Rationale**: the old stack's removal turned the limit off because 49 functions passed 100
-  lines (47 now). At 150, a function twice the usual size of a screen's component is refused,
-  and the exceptions fit one screen of a list. The 18 are components whose state, keys, and
-  markup share one scope, and one closure (`round/saves.ts`): each split is a change of its own,
-  in a file other branches were changing.
+- **Rationale**: the old stack's removal turned the limit off because 49 functions passed 100 lines
+  (47 now). At 150, a function twice the usual size of a screen's component is refused, and the
+  exceptions fit one screen of a list. The 18 are components whose state, keys, and markup share one
+  scope, and one closure (`round/saves.ts`): each split is a change of its own, in a file other
+  branches were changing.
 - **If wrong**: the limit goes down to 100 once the list is under ten, with the functions between
   marked the same way.
-- **Where**: `.oxlintrc.json`, the 17 marked files. `specs/decisions/code-quality.md`'s
-  consequence "A TSX function's length is not checked yet" is now out of date: a human amends it.
+- **Where**: `.oxlintrc.json`, the 17 marked files. `specs/decisions/code-quality.md`'s consequence
+  "A TSX function's length is not checked yet" is now out of date: a human amends it.
