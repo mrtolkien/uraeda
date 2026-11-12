@@ -33,10 +33,13 @@ export type SelectableCardProps = {
   words?: string;
 };
 
-/** Its looks: the pointer outlines it in the accent. */
+/**
+ * Its looks: the pointer outlines it in the quiet ink, never in the accent, which is the edge of
+ * the card picked: a card under the pointer, just un-picked by a click, must not look picked.
+ */
 const looks = () => ({
   rest: { alignSelf: "stretch" as const },
-  hover: { outlineColor: tokens.control.hotEdge, outlineOffset: -1, outlineWidth: 1 },
+  hover: { outlineColor: tokens.role.inkQuiet, outlineOffset: -1, outlineWidth: 1 },
 });
 
 /** The cards that follow their group's selection, as made: one of them may have the focus. */
