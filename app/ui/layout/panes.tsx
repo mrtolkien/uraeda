@@ -1,8 +1,8 @@
 // What a screen declares: its kinds of pane, once each, with `definePane`, and the panes each of
 // its pages shows, with `definePlace`. The layout shell draws them: a screen never draws a pane's
 // frame, a tab, or a side column of its own. See the guide, `specs/ui/panes.md`.
-import { type JSX, Scroll, type ScrollProps, signal } from "nsh";
-import { PaneContext } from "./here";
+import { type JSX, Scroll, type ScrollProps, type ScrollRef, signal } from "nsh";
+import { PaneContext, RevealContext, type Revealer } from "./here";
 import { type Json, type PaneRef, paneKey, type Place, type StackName } from "./layout";
 import { entry, keep, positions } from "../../store/history";
 import type { Route, RouteOf } from "../../store/routes";
@@ -218,19 +218,49 @@ export function PaneScroll(props: ScrollProps & { children?: JSX.Element; name?:
   const kept = positions();
   const name = `${here?.key ?? "page"}:${props.name ?? "scroll"}`;
   const start = kept.at(name);
-  // Its children are passed once: spread with the rest and given again, they were made twice,
-  // every pane's content and the keys it declares. Its other props are read once, as it opens.
-  const { children, ...rest } = props;
+  // Its children are passed once, and made inside the reveal's context: spread with the rest and
+  // given again, they were made twice, every pane's content and the keys it declares; read here,
+  // before the context, they were made outside it. Its other props are read once, as it opens.
+  const described = Object.getOwnPropertyDescriptors(props) as Record<string, PropertyDescriptor>;
+  delete described.children;
+  const rest = Object.defineProperties({}, described) as ScrollProps;
+  let scroll: ScrollRef | undefined;
+  let offset = start ?? 0;
+  /** Scrolls the least that shows `view` whole, with a line's room, or its top when it is taller. */
+  const reveal = async (view: Parameters<Revealer>[0]) => {
+    const [it, box] = await Promise.all([view.measure(), scroll?.measure()]);
+    if (it == null || box == null || scroll === undefined) return;
+    const room = 24;
+    const top = it.pagePosition.y - box.pagePosition.y;
+    const bottom = top + it.bounds.size.height;
+    const height = box.bounds.size.height;
+    let by = 0;
+    if (top < room || it.bounds.size.height > height - 2 * room) by = top - room;
+    else if (bottom > height - room) by = bottom - (height - room);
+    if (Math.abs(by) < 1) return;
+    offset = Math.max(0, offset + by);
+    scroll.scrollTo({ animated: true, y: offset });
+  };
   return (
     <Scroll
       {...rest}
       contentOffset={start === undefined ? props.contentOffset : { x: 0, y: start }}
+      onScroll={(event) => {
+        offset = event.offset.y;
+        props.onScroll?.(event);
+      }}
       onScrollEnd={(event) => {
+        offset = event.offset.y;
         kept.keep(name, event.offset.y);
         props.onScrollEnd?.(event);
       }}
+      ref={(made: ScrollRef) => {
+        scroll = made;
+      }}
     >
-      {children}
+      <RevealContext.Provider value={(view) => void reveal(view)}>
+        {props.children}
+      </RevealContext.Provider>
     </Scroll>
   );
 }

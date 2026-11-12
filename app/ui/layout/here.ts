@@ -2,7 +2,7 @@
 // imports only `nsh` and types, never the store, so a list, which an extension's page also gets
 // (`app/ui/index.ts`), may offer its rows to open beside: in a page, outside any pane, it offers
 // nothing.
-import { cleanup, context, signal } from "nsh";
+import { cleanup, context, signal, type ViewRef } from "nsh";
 import type { PaneRef } from "./layout";
 import type { WidthClass } from "../width";
 
@@ -15,6 +15,15 @@ export type PaneHere = {
 };
 
 export const PaneContext = context<PaneHere | null>(null);
+
+/**
+ * Brings a view into the scroll view around it, as the keys move a list's cursor onto it: the
+ * cursor's bar of a row or a card asks it (`../lists/Row.tsx`), so a list longer than its pane
+ * never moves its cursor out of sight. Given by `PaneScroll`; none outside one.
+ */
+export type Revealer = (view: ViewRef) => void;
+
+export const RevealContext = context<Revealer | null>(null);
 
 /** A pane a view asked to open beside it, which the layout shell takes and clears. */
 export const besideWanted = signal<{ from: string | null; pane: PaneRef } | null>(null);

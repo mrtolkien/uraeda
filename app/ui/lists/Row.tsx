@@ -9,7 +9,8 @@
 // The pointer moving onto a row hears `onPoint`, which moves a list's cursor there; a row that
 // slides under a resting pointer, as the list scrolls, hears nothing, so the keys' cursor is never
 // taken from under them.
-import { type JSX, type StyleProp, View, type ViewStyle } from "nsh";
+import { type JSX, type StyleProp, View, type ViewRef, type ViewStyle } from "nsh";
+import { RevealContext } from "../layout/here";
 import { keysWorkHere } from "../keys/registry";
 import { useHeight } from "../surfaces/height";
 import { tokens } from "../tokens";
@@ -41,8 +42,14 @@ export const rowHeight = () => (isNarrow() ? tokens.control.touch : tokens.space
 export function Bar(props: { lit?: boolean }) {
   const works = keysWorkHere();
   const lit = () => props.lit ?? works();
+  // The cursor the keys moved here comes into view: its pane scrolls to it.
+  const reveal = RevealContext();
+  const shown = (view: ViewRef) => {
+    if (reveal !== null && works()) queueMicrotask(() => reveal(view));
+  };
   return (
     <View
+      ref={shown}
       style={{
         backgroundColor: lit() ? tokens.light.focus : tokens.row.barRest,
         bottom: 0,
