@@ -158,10 +158,35 @@ export function LandingWrites() {
   );
 }
 
+/** The Git page's own writes that commit nothing, by their label's verb: what each is called. */
+const GIT_ACTIONS: Record<string, string> = {
+  Aborting: "Abort",
+  Discarding: "Discard",
+  Fetching: "Fetch",
+  Merging: "Merge",
+  Pulling: "Pull",
+  Pushing: "Push",
+  Staging: "Stage",
+  Unstaging: "Unstage",
+};
+
+/** What a refused write was, when it is one of Git's own that commits nothing: "Pull". */
+const gitAction = (write: QueuedWrite) => GIT_ACTIONS[write.label.split(" ")[0] ?? ""];
+
+/** A refused write's title: a commit a hook refused, a pull that failed, a commit that failed. */
+function refusedTitle(write: QueuedWrite): string {
+  if (write.failure === "hook") return "Commit refused";
+  const action = gitAction(write);
+  return action === undefined ? "Commit failed" : `${action} failed`;
+}
+
 /** Where a refused write left its files, and what the way out does. */
 function whereWords(write: QueuedWrite): string {
   if (write.steps !== null) {
     return "The start stopped there: its proposal is as it was, and nothing was made.";
+  }
+  if (write.failure !== "hook" && gitAction(write) !== undefined) {
+    return "Git refused it, for the reason below: the Git page shows where the repository stands.";
   }
   const onGitPage = write.href !== "" && parseRoute(write.href).page === "git";
   if (write.failure === "hook") {
@@ -225,12 +250,7 @@ function RefusedCard(props: Of & { first: boolean }) {
       write().href === "" ? { page: "git", repo: props.repo } : routeIn(props.repo, write().href),
     );
   return (
-    <Toast
-      icon="triangle-alert"
-      testID="write-refused"
-      title={write().failure === "hook" ? "Commit refused" : "Commit failed"}
-      tone="danger"
-    >
+    <Toast icon="triangle-alert" testID="write-refused" title={refusedTitle(write())} tone="danger">
       <Text bold>{elsewhere() ? `${write().label}, in ${props.repo}` : write().label}</Text>
       <Text tone="quiet">{whereWords(write())}</Text>
       <If when={write().output}>
