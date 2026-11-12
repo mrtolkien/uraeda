@@ -14,7 +14,7 @@ import { registerKey } from "../../ui/keys";
 import { readUnsaved, TextField, type TextFieldRef, unsavedText } from "../../ui/text";
 import { answered, askedOf, type Position } from "./position";
 import { fieldKey, type RoundArgs, type Saves, type Target, targetOf } from "./saves";
-import { settledMark } from "./Settled";
+import { pointsIn, settledCursor, settledMark } from "./Settled";
 import { idsWords, questions } from "./words";
 
 /** How long typing rests before the notes are saved. */
@@ -88,6 +88,9 @@ export function End(props: EndProps) {
   const asked = () => askedOf(props.round());
   const blank = () => asked().filter((question) => !answered(question) && !typed(question));
   const others = () => props.round().settledGroups.filter((group) => group.kind !== "check");
+  settledCursor(props.args, () =>
+    pointsIn(props.round(), props.file().current.document, (group) => group.kind !== "check"),
+  );
 
   const submit = async (resumes: boolean) => {
     if (pending()) return;

@@ -129,3 +129,18 @@ test("b answers B and goes on, and is not also Back", async () => {
   expect(words(app)).toContain("How does a repetition end?");
   expect(calls(app).at(-1)).toMatchObject({ letters: ["B"], question: "Q2" });
 }, 90_000);
+
+test("J reaches a point to check, and Enter comments on it", async () => {
+  const app = await page("start", true);
+  await app.waitUntil(() => words(app).includes("Check these"), { timeout: 30_000 });
+  await app.wait(500);
+  await app.keyboard.press("shift+j");
+  await app.waitUntil(() => words(app).includes("⏎"), { timeout: 10_000 });
+  await app.keyboard.press("Enter");
+  await app.waitFor("id:settled-comment", { timeout: 10_000 });
+  await app.type("id:settled-comment", "Say why four.");
+  await app.press("label:Save the comment");
+  await app.waitUntil(() => calls(app).some((call) => call.action === "settled.comment"), {
+    timeout: 10_000,
+  });
+}, 90_000);

@@ -1,10 +1,21 @@
 // The points an agent settled without the human, under each its comments, and a comment of the
 // human's: "Check these" before the questions, the rest at the round's end. A feature's round
 // takes comments on its points (`settled.comment`), each saved with its button or Ctrl+Enter and
-// kept on the device until then; a round of the default branch reads them only.
-import { signal, View } from "nsh";
-import type { Block, FileView, RoundItems, SettledComment } from "../../store/protocol";
+// kept on the device until then; a round of the default branch reads them only. By keys, `J` and
+// `K` move a cursor from point to point, and the point at the cursor takes `Enter` to comment and
+// `s` to ask the agent, its keys shown on its buttons.
+import { signal, untracked, View } from "nsh";
+import type {
+  Block,
+  Document as Tree,
+  FileView,
+  RoundItems,
+  SettledComment,
+  SettledGroup,
+} from "../../store/protocol";
 import { Button, Refusal, Text } from "../../ui/controls";
+import { registerKey } from "../../ui/keys";
+import { Bar } from "../../ui/lists";
 import { TextField, unsavedText } from "../../ui/text";
 import { type Ask, quoted } from "../session";
 import { askOf, fieldKey, type RoundArgs, type Saves, settledField, targetOf } from "./saves";
@@ -15,6 +26,47 @@ const pointQuote = (path: string, subject: string) =>
 
 /** Which point's field is open, by round: one at a time. */
 const opened = signal<Readonly<Record<string, string | null>>>({});
+
+/** The point at the keys' cursor, by round: its list item's block. */
+const cursors = signal<Readonly<Record<string, number | null>>>({});
+
+/** The blocks of the points in the groups `kept` keeps, in the file's order. */
+export function pointsIn(
+  round: RoundItems,
+  document: Tree,
+  kept: (group: SettledGroup) => boolean,
+): ReadonlyArray<number> {
+  const tops = new Set(round.settledGroups.filter(kept).flatMap((group) => group.blocks));
+  const topOf = (id: number) => {
+    let block = document.blocks[id];
+    while (block !== undefined && block.parent !== null) block = document.blocks[block.parent];
+    return block?.id;
+  };
+  return round.settledPoints
+    .map((point) => point.block)
+    .filter((block) => tops.has(topOf(block) ?? -1));
+}
+
+/** `J` and `K` move the cursor among `points`, those the part of the round shown draws. */
+export function settledCursor(args: RoundArgs, points: () => ReadonlyArray<number>) {
+  const move = (by: number) => {
+    const all = points();
+    if (all.length === 0) return false;
+    const index = all.indexOf(untracked(cursors)[args.id] ?? -1);
+    const next =
+      index === -1
+        ? by > 0
+          ? all[0]
+          : all.at(-1)
+        : all[Math.max(0, Math.min(all.length - 1, index + by))];
+    cursors.update((all) => ({ ...all, [args.id]: next ?? null }));
+    return undefined;
+  };
+  registerKey([
+    { hint: "J K", hintLabel: "point", keys: "J", label: "Next settled point", run: () => move(1) },
+    { keys: "K", label: "Previous settled point", run: () => move(-1) },
+  ]);
+}
 
 function Comment(props: {
   args: RoundArgs;
@@ -187,8 +239,14 @@ export function settledMark(props: {
     const comments = () =>
       props.round()?.settledComments.filter((one) => one.point === block.id) ?? [];
     const open = () => opened()[props.args.id] === point()?.subject;
+    const here = () => cursors()[props.args.id] === block.id;
     return (
-      <View style={{ gap: 4, paddingLeft: 4, paddingTop: 4 }}>
+      <View style={{ gap: 4, paddingLeft: 8, paddingTop: 4 }}>
+        <If when={here()}>
+          <View style={{ bottom: 0, left: 0, position: "absolute", top: 0, width: 2 }}>
+            <Bar />
+          </View>
+        </If>
         <Each
           key={(comment: SettledComment) => `${comment.number}:${comment.text}`}
           of={comments()}
@@ -208,24 +266,14 @@ export function settledMark(props: {
             <If
               when={open()}
               else={
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                  <Button
-                    icon="message-square"
-                    label="Comment on this point"
-                    onPress={() =>
-                      opened.update((all) => ({ ...all, [props.args.id]: shown().subject }))
-                    }
-                  />
-                  <If when={asks()}>
-                    {(ask) => (
-                      <Button
-                        icon="message-circle-question"
-                        label="Ask the agent"
-                        onPress={() => ask()(pointQuote(props.file().path, shown().subject))}
-                      />
-                    )}
-                  </If>
-                </View>
+                <PointButtons
+                  ask={asks()}
+                  here={here()}
+                  onAsk={() => asks()?.(pointQuote(props.file().path, shown().subject))}
+                  onComment={() =>
+                    opened.update((all) => ({ ...all, [props.args.id]: shown().subject }))
+                  }
+                />
               }
             >
               <Comment
@@ -241,4 +289,39 @@ export function settledMark(props: {
       </View>
     );
   };
+}
+
+/**
+ * A point's two buttons: at the cursor, with their keys, declared while it holds the cursor alone,
+ * so no two points bind the same key.
+ */
+function PointButtons(props: {
+  ask: Ask | undefined;
+  here: boolean;
+  onAsk: () => void;
+  onComment: () => void;
+}) {
+  const buttons = (keyed: boolean) => (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <Button
+        icon="message-square"
+        keys={keyed ? "Enter" : undefined}
+        label="Comment on this point"
+        onPress={props.onComment}
+      />
+      <If when={props.ask}>
+        <Button
+          icon="message-circle-question"
+          keys={keyed ? "s" : undefined}
+          label="Ask the agent"
+          onPress={props.onAsk}
+        />
+      </If>
+    </View>
+  );
+  return (
+    <If when={props.here} else={buttons(false)}>
+      {buttons(true)}
+    </If>
+  );
 }

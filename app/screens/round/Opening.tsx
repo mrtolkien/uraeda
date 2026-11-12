@@ -8,7 +8,7 @@ import { Document, type DocumentHands } from "../../ui/document";
 import { titleOf } from "../file/read";
 import { plain } from "../file/read";
 import type { RoundArgs, Saves } from "./saves";
-import { settledMark } from "./Settled";
+import { pointsIn, settledCursor, settledMark } from "./Settled";
 import { questions } from "./words";
 import { askedOf } from "./position";
 
@@ -20,6 +20,9 @@ export function Opening(props: {
   saves: Saves;
 }) {
   const document = () => props.file().current.document;
+  settledCursor(props.args, () =>
+    pointsIn(props.round(), document(), (group) => group.kind === "check"),
+  );
   const ids = () => {
     const round = props.round();
     const check = round.settledGroups.filter((group) => group.kind === "check");
