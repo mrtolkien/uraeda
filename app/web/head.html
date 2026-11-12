@@ -1,7 +1,9 @@
 <!-- Uraeda's own first paint, which `scripts/web-build.sh` adds to the page Native Shell writes:
      the default themes' backdrop, `crust` of Catppuccin Latte and Mocha, in place of white and
      black, and the app's name over the wait, so a first load never flashes or shows a blank
-     page while the runtime comes. The app draws its own theme over it once it runs. -->
+     page while the runtime comes. A wait past four seconds, a phone on a slow link, says what
+     comes and that it comes once: a spinner alone, a minute long, looks stuck. The app draws its
+     own theme over it once it runs. -->
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <style>
   html,
@@ -26,6 +28,24 @@
       monospace;
     letter-spacing: 0.08em;
     opacity: 0.6;
+  }
+  #status:not(.failed)::after {
+    content: "Loading the app, about 3 MB. Only the first visit waits for it: this browser keeps it.";
+    max-width: 18em;
+    font:
+      13px/1.5 ui-monospace,
+      "SF Mono",
+      Menlo,
+      Consolas,
+      monospace;
+    text-align: center;
+    opacity: 0;
+    animation: uraeda-slow 0.4s ease-out 4s forwards;
+  }
+  @keyframes uraeda-slow {
+    to {
+      opacity: 0.6;
+    }
   }
   .spinner {
     width: 14px;
