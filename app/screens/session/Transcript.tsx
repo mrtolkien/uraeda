@@ -261,8 +261,10 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
     >
       <AllowQuestion session={props.session().id} />
       {/* On a phone with the keyboard up, the room it leaves goes to what is answered: the head,
-          a third of the screen, folds away until the keyboard does. */}
-      <View style={{ display: isNarrow() && keyboardUp() ? "none" : "flex" }}>
+          a third of the screen, folds away until the keyboard does. Shown, it sets no display:
+          `flex` lays a view's children in a row, as in CSS, and the head took its title's whole
+          length, past the screen's edge. */}
+      <View style={{ display: isNarrow() && keyboardUp() ? "none" : undefined }}>
         <SessionHead repo={repo} runtime={runtime()} session={props.session()} />
       </View>
       <SessionBanners repo={repo} session={props.session()} />
