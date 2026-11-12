@@ -1,9 +1,10 @@
 // A page of its own, without the frame: what the app shows before it can draw a screen, while it
 // starts or reaches the server, pairs the device, or cannot speak with the server. A raised card in
 // the middle of the window's backdrop, its title, the words that name the cause, and the way out.
+// On a phone, the middle is the room the keyboard leaves: a field's button stays above it.
 import { type JSX, View } from "nsh";
 import { Heading, Icon, type IconName, Text } from "../../ui/controls";
-import { Backdrop, Surface } from "../../ui/surfaces";
+import { Backdrop, keyboardUp, safe, Surface } from "../../ui/surfaces";
 import { tokens } from "../../ui/tokens";
 
 export type LoneProps = {
@@ -22,7 +23,13 @@ export function Lone(props: LoneProps) {
   return (
     <Backdrop>
       <View
-        style={{ alignItems: "center", flex: 1, justifyContent: "center", padding: 16 }}
+        style={{
+          alignItems: "center",
+          flex: 1,
+          justifyContent: "center",
+          padding: 16,
+          paddingBottom: keyboardUp() ? `calc(${safe.keyboard} + 16px)` : 16,
+        }}
         testID={props.testID}
       >
         <Surface height="raised" style={{ gap: 14, maxWidth: 520, padding: 24, width: "100%" }}>
