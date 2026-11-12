@@ -84,3 +84,22 @@ test("in a picker, the row under the pointer is the one Enter picks", async () =
   );
   app.dispose();
 }, 90_000);
+
+test("a category is renamed and deleted by the pointer too, from its heading", async () => {
+  const app = await open("../shell/__checks__/Places.tsx", {
+    height: 800,
+    host: { handlers: { places: null, problem: null, shown: null } },
+    network: "live",
+    platform: "linux",
+    width: 1400,
+  });
+  await app.waitUntil(() => app.shows("id:frame"), { timeout: 30_000 });
+  await app.host.send("go", "/r/sample/inbox");
+  await app.waitFor("label:Rename the category UI…", { timeout: 20_000 });
+  expect(app.shows("label:Delete the category UI, keeping its notes")).toBe(true);
+  await app.press("label:Rename the category UI…");
+  await app.waitFor("text:Rename the category", { timeout: 10_000 });
+  await app.press("text:Cancel");
+  await app.waitFor("text:Rename the category", { state: "gone", timeout: 10_000 });
+  app.dispose();
+}, 90_000);

@@ -44,7 +44,13 @@ function lineOf(row: InboxRow | undefined): LineProps {
   }
 }
 
-function RowView(props: { row: InboxRow | undefined }) {
+/** A category's own actions, beside its name: the pointer's way to `R` and `d`. */
+type CategoryHands = {
+  onDelete: (row: Extract<InboxRow, { kind: "category" }>) => void;
+  onRename: (name: string) => void;
+};
+
+function RowView(props: { hands: CategoryHands; row: InboxRow | undefined }) {
   const line = () => lineOf(props.row);
   return (
     <If
@@ -59,6 +65,26 @@ function RowView(props: { row: InboxRow | undefined }) {
           {line().label}
         </Heading>
         <Text tone="faint">{line().count === 0 ? "empty" : plural(line().count ?? 0, "note")}</Text>
+        <If when={props.row?.kind === "category" ? props.row : undefined}>
+          {(category) => (
+            <>
+              <IconButton
+                icon="pencil"
+                label={`Rename the category ${category().name}…`}
+                onPress={() => props.hands.onRename(category().name)}
+              />
+              <IconButton
+                icon="trash-2"
+                label={
+                  category().count === 0
+                    ? `Delete the category ${category().name}`
+                    : `Delete the category ${category().name}, keeping its notes`
+                }
+                onPress={() => props.hands.onDelete(category())}
+              />
+            </>
+          )}
+        </If>
       </View>
     </If>
   );
@@ -151,6 +177,25 @@ function Notes(props: { inbox: Inbox; repo: string }) {
     if (addHere === adding) addHere = undefined;
   });
 
+  /** Deletes a category, its notes kept without one: undone by `u`, as a note's delete. */
+  const deleteCategory = (one: Extract<InboxRow, { kind: "category" }>) => {
+    const name = one.name;
+    return said(async () => {
+      const written = await call("inbox.removeCategory", {
+        hash: props.inbox.hash,
+        keepNotes: true,
+        name,
+        repo: props.repo,
+      });
+      const label = `Deleted the category ${name}${one.count > 0 ? ": its notes stay, without a category" : ""}.`;
+      remember(written.change, label, { repo: props.repo, subject: name });
+    });
+  };
+  const hands: CategoryHands = {
+    onDelete: (one) => void deleteCategory(one),
+    onRename: (name) => naming.set({ kind: "rename", name }),
+  };
+
   registerKey([
     {
       hint: "a",
@@ -172,17 +217,7 @@ function Notes(props: { inbox: Inbox; repo: string }) {
           return said(() => deleteNote(props.repo, props.inbox, one.note));
         }
         if (one?.kind !== "category") return false;
-        const name = one.name;
-        return said(async () => {
-          const written = await call("inbox.removeCategory", {
-            hash: props.inbox.hash,
-            keepNotes: true,
-            name,
-            repo: props.repo,
-          });
-          const label = `Deleted the category ${name}${one.count > 0 ? ": its notes stay, without a category" : ""}.`;
-          remember(written.change, label, { repo: props.repo, subject: name });
-        });
+        return deleteCategory(one);
       },
     },
     {
@@ -293,7 +328,7 @@ function Notes(props: { inbox: Inbox; repo: string }) {
             cursor={cursor}
             rules
             onOpen={open}
-            row={(id) => <RowView row={rows().find((one) => one.id === id())} />}
+            row={(id) => <RowView hands={hands} row={rows().find((one) => one.id === id())} />}
           />
         </View>
       </PaneScroll>
