@@ -11,6 +11,7 @@ import { definePane, focus, placeOf, sync, usePane } from "../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, VirtualList } from "../../ui/lists";
 import { isNarrow } from "../../ui/width";
 import { branched, changesIt } from "./Branches";
+import { ErrandButton } from "./Errand";
 import {
   CHECK,
   CONSTITUTION,
@@ -196,7 +197,7 @@ function pickerItems(ledger: Ledger, sort: DecisionSort): Array<PickerItem> {
 }
 
 /** Above the cards: Jump, and the order, on one row: in a narrow pane, Jump is its key and icon. */
-function Tools(props: { count: number; onJump: () => void }) {
+function Tools(props: { count: number; noCheck: boolean; onJump: () => void; repo: string }) {
   const pane = usePane();
   return (
     <View style={{ gap: 8, paddingBottom: 10 }}>
@@ -216,6 +217,9 @@ function Tools(props: { count: number; onJump: () => void }) {
           value={sortChosen()}
         />
       </View>
+      <If when={props.noCheck}>
+        <ErrandButton errand="check-decisions" repo={props.repo} />
+      </If>
       <Text size="under" tone="faint">
         {`${props.count} decision${props.count === 1 ? "" : "s"} on the default branch`}
       </Text>
@@ -279,7 +283,14 @@ function LedgerList(props: { repo: string }) {
               </If>
             }
             framed={false}
-            header={<Tools count={read().decisions.length} onJump={() => jumping.set(true)} />}
+            header={
+              <Tools
+                count={read().decisions.length}
+                noCheck={read().decisionsCheck === null}
+                onJump={() => jumping.set(true)}
+                repo={props.repo}
+              />
+            }
             offset={kept.at(place)}
             onOffset={(offset) => kept.keep(place, offset)}
             onOpen={open}

@@ -122,6 +122,13 @@ why = "its message was written in the React UI's TSX: the workflow's words belon
 fate = "brought-back"
 now = "the feature page's foot, beside Drop, far from Next: \"Postpone the feature…\" asks first, with the server's message whole (`ErrandMessage`, `postpone`), then sends it to the feature's latest session and opens it"
 
+[[left]]
+what = "\"Review with AI\" on the decisions check"
+old = "Decisions check page"
+why = "its message was the Node server's (`round-messages`), and the Rust server serves none (R292)"
+fate = "brought-back"
+now = "the decisions check's page and the decisions' list: \"Review with AI\" (`r`) while no check is on the default branch, \"Apply the answers\" (`r`) once it is answered, each through the continue dialog with the server's message whole (`ErrandMessage`), a new chat of the main checkout started only from its Start"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -131,14 +138,6 @@ why = "a comment there is a review comment, which task 42 attached to the embedd
 fate = "left"
 needs = "the web view's `picked` message turned into a review comment on the element's lines, in `MockupPage.tsx` and the embeds"
 missed = "a person will miss this on UI features: a comment says where in the page, not which element"
-
-[[left]]
-what = "\"Review with AI\" on the decisions check"
-old = "Decisions check page"
-why = "its message was the Node server's (`round-messages`), and the Rust server serves none (R292)"
-fate = "left"
-needs = "the server's message for a decisions check run, and an action that starts it"
-missed = "a person who runs the check will miss it: the check is started from a session by hand"
 
 [[left]]
 what = "The inbox's outliner: indent, outdent, nested drags, an add beside each row"

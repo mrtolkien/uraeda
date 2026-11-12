@@ -2859,7 +2859,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `/f/<folder>/decisions/<name>`. On a phone, `/decisions` shows the list first.
 - The redirect R126 left: a branch with no such decision opens `/decisions/<name>`, in the visit.
 - The order is the device's `decisions.sort`. The check's question cards are task 42's, where
-  `Check.tsx` is marked `TASK 42:`; "Review with AI" is not built (R292).
+  `Check.tsx` is marked `TASK 42:`; "Review with AI" is not built (R292), and came back with "Apply
+  the answers" in `Errand.tsx` (T90.4): `useErrand`, `ErrandButton`, over `ErrandMessage`.
 - `listKeys` bound no `g g` (R293), back since the join of tasks 40 to 48; the icon `cable` joins
   `app/ui/controls/icons/lucide.ts`.
 

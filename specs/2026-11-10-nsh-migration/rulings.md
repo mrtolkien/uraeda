@@ -7832,3 +7832,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the old menu sent the message at once on a pick, an agent's run started by one
   press (rule 2). The dialog is the deliberate step, as Drop's is.
 - **Where**: `app/screens/feature/Postpone.tsx`, `Overview.tsx`.
+
+## T90.4: The decisions check's errands go through the continue dialog, as a chat
+
+- **Decision**: "Review with AI" (while no check is on the default branch: the check's page, and the
+  head of the decisions' list) and "Apply the answers" (once the check is answered: its page) open
+  `ContinueDialog` with `folder: null` and the server's message: the message whole, the words "It
+  starts a new chat in the main checkout", and Start, which makes the chat and sends the message as
+  a plain one. `Continue.trigger` is `null` for a run that is no step's. Each has `r`.
+- **Rationale**: one dialog for every run an agent is asked for, with what it is sent readable first
+  (rule 2, rule 3); a check has no feature, so no run map: the new chat runs on the agent a new
+  session runs on, the rule the settings name. "Apply the answers" was missing too: without it an
+  answered check led nowhere (rule 9).
+- **Where**: `app/screens/decisions/Errand.tsx`, `Check.tsx`, `List.tsx`,
+  `app/screens/runs/ContinueDialog.tsx`.

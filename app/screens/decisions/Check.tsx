@@ -2,11 +2,11 @@
 // agent asks about the decisions, answered on the default branch like the inbox's triage. Its
 // frame is here: while it waits, the round answered one question at a time, as every round is
 // (`app/screens/round/`), each option's candidate decisions under the option; once answered, its
-// head with its state, then its file, each question's answer under its heading, read-only. "Review
-// with AI", which asks an agent for a check, waits on the round's message, which only the Node
-// server holds (`uraeda-server/round-messages`).
+// head with its state, then its file, each question's answer under its heading, read-only. With no
+// check, "Review with AI" asks an agent for one; once answered, "Apply the answers" asks an agent to
+// apply them: each through the continue dialog (`Errand.tsx`).
 import { View } from "nsh";
-import { navigate, record } from "../../store";
+import { record } from "../../store";
 import type { Block, Candidate, FileView, QuestionItem } from "../../store/protocol";
 import { StatusDot, Text } from "../../ui/controls";
 import { Document } from "../../ui/document";
@@ -15,6 +15,7 @@ import { Answering, roundAction, roundMains, roundQuestionsPane } from "../round
 import { Empty } from "../../ui/lists";
 import { changeCounts, checkWords } from "./ledger";
 import { follow } from "./links";
+import { ErrandButton, useErrand } from "./Errand";
 import { Column, pastTitle, Reading, Title } from "./Reader";
 
 /** The id the record `WorkflowFile` reads the check by. */
@@ -121,22 +122,33 @@ function CheckReader(props: { repo: string }) {
   );
 }
 
+/** No check on the default branch: Review with AI asks an agent for one, `r` or its press. */
+function NoCheck(props: { repo: string }) {
+  const errand = useErrand(props.repo, "check-decisions");
+  return (
+    <>
+      <Empty
+        action={{
+          icon: "message-circle-question",
+          keys: "r",
+          label: errand.label,
+          run: errand.open,
+        }}
+        icon="message-circle-question"
+        title="No decisions check waits"
+        words="specs/DECISIONS-CHECK.md is not on the default branch. Review with AI asks an agent to write one, and its questions wait here for your answers."
+      />
+      {errand.dialog}
+    </>
+  );
+}
+
 function CheckRead(props: { repo: string }) {
   const read = record("WorkflowFile", { id: CHECK_ID, repo: props.repo });
   return (
     <Column>
       <If when={read() !== undefined} else={<Reading error={read.error()?.message} />}>
-        <If
-          when={read()}
-          else={
-            <Empty
-              action={{ label: "The decisions", run: () => navigate({ page: "decisions" }) }}
-              icon="message-circle-question"
-              title="No decisions check waits"
-              words="specs/DECISIONS-CHECK.md is not on the default branch. An agent writes one when asked to review the decisions, and its questions wait here for your answers."
-            />
-          }
-        >
+        <If when={read()} else={<NoCheck repo={props.repo} />}>
           {(file) => (
             <>
               <View style={{ gap: 6 }}>
@@ -149,6 +161,9 @@ function CheckRead(props: { repo: string }) {
                   An agent's questions about the constitution and the decisions. Its answers are
                   committed on the default branch, then an agent applies them to the decisions.
                 </Text>
+                <If when={file().status === "answered"}>
+                  <ErrandButton errand="apply-decisions-check" repo={props.repo} />
+                </If>
               </View>
               <Document
                 document={file().current.document}
