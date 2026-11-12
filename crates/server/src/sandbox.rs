@@ -4,7 +4,7 @@
 //!
 //! - **Its folder** holds everything it reads and writes: `projects/` (`sample`, `empty`,
 //!   `broken`, `realistic`, `bare`, and `sample`'s `origin`), `data/`, `config/` (two jobs and
-//!   two extensions), and `bin/` (a `gh` that lists the sample's pull requests). It is kept
+//!   four extensions), and `bin/` (a `gh` that lists the sample's pull requests). It is kept
 //!   until a reset builds it again. Nothing reads or writes the human's own folders.
 //! - **Its agent** is the fake runtime, registered as `fake`, `claude`, and `codex`: no agent of
 //!   the machine is registered. See [`agent`].
@@ -237,14 +237,20 @@ Read the week's commits, and report what changed and what looks risky.
 """
 "#;
 
-/// The config folder: its jobs, and two extensions, `echo` with a record, actions, and a route,
-/// and `hello` with a page.
+/// The config folder: its jobs, and four extensions, `echo` with a record, actions, and a route,
+/// `hello` with a page, the documentation's worked example `wiki` with a place and a pane of
+/// Home, and `throws`, which breaks as it loads, for the settings to name.
 fn config(config_dir: &Path) -> Result<(), String> {
     fs::create_dir_all(config_dir).map_err(|error| error.to_string())?;
     fs::write(config_dir.join("config.toml"), JOBS).map_err(|error| error.to_string())?;
     let extensions = config_dir.join("extensions");
     git::copy(&fixture("extensions/echo"), &extensions.join("echo"))?;
-    git::copy(&fixture("pages/hello"), &extensions.join("hello"))
+    git::copy(&fixture("pages/hello"), &extensions.join("hello"))?;
+    git::copy(&fixture("extensions/throws"), &extensions.join("throws"))?;
+    git::copy(
+        &checkout().join("examples/extensions/wiki"),
+        &extensions.join("wiki"),
+    )
 }
 
 /// A `gh` that lists the sample's open pull requests, first on the server's `PATH`.

@@ -53,7 +53,7 @@ code. Uraeda's instructions to the agent say so.
 
 The Wiki, in Uraeda's repository at
 [`examples/extensions/wiki/`](https://github.com/mrtolkien/uraeda/tree/main/examples/extensions/wiki),
-lists the Markdown files of a repository's `docs/` folder in a place of its own, `Space w`, with
+lists the Markdown files of a repository's `docs/` folder in a place of its own, `Space k`, with
 their count in the rail, draws the one you pick, and adds a pane to Home. It uses every common part
 of the API: a setting, two records, an action, an event, a place with a key and a count, and a pane
 of Home. Its three files follow, whole.
@@ -242,7 +242,7 @@ function WikiHome() {
   );
 }
 
-place({ count: "count", icon: "book-open", id: "wiki", key: "w", title: "Wiki", view: WikiPlace });
+place({ count: "count", icon: "book-open", id: "wiki", key: "k", title: "Wiki", view: WikiPlace });
 homePane({ column: 1, icon: "book-open", id: "wiki", title: "Wiki", view: WikiHome });
 ```
 
@@ -252,7 +252,7 @@ To try it from a checkout of Uraeda, link it, and say where it is on:
 ura extension add examples/extensions/wiki --here   # on in the repository you are in
 ```
 
-Within a second the rail shows "Wiki" with its count, `Space w` opens it, and Home shows its pane.
+Within a second the rail shows "Wiki" with its count, `Space k` opens it, and Home shows its pane.
 Copy the folder elsewhere to make it yours, then edit it: each save reloads it. Check what Uraeda
 thinks of it with `ura extension list`, which names every problem with its file and line.
 
@@ -502,7 +502,7 @@ function Pages() {
   return <Text>{`${pages().value?.pages.length ?? "…"} pages`}</Text>;
 }
 
-place({ icon: "book-open", id: "wiki", key: "w", title: "Wiki", view: Pages });
+place({ icon: "book-open", id: "wiki", key: "k", title: "Wiki", view: Pages });
 ```
 
 A page imports only:
@@ -535,8 +535,10 @@ the page's memory that another part could read: its state is the server's record
 | `key(key)`                 | `{ keys, label, run, icon? }`: a key under the leader, `Space`   | The leader's menu and the key map                                                         |
 | `onUnload(fn)`             | Nothing: `fn` runs as the part drawn goes                        |                                                                                           |
 
-- A place's **`key`** is its key after `Space`: `"w"` is `Space w`. Its **`count`** names a record
-  of the extension whose value is a number, which the rail shows after the title: what waits there.
+- A place's **`key`** is its key after `Space`: `"k"` is `Space k`; a key the app or another
+  extension holds, as `Space w` the panes', leaves the extension's keys out, named in the settings.
+  Its **`count`** names a record of the extension whose value is a number, which the rail shows
+  after the title: what waits there.
 - A **key**'s `keys` is one key after `Space`, like `"y"`, or a sequence under one of Uraeda's
   groups, like `"n y"` under New. The app keeps one view of the page unseen from the key's first
   press, and runs `run` there: it acts through `navigate` and the extension's actions, never by

@@ -1,4 +1,4 @@
-// The Wiki's page: the place "Wiki", `Space w`, with the count of its pages in the rail, listing
+// The Wiki's page: the place "Wiki", `Space k`, with the count of its pages in the rail, listing
 // the pages of the record `pages` and drawing the one picked, which the action `read` gives; and a
 // pane of Home, "Wiki", with the first pages, each opening the place. Drawn with the app's own
 // components, in the app's theme.
@@ -84,5 +84,5 @@ function WikiHome() {
   );
 }
 
-place({ count: "count", icon: "book-open", id: "wiki", key: "w", title: "Wiki", view: WikiPlace });
+place({ count: "count", icon: "book-open", id: "wiki", key: "k", title: "Wiki", view: WikiPlace });
 homePane({ column: 1, icon: "book-open", id: "wiki", title: "Wiki", view: WikiHome });
