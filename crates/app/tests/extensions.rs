@@ -44,6 +44,8 @@ struct App {
     ready: Receiver<Value>,
     called: Receiver<Value>,
     problems: Receiver<Value>,
+    /// Each call of `uraeda.token` that reached the app's own host.
+    token_asked: Receiver<()>,
 }
 
 impl App {
@@ -63,6 +65,12 @@ impl App {
         let stage = Stage::open(AppOptions::default());
         let (ready, called) = (stage.posts("ready"), stage.posts("called"));
         let problems = stage.posts("problem");
+        // The app's own host answers `uraeda.token`, as `uraeda` does, with the device's token.
+        let (asked, token_asked) = std::sync::mpsc::channel();
+        stage.view.host().handle("uraeda.token", move |call| {
+            let _ = asked.send(());
+            call.reply(Ok(json!("the device's token")));
+        });
         let params = json!({
             "hold": hold,
             "names": names,
@@ -87,6 +95,7 @@ impl App {
             ready,
             called,
             problems,
+            token_asked,
         }
     }
 
@@ -277,11 +286,15 @@ fn a_page_reads_a_record_and_calls_an_action_of_its_extension() {
             let input = json!({ "extension": "counter", "input": { "seen": 3 }, "name": "add", "repo": "todo-app" });
             assert_eq!(added["input"], input);
             // The action's output reaches the page, which says what it got, and how what it has
-            // no right to was refused: a host function not granted, and the network.
+            // no right to was refused: a host function not granted, the app's own host, which
+            // holds the device's token, and the network.
             let done = app.called("the page got the action's output", act("done"));
             let got = &done["input"]["input"];
             assert_eq!(got["got"], 4);
             assert_eq!(got["outside"], "ERR_ACCESS_DENIED");
+            assert_eq!(got["token"], "ERR_ACCESS_DENIED");
+            let reached = app.token_asked.try_recv().is_ok();
+            assert!(!reached, "the page's call reached the app's own host");
             assert_ne!(got["fetched"], "allowed");
             assert_eq!(served.probes(), 0, "the page reached the network");
         },

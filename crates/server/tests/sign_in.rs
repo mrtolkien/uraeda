@@ -410,20 +410,29 @@ async fn a_wrong_key_is_slowed_never_locked_out() {
     let key = |key: &str| server.post("/session").json(&json!({ "key": key })).send();
     let code = |code: &str| server.post("/pair").json(&json!({ "code": code })).send();
 
-    // Wrong keys and wrong codes at once: each waits its second.
+    // Wrong keys and wrong codes at once: each waits its second, the key a device pairs with as
+    // the one a browser signs in with.
     let started = Instant::now();
+    let pairing_key = async {
+        let wrong = json!({ "key": "ura_wrong" });
+        let answer = server.post("/pair").json(&wrong).send().await;
+        (answer, started.elapsed())
+    };
     let wrong = tokio::join!(
         key("ura_wrong"),
         key(""),
         server.post("/session").body("not json").send(),
         code("AAAA-AAAA-AAAA"),
         server.post("/pair").json(&json!({})).send(),
-        server
-            .post("/pair")
-            .json(&json!({ "key": "ura_wrong" }))
-            .send(),
+        pairing_key,
     );
     let waited = started.elapsed();
+    let (wrong, pairing_key_waited) = {
+        let (a, b, c, d, e, (f, waited)) = wrong;
+        ((a, b, c, d, e, f), waited)
+    };
+    let slowed = pairing_key_waited >= Duration::from_secs(1);
+    assert!(slowed, "the pairing key waited {pairing_key_waited:?}");
 
     let (wrong_key, .., wrong_code, _, wrong_pairing_key) = &wrong;
     let not_the_key = json!({ "error": "This is not Uraeda's access key." });

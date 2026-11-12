@@ -8452,3 +8452,38 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   starts any preview.
 - **Where**: `crates/server/src/preview/{proxy,mod,checkout}.rs`; `only_a_navigation_shows_a_page`
   and `a_stale_frame_starts_no_preview`.
+
+## T88.5: The host's channel, the device's token, and the pairing key hold; the app's server log holds the access key
+
+- **Decision**: three guarantees of the host were checked against the code, hold, and are now each
+  guarded by a test; nothing of the host changed. One thing found beside them is left to the human.
+  - **`uraeda.*` is out of a page's reach**, twice over. A page's package is signed with the
+    capabilities `{ "host": PAGE_HOST }`, which names none of them, and it runs in a view of its
+    own, whose channel answers `PAGE_HOST` alone (`extension_view/channel.rs`): the app's handlers
+    are on the window's channel. The fixture page now calls `uraeda.token`: it gets
+    `ERR_ACCESS_DENIED`, and a handler of that name on the app's own channel is never reached
+    (`a_page_reads_a_record_and_calls_an_action_of_its_extension`).
+  - **The device's token is in no file and no log line.** The host prints five things, none with a
+    token: the secret store's own problem, twice, and three of its start. It writes no file but its
+    server's log. `a_device_pairs_once_and_its_token_is_in_the_secret_store_not_a_file` already
+    reads every file of the app's and the server's folders for it.
+  - **A wrong access key at `POST /pair` waits its second**, through the same `slowed` as a wrong
+    key at `POST /session` (`sign_in/pairing.rs`). `a_wrong_key_is_slowed_never_locked_out` asked
+    six wrong things at once and timed them together, so one answered at once would have passed: it
+    now times the pairing key's answer alone. Seen failing with the wait taken out of that branch:
+    "the pairing key waited 2.59 ms", where the old assertion passed.
+- **Left to the human**: a server the app starts writes its output to `<data>/run/server.log`, and a
+  first start prints the access key there, "shown once", in clear, where it stays; `failed` then
+  shows the log's last five lines in the app's start error, the key among them when a first start
+  fails early. The sign-in decision says the key MUST be stored only as hashes, and shown once. The
+  folder is the owner's alone (0700), beside a status file that holds the host token, so nobody else
+  reads it; but the key outlives a restart, signs a browser in from another machine, and a log is
+  what a person pastes in a report. No change is small: the server's standard output also carries
+  the extensions' `log`, so sending it nowhere loses that; and a key never shown is forgotten with
+  the whole sign-in file as the server stops, so every start would pair the app again. Ways out,
+  each with its cost: the server marks the key seen without printing it when the app starts it, and
+  the new CLI gains the old `--new-key` for a browser; or the app shows the key once in its own
+  window and keeps it out of the log.
+- **Where**: `crates/app/tests/extensions.rs`, `fixtures/extensions/counter/page.tsx`,
+  `crates/server/tests/sign_in.rs`; for what is left, `crates/app/src/server_start.rs` (`start`,
+  `failed`) and `crates/server/src/run.rs`.
