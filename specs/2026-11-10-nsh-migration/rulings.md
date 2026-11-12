@@ -10556,3 +10556,22 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a Setup pane of Home's main stack, listing each item with its state, and "Set up
   with the agent" filling a chat with the skill's setup message, once the server gives one.
 - **Where**: `app/screens/home/SetUp.tsx`, `app/screens/home/core.tsx`.
+
+## T86.1: A phone's browser keeps the phone's frame held sideways
+
+- **Decision**: in a browser that says it is a phone (Native Shell's `platform.idiom`, a coarse
+  pointer on a screen under 600 points both ways), the width class is narrow at every width. Turned
+  to 844 by 390, the phone kept its tabs, its bottom bar, its sheets, and its 44-point targets;
+  before, it took the semi-wide frame of a desktop: two stacks, a rail of 32-point icons, a status
+  line of keys (`NAV`, `space menu`, `? keys`), and fields of 15-point text, which iOS zooms the
+  page into as they take the focus. The walk of the phone counted 300 small targets in landscape.
+- **Rationale**: the phone guide's touch rules (a thumb's targets, no key hinted) follow the hand,
+  not the width: a phone on its side is still held, with no keyboard under it. The guide defines
+  narrow by its width alone, written before a phone was turned; this keeps its rules where they were
+  meant. Only the browser asks: `nsh test` runs headless as an iPhone at every width, and the app's
+  tests at 1400 points would all turn narrow.
+- **Alternatives considered**: the semi-wide frame with touch sizes, which keeps two stacks on a
+  turned phone but needs every control to read a second notion beside the width; a guide change,
+  which is the human's. A tablet, the `pad` idiom, keeps the width's classes.
+- **If wrong**: drop `phoneBrowser` from `widthClass`, and give the semi-wide frame touch sizes.
+- **Where**: `app/ui/width.ts`.
