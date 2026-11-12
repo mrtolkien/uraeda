@@ -124,25 +124,13 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
     comments() === 0
       ? ""
       : ` with ${comments() === 1 ? "your comment" : `your ${comments()} comments`}`;
-  const asked = () =>
-    asking() === "approve"
-      ? {
-          icon: "badge-check" as const,
-          label: "Approve",
-          title: `Approve ${subject()}?`,
-          words: [
-            `Commits ${props.file().name}${withComments()} as approved.`,
-            props.file().kind === "spec" ? decisionsWords(props.file()) : undefined,
-          ]
-            .filter((one) => one !== undefined)
-            .join(" "),
-        }
-      : {
-          icon: "pencil-line" as const,
-          label: "Request changes",
-          title: `Request changes to ${subject()}?`,
-          words: `Commits ${props.file().name}${withComments()}: the agent revises ${theFile(props.file())} from them, once you start its next run.`,
-        };
+  const approveWords = () =>
+    [
+      `Commits ${props.file().name}${withComments()} as approved: the agent ${props.file().kind === "plan" ? "builds it" : "writes the plan"} once you start its next run.`,
+      props.file().kind === "spec" ? decisionsWords(props.file()) : undefined,
+    ]
+      .filter((one) => one !== undefined)
+      .join(" ");
   registerKey([
     {
       hint: "i",
@@ -225,15 +213,26 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
         {(words) => <Refusal testID="review-refusal" words={words()} />}
       </If>
       <Confirm
-        icon={asked().icon}
-        keys={asking() === "changes" ? "r" : "a"}
-        label={asked().label}
+        icon="badge-check"
+        keys="a"
+        label="Approve"
         onClose={() => asking.set(null)}
-        onConfirm={() => void send(asking() === "approve")}
-        open={asking() !== null}
-        testID="review-confirm"
-        title={asked().title}
-        words={asked().words}
+        onConfirm={() => void send(true)}
+        open={asking() === "approve"}
+        testID="review-confirm-approve"
+        title={`Approve ${subject()}?`}
+        words={approveWords()}
+      />
+      <Confirm
+        icon="pencil-line"
+        keys="r"
+        label="Request changes"
+        onClose={() => asking.set(null)}
+        onConfirm={() => void send(false)}
+        open={asking() === "changes"}
+        testID="review-confirm-changes"
+        title={`Request changes to ${subject()}?`}
+        words={`Commits ${props.file().name}${withComments()}: the agent revises ${theFile(props.file())} from them once you start its next run.`}
       />
     </View>
   );
