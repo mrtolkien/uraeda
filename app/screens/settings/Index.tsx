@@ -5,6 +5,7 @@ import { View } from "nsh";
 import { CATEGORIES, type Found, search, type Words } from "./categories";
 import { settingsCategory } from "./panes";
 import { navigate, record, route } from "../../store";
+import { redirect } from "../../store/history";
 import { Icon, Kbd, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { focusPane, usePane } from "../../ui/layout";
@@ -75,7 +76,9 @@ export function Index() {
     if (searching && hit === undefined) return;
     const category = hit === undefined ? id : hit.category.id;
     if (hit !== undefined) landOn(hit.words.label);
-    navigate({ category, page: "settings" });
+    // A category is the settings' own place, as a tab: changing it adds no visit, so Back leaves
+    // the settings for the page before them. Text typed in a category is kept on the device.
+    (route().page === "settings" ? redirect : navigate)({ category, page: "settings" });
     focusPane(settingsCategory({ category }));
   };
   registerKey({

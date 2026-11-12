@@ -93,3 +93,20 @@ test("b goes back to the page before", async () => {
   await app.waitUntil(() => !app.shows("text:New category"), { timeout: 15_000 });
   expect(app.shows("text:Due dates")).toBe(true);
 }, 90_000);
+
+test("Back from the settings returns to the page before them, not to their last category", async () => {
+  const app = await frame();
+  await app.host.send("go", "/r/sample/inbox");
+  await app.waitFor("text:New category", { timeout: 20_000 });
+  await app.keyboard.press("g");
+  await app.keyboard.press(",");
+  await app.waitFor("text:Appearance", { timeout: 15_000 });
+  // Two categories, one after the other, from the index.
+  await app.press("text:Fonts");
+  await app.waitFor("text:Interface", { timeout: 15_000 });
+  await app.press("text:Keyboard");
+  await app.waitFor("text:Single-key shortcuts", { timeout: 15_000 });
+  await app.keyboard.press("b");
+  await app.waitFor("text:New category", { timeout: 15_000 });
+  expect(app.shows("text:Interface")).toBe(false);
+}, 90_000);
