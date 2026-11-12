@@ -74,6 +74,7 @@ function topOf(tree: Tree, id: number): number {
   return block?.id ?? id;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the tree, its cursor, its folds, and its scroll share one state; the cursor's keys can be a hook of their own
 export function DocumentScroll(props: DocumentScrollProps) {
   // A record read again brings the same document as a new object, a review's comment saved
   // included: the same hash keeps the tree, so no cell is made again and the scroll stays put.
