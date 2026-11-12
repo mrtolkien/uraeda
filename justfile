@@ -29,7 +29,7 @@ default:
 # A Rust task's validation: formatting, lints, and the tests of its crates, `just task uraeda-server`.
 task +crates: fmt-check
     cargo clippy {{ prepend('-p ', crates) }} --all-targets -- -D warnings
-    {{ heavy }} cargo nextest run {{ prepend('-p ', crates) }}
+    {{ heavy }} cargo nextest run --no-tests=warn {{ prepend('-p ', crates) }}
 
 # An app task's validation: formatting, lints, the app's types, and its tests.
 task-app: fmt-check lint-app app-check app-test

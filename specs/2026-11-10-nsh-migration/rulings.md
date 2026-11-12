@@ -10205,7 +10205,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   of the record for the milliseconds a large one takes; and a connection that sends JSON messages
   reads the value itself.
 - **Where**: `crates/server/src/live/topic.rs`, `subscription.rs`.
-## T187.1: The commit hook formats the staged text, one Rust file at a time, with cached formatters
+
+## R511: The commit hook formats the staged text, one Rust file at a time, with cached formatters
 
 - **Decision**: `.githooks/pre-commit` copies the staged files out of the index
   (`git checkout-index --prefix`), with `rustfmt.toml`, `.oxfmtrc.json`, and `.gitignore`, and
