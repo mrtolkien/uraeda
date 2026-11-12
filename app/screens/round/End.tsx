@@ -125,7 +125,13 @@ export function End(props: EndProps) {
       ? "Commit and continue implementing"
       : `${target.kind === "feature" ? "Commit" : "Submit"} ${count()}`;
   registerKey([
-    { hint: "i", hintLabel: "notes", keys: "i", label: "Write the notes", run: () => notesField?.focus() },
+    {
+      hint: "i",
+      hintLabel: "notes",
+      keys: "i",
+      label: "Write the notes",
+      run: () => notesField?.focus(),
+    },
     {
       hint: "c",
       hintLabel: "commit",
