@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::upstream;
+use crate::paths::address_parts;
 
 /// Why a preview that answers is failed: its index is not JSON, or not an index.
 pub(crate) const UNREADABLE: &str = "Storybook's index could not be read.";
@@ -74,15 +75,7 @@ pub(crate) fn match_story<'a>(
 
 /// A path without its `.` parts, with each `..` taking the part before it.
 fn normalized(path: &str) -> String {
-    let mut parts: Vec<&str> = Vec::new();
-    for part in path.split('/') {
-        match part {
-            "" | "." => {}
-            ".." => drop(parts.pop()),
-            part => parts.push(part),
-        }
-    }
-    parts.join("/")
+    address_parts(path).join("/")
 }
 
 #[cfg(test)]

@@ -36,6 +36,7 @@ mod http;
 pub mod jobs;
 pub mod live;
 pub mod mcp;
+mod paths;
 mod port;
 pub mod preview;
 mod process;

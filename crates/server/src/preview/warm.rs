@@ -208,15 +208,7 @@ fn resolved(specifier: &str, from: &str, port: u16) -> Option<String> {
     } else {
         format!("{folder}/{path}")
     };
-    let mut parts: Vec<&str> = Vec::new();
-    for part in joined.split('/') {
-        match part {
-            "" | "." => {}
-            ".." => drop(parts.pop()),
-            part => parts.push(part),
-        }
-    }
-    let path = format!("/{}", parts.join("/"));
+    let path = format!("/{}", crate::paths::address_parts(&joined).join("/"));
     Some(query.map_or(path.clone(), |query| format!("{path}?{query}")))
 }
 

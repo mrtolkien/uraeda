@@ -1,9 +1,11 @@
 //! What a tool call acts on, for its line of the transcript: as `toolTarget` of the Node
 //! server.
 
-use std::path::{Component, Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{Map, Value};
+
+use crate::paths::normal;
 
 /// The fields of a tool's input that say what it acts on, the first one found.
 const TARGETS: [&str; 5] = ["command", "file_path", "url", "pattern", "path"];
@@ -41,23 +43,8 @@ pub(in crate::runtimes) fn file_target(path: &str, cwd: &str) -> String {
 /// A path as it reads from a folder that holds it: none for the folder itself, or a path
 /// outside it.
 fn inside(folder: &Path, path: &Path) -> Option<String> {
-    let (folder, path) = (plain(folder), plain(path));
+    let (folder, path) = (normal(folder), normal(path));
     let rest = path.strip_prefix(&folder).ok()?;
     let rest = rest.to_string_lossy();
     (!rest.is_empty()).then(|| rest.into_owned())
-}
-
-/// A path without its `.` and `..`, read as text: no link is followed.
-fn plain(path: &Path) -> PathBuf {
-    let mut plain = PathBuf::new();
-    for part in path.components() {
-        match part {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                plain.pop();
-            }
-            part => plain.push(part),
-        }
-    }
-    plain
 }

@@ -12,6 +12,8 @@ use std::path::{Component, Path, PathBuf};
 
 use serde_json::{Map, Value, json};
 
+use crate::paths::normal;
+
 /// The modules an extension's server code imports by name, each from the VM's prelude.
 pub(crate) const MODULES: [&str; 3] = ["uraeda/server", "uraeda:fs", "uraeda:process"];
 
@@ -260,25 +262,4 @@ pub(super) fn inside(folder: &Path, path: &Path) -> Option<String> {
         }
     }
     (!parts.is_empty()).then(|| parts.join("/"))
-}
-
-/// A path without its `.` and `..` parts, as written: no link is followed.
-pub(crate) fn normal(path: &Path) -> PathBuf {
-    let mut normal = PathBuf::new();
-    for part in path.components() {
-        match part {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                // Above the root there is nothing, and a relative path keeps its leading `..`.
-                let last = normal.components().next_back();
-                match last {
-                    Some(Component::Normal(_)) => drop(normal.pop()),
-                    Some(Component::RootDir) => {}
-                    _ => normal.push(".."),
-                }
-            }
-            other => normal.push(other),
-        }
-    }
-    normal
 }

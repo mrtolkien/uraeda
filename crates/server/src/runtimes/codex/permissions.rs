@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::json::{object, text};
+use crate::paths::normal;
 
 /// Codex's sandbox types, by the names its settings and documentation give them.
 fn sandbox_name(kind: &str) -> &str {
@@ -77,23 +78,8 @@ pub(super) fn git_main_root(cwd: &Path) -> Option<PathBuf> {
         .trim();
     let git_dir = cwd.join(pointer);
     let common = fs::read_to_string(git_dir.join("commondir")).ok()?;
-    let common = plain(&git_dir.join(common.trim()));
+    let common = normal(&git_dir.join(common.trim()));
     (common.file_name()? == ".git").then(|| common.parent().map(Path::to_owned))?
-}
-
-/// A path without its `.` and `..`, read as text.
-fn plain(path: &Path) -> PathBuf {
-    let mut plain = PathBuf::new();
-    for part in path.components() {
-        match part {
-            std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
-                plain.pop();
-            }
-            part => plain.push(part),
-        }
-    }
-    plain
 }
 
 /// The trust level Codex gives the project of `cwd`, from the user's `projects` setting as

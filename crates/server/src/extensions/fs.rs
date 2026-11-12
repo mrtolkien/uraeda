@@ -14,7 +14,7 @@ use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
 use serde_json::{Value, json};
 
-use super::graph::normal;
+use crate::paths::normal;
 
 /// The largest file an extension reads at once, as `fetch` reads the largest answer: it is held
 /// whole in the server's memory before the VM's own limit of 256 MiB applies.
