@@ -6,8 +6,11 @@ import { Link as Base } from "nsh/base";
 import { type Looks, type PressState, pressable } from "./press";
 import { type Size, Text } from "./Text";
 import { tokens } from "../tokens";
+import { isNarrow } from "../width";
 
 export type LinkProps = {
+  /** A link on its own, not inside a sentence: a thumb's size on a phone, its words in its middle. */
+  alone?: boolean;
   children: JSX.Element;
   disabled?: boolean;
   /** An address outside the app, opened by the system. */
@@ -19,9 +22,17 @@ export type LinkProps = {
   testID?: string;
 };
 
-const looks = (): Looks => ({
+const looks = (alone: boolean): Looks => ({
   hover: { backgroundColor: tokens.control.tint(tokens.role.link) },
-  rest: { alignSelf: "flex-start" },
+  rest:
+    alone && isNarrow()
+      ? {
+          alignSelf: "flex-start",
+          justifyContent: "center",
+          minHeight: tokens.control.touch,
+          paddingHorizontal: 6,
+        }
+      : { alignSelf: "flex-start" },
 });
 
 export function Link(props: LinkProps) {
@@ -36,14 +47,14 @@ export function Link(props: LinkProps) {
   const press = pressable(props, follow);
   return (
     <Base
-      activeStyle={press.active(looks())}
+      activeStyle={press.active(looks(props.alone === true))}
       disabled={press.isOff()}
-      focusStyle={press.focusStyle(looks())}
+      focusStyle={press.focusStyle(looks(props.alone === true))}
       href={props.href}
-      hoverStyle={press.hover(looks())}
+      hoverStyle={press.hover(looks(props.alone === true))}
       onPress={props.href === undefined ? press.press : undefined}
       ref={press.ref}
-      style={press.style(looks())}
+      style={press.style(looks(props.alone === true))}
       testID={props.testID}
     >
       <Text

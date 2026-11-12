@@ -47,7 +47,7 @@ export function Rename(props: { args: FeatureArgs; feature: Feature }) {
   });
   return (
     <>
-      <Link onPress={() => asking.set(true)} size="under">
+      <Link alone onPress={() => asking.set(true)} size="under">
         Rename
       </Link>
       <If when={asking()}>

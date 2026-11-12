@@ -172,7 +172,7 @@ function EditLine(props: { repo: string; proposal: ProposalItem; priorities: Liv
   });
   return (
     <>
-      <Link onPress={() => asking.set(true)} size="under">
+      <Link alone onPress={() => asking.set(true)} size="under">
         Edit its line
       </Link>
       <If when={asking()}>

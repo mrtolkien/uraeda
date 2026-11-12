@@ -195,7 +195,7 @@ function Archive(props: { repo: string; session: Session }) {
   );
   return (
     <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
-      <Link onPress={() => archived.set(!archived.value())} size="under">
+      <Link alone onPress={() => archived.set(!archived.value())} size="under">
         {archived.value() ? "Unarchive" : "Archive"}
       </Link>
       <If when={archived.refusal()}>{(words) => <Refusal words={words()} />}</If>
@@ -219,7 +219,7 @@ function Rename(props: { repo: string; session: Session }) {
   });
   return (
     <>
-      <Link onPress={() => asking.set(true)} size="under">
+      <Link alone onPress={() => asking.set(true)} size="under">
         Rename
       </Link>
       <If when={asking()}>

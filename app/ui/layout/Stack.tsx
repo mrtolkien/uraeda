@@ -194,12 +194,17 @@ export function StackView(props: StackViewProps) {
   /** A pane of this stack is zoomed: it is drawn alone, with its own title. */
   const zoomedHere = () => props.zoomed != null && has(props.zoomed);
   /** A pane's tab, with its long press and its drag. */
-  const tab = (one: PaneRef, current: boolean, onPress: () => void): PaneTab => ({
-    ...tabOf(one, current, onPress),
-    drag: props.drag?.(one.key),
-    onLongPress:
-      props.onTabLongPress === undefined ? undefined : () => props.onTabLongPress?.(one.key),
-  });
+  const tab = (one: PaneRef, current: boolean, onPress: () => void): PaneTab =>
+    props.lone === true
+      ? // The phone's one pane: its title is a label, and its menu the `…` beside it, a thumb's
+        // size, where a press of a title 25 points high showed the pane already shown.
+        { ...tabOf(one, current, onPress), onPress: undefined }
+      : {
+          ...tabOf(one, current, onPress),
+          drag: props.drag?.(one.key),
+          onLongPress:
+            props.onTabLongPress === undefined ? undefined : () => props.onTabLongPress?.(one.key),
+        };
 
   return (
     <View

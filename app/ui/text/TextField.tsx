@@ -29,9 +29,13 @@ import { strokeOf } from "../keys/token";
 import { focusAsked, focusStop, Well } from "../surfaces";
 import { interaction } from "../timing";
 import { alpha, tokens } from "../tokens";
+import { isNarrow } from "../width";
 import { Trail, trails } from "./Trail";
 
 export type { VimStatus } from "uraeda/native";
+
+/** A field's text on a phone, in points: the least iOS takes without zooming in. */
+const FIELD_ON_PHONE = 16;
 
 /** What a field's ref does: what an owner asks of the field itself. */
 export type TextFieldRef = {
@@ -244,9 +248,18 @@ export function TextField(props: TextFieldProps) {
     >
       <Well
         focused={props.shown !== undefined || stop.focused()}
+        // On a phone the whole frame, a thumb's size, takes the tap: the editor's line alone is 24.
+        onPress={
+          isNarrow() && props.disabled !== true && props.readOnly !== true
+            ? () => editor?.resume()
+            : undefined
+        }
         style={{
           alignSelf: "stretch",
           borderStyle: props.disabled === true ? "dashed" : "solid",
+          // A thumb's size on a phone, its line in its middle (the phone guide's "Touch").
+          justifyContent: "center",
+          minHeight: oneLine() && isNarrow() ? tokens.control.touch : undefined,
           opacity: props.disabled === true ? 0.6 : 1,
           paddingHorizontal: 8,
           paddingVertical: 2,
@@ -259,7 +272,8 @@ export function TextField(props: TextFieldProps) {
             accessibilityLabel={props.label}
             block={{ backgroundColor: alpha(tone(), 0.45) }}
             fontFamily={tokens.type.markdown}
-            fontSize={tokens.type.size}
+            // 16 on a phone: iOS zooms the page into a field whose text is smaller.
+            fontSize={isNarrow() ? FIELD_ON_PHONE : tokens.type.size}
             keys={[...ownerKeys().keys()]}
             language={props.language}
             lineHeight={tokens.type.line}

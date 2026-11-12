@@ -9,6 +9,8 @@ export type WellProps = {
   children?: JSX.Element;
   /** Whether the keys go here: a field that is typed in. */
   focused?: boolean;
+  /** A press on it: a field's focus, from anywhere in its frame. */
+  onPress?: () => void;
   ref?: (node: ViewRef) => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -21,6 +23,7 @@ export function Well(props: WellProps) {
     <Surface
       focused={props.focused}
       height="recessed"
+      onPress={props.onPress}
       ref={props.ref}
       style={props.style}
       testID={props.testID}

@@ -4,6 +4,7 @@
 import { View } from "nsh";
 import { Button as Base } from "nsh/base";
 import { pressHeight } from "./Button";
+import { isNarrow } from "../width";
 import { Icon } from "./Icon";
 import type { Option } from "./Options";
 import { type Looks, type PressState, pressable } from "./press";
@@ -40,7 +41,8 @@ function looks(picked: boolean, last: boolean): Looks {
       borderRightWidth: last ? 0 : 1,
       flexDirection: "row",
       gap: 6,
-      height: pressHeight() - 2,
+      // Inside the frame's border on a desk; a thumb's whole size on a phone.
+      height: pressHeight() - (isNarrow() ? 0 : 2),
       justifyContent: "center",
       paddingHorizontal: 12,
     },
