@@ -11,6 +11,7 @@ import { SessionsPane } from "./SessionsPage";
 import { TranscriptPane } from "./Transcript";
 
 export { addSessionPanes, type SessionArgs, sessionIdOf } from "./place";
+export { type Ask, quoted, useAsk } from "./ask";
 
 /** The session `args` names, read as a signal: `null` while there is none. */
 function sessionOf(args: SessionArgs) {
@@ -54,7 +55,7 @@ export const sessionBeside = definePane<SessionArgs>({
   mark: conversationMark,
   stack: "main",
   title: (args) => short(sessionOf(args)?.title ?? "Conversation"),
-  view: (props) => <TranscriptPane args={props.args} />,
+  view: (props) => <TranscriptPane args={props.args} beside />,
 });
 
 /** The list's arguments: the repository, and the session shown beside it, if any. */

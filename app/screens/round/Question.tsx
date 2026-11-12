@@ -6,13 +6,14 @@
 // saved after a pause, as the field leaves, or with Ctrl+Enter. Nothing is submitted here.
 import { cleanup, type JSX, signal, untracked, View } from "nsh";
 import type { Choice, FileView, QuestionItem } from "../../store/protocol";
-import { Heading, Kbd, Refusal, sent, Text } from "../../ui/controls";
+import { Button, Heading, Kbd, Refusal, sent, Text } from "../../ui/controls";
 import { Document, type DocumentHands, Phrase } from "../../ui/document";
 import { TextField, type TextFieldRef, unsavedText } from "../../ui/text";
 import { isNarrow } from "../../ui/width";
 import { tokens } from "../../ui/tokens";
 import { Option } from "./Option";
-import { fieldKey, type RoundArgs, type Saves } from "./saves";
+import { quoted } from "../session";
+import { askOf, fieldKey, type RoundArgs, type Saves } from "./saves";
 import { lead } from "./words";
 
 /** The letters a key picks, `a` to `f`: `g` starts a sequence, so an option G is pressed. */
@@ -25,7 +26,11 @@ const PAUSE = 1200;
 export type OptionExtra = (question: QuestionItem, choice: Choice) => JSX.Element | undefined;
 
 /** What the round's keys do to the question shown: set by the question as it is drawn. */
-export type QuestionHands = { comment?: () => void; pick?: (key: string) => false | undefined };
+export type QuestionHands = {
+  ask?: () => false | undefined;
+  comment?: () => void;
+  pick?: (key: string) => false | undefined;
+};
 
 export type QuestionProps = {
   args: RoundArgs;
@@ -92,11 +97,32 @@ export function Question(props: QuestionProps) {
     return undefined;
   };
   props.hands.comment = () => field?.focus();
+  // The agent's view on this question, in the feature's session beside the round.
+  const asks = askOf(props.args);
+  const ask = () => {
+    const to = asks();
+    if (to === undefined) return false;
+    to(quoted(`About ${q().id} of ${props.file().path}:`, [q().title]));
+    return undefined;
+  };
+  props.hands.ask = ask;
 
   return (
     <View style={{ gap: 14, maxWidth: tokens.type.measure * tokens.type.prose }}>
       <View style={{ gap: 4 }}>
-        <Text tone="faint">{props.place}</Text>
+        <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <Text style={{ flex: 1 }} tone="faint">
+            {props.place}
+          </Text>
+          <If when={asks() !== undefined}>
+            <Button
+              icon="message-circle-question"
+              label="Ask the agent"
+              onPress={() => void ask()}
+              testID="ask-question"
+            />
+          </If>
+        </View>
         <Heading level={2}>{`${q().id}: ${q().title}`}</Heading>
         <If when={q().parentLetter}>
           {(letter) => (
@@ -141,7 +167,13 @@ export function Question(props: QuestionProps) {
             <Each of={keyed()}>{(option) => <Kbd keys={option().letter.toLowerCase()} />}</Each>
             <Text tone="quiet">picks it and goes on, a press adds a letter,</Text>
             <Kbd keys="i" />
-            <Text tone="quiet">writes a comment.</Text>
+            <Text tone="quiet">
+              {asks() === undefined ? "writes a comment." : "writes a comment,"}
+            </Text>
+            <If when={asks() !== undefined}>
+              <Kbd keys="s" />
+              <Text tone="quiet">asks the agent, beside.</Text>
+            </If>
           </View>
         </If>
       </View>

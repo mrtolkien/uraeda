@@ -70,7 +70,11 @@ function Pending(props: { args: FileArgs; comment: CommentItem; file: () => File
 }
 
 /** The mark under each block of a file under review: called once per block, it reads as it changes. */
-export function reviewMark(args: FileArgs, file: () => FileView) {
+export function reviewMark(
+  args: FileArgs,
+  file: () => FileView,
+  ask?: (block: Block, text: string) => void,
+) {
   const review = reviewOf(args);
   return (block: Block) => {
     if (block.parent !== null) return undefined;
@@ -93,6 +97,7 @@ export function reviewMark(args: FileArgs, file: () => FileView) {
             heading={block.heading}
             label={`Your comment on lines ${block.startLine} to ${block.endLine}`}
             lines={{ endLine: block.endLine, startLine: block.startLine }}
+            onAsk={ask === undefined ? undefined : (text) => ask(block, text)}
             onClose={() => review.writing.set(null)}
             testID="review-comment"
           />

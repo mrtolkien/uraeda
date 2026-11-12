@@ -2727,6 +2727,10 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - `app/screens/review/`: `reviewMark`, `reviewable`, `CommentField`, `Verdict`, `Given`, and the
   reader's cursor (`J` `K`, `c`, a press). `app/screens/round/NextRun.tsx` is the agent's next run
   on a button, opening the continue dialog.
+- Asking the agent (T90.1): `useAsk(repo, folder)` (`app/screens/session/ask.ts`) puts a quote at
+  the start of the feature's session draft and opens `sessionBeside` beside the pane, its composer
+  focused; a feature's round asks on a question (`s`, a button) and on a settled point, the reader
+  on the part at the review's cursor (`s`), and each comment field has "Ask the agent instead".
 - The device keeps `round.at:<repo>\n<id>`. `SelectableCard` takes `children`; `app/ui/document`
   exports `Phrase`; `DocumentHands` take `onPress` and `selected`.
 - With task 50 (R380 to R383): `app/screens/review/writes.ts` (`addComment`, `editComment`,

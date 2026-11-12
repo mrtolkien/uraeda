@@ -8,6 +8,7 @@ import { type Accessor, signal, untracked } from "nsh";
 import { call } from "../../store";
 import type { FileView, QuestionItem, SettledComment, WriteName } from "../../store/protocol";
 import { dropUnsaved, readUnsaved, unsavedKey } from "../../ui/text";
+import { type Ask, useAsk } from "../session";
 import { remember } from "../shell/undo";
 
 /** A round, as the record `WorkflowFile` names it: `<folder>/<name>`, or `inbox-triage`. */
@@ -28,6 +29,12 @@ export function targetOf(args: RoundArgs): Target {
         name: args.id.slice(slash + 1),
         repo: args.repo,
       };
+}
+
+/** How a round asks its feature's agent: a round of the default branch has no feature to ask. */
+export function askOf(args: RoundArgs): () => Ask | undefined {
+  const target = targetOf(args);
+  return target.kind === "feature" ? useAsk(args.repo, target.folder) : () => undefined;
 }
 
 /** The file's path a round's fields keep their unsaved text under. */

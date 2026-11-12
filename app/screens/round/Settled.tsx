@@ -6,12 +6,23 @@ import { signal, View } from "nsh";
 import type { Block, FileView, RoundItems, SettledComment } from "../../store/protocol";
 import { Button, Refusal, Text } from "../../ui/controls";
 import { TextField, unsavedText } from "../../ui/text";
-import { fieldKey, type RoundArgs, type Saves, settledField, targetOf } from "./saves";
+import { type Ask, quoted } from "../session";
+import { askOf, fieldKey, type RoundArgs, type Saves, settledField, targetOf } from "./saves";
+
+/** The quote of a settled point, as the agent is asked about it. */
+const pointQuote = (path: string, subject: string) =>
+  quoted(`About the settled point of ${path}:`, [subject]);
 
 /** Which point's field is open, by round: one at a time. */
 const opened = signal<Readonly<Record<string, string | null>>>({});
 
-function Comment(props: { args: RoundArgs; path: string; saves: Saves; subject: string }) {
+function Comment(props: {
+  args: RoundArgs;
+  ask: Ask | undefined;
+  path: string;
+  saves: Saves;
+  subject: string;
+}) {
   const text = unsavedText(fieldKey(props.args, props.path, settledField(props.subject)), () => "");
   const refusal = signal<string | null>(null);
   const pending = signal(false);
@@ -50,6 +61,20 @@ function Comment(props: { args: RoundArgs; path: string; saves: Saves; subject: 
           onPress={() => void save()}
           pending={pending()}
         />
+        <If when={props.ask}>
+          {(ask) => (
+            // The comment's words go to the agent instead, with the point, unsent until sent there.
+            <Button
+              icon="message-circle-question"
+              label="Ask the agent instead"
+              onPress={() => {
+                ask()(pointQuote(props.path, props.subject), text.text());
+                text.discard();
+                close();
+              }}
+            />
+          )}
+        </If>
         <Button label="Close" onPress={close} />
       </View>
     </View>
@@ -96,6 +121,7 @@ export function settledMark(props: {
 }) {
   const takes = () =>
     targetOf(props.args).kind === "feature" && props.file().status === "awaiting-human";
+  const asks = askOf(props.args);
   return (block: Block) => {
     const point = () => props.round()?.settledPoints.find((one) => one.block === block.id);
     if (props.round()?.settledPoints.every((one) => one.block !== block.id) !== false) {
@@ -117,7 +143,7 @@ export function settledMark(props: {
             <If
               when={open()}
               else={
-                <View style={{ alignItems: "flex-start" }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                   <Button
                     icon="message-square"
                     label="Comment on this point"
@@ -125,11 +151,21 @@ export function settledMark(props: {
                       opened.update((all) => ({ ...all, [props.args.id]: shown().subject }))
                     }
                   />
+                  <If when={asks()}>
+                    {(ask) => (
+                      <Button
+                        icon="message-circle-question"
+                        label="Ask the agent"
+                        onPress={() => ask()(pointQuote(props.file().path, shown().subject))}
+                      />
+                    )}
+                  </If>
                 </View>
               }
             >
               <Comment
                 args={props.args}
+                ask={asks()}
                 path={props.file().path}
                 saves={props.saves}
                 subject={shown().subject}

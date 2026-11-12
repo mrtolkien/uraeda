@@ -22,6 +22,8 @@ export type CommentFieldProps = {
   /** The heading of the part a new comment is on, as its undo names it: none for the general one. */
   heading?: string | null;
   label: string;
+  /** Asks the agent about the lines instead, with what is typed: the field then closes. */
+  onAsk?: (text: string) => void;
   /** Closes the field: its text, if not saved, stays on the device. */
   onClose?: () => void;
   autoFocus?: boolean;
@@ -86,6 +88,20 @@ export function CommentField(props: CommentFieldProps) {
           onPress={() => void save()}
           pending={pending()}
         />
+        <If when={props.onAsk}>
+          {(ask) => (
+            <Button
+              icon="message-circle-question"
+              label="Ask the agent instead"
+              onPress={() => {
+                ask()(text.text());
+                text.discard();
+                props.onClose?.();
+              }}
+              testID="review-ask"
+            />
+          )}
+        </If>
         <If when={props.onClose}>
           {(close) => <Button label="Close" onPress={() => close()()} />}
         </If>

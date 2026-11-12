@@ -20,12 +20,16 @@ import { allow, answerable } from "./Permission";
 import { type SessionArgs, sessionIdOf } from "./place";
 import { type RowHands, TranscriptRow } from "./Rows";
 
-/** The pane's view: the session its arguments name, or why there is none. */
-export function TranscriptPane(props: { args: SessionArgs }) {
+/**
+ * The pane's view: the session its arguments name, or why there is none. `beside`, opened beside
+ * another page: a feature's first message leaves that page where it is, and the pane follows the
+ * feature to its new session.
+ */
+export function TranscriptPane(props: { args: SessionArgs; beside?: boolean }) {
   const id = sessionIdOf(props.args);
   return (
     <If when={id() !== undefined} else={<Spinner label="Reading the feature" />}>
-      <If when={id()} else={<Unstarted args={props.args} />}>
+      <If when={id()} else={<Unstarted args={props.args} beside={props.beside === true} />}>
         {(shown) => (
           // Made again for another session: its rows, its cursor, and its draft are its own.
           <Each of={[shown()]}>{(one) => <ById args={props.args} id={one()} />}</Each>
@@ -36,7 +40,7 @@ export function TranscriptPane(props: { args: SessionArgs }) {
 }
 
 /** A feature's session before its first message: what the message does, and the composer. */
-function Unstarted(props: { args: SessionArgs }) {
+function Unstarted(props: { args: SessionArgs; beside: boolean }) {
   const agent = record("Agent", { repo: props.args.repo });
   return (
     <View style={{ flex: 1 }}>
@@ -50,7 +54,9 @@ function Unstarted(props: { args: SessionArgs }) {
       <SessionComposer
         folder={props.args.folder}
         fresh={props.args.fresh}
-        onSent={(session) => redirect({ id: session, page: "session-id" })}
+        onSent={(session) => {
+          if (!props.beside) redirect({ id: session, page: "session-id" });
+        }}
         repo={props.args.repo}
         runtime={agent()?.runtimes.find((one) => one.isOn)}
         session={null}

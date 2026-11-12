@@ -61,6 +61,12 @@ export function putBack(key: string, text: string) {
   });
 }
 
+/** The draft whose composer takes the focus as it is drawn, or now if it is: asking the agent. */
+const focusWanted = signal<string | null>(null);
+
+/** Asks the composer of the draft `key` to take the focus, once it is drawn. */
+export const focusComposer = (key: string) => focusWanted.set(key);
+
 /** The draft's key on the device: the session's, or a feature's next new session's. */
 export const draftKey = (repo: string, session: string | null, folder: string) =>
   `${repo}:session:${session ?? `${folder}#new`}`;
@@ -102,6 +108,15 @@ export function SessionComposer(props: SessionComposerProps) {
   const stopping = signal(false);
   const refusal = signal<string | null>(null);
   let field: TextFieldRef | undefined;
+  // Asked to take the focus, as a quote comes in: now if the field is drawn, else as it is.
+  const takeFocus = () => {
+    if (field === undefined || untracked(focusWanted) !== untracked(key)) return;
+    focusWanted.set(null);
+    field.focus();
+  };
+  effect(() => {
+    if (focusWanted() === key()) untracked(takeFocus);
+  });
 
   const working = () => props.session?.status === "working";
   const waits = () => props.session?.wait !== null && props.session?.wait !== undefined;
@@ -247,6 +262,7 @@ export function SessionComposer(props: SessionComposerProps) {
             ref={(made) => {
               field = made;
               props.ref?.(made);
+              takeFocus();
             }}
             refusal={refusal()}
             testID="composer"

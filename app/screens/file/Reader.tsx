@@ -16,6 +16,7 @@ import { reviewMark, reviewable } from "../review/Marks";
 import { reviewOf } from "../review/state";
 import { StaleReview } from "../review/Stale";
 import { MockupEmbed, StoryEmbed } from "../preview";
+import { quoted, useAsk } from "../session";
 import { follow, headingAt } from "./links";
 import { atTop, jumps } from "./place";
 import { facts } from "./facts";
@@ -88,7 +89,7 @@ function Head(props: { args: FileArgs; file: FileView; onVerdict?: () => void })
           <Text tone="quiet">
             {isNarrow()
               ? "Tap a part to comment on it. Your verdict is under Verdict, at the bottom."
-              : "Press a part, or c on the one at the cursor, to comment on it; J and K move between parts. Your verdict is in the Review pane."}
+              : "Press a part, or c on the one at the cursor, to comment on it, s to ask the agent about it beside; J and K move between parts. Your verdict is in the Review pane."}
           </Text>
         </View>
       </If>
@@ -115,7 +116,22 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
   let scroll: DocumentScrollRef | undefined;
   const review = reviewOf(props.args);
   const reviewing = () => reviewable(props.file());
-  const hung = reviewMark(props.args, props.file);
+  const asks = useAsk(props.args.repo, props.args.folder);
+  /** Asks the agent about a part, quoted from the version read, in the session beside. */
+  const askAbout = (block: Block, text?: string) => {
+    const to = untracked(asks);
+    if (to === undefined) return false;
+    const lines = shown()
+      .text.split("\n")
+      .slice(block.startLine - 1, block.endLine);
+    const where =
+      block.startLine === block.endLine
+        ? `line ${block.startLine}`
+        : `lines ${block.startLine}–${block.endLine}`;
+    to(quoted(`About ${props.file().path}, ${where}:`, lines), text);
+    return undefined;
+  };
+  const hung = reviewMark(props.args, props.file, (block, text) => void askAbout(block, text));
   /** The top-level blocks, in order: what the review's cursor moves through. */
   const tops = () => shown().document.blocks.filter((block) => block.parent === null);
   const moveCursor = (by: number) => {
@@ -156,6 +172,17 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
       when: reviewing,
     },
     { keys: "K", label: "Previous part", run: () => moveCursor(-1), when: reviewing },
+    {
+      hint: "s",
+      hintLabel: "ask",
+      keys: "s",
+      label: "Ask the agent about the part at the cursor, beside",
+      run: () => {
+        const at = tops().find((block) => block.id === (review.cursor() ?? tops()[0]?.id));
+        return at === undefined ? false : askAbout(at);
+      },
+      when: () => reviewing() && asks() !== undefined,
+    },
   ]);
   registerKey({
     icon: "file-pen-line",

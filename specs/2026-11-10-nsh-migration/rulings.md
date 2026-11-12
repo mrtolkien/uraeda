@@ -7786,3 +7786,23 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a `left` line names what bringing it back needs.
 - **Where**: `app/screens/parity.toml`, `crates/app/tests/parity.rs`. Task 61 deletes `old_pages()`
   and the two checks that read it.
+
+## T90.1: Asking the agent opens the feature's session beside, the point quoted in its composer
+
+- **Decision**: "Ask the agent" on a round's question (`s`), a settled point, and a part of a spec
+  or a plan under review (`s` at the review's cursor) writes `About <what> of <path>:` and the
+  point's lines, each after `> `, at the start of the draft of the feature's latest session (or its
+  next one), keeping what was typed after it, and opens that session's conversation beside the page,
+  in the other stack (`sessionBeside`, the pane task 66 opens with `shift+Enter`), its composer
+  focused. Nothing is sent: the human reads, adds, and sends. A comment field (a settled point's, a
+  review's) has "Ask the agent instead", which moves its text after the quote. A round of the
+  default branch (the triage, the decisions check) has no feature session, and no Ask.
+- **Rationale**: the old UI's `?ask=` opened the session in a column, or on the phone its page; with
+  panes that move, beside is the one place where the question stays in view while the agent answers.
+  A conversation opened beside a page no longer redirects that page to the session on its first
+  message: the pane follows the feature to its new session.
+- **Alternatives considered**: a `?ask=` address of the session's page, as the old UI had: it takes
+  the round away, which is what the human asked to keep.
+- **Where**: `app/screens/session/ask.ts`, `app/screens/round/Question.tsx`, `Settled.tsx`,
+  `app/screens/file/Reader.tsx`, `app/screens/review/Comment.tsx`; the test
+  `app/screens/round/ask.test.tsx`.

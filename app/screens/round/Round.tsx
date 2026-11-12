@@ -83,6 +83,13 @@ export function Answering(props: {
         label: "Write a comment",
         run: () => hands.comment?.(),
       },
+      {
+        hint: "s",
+        hintLabel: "ask",
+        keys: "s",
+        label: "Ask the agent about this question, beside",
+        run: () => hands.ask?.() ?? false,
+      },
     ],
     shown,
   );

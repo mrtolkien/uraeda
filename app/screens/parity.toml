@@ -108,15 +108,14 @@ why = "the new picker reads the record only"
 fate = "brought-back"
 now = "`AgentPick`, once every five minutes at most as one shows"
 
-# --- Left: each with what it needs, and who misses it ---------------------------------------------
-
 [[left]]
 what = "Ask the agent about a question, a block, or a settled point"
 old = "Rounds, spec pages, documents (`?ask=` quotes into the session's composer)"
 why = "the composer is the session's: a quote handed to it from another page was not built (R337, R379)"
-fate = "left"
-needs = "a session page that takes a quote (`?ask=`, as `?new` is read) into its composer, and an Ask button on a question, a settled point, and a selected block"
-missed = "a person will miss this: asking the agent about a question was the way to get a better option without leaving the round"
+fate = "brought-back"
+now = "a round's question (Ask the agent, `s`), a settled point (Ask the agent, or \"Ask the agent instead\" in its comment field), a part of a spec or a plan under review (`s` at the cursor, or \"Ask the agent instead\" in its comment field): the feature's session opens beside, in the other stack, the point quoted in its focused composer, sent only by the human (`app/screens/session/ask.ts`)"
+
+# --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
 what = "Postpone a feature"
