@@ -142,9 +142,21 @@ function whereWords(write: QueuedWrite): string {
   return "The commit failed: the change is written in the files, not committed. The Git page lists it.";
 }
 
-/** Whether `commit.retry` commits it again: a feature's file left written. */
+/** The round of the default branch a write submitted, by the page it was made on, if any. */
+function defaultRoundOf(write: QueuedWrite): string | undefined {
+  if (write.href === "") return undefined;
+  const page = parseRoute(write.href).page;
+  if (page === "triage") return "inbox-triage";
+  return page === "decisions-check" ? "decisions-check" : undefined;
+}
+
+/**
+ * Whether Retry commits it again: a feature's file left written (`commit.retry`), or a round of the
+ * default branch submitted and left uncommitted (`defaultRound.retry`).
+ */
 const retries = (write: QueuedWrite) =>
-  write.failure === "failed" && write.folder !== null && write.file !== null;
+  write.failure === "failed" &&
+  ((write.folder !== null && write.file !== null) || defaultRoundOf(write) !== undefined);
 
 /** A refused write's card: it stays until retried or dismissed. */
 function RefusedCard(props: Of) {
@@ -158,11 +170,14 @@ function RefusedCard(props: Of) {
     );
   const retry = async () => {
     const { file, folder, href, label } = write();
-    if (file === null || folder === null) return;
+    const round = defaultRoundOf(write());
+    if ((file === null || folder === null) && round === undefined) return;
     pending.set(true);
     refusal.set(null);
     try {
-      await call("commit.retry", { file, folder, repo: props.repo, write: { href, label } });
+      await (file === null || folder === null
+        ? call("defaultRound.retry", { id: round!, repo: props.repo, write: { href, label } })
+        : call("commit.retry", { file, folder, repo: props.repo, write: { href, label } }));
       await call("writes.dismiss", { id: write().id, repo: props.repo });
     } catch (error) {
       refusal.set((error as StoreError).message);
