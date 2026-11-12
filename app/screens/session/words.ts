@@ -188,11 +188,7 @@ export function lineWords(item: Item): LineWords | undefined {
           : `${name} ${item.target}`;
       return {
         code: item.target !== null && !implementer,
-        hue: failed
-          ? "removed"
-          : item.subagent !== null || implementer
-            ? "subAgent"
-            : "context",
+        hue: failed ? "removed" : item.subagent !== null || implementer ? "subAgent" : "context",
         icon:
           item.subagent !== null
             ? "bot"
