@@ -28,6 +28,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
+      - name: Allow the user namespaces of WebKit's sandbox
+        # The web view check of `crates/app/tests/outside.rs` starts WebKitGTK, whose page runs in
+        # bubblewrap's sandbox, which needs unprivileged user namespaces. Ubuntu 24.04 lets only
+        # the programs AppArmor profiles create them, and the dev shell's `bwrap` is Nix's, which
+        # none does: the check would fail on CI alone. The runner is a machine of its own for this
+        # job, so the restriction is lifted there, and WebKit's sandbox stays on, as the app runs it.
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
       - name: Run every check
         # nextest's `ci` profile reports every failure at once.
         env:
@@ -75,10 +85,13 @@ jobs:
         run: nix develop --command just package
 
       - name: Print the size of ura
-        # Printed on every run, never tested: see the CLI decision.
+        # Printed on every run, never tested: see the CLI decision. The `ura` a release ships:
+        # cargo-dist's profile, with the web build `just package` made.
+        env:
+          URAEDA_WEB_BUILD: ${{ github.workspace }}/target/web
         run: |
-          nix develop --command cargo build --release -p uraeda-cli
-          size=$(stat -c %s target/release/ura)
+          nix develop --command cargo build --profile dist -p uraeda-cli
+          size=$(stat -c %s target/dist/ura)
           echo "ura: $size bytes"
 
       - name: Check the working tree is unchanged
