@@ -10541,3 +10541,18 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   marked the same way.
 - **Where**: `.oxlintrc.json`, the 17 marked files. `specs/decisions/code-quality.md`'s consequence
   "A TSX function's length is not checked yet" is now out of date: a human amends it.
+
+## T195.1: A repository not set up says so at the head of Needs you, not on a Setup pane
+
+- **Decision**: Home's Needs you opens on a banner while the server's `Workspace` says the
+  repository has no `specs/` folder (`noSpecs`) or a required setup item is not written (`setup`):
+  "Not set up for Uraeda yet", with `ura init` and a chat as the way out, or "The setup is not
+  finished", naming what is still to write, each with a New chat button. It draws only what the
+  record says: no setup action, no setup message of its own.
+- **Rationale**: R274 left the old Setup pane to the New page, which never drew it: a bare
+  repository opened Home as a project set up with nothing to do, while `docs/app.md` promises the
+  way to set it up. A banner in the pane the eye reads first is the smallest way to say the cause
+  and the way out (rule 8) without a sixth pane for a state most repositories never have.
+- **If wrong**: a Setup pane of Home's main stack, listing each item with its state, and "Set up
+  with the agent" filling a chat with the skill's setup message, once the server gives one.
+- **Where**: `app/screens/home/SetUp.tsx`, `app/screens/home/core.tsx`.
