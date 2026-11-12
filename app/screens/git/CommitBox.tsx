@@ -10,6 +10,7 @@ import type { GitGroup } from "../../store/protocol";
 import { Button, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
+import { isNarrow } from "../../ui/width";
 
 export function CommitBox(props: { group: GitGroup; held: boolean; repo: string; where: string }) {
   let field: TextFieldRef | undefined;
@@ -60,8 +61,12 @@ export function CommitBox(props: { group: GitGroup; held: boolean; repo: string;
         disabled={props.held}
         hint={
           staged() === 0
-            ? "Nothing is staged: s stages the file under the cursor, a every file."
-            : "Ctrl+Enter commits. Left blank, it takes the message shown."
+            ? isNarrow()
+              ? "Nothing is staged: tap a file's box to stage it."
+              : "Nothing is staged: s stages the file under the cursor, a every file."
+            : isNarrow()
+              ? "Left blank, the commit takes the message shown."
+              : "Ctrl+Enter commits. Left blank, it takes the message shown."
         }
         label={`The commit message of ${props.group.name}`}
         onChange={message.change}

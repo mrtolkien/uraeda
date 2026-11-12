@@ -37,7 +37,7 @@ function TaskBox(props: { checked: boolean }) {
         borderWidth: 1,
         height: size,
         justifyContent: "center",
-        marginTop: (tokens.type.proseLine - size) / 2,
+        marginTop: (Number(prose().lineHeight) - size) / 2,
         width: size,
       }}
     >

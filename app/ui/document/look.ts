@@ -3,6 +3,7 @@
 // with air above them; code in the code font, on the interface's line.
 import type { TextStyle } from "nsh";
 import { tokens } from "../tokens";
+import { isNarrow } from "../width";
 
 /** The width of a line of about 80 characters of prose, in points. */
 export const measure = () => tokens.type.measure * tokens.type.prose;
@@ -11,13 +12,16 @@ export const measure = () => tokens.type.measure * tokens.type.prose;
 export const BLOCK_GAP = 14;
 export const HEADING_AIR: Record<number, number> = { 1: 22, 2: 18, 3: 10 };
 
+/** Prose on a phone, a step smaller, as a chat app's messages there (the phone guide). */
+const PHONE_PROSE = { size: 16, line: 25 } as const;
+
 /** Prose: a paragraph, an item's text, a callout's, a quote's. */
 export function prose(colour = tokens.role.ink): TextStyle {
   return {
     color: colour,
     fontFamily: tokens.type.reading,
-    fontSize: tokens.type.prose,
-    lineHeight: tokens.type.proseLine,
+    fontSize: isNarrow() ? PHONE_PROSE.size : tokens.type.prose,
+    lineHeight: isNarrow() ? PHONE_PROSE.line : tokens.type.proseLine,
     userSelect: "text",
   };
 }

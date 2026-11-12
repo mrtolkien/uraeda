@@ -162,10 +162,13 @@ function Head(props: CardProps) {
       }
     >
       <View style={{ gap: 2 }}>
-        <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
+        {/* The time at the line's end while both fit, else under the state: never over it. */}
+        <View
+          style={{ alignItems: "center", columnGap: 8, flexDirection: "row", flexWrap: "wrap" }}
+        >
           {icon()}
-          <View style={{ flex: 1 }}>{state()}</View>
-          {time()}
+          {state()}
+          <View style={{ marginLeft: "auto" }}>{time()}</View>
         </View>
         {title()}
       </View>

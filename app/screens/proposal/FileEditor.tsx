@@ -10,6 +10,7 @@ import type { ProposalFileView } from "../../store/protocol";
 import { Banner, Button, IconButton, Segmented, sent, Spinner, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { moveUnsaved, SaveStatus, TextField, type TextFieldRef, unsavedKey } from "../../ui/text";
+import { isNarrow } from "../../ui/width";
 import { Changed } from "../editor/Changed";
 import { editedFile } from "../editor/edited";
 import { FileDiff } from "../editor/FileDiff";
@@ -112,7 +113,7 @@ function Editor(props: EditorProps) {
         when={edited.changed() && showsDiff()}
         else={
           <TextField
-            hint="Ctrl+Enter saves it."
+            hint={isNarrow() ? undefined : "Ctrl+Enter saves it."}
             label="The proposal"
             onBlur={() => typing.set(false)}
             onChange={(value) => {

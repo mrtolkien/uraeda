@@ -13,6 +13,7 @@ import type { Actions } from "../../store/protocol";
 import { Button, Confirm, lastAsked, Refusal, Spinner, Text } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
 import { TextField, type TextFieldRef, unsavedKey } from "../../ui/text";
+import { isNarrow } from "../../ui/width";
 import { Changed } from "../editor/Changed";
 import { editedFile } from "../editor/edited";
 import { FileDiff } from "../editor/FileDiff";
@@ -124,7 +125,9 @@ export function ConflictEditor(props: { path: string; repo: string }) {
             ? "Resolved: it waits for Continue."
             : hasMarkers(text.text())
               ? "Take a side block by block, edit it until no marker is left, or take a side whole."
-              : "No marker is left: Ctrl+Enter saves it."}
+              : isNarrow()
+                ? "No marker is left: Save keeps it."
+                : "No marker is left: Ctrl+Enter saves it."}
         </Text>
       </View>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
