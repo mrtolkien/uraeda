@@ -10,6 +10,8 @@
 mod app;
 #[path = "browser/cdp.rs"]
 mod cdp;
+#[path = "browser/extensions.rs"]
+mod extensions;
 #[path = "browser/pictures.rs"]
 mod pictures;
 
@@ -17,7 +19,7 @@ use std::path::{Path, PathBuf};
 
 use cdp::{Browser, DESKTOP, PHONE};
 use tempfile::TempDir;
-use uraeda_server::sandbox::{self, Mode, Prepare};
+use uraeda_server::sandbox::{self, Mode, Prepare, Sandbox};
 use uraeda_server::{Server, sign_in};
 
 /// The folder of the web build to serve.
@@ -43,11 +45,12 @@ pub fn shots() -> PathBuf {
     folder
 }
 
-#[tokio::test]
-#[ignore = "needs the real web build and a browser: `just web-test` runs it"]
-async fn a_browser_signs_in_with_the_access_key_and_sees_the_home_page() {
+/// A sandbox that keeps sign-in, serving the web build, in a temporary folder: the server, and
+/// its access key. `before` adds to the sandbox before the server starts.
+async fn signed_sandbox(before: impl FnOnce(&Sandbox)) -> (TempDir, Server, String) {
     let folder = TempDir::new().unwrap();
     let built = sandbox::prepare(&folder.path().join("sandbox"), Prepare::default()).unwrap();
+    before(&built);
     // The process's environment, as `ura sandbox` gives it, with the build to serve.
     let mut environment: Vec<(String, String)> = std::env::vars()
         .filter(|(name, _)| name != "URAEDA_WEB_BUILD")
@@ -58,6 +61,13 @@ async fn a_browser_signs_in_with_the_access_key_and_sees_the_home_page() {
     let key = sign_in::key_at_start(server.shared())
         .expect("its file is written")
         .expect("a start with sign-in shows its key");
+    (folder, server, key)
+}
+
+#[tokio::test]
+#[ignore = "needs the real web build and a browser: `just web-test` runs it"]
+async fn a_browser_signs_in_with_the_access_key_and_sees_the_home_page() {
+    let (_folder, server, key) = signed_sandbox(|_| ()).await;
     let home = format!("{}/r/sample/", server.address());
     let shots = shots();
 

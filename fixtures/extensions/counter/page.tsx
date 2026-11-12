@@ -1,11 +1,30 @@
-// The page of the fixture extension `counter`, for `crates/app/tests/extensions.rs`: a place that
-// reads its record `count`, draws it with the app's components and a colour of the app's theme,
-// and calls its actions `add`, then `done` with what it got. It also tries what a page has no
-// right to, a function its host does not grant, the app's own host's `uraeda.token`, and the
-// network, and says how each was refused.
+// The page of the fixture extension `counter`, for `crates/app/tests/extensions.rs` and the
+// browser's `crates/server/tests/browser/extensions.rs`: a place that reads its record `count`,
+// draws it with the app's components and a colour of the app's theme, and calls its actions
+// `add`, then `done` with what it got. It also tries what a page has no right to, a function its
+// host does not grant, the app's own host's `uraeda.token`, the network, and a record of another
+// extension, `echo`'s, named in its message, and says how each was refused.
 import { effect, host, signal, Text, View } from "nsh";
 import { navigate, place, useAction, useProps, useRecord } from "uraeda/page";
 import { Button, tokens } from "uraeda/ui";
+
+/**
+ * Whether a read that names another extension, `echo`, got that extension's record: its
+ * `counter`, which holds a greeting. The app reads the page's own extension's, whatever it names.
+ */
+function stolen(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const id = 1000;
+    host.on<{ id: number; value: unknown }>("record", (read) => {
+      if (read.id !== id) return;
+      const value = read.value as { greeting?: unknown } | null;
+      resolve(value?.greeting !== undefined);
+      host.post("record", { id, stop: true });
+    });
+    host.post("record", { extension: "echo", id, name: "counter" });
+    setTimeout(() => resolve(false), 1000);
+  });
+}
 
 /** The code of a refusal, or `allowed`. */
 async function refused(attempt: () => Promise<unknown>): Promise<string> {
@@ -31,7 +50,7 @@ function Counter() {
       const outside = await refused(() => host.call("open", {}));
       const token = await refused(() => host.call("uraeda.token", {}));
       const fetched = await refused(() => fetch(probe()?.probe ?? "http://127.0.0.1:9/"));
-      await done({ got: answer.count, outside, token, fetched });
+      await done({ fetched, got: answer.count, outside, stolen: await stolen(), token });
     });
   });
   return (

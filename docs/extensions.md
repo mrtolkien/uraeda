@@ -603,6 +603,31 @@ A page that breaks says so in its place, named, and the rest of the app goes on:
 
 Each problem is also listed in Settings, Extensions, above the rows, until the page's next version.
 
+### In a browser
+
+The app in a browser (`ura serve`'s page) runs the same page, with the same API and theme, in a
+frame of its own. What differs for its author:
+
+- **A loop is not cut off.** A browser cannot stop a call that never ends. The page answers nothing,
+  and after 5 seconds its place says "The page of Wiki stopped", and its frame is taken away, which
+  ends it. The app itself goes on: on this machine, at `127.0.0.1` or `localhost`, each extension's
+  frame is at a host of its own, `<name>.localhost`, which the browser runs in a process of its own,
+  so another extension's pages go on too. Behind another host name, a proxy's, every extension's
+  frame shares one process apart from the app's: a loop holds the other pages for those 5 seconds.
+  An extension whose name is not a host's label, lowercase letters, digits, and dashes, runs that
+  way everywhere.
+- **The page runs on the browser's JavaScript**, not Native Shell's interpreter: it is faster, and
+  `globalThis` holds the browser's objects. Use only what `nsh` gives: what a browser has alone does
+  not exist in the app.
+- **It reaches nothing but its host.** Its frame has no session's cookie and none of the app's
+  storage, and its policy lets it reach its own frame's host alone, which answers nothing without a
+  session: `fetch` to anywhere else is refused, as on the desktop.
+- **Its imports of `nsh/base`** are what the app's web build holds: a part of Native Shell the app
+  never uses may be missing there, and the page then fails as it loads, with
+  `does not provide an export named …`.
+- **Each part shown downloads the runtime once per extension**, a few megabytes, then keeps it in
+  the browser's cache.
+
 ## The TypeScript Uraeda compiles
 
 Uraeda compiles server code itself, each `.ts` file with no `tsconfig.json`, in strict mode. Types

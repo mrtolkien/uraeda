@@ -1,18 +1,11 @@
-//! The host's side of a page's channel: what the page posts and calls, and how the host knows the
-//! page broke. NSH's GTK view tells its host nothing of a page's errors, and the app's runner
-//! keeps the process's log, so the page says them itself, and the host watches it answer:
-//!
-//! - **A throw as it loads**: the build's entry catches it, and posts `problem`.
-//! - **A throw as it draws, or in an effect or a listener**: `uraeda/page`'s boundary catches it,
-//!   and posts `problem`.
-//! - **A call that never ends**: NSH cuts it off after 2 seconds, and the page goes on. The host
-//!   pings the page twice a second: a ping answered late says how long the page was held.
-//! - **A page that stopped**, out of memory or never started: its pings go unanswered.
+//! The host's side of a page's channel on Linux: what the page posts and calls, carried between
+//! its engine and the app. How the host knows the page broke is `page_watch.rs`'s, which a
+//! browser's frame follows too: this hands it what the page posts, and ticks it.
 //!
 //! The handlers run on the page engine's thread, and tell the app through the component's
 //! events, which any thread may emit. The rest runs on the main thread.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -21,39 +14,18 @@ use nsh_platform_linux::ComponentContext;
 use serde_json::{Value, json};
 use uraeda_protocol::PAGE_HOST;
 
-/// How long a page's engine has to start, from its load.
-const START: Duration = Duration::from_secs(10);
+use crate::page_watch::{Heard, PING_MS, Watch};
 
 /// How often the host pings a running page.
-pub(super) const PING: Duration = Duration::from_millis(500);
-
-/// A ping answered later than this says the page held its engine: under NSH's cut-off of 2
-/// seconds, with a ping every half second, a call cut off is always answered after 1.5.
-const LATE: Duration = Duration::from_millis(1200);
-
-/// A page that answers no ping for this long has stopped: its engine is gone.
-const STOPPED: Duration = Duration::from_secs(5);
-
-/// What a page's boundary catches of a call NSH cut off: QuickJS's interruption.
-const CUT_OFF: &str = "InternalError: interrupted";
+pub(super) const PING: Duration = Duration::from_millis(PING_MS);
 
 /// The messages the app answers for the page, with what NSH's channel names them.
 const ANSWERED: [&str; 3] = ["record", "call", "navigate"];
 
-/// What the host knows of the page running now. Each load starts it again.
+/// What the host knows of the page running now, and its calls. Each load starts the watch again.
 #[derive(Default)]
 pub(super) struct Live {
-    /// The page's version, its package's build.
-    version: u64,
-    loaded_at: Option<Instant>,
-    started: bool,
-    /// The page's code ran to its end: a problem after it is no longer one of its load.
-    loaded: bool,
-    /// The pings sent and not answered, by number, oldest first.
-    pings: VecDeque<(u64, Instant)>,
-    next_ping: u64,
-    /// The page is gone for good: it threw as it loaded, or stopped. Nothing is watched then.
-    over: bool,
+    watch: Watch,
     /// The page's calls, waiting for the app's answer, by the number given to the app.
     replies: HashMap<u64, HostReply>,
     /// The number of the next call, counted across loads: the app may answer a call of the page
@@ -65,6 +37,8 @@ pub(super) struct Live {
 #[derive(Clone)]
 pub(super) struct Channel {
     live: Arc<Mutex<Live>>,
+    /// Where the watch's clock starts.
+    born: Instant,
     context: ComponentContext,
     host: HostChannel,
 }
@@ -74,6 +48,7 @@ impl Channel {
     pub(super) fn answer(host: HostChannel, context: ComponentContext) -> Channel {
         let channel = Channel {
             live: Arc::default(),
+            born: Instant::now(),
             context,
             host,
         };
@@ -90,21 +65,23 @@ impl Channel {
         self.live.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
+    /// Now, in milliseconds of the watch's clock.
+    fn now(&self) -> f64 {
+        self.born.elapsed().as_secs_f64() * 1000.0
+    }
+
     /// A page of `version` loads: what was known of the one before goes, with its calls, whose
     /// numbers are not given again.
     pub(super) fn loading(&self, version: u64) {
+        let now = self.now();
         let mut live = self.live();
-        *live = Live {
-            version,
-            loaded_at: Some(Instant::now()),
-            next_call: live.next_call,
-            ..Live::default()
-        };
+        live.watch.loading(version, now);
+        live.replies.clear();
     }
 
     /// Tells the app a problem of the page, `kind` as `uraeda/extensions/host.tsx` reads it.
     pub(super) fn problem(&self, kind: &str, message: &str) {
-        let version = self.live().version;
+        let version = self.live().watch.version();
         let problem = json!({ "kind": kind, "message": message, "version": version });
         self.context.emit("problem", problem);
     }
@@ -112,70 +89,45 @@ impl Channel {
     /// One message of the page, on its engine's thread.
     fn heard(&self, name: &str, mut call: nsh_engine::HostCall) {
         let data = call.take_data();
-        match name {
-            "start" => self.live().started = true,
-            "loaded" => {
-                self.live().loaded = true;
-                let _ = self.host.send("show", Value::Null);
-            }
-            "ready" => {
-                let version = self.live().version;
-                let ready = json!({ "declarations": data, "version": version });
-                self.context.emit("ready", ready);
-            }
-            "problem" => {
-                let loading = {
-                    let mut live = self.live();
-                    live.over |= !live.loaded;
-                    !live.loaded
-                };
-                let message = data["message"].as_str().unwrap_or("it threw");
-                if message == CUT_OFF {
-                    self.problem("slow", "it ran for 2 s without stopping, and was cut off");
-                } else {
-                    self.problem(if loading { "load" } else { "threw" }, message);
+        if ANSWERED.contains(&name) {
+            let id = if call.is_post() {
+                Value::Null
+            } else {
+                let mut live = self.live();
+                let id = live.next_call;
+                live.next_call += 1;
+                if let Some(reply) = call.into_reply() {
+                    live.replies.insert(id, reply);
                 }
-            }
-            "alive" => self.alive(data.as_u64()),
-            _ if ANSWERED.contains(&name) => {
-                let id = if call.is_post() {
-                    Value::Null
-                } else {
-                    let mut live = self.live();
-                    let id = live.next_call;
-                    live.next_call += 1;
-                    if let Some(reply) = call.into_reply() {
-                        live.replies.insert(id, reply);
-                    }
-                    Value::from(id)
-                };
-                let message = json!({ "id": id, "name": name, "data": data });
-                self.context.emit("message", message);
-                return;
-            }
-            _ => {}
+                Value::from(id)
+            };
+            let message = json!({ "id": id, "name": name, "data": data });
+            self.context.emit("message", message);
+            return;
         }
+        let now = self.now();
+        let heard = self.live().watch.heard(name, &data, now);
+        self.act(heard);
         if !call.is_post() {
             call.resolve(Value::Null);
         }
     }
 
-    /// The page answered the ping `number`, and every one before it: one answered late says the
-    /// page held its engine that long.
-    fn alive(&self, number: Option<u64>) {
-        let Some(number) = number else { return };
-        let mut late = None;
-        {
-            let mut live = self.live();
-            while live.pings.front().is_some_and(|(sent, _)| *sent <= number) {
-                let (_, at) = live.pings.pop_front().expect("a ping, checked above");
-                late = late.or(Some(at.elapsed()).filter(|held| *held > LATE));
-            }
+    /// Does what the watch said.
+    fn act(&self, heard: Heard) {
+        if heard.show {
+            let _ = self.host.send("show", Value::Null);
         }
-        if let Some(held) = late {
-            let seconds = held.as_secs_f64();
-            let message = format!("it kept the app waiting for {seconds:.1} s");
-            self.problem("slow", &message);
+        if let Some(declarations) = heard.ready {
+            let version = self.live().watch.version();
+            let ready = json!({ "declarations": declarations, "version": version });
+            self.context.emit("ready", ready);
+        }
+        if let Some((kind, message)) = heard.problem {
+            self.problem(kind, &message);
+        }
+        if let Some(number) = heard.ping {
+            self.send("ping", Value::from(number));
         }
     }
 
@@ -194,33 +146,8 @@ impl Channel {
 
     /// Watches the page, on the main thread: pings it, and names it when it stopped.
     pub(super) fn watch(&self) {
-        let stopped = {
-            let mut live = self.live();
-            let Some(loaded_at) = live.loaded_at.filter(|_| !live.over) else {
-                return;
-            };
-            let waited = live.pings.front().map(|(_, at)| at.elapsed());
-            if !live.started && loaded_at.elapsed() > START {
-                Some(format!(
-                    "its engine did not start within {} s",
-                    START.as_secs()
-                ))
-            } else if waited.is_some_and(|waited| waited > STOPPED) {
-                Some(format!("it answered nothing for {} s", STOPPED.as_secs()))
-            } else {
-                if live.started {
-                    let number = live.next_ping;
-                    live.next_ping += 1;
-                    live.pings.push_back((number, Instant::now()));
-                    drop(live);
-                    self.send("ping", Value::from(number));
-                }
-                None
-            }
-        };
-        if let Some(message) = stopped {
-            self.live().over = true;
-            self.problem("stopped", &message);
-        }
+        let now = self.now();
+        let heard = self.live().watch.tick(now);
+        self.act(heard);
     }
 }

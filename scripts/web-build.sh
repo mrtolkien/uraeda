@@ -45,6 +45,24 @@ replace 'content="#000000" media="(prefers-color-scheme: dark)"' \
 replace '</head>' "$(<"$root/app/web/head.html")
 </head>"
 
+# The page an extension's page runs in, in a frame of its own (`app/web/frame.html`): the same
+# runtime and files as the app's page, which name them by their hash, taken from that page.
+built=$(<"$page")
+runtime=$(grep -o 'import { createPlayer } from "[^"]*";' <<<"$built" | head -n 1)
+app=$(grep -o '^ *const app = {.*};$' <<<"$built" | head -n 1)
+if [[ -z $runtime || -z $app ]]; then
+  echo "web-build: Native Shell's page no longer names its runtime and its files as it did" >&2
+  exit 1
+fi
+runtime=${runtime#*from \"}
+runtime=${runtime%\";}
+app=${app#*const app = }
+app=${app%;}
+frame=$(<"$root/app/web/frame.html")
+frame=${frame/"{{runtime}}"/"$runtime"}
+frame=${frame/"{{app}}"/"$app"}
+printf '%s\n' "$frame" >"$site/extension.html"
+
 # The app's icon, the one its desktop entry has: a browser's tab shows it. NSH's own, from
 # `app/web/icon.png` (`nsh.json`'s `icon`), are the manifest's and a phone's home screen's.
 cp "$root/app/package/dev.uraeda.app.svg" "$site/icon.svg"
@@ -64,6 +82,7 @@ compress() {
   gzip --best --keep --no-name "$1"
 }
 compress "$page"
+compress "$site/extension.html"
 compress "$site/icon.svg"
 find "$site" -name '*.otf' -print0 | while IFS= read -r -d '' font; do compress "$font"; done
 

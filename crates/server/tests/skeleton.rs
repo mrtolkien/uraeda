@@ -103,6 +103,7 @@ a sibling site, without an origin    | 127.0.0.1:{port}           | sec-fetch-si
 its own page, without an origin      | 127.0.0.1:{port}           | sec-fetch-site=same-origin                             |
 a typed address, without an origin   | 127.0.0.1:{port}           | sec-fetch-site=none                                    |
 an allowed origin, from another site | 127.0.0.1:{port}           | origin=http://localhost:5173 sec-fetch-site=same-site  |
+an extension page's host, writing    | wiki.localhost:{port}      |                                                        | Forbidden host
 ";
 
 /// A sandboxed frame, whose requests carry `Origin: null`, reads only a preview's or a mockup's
@@ -213,11 +214,67 @@ async fn a_request_with_another_sites_origin_is_refused() {
         );
         assert_eq!(refused.map_or("", guard::Refusal::text), refusal, "{name}");
     }
+    // An extension page's own host reads, and nothing more: no socket, no other port, no host
+    // under it.
     // The frame secret opens a path to a frame, and to no other site.
     let preview = "/r/repo/preview/the-secret/sidebar-resize/iframe.html";
     let evil = guard::refusal(&rules, &asked("GET", preview, "https://evil.com"));
     assert_eq!(evil, Some(guard::Refusal::Origin));
     assert_eq!(guard::Refusal::NotFound.status(), 404);
+}
+
+// An extension page's own host, `<extension>.localhost` on the server's port, which a browser
+// runs in a process of its own (`app/extensions/host.web.tsx`), reads, and nothing more.
+#[test]
+fn an_extension_pages_host_only_reads() {
+    let frame = |_: &str| false;
+    let rules = Rules {
+        port: 4320,
+        hosts: &[],
+        origins: &[],
+        frame: &frame,
+    };
+    let asked = |method, path, origin| Asked {
+        host: "127.0.0.1:4320",
+        method,
+        origin: Some(origin),
+        path,
+        site: None,
+        upgrade: false,
+    };
+    let own = Asked {
+        host: "wiki.localhost:4320",
+        ..asked("GET", "/nsh.6daa6f4d35.js", "http://wiki.localhost:4320")
+    };
+    assert_eq!(
+        guard::refusal(&rules, &own),
+        None,
+        "a page host's own module"
+    );
+    let other = Asked {
+        host: "wiki.localhost:4320",
+        ..asked("GET", "/nsh.6daa6f4d35.js", "http://hello.localhost:4320")
+    };
+    assert_eq!(guard::refusal(&rules, &other), Some(guard::Refusal::Origin));
+    for (host, upgrade, passes) in [
+        ("wiki.localhost:4320", false, true),
+        ("wiki.localhost:4320", true, false),
+        ("wiki.localhost:4321", false, false),
+        ("a.wiki.localhost:4320", false, false),
+    ] {
+        let read = Asked {
+            host,
+            origin: None,
+            upgrade,
+            ..asked("GET", "/extension.html", "null")
+        };
+        let refused = guard::refusal(&rules, &read);
+        assert_eq!(
+            refused.is_none(),
+            passes,
+            "{host}, upgrade {upgrade}: {refused:?}"
+        );
+    }
 }
 
 /// The names, paths, and opening times of the list of repositories, as stored.

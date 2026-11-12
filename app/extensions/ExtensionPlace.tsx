@@ -1,20 +1,14 @@
 // A part of an extension's page, drawn in the app: a place's pane, a pane of Home, an item of the
 // status line. The page runs in `uraeda.extension`, a view of its own, which fetches it from the
-// server and runs it only when it is signed under the server's key. This draws that view, answers
-// what the page asks (`host.tsx`), sends it the app's theme as it changes, and, when the page
-// breaks, says so in its place, naming the extension, and reports it to the server.
+// server and runs it only when it is signed under the server's key: on Linux the host's native
+// view, in a browser a frame of its own (`host.web.tsx`), each the channel's carrier alone. This
+// draws that view, answers what the page asks (`host.tsx`), sends it the app's theme as it
+// changes, and, when the page breaks, says so in its place, naming the extension, and reports it
+// to the server.
 //
 // A place of an extension is a pane like any other (task 51): its `definePane`'s view draws this
 // with `part={{ kind: "place", id }}`, in whichever stack and at whichever width the pane has.
-import {
-  type Accessor,
-  effect,
-  nativeComponent,
-  type NativeComponentRef,
-  signal,
-  untracked,
-  View,
-} from "nsh";
+import { type Accessor, effect, nativeComponent, platform, signal, untracked, View } from "nsh";
 import { paged, rowsIn } from "./contributions";
 import { declared, declaredBy } from "./declared";
 import { extensionHost } from "../store";
@@ -29,6 +23,7 @@ import {
   pageChannel,
   problemWords,
 } from "./host";
+import { ExtensionFrame, type PageViewRef } from "./host.web";
 import type { Declarations, PageParams, PartKind, ShownTheme } from "./page";
 
 type ViewProps = {
@@ -46,10 +41,13 @@ type ViewEvents = {
 };
 
 /** The native component that runs a page: `crates/app/src/extension_view.rs`. */
-const ExtensionView = nativeComponent<ViewProps, ViewEvents>("uraeda.extension", {
+const NativeView = nativeComponent<ViewProps, ViewEvents>("uraeda.extension", {
   props: ["server", "token", "name", "version", "params"],
   events: ["ready", "problem", "message"],
 });
+
+/** What runs a page here: the Linux host's view, or a browser's frame, with the same props. */
+const ExtensionView = platform.os === "web" ? ExtensionFrame : NativeView;
 
 export type ExtensionPlaceProps = {
   host: ExtensionHost;
@@ -72,7 +70,7 @@ export type ExtensionPlaceProps = {
 const theme = (): ShownTheme => ({ fonts: pickedFonts(), theme: shownTheme() });
 
 export function ExtensionPlace(props: ExtensionPlaceProps) {
-  let view: NativeComponentRef | undefined;
+  let view: PageViewRef | undefined;
   const problem = signal<PageProblem | undefined>(undefined);
   const ready = signal(false);
   const name = () => props.extension().name;
@@ -150,7 +148,7 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
           props.onReady?.(drawn.declarations);
         }}
         params={params}
-        ref={(node) => {
+        ref={(node: PageViewRef) => {
           view = node;
         }}
         server={server().address}

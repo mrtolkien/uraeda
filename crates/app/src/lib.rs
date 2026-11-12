@@ -15,6 +15,8 @@ mod highlight;
 pub mod host;
 mod native;
 pub mod notify;
+mod page_trust;
+mod page_watch;
 mod patch;
 mod reply;
 #[cfg(all(target_os = "linux", feature = "host"))]

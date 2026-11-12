@@ -41,6 +41,9 @@ pub(crate) fn register(registry: &mut Registry) {
     registry.module::<crate::patch::Patches>();
     registry.module::<crate::editing::Editing>();
     registry
+        .module::<crate::page_trust::PageTrust>()
+        .class::<crate::page_watch::PageWatch>();
+    registry
         .module::<crate::reply::Markdown>()
         .class::<crate::reply::ReplySplitter>();
     registry

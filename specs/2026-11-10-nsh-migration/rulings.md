@@ -9179,3 +9179,130 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the plan's rule for a failure of timing under load. The test reads a process's
   group as it ends, and touches nothing this task changed.
 - **Where**: `crates/server/tests/preview.rs`.
+
+## T58.1: A page in a browser runs in a frame at its extension's own host, which Chromium runs in a process of its own
+
+- **Decision**: in a browser, `uraeda.extension` is `ExtensionFrame`
+  (`app/extensions/host.web.tsx`), which `ExtensionPlace` draws where `platform.os` is `web`, with
+  the native view's props, events, and commands. Each part shown is Native Shell's player in a frame
+  of its own, `extension.html`, the page `scripts/web-build.sh` writes from `app/web/frame.html`
+  with the app's runtime and files.
+  - **On this machine**, the app at `127.0.0.1` or `localhost`, the frame is at
+    `http://<extension>.localhost:<port>/extension.html`: another site, so Chromium gives it a
+    process, and a thread, of its own. Browsers resolve `*.localhost` to the machine itself.
+  - **Elsewhere**, behind a proxy's host name, and for an extension whose name is no host label, the
+    frame is a web view's HTML, which Native Shell sandboxes without an origin: a process apart from
+    the app's, shared by every such frame.
+  - Either way the frame has no session's cookie (it is the server's host's alone) and none of the
+    app's storage. A frame runs one page: a new version, or new parameters, get a new frame.
+  - A browser cuts off no call. A page that never stops answers no ping; the shared watch names it
+    `stopped` after 5 s ("it answered nothing for 5 s: it looped without end, …") and the frame is
+    taken away, which ends its loop. `a_page_that_never_stops_is_cut_off_and_named` saw it named 6.7
+    s after the place opened, and the app answered every look and the keys `g i` meanwhile.
+- **What was run** (Chromium 153, the dev shell's, a page of the app with a counter ticking every 20
+  ms, and frames added to it):
+
+  | Frame that loops                         | The app's page | A frame beside it          |
+  | ---------------------------------------- | -------------- | -------------------------- |
+  | Same origin                              | Frozen         | Frozen                     |
+  | Sandboxed, no origin (`src` or `srcdoc`) | Goes on        | Sandboxed: frozen, 5 of 59 |
+  | `a.localhost`                            | Goes on        | `b.localhost`: goes on     |
+  | `a.localhost`, sandboxed                 | Goes on        | `b.localhost`: goes on     |
+
+  Removing the looping frame freed its process: a new frame of the same host, or a new sandboxed
+  one, ticked again at once. So a frame of the app's origin, which the plan's spike used, would
+  freeze the whole app; a sandboxed one holds every other extension's frame until the loop is cut.
+  The extensions decision: "A broken extension MUST NOT stop Uraeda or another extension." Only a
+  host per extension keeps both, and only where the app is reached on loopback.
+
+- **Alternatives considered**: the page's engine in a worker: Native Shell's player draws from its
+  WebAssembly into the DOM, which a worker has not. A second port of `ura serve`: another origin but
+  the same site, which Chromium does not split into processes by default. Native Shell's interrupt:
+  the browser runtime runs a page on the browser's own JavaScript, which nothing outside can
+  interrupt.
+- **If wrong**: behind a proxy, a loop holds every other extension's page for 5 s, and each may then
+  be named stopped too. A proxy that maps `*.<its host>` to the server would give each extension its
+  own host there as well. Firefox resolves `*.localhost` too; Safari isolates no frame, and a loop
+  there freezes the app.
+- **Where**: `app/extensions/{host.web.tsx,ExtensionPlace.tsx}`, `app/web/frame.html`,
+  `scripts/web-build.sh`, `crates/server/tests/browser/extensions.rs`.
+
+## T58.2: Native Shell 0.5.0's browser runtime never reaches the player's `host`: the page's entry takes its frame's channel
+
+- **Decision**: in the frame, `window.uraedaHost` is the frame's channel to the app, and the build's
+  entry, `page_entry`, sets `host.post` and `host.call` to it before any of the page's code runs,
+  when the page's window, or its frame's, holds one. On Linux there is none, and nothing changes.
+- **Rationale**: `nsh/host` in a browser (`web/browser/host.js`) sends a post or a call to the
+  engine's own channel when `initial[0]` is truthy, and the engine (`browser/mod.rs`, op 430)
+  answers 2 or 3 there, never 0: the player's `host` option, which `createPlayer` documents, is
+  never reached. The engine's channel has no handler in a browser, so a post is dropped (a debug
+  line) and a call fails ("the embedding app handles no …"). Seen: a module posting `start` in a
+  player made by hand reached nothing; every page was named "its engine did not start within 10 s".
+- **The upstream report**, for the human to file at longbridge/nsh:
+
+  > **Web: `nsh/host` never reaches `createPlayer`'s `host` option.** In 0.5.0,
+  > `web/browser/host.js` routes `host.call` and `host.post` to the engine's SDK channel when
+  > `initial[0]` is truthy (`if (!initial[0]) return platform.call(...)`,
+  > `if (initial[0]) invoke(432, ...)`), but op 430 of `nsh-platform-web/src/browser/mod.rs` answers
+  > `3` when the channel has handlers and `2` when it has none: always truthy. The browser engine
+  > always makes a `HostChannel` (`lib.rs`, `host: { HostChannel::new() ... }`), which no page can
+  > handle, so a page's posts are dropped and its calls fail with "the embedding app handles no …",
+  > and `createPlayer({ host })` is dead code. Reproduce:
+  > `createPlayer(div, { host: { post: console.log } })`, then `runModule` of a module that runs
+  > `host.post("x")`: nothing is logged. Fix: test `initial[0] === 3` (a configured channel) in
+  > `call`, `post`, and `available`.
+
+- **If wrong**: an NSH release with the fix makes the entry's lines unneeded: remove `BROWSER` from
+  `crates/protocol/src/page.rs` and `uraedaHost` from `app/web/frame.html` when the pin moves.
+- **Where**: `crates/protocol/src/page.rs`, `app/web/frame.html`.
+
+## T58.3: One rule verifies a page, and one state machine watches it, on Linux and in a browser
+
+- **Decision**: the package's verification moved from `extension_view/fetch.rs` to
+  `crates/app/src/page_trust.rs`, which both use: the Linux view in Rust, the browser through
+  `uraeda/native`'s `verifyPage(server, key, name, bytes)`, in the app's WebAssembly (`nsh-package`
+  builds there: "WebAssembly only verifies packages"). What `channel.rs` knew of a page's start,
+  load, pings, and problems moved to `crates/app/src/page_watch.rs`, a state machine that reads no
+  clock, which the Linux channel and the browser's `PageWatch` class both drive. The channel's rules
+  for what a page reads and does stay `pageChannel` of `host.tsx`, which both views' messages reach:
+  the frame and the native view carry, and decide nothing.
+- **What a browser checks of a package**: the same as Linux: signed under the key
+  `GET /extensions/key` gave this page of the app, for `dev.uraeda.extension.<name>`, and no older
+  than a build it ran. The page and the key come from the origin the app already trusts, with its
+  cookie, so the signature guards less there than on a paired device, but a file swapped on disk or
+  a build of another extension is still refused.
+- **Where**: `crates/app/src/{page_trust.rs,page_watch.rs,extension_view/*}`,
+  `app/extensions/host.web.tsx`.
+
+## T58.4: What the server opens for a page's frame, and nothing more
+
+- **Decision**:
+  - The guard (`guard.rs`) takes `<extension>.localhost:<port>` as a host for reads alone, never an
+    upgrade, with its own origin, as Chromium sends on a module script even to its own origin; and
+    `Origin: null` for reads of a file of the web build. The host carries no cookie, so it reads
+    only what is open without a session.
+  - The web build's files answer `Access-Control-Allow-Origin: *`, which a frame without an origin
+    needs to load them: they are open without a session already. The app's page and every route are
+    unchanged.
+  - `extension.html` carries a policy of its own (`policy.rs` `EXTENSION_POLICY`): its own origin
+    for everything, `connect-src 'self'`, and `frame-ancestors` the app on this machine. It is not
+    `X-Frame-Options: SAMEORIGIN`, which would refuse the app's page at another host.
+  - The app's page's policy adds `http://*.localhost:*` to `frame-src`, and nothing else.
+  - No `Cross-Origin-Opener-Policy`, `-Embedder-Policy`, or `-Resource-Policy`: the player uses no
+    shared memory, and the frame loads nothing of another site.
+- **Where**: `crates/server/src/{guard.rs,http.rs,http/web.rs,http/web/policy.rs}`,
+  `crates/server/tests/skeleton.rs`.
+
+## T58.5: The browser's extension tests run in the Rust harness, over a server part of the counter and a forger
+
+- **Decision**: the four tests of task 34 are `crates/server/tests/browser/extensions.rs`, run by
+  `just web-test`, not `app/web/extensions.test.ts`: `nsh test --target web` runs on Native Shell's
+  page, not the one `ura serve` serves (R448). A frame's text is not the app's page's, so what a
+  page did is read from its extension: `fixtures/extensions/counter/` has a server part, whose route
+  says what the page got. `fixtures/extensions/forges/` posts forged answers into every frame and a
+  forged problem to the app, all the time, from the status line.
+- **Seen failing**, each break made and reverted: the frame taking a message from any window: `got`
+  99, a forged answer; the app taking a message without its origin and secret: every page named by
+  the forged problem, and the test stopped at "the page never showed Counter"; a page naming another
+  extension's record: `stolen` true.
+- **Where**: `crates/server/tests/browser/{extensions.rs,cdp.rs}`, `fixtures/extensions/`.

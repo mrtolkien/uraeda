@@ -13,4 +13,7 @@ API of [`server.d.ts`](/crates/server/src/extensions/api/server.d.ts).
 - `counter/`, `crashes/`, `loops/`: pages, which the app's tests of
   [`extensions.rs`](/crates/app/tests/extensions.rs) build, sign, and run in `uraeda.extension`: a
   place that reads a record and calls actions, a page that throws as it loads, and one whose place
-  never stops drawing.
+  never stops drawing. `counter/` has a server part too, for the browser's tests of
+  [`browser/extensions.rs`](/crates/server/tests/browser/extensions.rs), where its page runs over a
+  real server, beside `forges/`, a page that posts forged answers into every frame of the app's
+  page.

@@ -21,6 +21,19 @@ pub const PAGE_HOST: [&str; 8] = [
     "start", "loaded", "ready", "problem", "alive", "record", "call", "navigate",
 ];
 
+/// In a browser, the page's way to the app is its frame's, `uraedaHost`, on the page's own
+/// window or, where the player runs it in a window of its own, its frame's. Native Shell 0.5.0's
+/// browser runtime sends `host.post` and `host.call` to an engine channel nothing answers there,
+/// never to the frame's player's `host`, so the entry points them at the frame's before any of
+/// the page's code runs: every module importing `host` gets the same object. The Linux host has
+/// no such window, and keeps its channel. Ruling T58.2 holds the upstream report.
+const BROWSER: &str = "const frame = (globalThis as { uraedaHost?: typeof host }).uraedaHost\n  \
+    ?? (globalThis.parent as { uraedaHost?: typeof host } | undefined)?.uraedaHost;\n\
+    if (frame) {\n  \
+    host.post = frame.post;\n  \
+    host.call = frame.call;\n\
+    }\n\n";
+
 /// The module a page's build starts from, which imports the page whose entry is the absolute path
 /// `page`. It posts `start` first, answers the host's pings, then runs the page's code, and says
 /// how that ended: a page that throws while it loads is named by its host, with what it threw,
@@ -33,6 +46,7 @@ pub fn page_entry(page: &str) -> String {
     format!(
         "import {{ host }} from \"nsh\";\n\
          \n\
+         {BROWSER}\
          host.post(\"start\");\n\
          host.on(\"ping\", (ping: unknown) => host.post(\"alive\", ping));\n\
          import({page}).then(\n  \

@@ -2,31 +2,28 @@
 //! Each test serves a sandbox of its own, with sign-in, to a browser of its own.
 
 use tempfile::TempDir;
-use uraeda_server::sandbox::{self, Mode, Prepare};
-use uraeda_server::{Server, sign_in};
+use uraeda_server::Server;
+use uraeda_server::sandbox::Sandbox;
 
 use super::cdp::{Browser, DESKTOP, PHONE, Size};
-use super::web_build;
+use super::signed_sandbox;
 
 /// A sandbox served with the web build, and a browser signed in to it.
 pub struct Served {
     pub browser: Browser,
     pub server: Server,
-    _folder: TempDir,
+    pub folder: TempDir,
 }
 
 impl Served {
     /// Serves a fresh sandbox, and signs a browser of `size`, in `mode`, in at the home page.
     pub async fn start(size: Size, mode: &str) -> Served {
-        let folder = TempDir::new().unwrap();
-        let built = sandbox::prepare(&folder.path().join("sandbox"), Prepare::default()).unwrap();
-        let mut environment: Vec<(String, String)> = std::env::vars()
-            .filter(|(name, _)| name != "URAEDA_WEB_BUILD")
-            .collect();
-        environment.push(("URAEDA_WEB_BUILD".to_owned(), web_build()));
-        let options = sandbox::options(&built, 0, Mode { sign_in: true }, environment);
-        let server = Server::start(options).await.expect("the sandbox starts");
-        let key = sign_in::first_key(server.shared()).expect("a start with sign-in shows its key");
+        Served::with(size, mode, |_| ()).await
+    }
+
+    /// As [`Served::start`], with `before` adding to the sandbox before its server starts.
+    pub async fn with(size: Size, mode: &str, before: impl FnOnce(&Sandbox)) -> Served {
+        let (folder, server, key) = signed_sandbox(before).await;
         let mut browser = Browser::start().await;
         browser.show(size, mode).await;
         browser
@@ -41,7 +38,7 @@ impl Served {
         Served {
             browser,
             server,
-            _folder: folder,
+            folder,
         }
     }
 

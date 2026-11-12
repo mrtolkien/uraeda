@@ -7,7 +7,9 @@
 //! - **Its files** are the only paths open without a session, with the sign-in routes: they hold
 //!   nothing of the owner's. Each is sent in the smallest form the browser takes, brotli, gzip,
 //!   or as it is, which the build made beforehand. A file whose name holds the hash of its
-//!   content is cached for good; the page and the manifest are asked again at each load.
+//!   content is cached for good; the page and the manifest are asked again at each load. Any
+//!   origin may read them, as the frame an extension's page runs in has none
+//!   (`app/extensions/host.web.tsx`): the app's page, and every route, are not concerned.
 //! - **The page** answers every address of the app, so a reload or a shared address opens it:
 //!   a `GET` a browser opens, `Accept: text/html`, that no route of the server takes. A path
 //!   under one of the server's own, `/session`, `/mcp`, `/r/<repository>/raw`, answers its own
@@ -23,8 +25,8 @@ use std::sync::Arc;
 use axum::body::Bytes;
 use axum::extract::{Request, State};
 use axum::http::header::{
-    ACCEPT, ACCEPT_ENCODING, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_SECURITY_POLICY,
-    CONTENT_TYPE, ETAG, IF_NONE_MATCH, VARY,
+    ACCEPT, ACCEPT_ENCODING, ACCESS_CONTROL_ALLOW_ORIGIN, CACHE_CONTROL, CONTENT_ENCODING,
+    CONTENT_SECURITY_POLICY, CONTENT_TYPE, ETAG, IF_NONE_MATCH, VARY,
 };
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode};
 use axum::response::{IntoResponse, Response};
@@ -40,6 +42,9 @@ const FOLDER: &str = "URAEDA_WEB_BUILD";
 
 /// How long a file named by its hash is kept: a year, and never asked again.
 const FOREVER: &str = "public, max-age=31536000, immutable";
+
+/// The page an extension's page runs in, which the web build writes beside the app's.
+pub(crate) const EXTENSION_PAGE: &str = "/extension.html";
 
 /// The page of an `ura` that holds no web build.
 const NOT_BUILT: &str = include_str!("web/not-built.html");
@@ -250,9 +255,20 @@ pub(crate) async fn answer(State(shared): State<Shared>, request: Request) -> Re
     let path = request.uri().path();
     if let Some(file) = web.files.get(path.trim_start_matches('/')) {
         let cached = if hashed(path) { FOREVER } else { "no-cache" };
-        return file
-            .sent(encodings)
-            .map_or_else(not_found, |sent| respond(sent, kind(path), cached));
+        let Some(sent) = file.sent(encodings) else {
+            return not_found();
+        };
+        let mut response = respond(sent, kind(path), cached);
+        // An extension's page runs in a frame without an origin (`extension.html`), whose
+        // player loads these same files: to it they are another origin's. They hold nothing of
+        // the owner's, and are open without a session already.
+        let headers = response.headers_mut();
+        headers.insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+        if path == EXTENSION_PAGE {
+            let policy = HeaderValue::from_static(policy::EXTENSION_POLICY);
+            headers.insert(CONTENT_SECURITY_POLICY, policy);
+        }
+        return response;
     }
     let opened = text(headers, &ACCEPT).contains("text/html");
     if !opened || web.is_servers(path) {
@@ -270,6 +286,14 @@ pub(crate) async fn answer(State(shared): State<Shared>, request: Request) -> Re
     let policy = HeaderValue::from_static(policy::POLICY);
     headers.insert(CONTENT_SECURITY_POLICY, policy);
     response
+}
+
+/// Whether `path` is a file of the web build the server serves: open to any origin.
+pub(crate) fn is_file(shared: &Shared, path: &str) -> bool {
+    shared
+        .get::<Arc<Web>>()
+        .files
+        .contains_key(path.trim_start_matches('/'))
 }
 
 /// A file's answer: its bytes, with what they are, how they are encoded, and how long they keep.

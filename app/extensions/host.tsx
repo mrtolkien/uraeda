@@ -254,7 +254,7 @@ export function problemWords(title: string, problem: PageProblem): ProblemWords 
     case "stopped":
       return {
         title: `The page of ${title} stopped`,
-        words: `${said}: it ran out of memory, or never started. ${FIX}`,
+        words: `${said}: it looped without end, ran out of memory, or never started. ${FIX}`,
         gone: true,
         reported: true,
       };

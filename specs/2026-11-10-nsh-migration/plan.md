@@ -3531,8 +3531,10 @@ here: iOS and macOS are the human's, later. Ruling R424 says what NSH 0.5.0 give
 
 **Files:**
 
-- Create: `app/extensions/host.web.tsx`
-- Test: `app/web/extensions.test.ts`
+- Create: `app/extensions/host.web.tsx`, `app/web/frame.html`,
+  `crates/app/src/{page_trust,page_watch}.rs`
+- Test: `crates/server/tests/browser/extensions.rs` (the plan's `app/web/extensions.test.ts`: ruling
+  T58.5)
 
 **Interfaces:**
 
@@ -3540,14 +3542,41 @@ here: iOS and macOS are the human's, later. Ruling R424 says what NSH 0.5.0 give
 - Produces: the web form of `uraeda.extension`: each page runs in NSH's player, in a frame of its
   own, with the same page API and the same theme.
 
-- [ ] **Step 1: Write the failing tests**: the four tests of task 34, run in a headless browser.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** Read NSH's web page on players first. What the spike found: a page in a
+- [x] **Step 1: Write the failing tests**: the four tests of task 34, run in a headless browser.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen: every page named "its frame's player did not start
+      within 20 s", then, once the guard let the frame's host in, "its engine did not start within
+      10 s" (ruling T58.2).
+- [x] **Step 3: Implement.** Read NSH's web page on players first. What the spike found: a page in a
       frame without an origin runs one app, and is loaded again to run another; the frame's files
       need cross-origin headers. A frame is not a security boundary here, and need not be: an
       extension is the owner's own code.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): extension pages in the browser`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): extension pages in the browser`.
+
+**As built** (rulings T58.1 to T58.5):
+
+- **The view**: `ExtensionFrame` (`app/extensions/host.web.tsx`), which `ExtensionPlace` draws for
+  `uraeda.extension` where `platform.os` is `web`, with its props, events, and commands. It fetches
+  the key and the page with the session's cookie, verifies the page with `uraeda/native`'s
+  `verifyPage` (`crates/app/src/page_trust.rs`, the Linux view's rule), and runs it in a frame,
+  `extension.html` (`app/web/frame.html`, written by `scripts/web-build.sh`).
+- **Where a frame is**: on loopback, at `http://<extension>.localhost:<port>`, a process of its own
+  in Chromium; elsewhere, sandboxed without an origin (T58.1). A loop is named `stopped` after 5 s
+  and its frame taken away: a browser cuts off no call.
+- **The channel**: `postMessage`, each message with its frame's secret, from its origin, of its
+  load; the rules stay `pageChannel` (`host.tsx`). The watch is `crates/app/src/page_watch.rs`, the
+  Linux channel's and the browser's `PageWatch` (T58.3). The page's entry points `host.post` and
+  `host.call` at the frame's channel, around an NSH 0.5.0 bug whose report is in T58.2.
+- **The server**: the guard takes `<extension>.localhost` for reads; the build's files answer
+  `Access-Control-Allow-Origin: *`; `extension.html` has a policy of its own; the app's page may
+  frame `http://*.localhost:*` (T58.4).
+- **What each later task finds**:
+  - **Task 59**: on a phone through a proxy, every extension's frame shares one process, so a loop
+    holds the others for 5 s (T58.1). A broken status item says its problem in the status line's 160
+    points, letter by letter: the words need a short form there.
+  - **Task 60**: each extension's host downloads and compiles the runtime once, 2.4 MB compressed,
+    then the browser's cache keeps it; `ReadAllDeclarations` runs one hidden frame per extension at
+    a device's first start, each a player.
 
 ## Task 59: The phone
 

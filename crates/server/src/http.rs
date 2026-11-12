@@ -70,8 +70,12 @@ async fn frames(request: Request, next: Next) -> Response {
     response
 }
 
-/// Whether a path is one Uraeda's own pages frame: a repository's mockups, or its previews.
+/// Whether a path is one Uraeda's own pages frame: a repository's mockups, or its previews, and
+/// the page an extension's page runs in, whose own policy names who frames it.
 fn framed(path: &str) -> bool {
+    if path == web::EXTENSION_PAGE {
+        return true;
+    }
     let mut parts = path.strip_prefix("/r/").unwrap_or_default().splitn(3, '/');
     let kind = parts.nth(1);
     matches!(kind, Some("mockups" | "preview"))

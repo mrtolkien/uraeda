@@ -5,7 +5,13 @@
 //! `curl`, passes: the guard says where a request comes from, never who sends it.
 //!
 //! A sandboxed frame's `Origin: null` passes only for reads and upgrades, as GETs, on a preview's
-//! or a mockup's path with the current frame secret.
+//! or a mockup's path with the current frame secret, and on a file of the web build, which an
+//! extension's page's frame loads (`app/extensions/host.web.tsx`).
+//!
+//! An extension's page's own host, `<extension>.localhost` on the server's port, passes for reads
+//! alone, never an upgrade: a browser runs each such host in a process of its own, and resolves
+//! it to this machine itself, never by a DNS an attacker answers. It carries no session's cookie,
+//! which is the server's host's alone, so it reads only what is open without one.
 
 use axum::extract::{Request, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -60,7 +66,8 @@ pub struct Rules<'a> {
     /// The origins accepted besides the server's own and the allowed hosts', like a development
     /// server's.
     pub origins: &'a [String],
-    /// Whether a path is a preview's or a mockup's with the current frame secret.
+    /// Whether a sandboxed frame may read a path: a preview's or a mockup's with the current frame
+    /// secret, or a file of the web build.
     pub frame: &'a dyn Fn(&str) -> bool,
 }
 
@@ -101,7 +108,8 @@ pub fn refusal(rules: &Rules, asked: &Asked) -> Option<Refusal> {
                     .is_some_and(|rest| rest == format!(":{port}"))
         })
     };
-    if !own.iter().any(|host| host == asked.host) && !listed(asked.host) {
+    let page_host = asked.reads() && !asked.upgrade && is_page_host(asked.host, port);
+    if !own.iter().any(|host| host == asked.host) && !listed(asked.host) && !page_host {
         return Some(Refusal::Host);
     }
     let framed = asked.origin == Some("null") && asked.reads();
@@ -111,7 +119,9 @@ pub fn refusal(rules: &Rules, asked: &Asked) -> Option<Refusal> {
     }
     match asked.origin {
         Some(origin) => {
+            // A page host reads its own files, a module script with its own origin.
             let accepted = own.iter().any(|host| origin == format!("http://{host}"))
+                || (page_host && origin == format!("http://{}", asked.host))
                 || rules
                     .hosts
                     .iter()
@@ -124,6 +134,16 @@ pub fn refusal(rules: &Rules, asked: &Asked) -> Option<Refusal> {
             (foreign && !asked.reads()).then_some(Refusal::Site)
         }
     }
+}
+
+/// Whether `host` is an extension's page's own, `<extension>.localhost:<port>`: one label of
+/// lowercase letters, digits, and dashes, before `localhost` on the server's port.
+fn is_page_host(host: &str, port: u16) -> bool {
+    let Some(label) = host.strip_suffix(&format!(".localhost:{port}")) else {
+        return false;
+    };
+    let fits = |byte: u8| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-';
+    !label.is_empty() && label.len() <= 63 && label.bytes().all(fits)
 }
 
 /// The frame secret a path carries, when it has the shape of a preview's,
@@ -161,7 +181,9 @@ fn check(shared: &Shared, request: &Request) -> Option<Refusal> {
         port: shared.port(),
         hosts: &hosts,
         origins: shared.allow_origins(),
-        frame: &|path| crate::preview::is_frame(shared, path),
+        frame: &|path| {
+            crate::preview::is_frame(shared, path) || crate::http::web::is_file(shared, path)
+        },
     };
     let asked = Asked {
         host: &host,

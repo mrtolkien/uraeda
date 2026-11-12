@@ -45,6 +45,8 @@ uraeda-text.workspace = true
 jiff.workspace = true
 # The names of an extension page's host channel.
 uraeda-protocol.workspace = true
+# Which extension pages run: verified under the server's key, on Linux and in a browser alike.
+nsh-package.workspace = true
 # The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.
 uraeda-vim.workspace = true
 

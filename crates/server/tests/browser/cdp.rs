@@ -188,9 +188,10 @@ impl Browser {
         self.command("Page.navigate", json!({ "url": url })).await;
     }
 
-    /// The value of a JavaScript expression in the page.
+    /// The value of a JavaScript expression in the page, once it settled when it is a promise.
     pub async fn evaluate(&mut self, expression: &str) -> Value {
-        let params = json!({ "expression": expression, "returnByValue": true });
+        let params =
+            json!({ "expression": expression, "returnByValue": true, "awaitPromise": true });
         self.command("Runtime.evaluate", params).await["result"]["value"].clone()
     }
 
@@ -329,6 +330,19 @@ impl Browser {
     pub async fn wheel(&mut self, (x, y): (f64, f64), by: f64) {
         let event = json!({ "type": "mouseWheel", "x": x, "y": y, "deltaX": 0, "deltaY": by });
         self.command("Input.dispatchMouseEvent", event).await;
+    }
+
+    /// Presses and releases a key that types a letter, as a hand does.
+    pub async fn press(&mut self, letter: &str) {
+        for kind in ["keyDown", "keyUp"] {
+            let key = json!({
+                "type": kind,
+                "key": letter,
+                "code": format!("Key{}", letter.to_uppercase()),
+                "text": if kind == "keyDown" { letter } else { "" },
+            });
+            self.command("Input.dispatchKeyEvent", key).await;
+        }
     }
 
     /// Writes a picture of the page as it shows, a PNG.
