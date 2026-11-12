@@ -33,8 +33,9 @@ const timeOf = (repo: string, turn: string | null | undefined, now: () => number
 /** A feature's name, as the human gave it in the sidebar, else its title. */
 const nameOf = (feature: WorkspaceFeature) => feature.label ?? feature.title;
 
-function needsCard(row: NeedsYouRow, repo: string): HomeCard {
-  const look = REASONS[row.reason];
+/** A row's card. A reason this client does not know, from a newer server, reads as a step's. */
+export function needsCard(row: NeedsYouRow, repo: string): HomeCard {
+  const look = REASONS[row.reason] ?? REASONS.step;
   return {
     icon: look.icon,
     id: row.id,

@@ -50,7 +50,8 @@ function stateWords(step: StartStep): string {
 }
 
 function StepLine(props: { step: StartStep }) {
-  const mark = () => MARKS[props.step.state];
+  // A state this client does not know, from a newer server, reads as waiting.
+  const mark = () => MARKS[props.step.state] ?? MARKS.waiting;
   return (
     <View style={{ gap: 4 }}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
