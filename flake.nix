@@ -183,6 +183,9 @@
               cargo-llvm-cov
               # The recipes of the `justfile`: every check and build is a `just <recipe>`.
               just
+              # Git, which the workflow's code, the sandbox, the tests' repositories, and
+              # `just release` run: in a pure shell, `nix develop -i`, the machine's is not there.
+              git
               # The formatter and linter of what Cargo does not read: TSX, Markdown, JSON, TOML.
               oxfmt
               oxlint
