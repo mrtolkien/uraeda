@@ -119,7 +119,7 @@ export function Button(props: ButtonProps) {
     !onGlass() &&
     height() !== "overlay" &&
     // Under an open layer it rests: each frame of its breath redrew the glass sampling it, a
-    // dialog of the run map's size starved the app of frames and keys (ruling T83.1).
+    // dialog of the run map's size starved the app of frames and keys (ruling R512).
     !layerOpen();
   if (props.keys !== undefined && props.state === undefined) {
     registerKey(

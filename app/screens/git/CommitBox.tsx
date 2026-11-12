@@ -47,7 +47,7 @@ function CommitBox(props: {
     return undefined;
   };
   // Its keys are on while its group is the one shown: the next box is drawn before this one
-  // goes, and two boxes' `c` and `Ctrl+Enter` would mean two things for that moment (ruling T88.2).
+  // goes, and two boxes' `c` and `Ctrl+Enter` would mean two things for that moment (ruling R515).
   const keys = keyScope({ kind: "pane", name: "Commit", on: props.shown });
   registerKey(
     {

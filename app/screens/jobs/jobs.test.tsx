@@ -17,6 +17,8 @@ test("a field refused by the server goes back, and says why under itself", async
   await app.waitFor("id:job-name", { timeout: 30_000 });
   await app.type("id:job-name", name);
   await app.type("id:job-prompt", "Say hello.");
+  // Add turns on once the fields hold what was typed: under load, a moment after the last key.
+  await app.waitUntil(() => app.enabled("id:job-add"), { timeout: 10_000 });
   await app.press("id:job-add");
   await app.waitUntil(
     () => shows().includes("Next run") || shows().includes("Scheduled jobs are off"),

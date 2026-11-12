@@ -83,7 +83,7 @@ export type Refused = Declared & { readonly problem: string };
  * How the registry meets a key that could never run, or would mean two things. `strict`, in
  * development and tests, throws, so any screen's test catches it. Otherwise, in a release build,
  * it reports it (`report`, the console's error unless given), keeps the bindings declared before,
- * and leaves that one key out: a slip in one screen never takes the app down (ruling T88.2).
+ * and leaves that one key out: a slip in one screen never takes the app down (ruling R515).
  */
 export type KeyStoreOptions = { report?: (words: string) => void; strict?: boolean };
 

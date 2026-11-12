@@ -10223,7 +10223,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   a run: now 0.3 s once the folders are kept.
 - **Where**: `.githooks/pre-commit`, `CONTRIBUTING.md`, `AGENTS.md`.
 
-## T83.1: A breathing button rests while a layer is open over it
+## R512: A breathing button rests while a layer is open over it
 
 - **Decision**: a main button that breathes, the feature page's Next, stops breathing while a layer
   is open (`layerOpen()` of the key registry, read by `Button`). Found walking "from a thought to a
@@ -10243,7 +10243,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   is fine: then `layerOpen()` narrows to dialogs, or the glass samples a still frame.
 - **Where**: `app/ui/controls/Button.tsx`, `app/ui/keys/registry.tsx`.
 
-## T85.1: In a field, the status line says INSERT and hints only the field's keys, Vim or not
+## R513: In a field, the status line says INSERT and hints only the field's keys, Vim or not
 
 - **Decision**: a text field tells the key registry it has the focus (`fieldFocused`, by a token of
   its own, given back as it goes); while one has it, the status line hints only the keys the field
@@ -10263,7 +10263,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/keys/{registry.tsx,store.ts}`, `app/ui/text/TextField.tsx`,
   `app/screens/shell/Status.tsx`, `app/ui/text/text.test.tsx`.
 
-## T88.1: A round's end commits by Ctrl+Enter, not by `c`
+## R514: A round's end commits by Ctrl+Enter, not by `c`
 
 - **Decision**: the end of a round asks to commit the answers on `Ctrl+Enter`, hinted on the status
   line, and its confirmation takes `Ctrl+Enter` again or `Enter`. `c` there does nothing.
@@ -10278,7 +10278,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `Ctrl+Enter at the end asks first, naming what it commits; c there commits nothing`;
   `specs/ui/keyboard.md`.
 
-## T88.2: A key that means two things is named in a release build, never thrown
+## R515: A key that means two things is named in a release build, never thrown
 
 - **Decision**: the registry still throws on a key that could never run, or would mean two things,
   in development and in tests (`process.env.NODE_ENV` is not `production`, as `nsh test` and

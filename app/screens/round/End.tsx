@@ -133,7 +133,7 @@ export function End(props: EndProps) {
       run: () => notesField?.focus(),
     },
     // Ctrl+Enter, as a commit on the Git page: never `c`, which answers C one question before,
-    // and whose letter, pressed on, rolls into the end and then confirmed it (ruling T88.1).
+    // and whose letter, pressed on, rolls into the end and then confirmed it (ruling R514).
     {
       hint: "mod+Enter",
       hintLabel: "commit",
