@@ -34,6 +34,12 @@ shows on its row, as \`Tomorrow\`, and a ~~manual copy~~ is never needed again. 
 | Weekly    | the same weekday, a week after             |  Tuesday, 14:00 |
 | Monthly   | the same day of the next month, or its last | 31 → 30 April |
 
+The constitution check, its marks drawn as the app's icons: ✅ holds, ⚠️ holds with a note, ❌ breaks.
+
+| Simple | Tested first | Data kept |
+| :----: | :----------: | :-------: |
+|   ✅   |  ⚠️ partly   |    ❌     |
+
 > A quote, from the proposal: "I keep copying the same task every Monday."
 
 \`\`\`ts

@@ -10320,3 +10320,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/tests/main.rs`, `crates/app/tests/main.rs`, both crates' `Cargo.toml`,
   `.config/nextest.toml`, `justfile`, `crates/xtask/tests/toolchain.rs`,
   `crates/app/tests/outside/display.rs`.
+## T192.2: The workflow's marks are drawn as the app's icons
+
+- **Decision**: in a document's spans, `✅`, `✔`, `❌`, and `⚠️` are drawn as Lucide's
+  `circle-check`, `check`, `circle-x`, and `triangle-alert`, the size of the interface's icon, in
+  the `added`, `removed`, and `caution` roles, on the line among the words.
+- **Rationale**: the bundled fonts hold no emoji, so a spec's constitution check drew its marks as
+  boxes of a missing glyph, in every spec the human reads. An emoji font would add megabytes to the
+  package, and draw the marks in a second family of pictures beside the app's icons.
+- **Where**: `app/ui/document/Spans.tsx`; the gallery's spec shows them.

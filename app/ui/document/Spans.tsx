@@ -3,6 +3,7 @@
 // a link that stays in the app goes to the screen's `onLink`, a web address to the system.
 import { Image, openUrl, signal, Text, type TextStyle } from "nsh";
 import type { Span, SpanImage } from "../../store/protocol";
+import { Icon, type IconName } from "../controls/Icon";
 import { tokens } from "../tokens";
 import { DocumentContext } from "./context";
 import { prose } from "./look";
@@ -96,12 +97,50 @@ function SpanPicture(props: { image: SpanImage; span: Span }) {
   return <Linked span={span} text={props.span.text || props.image.target} />;
 }
 
+/**
+ * The workflow's marks, as icons of the app's own family: the bundled fonts hold no emoji, and
+ * a spec's constitution check, `✅`, drew as boxes of a missing glyph.
+ */
+const MARK_ICONS: Record<string, { colour: () => string; name: IconName }> = {
+  "✅": { colour: () => tokens.role.added, name: "circle-check" },
+  "✔": { colour: () => tokens.role.added, name: "check" },
+  "❌": { colour: () => tokens.role.removed, name: "circle-x" },
+  "⚠": { colour: () => tokens.role.caution, name: "triangle-alert" },
+};
+const MARKS = /(✅|✔️?|❌|⚠️?)/u;
+
+/** A mark among words: its icon, the size of a letter, on the line. */
+function MarkIcon(props: { mark: string }) {
+  const icon = MARK_ICONS[props.mark.replace("\uFE0F", "")]!;
+  return (
+    <Icon
+      colour={icon.colour()}
+      name={icon.name}
+      size={tokens.control.icon}
+      style={{ verticalAlign: "middle" }}
+    />
+  );
+}
+
+/** Plain words, with the workflow's marks drawn as icons. */
+function Words(props: { span: Span }) {
+  const parts = props.span.text.split(MARKS);
+  if (parts.length === 1) return <Text style={marked(props.span)}>{props.span.text}</Text>;
+  return (
+    <Text style={marked(props.span)}>
+      {parts.map((part, at) =>
+        at % 2 === 1 ? <MarkIcon mark={part} /> : part === "" ? null : part,
+      )}
+    </Text>
+  );
+}
+
 /** One span, drawn as its kind. */
 export function SpanView(props: { span: Span }) {
   const span = props.span;
   if (span.image !== null) return <SpanPicture image={span.image} span={span} />;
   if (span.link !== null) return <Linked span={span} text={span.text} />;
-  return <Text style={marked(span)}>{span.text}</Text>;
+  return <Words span={span} />;
 }
 
 /** The spans of a block, as the runs of the `Text` that holds them. */
