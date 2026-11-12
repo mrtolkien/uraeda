@@ -32,7 +32,10 @@ export const StopsContext = context<Stops | null>(null);
 const holder = signal<Stop | null>(null);
 const heldNow = () => untracked(holder);
 
-/** When an overlay that the page's keys had before it closed last, and when a focus was asked. */
+/**
+ * When a field went with the focus last, or an overlay closed that the page's keys had before it,
+ * and when a focus was asked.
+ */
 let closedAt = 0;
 let askedAt = 0;
 
@@ -45,9 +48,10 @@ export const focusAsked = () => {
 };
 
 /**
- * Whether a focus that just came is GTK's: as an overlay's field goes with the focus, GTK gives
- * it to the window's next field, the page's first, which then took every key typed after it,
- * while the page's keys had it before the overlay opened. Unasked, it is given back at once.
+ * Whether a focus that just came is GTK's: as a field goes with the focus, an overlay's or a
+ * comment's once saved, GTK gives it to the window's next field, the page's first, which then took
+ * every key typed after it, while the page's keys should have had them. Unasked, it is given back
+ * at once.
  */
 const stray = () => askedAt < closedAt && Date.now() - closedAt < STRAY;
 
@@ -88,6 +92,8 @@ export function focusStop(
     stop.isThere = false;
     if (heldNow() === stop) {
       holder.set(null);
+      // Removed with the focus, as a comment's field once saved: GTK gives it to the next field.
+      closedAt = Date.now();
     }
     stops?.splice(stops.indexOf(stop), 1);
   });
