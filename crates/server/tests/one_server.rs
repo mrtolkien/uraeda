@@ -45,7 +45,11 @@ async fn a_second_server_on_one_data_folder_is_refused() {
             data.display()
         )
     );
-    assert_eq!(files(&data), before, "the second start changed the first's files");
+    assert_eq!(
+        files(&data),
+        before,
+        "the second start changed the first's files"
+    );
 
     // Once it has, the second names it, when it does not answer.
     let mut gone = running.clone();

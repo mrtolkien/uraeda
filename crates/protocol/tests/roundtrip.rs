@@ -218,7 +218,13 @@ fn the_reasons_a_client_draws_are_those_of_its_version() {
         S::Waiting,
         S::Continue,
     ];
-    let needs = [N::Blocked, N::Attention, N::Step, N::PullRequest, N::Continue];
+    let needs = [
+        N::Blocked,
+        N::Attention,
+        N::Step,
+        N::PullRequest,
+        N::Continue,
+    ];
     let seen = (
         PROTOCOL,
         statuses.map(status).to_vec(),
@@ -229,7 +235,9 @@ fn the_reasons_a_client_draws_are_those_of_its_version() {
         seen,
         (
             3,
-            reasons("blocked step failed stopped interrupted halted conflict capped waiting continue"),
+            reasons(
+                "blocked step failed stopped interrupted halted conflict capped waiting continue"
+            ),
             reasons("blocked attention step pull-request continue"),
         )
     );
