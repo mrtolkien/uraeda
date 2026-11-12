@@ -10242,3 +10242,23 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the stall is in NSH's glass, and a lamp breathing under a smaller layer, a picker,
   is fine: then `layerOpen()` narrows to dialogs, or the glass samples a still frame.
 - **Where**: `app/ui/controls/Button.tsx`, `app/ui/keys/registry.tsx`.
+
+## T85.1: In a field, the status line says INSERT and hints only the field's keys, Vim or not
+
+- **Decision**: a text field tells the key registry it has the focus (`fieldFocused`, by a token
+  of its own, given back as it goes); while one has it, the status line hints only the keys the
+  field lets through (`inField`), and its mode reads INSERT when Vim gives none. Outside a field,
+  NAV, and the page's hints, as before.
+- **Rationale**: walking a session by keys, the composer had the focus after a chat opened, and
+  the status line still said NAV with `j k move`, `R rename`, `i write`: the person trusted it and
+  typed `gg` into the message. docs/app.md already says "NAV while keys act on the page, else the
+  field's"; Vim's modes said it only with Vim on. INSERT is the word a LazyVim hand reads as "what
+  I type goes in the text", in the mode colour the field's edge already takes.
+- **Alternatives considered**: a word of its own, EDIT or TYPE, which no guide names; leaving the
+  mode alone and only filtering the hints, which still said NAV over a field.
+- **If wrong**: `modeSlot` in `app/screens/shell/Status.tsx` drops the fallback; the hints' filter
+  stays, as it is true either way. specs/ui/surfaces.md says "With Vim mode off, the line keeps its
+  sections without the mode", which the app did not do before either: the guide is the human's to
+  settle.
+- **Where**: `app/ui/keys/{registry.tsx,store.ts}`, `app/ui/text/TextField.tsx`,
+  `app/screens/shell/Status.tsx`, `app/ui/text/text.test.tsx`.
