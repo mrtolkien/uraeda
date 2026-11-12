@@ -200,6 +200,14 @@ export function VirtualList(props: VirtualListProps) {
       }}
       ref={(node: ListRef) => {
         list = node;
+        // A list that follows opens at its true end: the last row's index lands where its
+        // rows' estimated heights put it, short of the end, "Jump to the latest" shown at once.
+        if (props.follow === true && props.offset === undefined && start > 0) {
+          // Unless a row was asked for meanwhile, as a link to a turn asks.
+          setTimeout(() => {
+            if (untracked(cursor.reveal) === undefined) node.scrollToEnd({ animated: false });
+          }, 0);
+        }
         props.ref?.({
           scrollTo: (offset, animated = false) => node.scrollToOffset({ animated, offset }),
           show,
