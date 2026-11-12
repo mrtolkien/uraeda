@@ -1,7 +1,7 @@
 // One section of the priorities: its title, what it holds, its rows in the order the human sets,
 // a refused move's words under them, and its Add row. Its keys are its own scope's, on while the
 // section has the pane's focus, so Now, Next, and Later each have `j` `k` `m` without a clash.
-import { type Accessor, computed, effect, untracked, View } from "nsh";
+import { type Accessor, cleanup, computed, effect, untracked, View } from "nsh";
 import type { Order } from "./moves";
 import { shownIn } from "./order";
 import { stateOf } from "../shell/Sidebar";
@@ -203,10 +203,25 @@ export function Ongoing(props: {
   );
 }
 
+/** What opens each shown section's Add line, by the section's id. */
+const opens = new Map<string, () => void>();
+
+/** Opens the Add line of the section `id`, as a press on its row does: whether one is shown. */
+export function openAdd(id: string): boolean {
+  const opening = opens.get(id);
+  opening?.();
+  return opening !== undefined;
+}
+
 /** The Add row: `a`, or a press, opens a line; Enter adds it at the section's end. */
 function Add(props: { active: () => boolean; repo: string; section: string }) {
   const pane = usePane();
   const open = pane.remember<boolean>(`adding:${props.section}`, false);
+  const opening = () => open.set(true);
+  opens.set(props.section, opening);
+  cleanup(() => {
+    if (opens.get(props.section) === opening) opens.delete(props.section);
+  });
   const typed = pane.remember<string>(`add:${props.section}`, "");
   const refusal = pane.remember<string | null>(`added:${props.section}`, null);
   const priorities = record("Priorities", { repo: props.repo });

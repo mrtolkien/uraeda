@@ -4,7 +4,7 @@
 // A proposal's own pane, where its text is written and its work started, is task 38's. It joins
 // without a change here: a module that declares a kind of pane named `proposal`, with the
 // arguments `{ repo, key }`, takes the place of this summary, in its kind's stack.
-import { Priorities } from "./Priorities";
+import { addProposal, Priorities } from "./Priorities";
 import { Proposal } from "./Proposal";
 import {
   definePane,
@@ -16,6 +16,7 @@ import {
 } from "../../ui/layout";
 
 export const prioritiesPane = definePane<{ repo: string; open?: string }>({
+  action: () => ({ icon: "plus", label: "Add", run: addProposal }),
   icon: "list",
   kind: "priorities",
   stack: "main",

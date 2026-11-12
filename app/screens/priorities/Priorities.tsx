@@ -6,10 +6,10 @@
 // The focus is in one section at a time. `j` `k` move in it, and past its ends into the section
 // above or under it in the list; `h` `l` cross the columns, and past the last one the frame's
 // stacks. `m` lifts a row, `H` `L` send it to the section before or after.
-import { computed, untracked, View } from "nsh";
+import { cleanup, computed, untracked, View } from "nsh";
 import { createOrder } from "./moves";
 import { byKey } from "./order";
-import { Ongoing, Section } from "./Section";
+import { Ongoing, openAdd, Section } from "./Section";
 import { device, navigate, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
 import { Banner, Segmented, Spinner, Text } from "../../ui/controls";
@@ -23,6 +23,12 @@ export type Shape = "columns" | "list";
 
 /** The sections the page shows, by their id: Ongoing's is its own. */
 type Shown = { id: string; title: string; context: string | null };
+
+/** Opens the Add line of the shown priorities' section with the focus, else Now's. */
+let addHere: (() => void) | undefined;
+
+/** The phone's bottom bar's Add: a new proposal's line, open, in the section with the focus. */
+export const addProposal = () => addHere?.();
 
 // oxlint-disable-next-line max-lines-per-function -- the sections, the cursor across them, and the moves in one scope; the moves can be a hook of their own
 export function Priorities(props: { repo: string; width: WidthClass; open?: string }) {
@@ -101,6 +107,14 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
     if (running) navigate({ folder: running.folder, page: "feature" });
     else navigate({ key, page: "proposal" });
   };
+
+  const adding = () => {
+    if (!openAdd(focused())) openAdd(ids().find((id) => id !== "ongoing") ?? "now");
+  };
+  addHere = adding;
+  cleanup(() => {
+    if (addHere === adding) addHere = undefined;
+  });
 
   registerKey([
     {
