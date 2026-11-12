@@ -63,6 +63,8 @@ export type Saves = {
   notes: (text: string) => Promise<void>;
   /** Adds a comment on a settled point: a feature's round only. */
   settled: (subject: string, text: string) => Promise<void>;
+  /** Changes the text of a comment on a settled point: a feature's round only. */
+  reword: (comment: SettledComment, text: string) => Promise<void>;
   /** Removes a comment on a settled point, which the undo stack keeps: a feature's round only. */
   unsettle: (comment: SettledComment) => Promise<void>;
   /**
@@ -163,6 +165,14 @@ function createSaves(
       });
     });
 
+  const reword = (comment: SettledComment, text: string) =>
+    queue(async () => {
+      if (target.kind !== "feature") throw new Error("This round takes no comments on its points.");
+      const { number, subject } = comment;
+      const where = { folder: target.folder, repo: target.repo };
+      await call("settled.edit", { ...where, number, previous: comment.text, subject, text });
+    });
+
   /** Saves an answer, once: the same answer queued and not answered yet is that save. */
   const answer = (question: QuestionItem, value: Answer) => {
     const last = queued.get(question.id);
@@ -212,6 +222,7 @@ function createSaves(
       if (hash === read.current.document.hash) hash = undefined;
     },
     holds: (question) => queued.has(question) || (written.get(question)?.trim() ?? "") !== "",
+    reword,
     settled,
     unsettle,
     async submit(options) {

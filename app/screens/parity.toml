@@ -143,6 +143,13 @@ why = "a pane is zoomed by the frame (R345)"
 fate = "brought-back"
 now = "a story's or a mockup's page: Full screen, `f`, zooms its pane over the window (task 66's zoom, `Space w z`), its web view kept, the side stack hidden rather than the pane drawn again; `f` again puts it back"
 
+[[left]]
+what = "A settled comment's text edited"
+old = "Rounds (`settled.edit`)"
+why = "a settled point's comment is removed and written again, on the undo stack (task 42, task 50)"
+fate = "brought-back"
+now = "a settled point's comment: Edit beside Remove, in place, its text kept on the device until saved (`settled.edit`); saved blank, it is removed, on the undo stack"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -192,14 +199,6 @@ why = "removing and adding a name does the same, in two presses (T48)"
 fate = "left"
 needs = "an Edit on the host's row, in the name dialog, over `settings.editHost`"
 missed = "nobody will: host names are set once"
-
-[[left]]
-what = "A settled comment's text edited"
-old = "Rounds (`settled.edit`)"
-why = "a settled point's comment is removed and written again, on the undo stack (task 42, task 50)"
-fate = "left"
-needs = "an Edit beside Remove on a settled comment"
-missed = "nobody much"
 
 [[left]]
 what = "Retry a refused write of the triage or the decisions check"

@@ -81,29 +81,82 @@ function Comment(props: {
   );
 }
 
-/** A comment of the human's on a point, with its removal where the round takes comments. */
-function Given(props: { comment: SettledComment; saves: Saves; takes: boolean }) {
+/**
+ * A comment of the human's on a point, with its edit and its removal where the round takes
+ * comments. Its edit is in place, its text kept on the device until saved; saved blank, it goes.
+ */
+function Given(props: {
+  args: RoundArgs;
+  comment: SettledComment;
+  path: string;
+  saves: Saves;
+  takes: boolean;
+}) {
   const refusal = signal<string | null>(null);
   const pending = signal(false);
+  const editing = signal(false);
+  const key = fieldKey(props.args, props.path, `settled-edit:${props.comment.number}`);
+  const text = unsavedText(key, () => props.comment.text);
+  const done = (words: string) => (error: Error) => {
+    pending.set(false);
+    refusal.set(`${words} ${error.message}`);
+  };
   const remove = () => {
     pending.set(true);
     refusal.set(null);
-    props.saves.unsettle(props.comment).then(
-      () => pending.set(false),
-      (error: Error) => {
-        pending.set(false);
-        refusal.set(`Not removed: ${error.message}`);
-      },
-    );
+    props.saves.unsettle(props.comment).then(() => pending.set(false), done("Not removed:"));
+  };
+  const save = () => {
+    const words = text.text().trim();
+    if (pending()) return;
+    if (words === "") {
+      text.discard();
+      editing.set(false);
+      remove();
+      return;
+    }
+    pending.set(true);
+    refusal.set(null);
+    props.saves.reword(props.comment, words).then(() => {
+      pending.set(false);
+      text.discard();
+      editing.set(false);
+    }, done("Not saved: your text stays on this device."));
   };
   return (
     <View style={{ gap: 4 }}>
-      <View style={{ alignItems: "center", columnGap: 8, flexDirection: "row", flexWrap: "wrap" }}>
-        <Text style={{ flexShrink: 1 }} tone="info">{`Your comment: ${props.comment.text}`}</Text>
-        <If when={props.takes}>
-          <Button icon="trash-2" label="Remove" onPress={remove} pending={pending()} />
-        </If>
-      </View>
+      <If
+        when={editing()}
+        else={
+          <View
+            style={{ alignItems: "center", columnGap: 8, flexDirection: "row", flexWrap: "wrap" }}
+          >
+            <Text
+              style={{ flexShrink: 1 }}
+              tone="info"
+            >{`Your comment: ${props.comment.text}`}</Text>
+            <If when={props.takes}>
+              <Button icon="pencil-line" label="Edit" onPress={() => editing.set(true)} />
+              <Button icon="trash-2" label="Remove" onPress={remove} pending={pending()} />
+            </If>
+          </View>
+        }
+      >
+        <TextField
+          autoFocus
+          label={`Your comment on “${props.comment.subject}”`}
+          onChange={text.change}
+          onQuit={() => editing.set(false)}
+          onSave={save}
+          rows={{ max: 8, min: 2 }}
+          testID="settled-edit"
+          value={text.text()}
+        />
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Button icon="check" label="Save the change" onPress={save} pending={pending()} />
+          <Button label="Cancel" onPress={() => editing.set(false)} />
+        </View>
+      </If>
       <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
     </View>
   );
@@ -136,7 +189,15 @@ export function settledMark(props: {
           key={(comment: SettledComment) => `${comment.number}:${comment.text}`}
           of={comments()}
         >
-          {(comment) => <Given comment={comment()} saves={props.saves} takes={takes()} />}
+          {(comment) => (
+            <Given
+              args={props.args}
+              comment={comment()}
+              path={props.file().path}
+              saves={props.saves}
+              takes={takes()}
+            />
+          )}
         </Each>
         <If when={takes() ? point() : undefined}>
           {(shown) => (
