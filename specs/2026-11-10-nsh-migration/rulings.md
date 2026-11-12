@@ -10044,6 +10044,11 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     four other decisions. `no_decision_names_a_mechanism_its_checks_do_not` failed on the same rule,
     which names "10 minutes" where its check says "the runner's tests": the 10 minutes are the rule,
     so the test's `APPROVED` lists them for this decision.
+  - **The full pass after the rebase**: `just ready` passed in 475 s, 1,979 Rust tests passed and 31
+    skipped, 199 tests of the app, once its `ura check` read this task's two ruling headings as R
+    numbers, which the coordinator gives them at the merge: with `T67.n`, `just specs` reports them
+    and the recipe stops there. `just web-build` passed in 223 s, `just web-test` in 172 s, 16
+    tests. Nothing failed under load.
 - **If wrong**: the human trims the decision to its shape, and the line of `approved_over_its_shape`
   goes with it.
 - **Where**: `crates/core/tests/check.rs`, `specs/decisions/run-lifecycle.md`.

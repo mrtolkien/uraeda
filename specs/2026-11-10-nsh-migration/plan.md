@@ -3857,22 +3857,30 @@ nudging)."
   stopped at `67f4dad0`: `git log 67f4dad0..origin/main`.
 - Produces: the new stack with every change of the default branch that is worth having, and a list
   of each commit read, kept or left, with its reason.
+- As built (rulings T67.1 and T67.2): five commits since `67f4dad0`, to `2ebbc5e3` (v1.4.0). One was
+  ported, `9d0337f0`, the "idle session nudging" the human named: a reply that ended while a
+  background command runs is asked about it after 10 quiet minutes (`QUIET`), and fails 10 minutes
+  later unanswered (`UNANSWERED`), its process closed; a sub-agent's failed call gives its last
+  message (`runner/running/quiet.rs`, `steer_into`). The other four, PRIORITIES, INBOX, and the
+  release, came with the rebase, the workspace at 1.4.0. Task 64's one item left, `toStored`, was
+  ported by task 44's ruling. The run lifecycle decision's new rule is over its shape: two tests of
+  the ledger list it as approved.
 
-- [ ] **Step 1: Read every commit** of `git log --reverse 67f4dad0..origin/main`, with its message
+- [x] **Step 1: Read every commit** of `git log --reverse 67f4dad0..origin/main`, with its message
       and its diff. The old UI and the Node server it changed are gone from this branch, so nothing
       merges by itself: each commit is read for what it does for the human, not for its lines.
-- [ ] **Step 2: Sort them** in the commit body's list: a fix or a feature of behaviour the new stack
+- [x] **Step 2: Sort them** in the commit body's list: a fix or a feature of behaviour the new stack
       has too, which is ported; one of code the rewrite replaced with something that does not have
       the problem, which is left, saying why; a change of the core, the skill, the specs, or the
       documentation, which comes with the rebase. When in doubt, port: the human made each change
       because something hurt.
-- [ ] **Step 3: Port each kept change**, one commit each, named after the default branch's commit,
+- [x] **Step 3: Port each kept change**, one commit each, named after the default branch's commit,
       with a test that fails first where it changes behaviour. A change to a screen follows
       [what makes a screen good](#what-makes-a-screen-good), and adds its complaint to that section
       when it teaches a new rule.
-- [ ] **Step 4: Rebase the branch** on the default branch. A file the default branch changed and
+- [x] **Step 4: Rebase the branch** on the default branch. A file the default branch changed and
       this branch deleted stays deleted, once step 3 has its change. A decision or the constitution
       changed there is read as the final review's catch-up reads it.
-- [ ] **Step 5: Run the full pass**, `just ready`. Expected: PASS.
-- [ ] **Step 6: Commit** the list as the last commit's body:
+- [x] **Step 5: Run the full pass**, `just ready`. Expected: PASS.
+- [x] **Step 6: Commit** the list as the last commit's body:
       `feat(nsh-migration): what the default branch gained since the catch-up`.
