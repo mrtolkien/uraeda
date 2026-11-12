@@ -60,6 +60,8 @@ export function Answering(props: {
     { keys: "p", label: "Previous question", run: () => position.step(-1) },
   ]);
   // A question's own keys, in a selection's scope, so `b` answers B, not Back, while one is shown.
+  // A hand returns `false` when the key is not its own, and `undefined` once done: never `?? false`,
+  // which made a done pick "not mine" too, so `b` answered B and then went Back as well.
   const hands: QuestionHands = {};
   const shown = keyScope({
     kind: "selection",
@@ -75,13 +77,13 @@ export function Answering(props: {
         hintPress: place === 0 ? "?" : undefined,
         keys: key,
         label: `Answer ${key.toUpperCase()}, and go on`,
-        run: () => hands.pick?.(key) ?? false,
+        run: () => (hands.pick === undefined ? false : hands.pick(key)),
       })),
       // Shift and a letter adds it to the answer, or takes it out, and stays: an answer of several.
       ...LETTERS.map((key): KeySpec => ({
         keys: key.toUpperCase(),
         label: `Add ${key.toUpperCase()} to the answer, or take it out`,
-        run: () => hands.toggle?.(key) ?? false,
+        run: () => (hands.toggle === undefined ? false : hands.toggle(key)),
       })),
       {
         hint: "i",
@@ -95,7 +97,7 @@ export function Answering(props: {
         hintLabel: "ask",
         keys: "s",
         label: "Ask the agent about this question, beside",
-        run: () => hands.ask?.() ?? false,
+        run: () => (hands.ask === undefined ? false : hands.ask()),
       },
     ],
     shown,

@@ -76,12 +76,33 @@ test("Shift and a letter adds it to the answer, and stays on the question", asyn
   await app.waitUntil(() => words(app).includes("How should the app store due dates?"), {
     timeout: 30_000,
   });
-  await app.keyboard.press("shift+b");
+  // Q2 may hold B already, from the test that submits: A is added beside it.
+  await app.keyboard.press("shift+a");
   await app.waitUntil(() => calls(app).some((call) => call.action === "answer.save"), {
     timeout: 10_000,
   });
   await app.wait(300);
-  // B is added, and the question stays: a letter alone would have gone on to Q3.
+  // A is added, and the question stays: a letter alone would have gone on to Q3.
   expect(words(app)).toContain("How should the app store due dates?");
+  expect(calls(app).at(-1)).toMatchObject({ question: "Q2" });
+  expect(calls(app).at(-1)?.letters).toContain("A");
+}, 90_000);
+
+test("b answers B and goes on, and is not also Back", async () => {
+  const app = await page("Q2", true);
+  await app.waitUntil(() => words(app).includes("How should the app store due dates?"), {
+    timeout: 30_000,
+  });
+  // A page before the round, for Back to return to.
+  await app.host.send("go", "/r/sample/inbox");
+  await app.wait(1000);
+  await app.host.send("go", `/r/sample/f/${ROUND}`);
+  await app.waitUntil(() => words(app).includes("How should the app store due dates?"), {
+    timeout: 10_000,
+  });
+  await app.keyboard.press("b");
+  await app.waitUntil(() => words(app).includes("How does a repetition end?"), { timeout: 10_000 });
+  await app.wait(1000);
+  expect(words(app)).toContain("How does a repetition end?");
   expect(calls(app).at(-1)).toMatchObject({ letters: ["B"], question: "Q2" });
 }, 90_000);
