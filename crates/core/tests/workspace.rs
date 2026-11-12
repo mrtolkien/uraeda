@@ -112,6 +112,19 @@ fn proposal_proposals_name_their_proposal_file() {
     );
 }
 
+/// A feature's page reads whether it is in Now from the proposal lines alone: the lines it reads
+/// are the workspace's, without every feature's view built to find them.
+#[test]
+fn the_proposal_lines_are_the_workspaces_priorities() {
+    let repo = repo();
+
+    let lines = api::read_proposal_lines(repo.path()).unwrap();
+
+    assert_eq!(lines, api::read_workspace(repo.path()).unwrap().priorities);
+    let now = lines.iter().find(|line| line.section == "now").unwrap();
+    assert_eq!(now.feature.as_deref(), Some(FOLDER));
+}
+
 /// The edge case of the spec: a merged feature whose branch still exists is done, once.
 #[test]
 fn a_merged_feature_with_its_branch_is_done() {

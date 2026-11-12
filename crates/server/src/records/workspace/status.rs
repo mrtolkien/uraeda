@@ -31,11 +31,11 @@ pub(in crate::records) fn now_of(priorities: &[ProposalView]) -> HashSet<String>
     crate::runner::in_now(priorities)
 }
 
-/// Whether one feature of the repository is in **Now**: its line read in the workspace, which
-/// the core keeps read.
+/// Whether one feature of the repository is in **Now**: its line read in the priorities, which
+/// the core keeps read, without every feature's view.
 pub(in crate::records) fn in_now(root: &Path, folder: &str) -> bool {
-    let workspace = api::read_workspace(root);
-    workspace.is_ok_and(|workspace| now_of(&workspace.priorities).contains(folder))
+    let lines = api::read_proposal_lines(root);
+    lines.is_ok_and(|lines| now_of(&lines).contains(folder))
 }
 
 /// The status of a feature no session follows, from its step: it needs the human when it has

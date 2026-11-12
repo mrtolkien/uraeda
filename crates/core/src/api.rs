@@ -16,8 +16,8 @@ use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::Git;
 use crate::view::{
-    CommitView, FeatureView, FileView, NextView, ProposalLink, StepView, VersionView, WaitingFile,
-    WorkspaceView,
+    CommitView, FeatureView, FileView, NextView, ProposalLink, ProposalView, StepView, VersionView,
+    WaitingFile, WorkspaceView,
 };
 use crate::workspace::{Feature, FileKind, Source, Workspace, WorkspaceError};
 
@@ -172,6 +172,13 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
             ..WorkspaceView::new(workspace, |feature| checked(&git, &read, feature, false))
         }
     }))
+}
+
+/// The proposals of the priorities, as [`read_workspace`] gives them, without building every
+/// feature's view: what a feature's page reads to learn whether it is in **Now**.
+pub fn read_proposal_lines(repo: &Path) -> Result<Vec<ProposalView>> {
+    let (_, workspace) = open(repo)?;
+    Ok(ProposalView::lines(&workspace))
 }
 
 /// One feature, for its page: a done one with the notes of its record.

@@ -67,6 +67,23 @@ pub struct ProposalView {
     pub file: Option<String>,
 }
 
+impl ProposalView {
+    /// The proposals of the workspace's priorities, in order.
+    pub(crate) fn lines(workspace: &Workspace) -> Vec<ProposalView> {
+        let line = |proposal: &crate::workspace::LinkedProposal| ProposalView {
+            id: format!("{}-{}", proposal.section.id(), proposal.position),
+            key: proposal.key.clone(),
+            section: proposal.section.id().to_string(),
+            position: proposal.position as u32,
+            text: proposal.text.clone(),
+            link: proposal.link.clone(),
+            feature: proposal.feature.clone(),
+            file: proposal.file.clone(),
+        };
+        workspace.priorities.iter().map(line).collect()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceView {
@@ -353,20 +370,7 @@ impl WorkspaceView {
                 .iter()
                 .map(|feature| FeatureView::new(feature, &problems(feature)))
                 .collect(),
-            priorities: workspace
-                .priorities
-                .iter()
-                .map(|proposal| ProposalView {
-                    id: format!("{}-{}", proposal.section.id(), proposal.position),
-                    key: proposal.key.clone(),
-                    section: proposal.section.id().to_string(),
-                    position: proposal.position as u32,
-                    text: proposal.text.clone(),
-                    link: proposal.link.clone(),
-                    feature: proposal.feature.clone(),
-                    file: proposal.file.clone(),
-                })
-                .collect(),
+            priorities: ProposalView::lines(workspace),
             priorities_hash: String::new(),
             proposals: workspace.proposals.clone(),
             no_specs: None,

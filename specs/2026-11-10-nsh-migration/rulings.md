@@ -10576,7 +10576,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: drop `phoneBrowser` from `widthClass`, and give the semi-wide frame touch sizes.
 - **Where**: `app/ui/width.ts`.
 
-## T197.1: One data folder, one server, by a lock
+## R529: One data folder, one server, by a lock
 
 - **Decision**: a start takes an advisory lock on `run/server.lock` in the data folder (std's
   `File::try_lock`, no new dependency) before it reads the status file or opens a store, and the
