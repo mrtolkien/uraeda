@@ -5,7 +5,7 @@
 // It is raised glass, as the design language has it.
 import { type JSX, View } from "nsh";
 import { Kbd, Text } from "../controls";
-import { keyHints, pressKeys, type StatusHint } from "../keys/registry";
+import { keyHints, missedKeys, pressKeys, type StatusHint } from "../keys/registry";
 import { Surface } from "../surfaces";
 import { tokens } from "../tokens";
 
@@ -61,6 +61,17 @@ function Hints() {
         overflow: "hidden",
       }}
     >
+      {/* A key the leader's menu did not have closed it: said for a moment, before the hints. */}
+      <If when={missedKeys()}>
+        {(keys) => (
+          <View style={{ alignItems: "center", flexDirection: "row", flexShrink: 0, gap: 6 }}>
+            <Kbd keys={keys()} />
+            <Text lines={1} tone="caution">
+              is no key here
+            </Text>
+          </View>
+        )}
+      </If>
       <Each key={(hint: StatusHint) => `${hint.keys} ${hint.label}`} of={keyHints()}>
         {(hint) => (
           <View

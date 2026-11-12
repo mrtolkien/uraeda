@@ -134,6 +134,9 @@ export const layerOpen = () => store.layer() !== null;
 /** The sequence that waits for its next key, read as a signal: `null` for none. */
 export const pendingKeys = (): Step | null => leader.step();
 
+/** The keys of a sequence that just ended on a key none of its, "space x": `null` for none. */
+export const missedKeys = (): string | null => leader.missed();
+
 /** Ends the sequence that waits, if any: a page change does. */
 export const endKeys = () => leader.end();
 

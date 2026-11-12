@@ -13,6 +13,8 @@ export type Step = { isShown: boolean; path: ReadonlyArray<string> };
 export type Result = {
   /** The key belongs to the sequence, though nothing ran: the page does not hear it. */
   consumed: boolean;
+  /** The key is none of the step's: the sequence ends, and the status line says so. */
+  missed?: boolean;
   /** The keys of the binding the token completed. */
   ran: string | null;
   step: Step | null;
@@ -33,6 +35,7 @@ const startsWith = (tokens: ReadonlyArray<string>, prefix: ReadonlyArray<string>
 
 const PASSED: Result = { consumed: false, ran: null, step: null };
 const ENDED: Result = { consumed: true, ran: null, step: null };
+const MISSED: Result = { ...ENDED, missed: true };
 
 /** Keys that are no menu keys: a chord (not the leader's own), and Tab, which moves the focus. */
 const isPassing = (token: string) =>
@@ -77,9 +80,9 @@ export function next(
   if (token !== LEADER && !isPrintable(token)) {
     return PASSED;
   }
-  // An unbound key leaves the leader's menu the human reads open; `g`'s sequence, shown or not,
-  // and one typed fast just end.
-  return step.isShown && step.path[0] === LEADER ? { consumed: true, ran: null, step } : ENDED;
+  // Any other key is none of the step's: the menu closes, as LazyVim's which-key does, and the
+  // key does nothing else, for it was meant for the menu.
+  return MISSED;
 }
 
 /**

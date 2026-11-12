@@ -311,10 +311,10 @@ test("a pending sequence takes its keys, and leaves the others", () => {
     [step(["space"]), "n", { consumed: true, ran: null, step: step(["space", "n"]) }],
     [step(["space", "n"]), "n", { consumed: true, ran: "space n n", step: null }],
     [step(["space"]), "space", { consumed: true, ran: "space space", step: null }],
-    // An unbound key keeps the leader's menu a human reads, and ends what is not shown, or `g`'s.
-    [step(["space"], true), "x", { consumed: true, ran: null, step: step(["space"], true) }],
-    [step(["space"]), "x", { consumed: true, ran: null, step: null }],
-    [step(["g"], true), "x", { consumed: true, ran: null, step: null }],
+    // An unbound key ends the sequence, shown or not, and is said to be no key of it.
+    [step(["space"], true), "x", { consumed: true, missed: true, ran: null, step: null }],
+    [step(["space"]), "x", { consumed: true, missed: true, ran: null, step: null }],
+    [step(["g"], true), "x", { consumed: true, missed: true, ran: null, step: null }],
     [step(["space", "n"]), "Backspace", { consumed: true, ran: null, step: step(["space"]) }],
     [step(["space"]), "Backspace", { consumed: true, ran: null, step: null }],
     [step(["space", "n"]), "Escape", { consumed: true, ran: null, step: null }],

@@ -14,6 +14,7 @@ export {
   keysOn,
   keysRefused,
   keysWorkHere,
+  missedKeys,
   type KeySpec,
   pendingKeys,
   pressKeys,

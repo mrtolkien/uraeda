@@ -2,7 +2,8 @@
 // menu shows 300 ms after the last key while it is hidden, and once shown it stays and follows each
 // key at once. A pending step has no end of its own, a `g` as the leader's (Space, or Ctrl+K): its
 // menu, being read, waits for its key, as LazyVim's which-key does. It is closed by Escape, a key
-// no sequence uses, a layer, a page change, or the switch.
+// none of its (which the status line then names for a moment), a layer, a page change, or the
+// switch.
 import { signal } from "nsh";
 import { next, type Step } from "./sequence";
 import type { KeyStore } from "./store";
@@ -10,6 +11,9 @@ import { CHORD } from "./token";
 
 /** How long after the last key a hidden menu shows: quick typing shows nothing. */
 export const SHOW_AFTER = 300;
+
+/** How long the status line says a key was none of the menu's. */
+export const MISSED_FOR = 2000;
 
 export type Pressed = {
   /** The key belongs to the sequence: the page does not hear it. */
@@ -20,7 +24,10 @@ export type Pressed = {
 
 export function createLeader(store: KeyStore) {
   const step = signal<Step | null>(null);
+  /** The keys of a sequence its last key was none of, "space x", for a moment. */
+  const missed = signal<string | null>(null);
   let showing: ReturnType<typeof setTimeout> | undefined;
+  let forgetting: ReturnType<typeof setTimeout> | undefined;
 
   const change = (to: Step | null) => {
     clearTimeout(showing);
@@ -55,6 +62,13 @@ export function createLeader(store: KeyStore) {
       if (pending !== null || result.step !== null) {
         change(result.step);
       }
+      clearTimeout(forgetting);
+      missed.set(
+        result.missed === true && pending !== null ? [...pending.path, token].join(" ") : null,
+      );
+      if (result.missed === true) {
+        forgetting = setTimeout(() => missed.set(null), MISSED_FOR);
+      }
       return { consumed: result.consumed, ran: result.ran };
     },
     /** Shows the menu of the sequence pending now, with no wait: a press on its hint asked. */
@@ -64,6 +78,8 @@ export function createLeader(store: KeyStore) {
         change({ ...pending, isShown: true });
       }
     },
+    /** The keys of a sequence that ended on a key none of its, read as a signal, for a moment. */
+    missed: (): string | null => missed(),
     /** The sequence pending, read as a signal: `null` for none. */
     step: (): Step | null => step(),
   };
