@@ -33,6 +33,7 @@ import {
   takeFocus,
 } from "./focus";
 import { backCloses } from "./backCloses";
+import { swipeDown } from "./swipeDown";
 import { onChange, presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
@@ -143,6 +144,8 @@ export function Float(props: FloatProps) {
   const there = presence(open, () => ({ y: props.place().rise }));
   // A sheet, what a dialog is on a phone, is a visit of its own there: Back closes it.
   if (props.scrim) backCloses(open, isNarrow, close);
+  // On a phone, a swipe down on its top row closes it.
+  const swipe = swipeDown(isNarrow, close);
   const stops: Stops = [];
   const takesKeys = props.keys;
   // Made here, in the float's own body, and given explicitly: see `InScope`.
@@ -206,7 +209,9 @@ export function Float(props: FloatProps) {
           onPress={close}
           style={{ ...WHOLE, backgroundColor: tokens.backdrop.dim, opacity: there.style.opacity }}
         />
-        <View style={[props.place().box, there.style]}>{box()}</View>
+        <View {...swipe.props} style={[props.place().box, there.style]}>
+          <View style={{ flexShrink: 1, transform: [{ translateY: swipe.by() }] }}>{box()}</View>
+        </View>
       </Layer>
     ) : (
       <Layer

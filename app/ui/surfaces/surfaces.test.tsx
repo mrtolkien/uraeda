@@ -59,3 +59,14 @@ test("on a phone, Back closes a sheet, and a sheet closed otherwise leaves no vi
   await app.host.send("back", null);
   expect(app.texts()).toContain("back: false");
 });
+
+test("on a phone, a swipe down on a sheet's title closes it; a short one leaves it", async () => {
+  const app = await open("./__checks__/focus.tsx", { height: 844, width: 390 });
+  await app.keyboard.press("mod+o");
+  await app.drag("text:A question", { y: 30 });
+  await app.wait(400);
+  expect(app.shows("id:dialog")).toBe(true);
+  await app.drag("text:A question", { y: 200 });
+  await app.wait(400);
+  expect(app.shows("id:dialog")).toBe(false);
+});
