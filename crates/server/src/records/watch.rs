@@ -72,6 +72,9 @@ struct Watches {
     repositories: Mutex<HashMap<String, (PathBuf, Watcher)>>,
     /// The watches of the data folder and of the config folder.
     folders: Mutex<Vec<files::Watch>>,
+    /// Each listed repository whose folder is gone, by its name: where its `.git` was, watched
+    /// until it is back, which reads the list again, as the page of a folder gone promises.
+    gone: Mutex<HashMap<String, (PathBuf, files::Watch)>>,
 }
 
 /// Starts the watches, once every domain registered: each listed repository's, the list's own
@@ -90,6 +93,7 @@ pub(super) fn start(shared: &Shared) -> Result<(), Failure> {
         repositories::close(&stopping);
         locked(&watches.folders).clear();
         locked(&watches.repositories).clear();
+        locked(&watches.gone).clear();
     });
     Ok(())
 }
@@ -98,6 +102,7 @@ pub(super) fn start(shared: &Shared) -> Result<(), Failure> {
 /// and the watch of one removed, moved, or whose folder is gone, ends. Each that left is told
 /// to the domains of [`REPOSITORY_LEFT`], and each that joined to those of `joined`.
 fn follow(shared: &Shared, watches: &Watches, joined: &[fn(&Shared, &str)]) {
+    watches.follow_gone(shared);
     let there = |repository: &repositories::Repository| !repository.missing;
     let listed = repositories::all(shared).into_iter().filter(there);
     let listed: HashMap<_, _> = listed.map(|row| (row.name, row.path)).collect();
@@ -138,6 +143,29 @@ fn follow(shared: &Shared, watches: &Watches, joined: &[fn(&Shared, &str)]) {
 }
 
 impl Watches {
+    /// Watches where each gone repository's `.git` was, from the nearest folder there, and no
+    /// longer one that came back or left the list: nothing else reads the list when it returns.
+    fn follow_gone(&self, shared: &Shared) {
+        let gone: HashMap<_, _> = repositories::all(shared)
+            .into_iter()
+            .filter(|repository| repository.missing)
+            .map(|row| (row.name, row.path.join(".git")))
+            .collect();
+        let mut watched = locked(&self.gone);
+        watched.retain(|name, (path, _)| gone.get(name) == Some(path));
+        for (name, path) in gone {
+            if watched.contains_key(&name) {
+                continue;
+            }
+            let listed = shared.clone();
+            let back = move || repositories::reload(&listed);
+            match files::watch(vec![Target::file(path.clone())], back) {
+                Ok(watch) => drop(watched.insert(name, (path, watch))),
+                Err(error) => eprintln!("uraeda: {name}: {error}"),
+            }
+        }
+    }
+
     /// Watches the list's file, which `ura add` and a hand edit write, and the settings file and
     /// the themes folder.
     fn watch_folders(&self, shared: &Shared) -> Result<(), Failure> {

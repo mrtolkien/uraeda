@@ -164,6 +164,36 @@ async fn a_record_of_a_repository_no_longer_there_is_refused() {
     assert!(workspace("todo-app").await.is_ok(), "found again once back");
 }
 
+// The page of a folder gone says "Move it back and this page opens again": the list, held by the
+// app, says the folder is back by itself, with no read of the repository's records, which that
+// page never makes.
+#[tokio::test]
+async fn a_folder_moved_back_is_listed_again_by_itself() {
+    let repo = fixture_repo("todo-app");
+    let server = serving(&repo).await;
+    let mut listed = Held::open(&server, "Repositories", Value::Null).await;
+    // Away in a folder of its own, which nothing of the server's watches.
+    let elsewhere = tempfile::TempDir::new().unwrap();
+    let away = elsewhere.path().join("away");
+    fs::rename(repo.path(), &away).unwrap();
+    // The app learns it is gone as it opens the repository, through any of its records.
+    let gone = Held::asked(&server, "Workspace", json!({ "repo": "todo-app" })).await;
+    assert!(
+        gone.is_err(),
+        "a repository whose folder is gone is refused"
+    );
+    listed
+        .until("the folder gone", |list| list["rows"][0]["missing"] == true)
+        .await;
+
+    fs::rename(&away, repo.path()).unwrap();
+    listed
+        .until("the folder back", |list| {
+            list["rows"][0]["missing"] == false
+        })
+        .await;
+}
+
 // US6.5 of the redesign: what needs the human is listed across repositories, with what it asks
 // and where to answer it.
 #[tokio::test]
