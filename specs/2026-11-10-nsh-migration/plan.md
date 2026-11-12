@@ -3596,14 +3596,33 @@ here: iOS and macOS are the human's, later. Ruling R424 says what NSH 0.5.0 give
 
 - Produces: every screen right on a phone's browser, as [the phone guide](/specs/ui/phone.md) asks.
 
-- [ ] **Step 1: Take a picture of every route** at 390 by 844, in both themes, with
-      `just app-shots --web --phone`.
-- [ ] **Step 2: Review each against the phone guide**: one column, top tabs, a bottom bar, sheets
+- [x] **Step 1: Take a picture of every route** at 390 by 844, in both themes, with `just web-shots`
+      (the plan's `app-shots --web --phone` does not exist: ruling R476). Seen: 33 pages and 21
+      states, then the five journeys, 125 pictures in `target/shots/phone/`.
+- [x] **Step 2: Review each against the phone guide**: one column, top tabs, a bottom bar, sheets
       for pickers and short forms, 44-point targets, prose at 16 points, wrapping text on the full
-      width. Walk through one persona's journey with touches.
-- [ ] **Step 3: Fix what fails**, in `app/ui/` where the cause is a component.
-- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 5: Commit**: `fix(nsh-migration): the app on a phone`.
+      width. Walk through one persona's journey with touches. Seen: the report's small targets, 718
+      and 478 before (dark with the walk), 32 and 18 after; the walk's misses are in the commit
+      `fix(nsh-migration): the app on a phone`.
+- [x] **Step 3: Fix what fails**, in `app/ui/` where the cause is a component (rulings R477 to R481;
+      what is left, R482).
+- [x] **Step 4: Run the task's validation**: `just task-app`, `just task uraeda-server uraeda-app`,
+      `just web-build`, `just web-test`. Expected: PASS.
+- [x] **Step 5: Commit**: `fix(nsh-migration): the app on a phone`.
+
+**As built** (rulings R476 to R482):
+
+- **`just web-shots [word]`**: the phone's pictures in the browser, with an iPhone's safe area and a
+  keyboard laid over the page, and `report.txt` of what each page measures under a thumb
+  (`crates/server/tests/browser/phone*.rs`). Two checks of it run in `just web-test`: the composer
+  stays above the keyboard, and the `…` of places opens its menu by a tap.
+- **The safe area and the keyboard**: `safe`, `aboveHome`, `belowStatus`, `keyboardUp` of
+  `app/ui/surfaces/safe.ts`, read by the narrow frame, the bottom bar, sheets, and toasts.
+- **A layer's key scope in a browser**: `keyScope` then `scope` on `Popover`, `Sheet`, and
+  `Options`; `InScope` in `app/ui/keys/registry.tsx` (R478). Every menu and selector drew nothing in
+  a browser before.
+- **For task 60**: `Browser` is unchanged; `phone.rs` has `keyboard`, `hold_at`, `swipe`, `tap`,
+  `tap_label`, `tap_selector`, and `box_of` for touch.
 
 ## Task 60: Web performance
 

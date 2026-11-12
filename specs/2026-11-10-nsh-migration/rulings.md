@@ -9488,3 +9488,123 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     the faces of the families that theme names, from `app.chunkFonts`, and never the others: the
     same faces the app's page fetches.
 - **Where**: `crates/server/tests/web.rs`, `app/ui/timing.ts`, `app/web/frame.html`.
+
+## R476: The phone's pictures are taken in the browser, with what a phone adds, and measured
+
+- **Decision**: `just web-shots [word]` (`crates/server/tests/browser/phone.rs`, with
+  `phone_shots.rs`, `phone_states.rs`, `phone_walk.rs`) serves a sandbox with its long chat, signs a
+  phone-sized browser in by touch, and pictures every page of the route parity list, the gone pages'
+  real neighbours, a round, and the states a phone meets (the `…` of places, the sidebar, a pane's
+  menu, a selector, a short form with and without the keyboard, a dialog, the keyboard up over the
+  composer, a note, and a round's comment, a toast, a long transcript, a spec's code, a diff), then
+  the owner's five journeys by touch (`w1` to `w5`), in both themes, to `target/shots/phone/`. Each
+  picture is measured from the page: what is pressed and under 44 points (a press inside a press of
+  its width a thumb's size is that press's), what is pressed and covered by something other than a
+  window-wide dim, text cut at the screen's edge, a page-wide scroller that scrolls sideways, text
+  under 12 points, a field's text under iOS's 16, and the sizes of prose, in `report.txt`. The phone
+  is an iPhone at home-screen size: Chromium's `Emulation.setSafeAreaInsetsOverride`, 59 points at
+  the top and 34 at the bottom, and the keyboard is a visual viewport 336 points shorter, as a
+  phone's browser lays it over the page. It runs with `cargo test`, not nextest, whose two minutes
+  stop a run of 125 pictures; it skips itself outside the recipe.
+  `the_composer_stays_above_the_phones_keyboard` and
+  `a_tap_on_the_phones_more_places_opens_its_menu` run with `just web-test`.
+- **Rationale**: the plan's `vp run app:shots --web --phone` does not exist, and only a browser
+  shows a browser's faults: the menus below drew in GTK and in `nsh test`, never in Chromium. Eyes
+  missed most small targets; the report found 718 in the dark pass with the walk, 478 in the light
+  one, against 32 and 18 after the fixes, each left one named in R482.
+- **Where**: `justfile`, `crates/server/tests/browser.rs` (one `mod` line),
+  `crates/server/tests/browser/phone*.rs`, `AGENTS.md`.
+
+## R477: The phone's frame pads by the safe area and by the keyboard
+
+- **Decision**: `app/ui/surfaces/safe.ts` names the `env()` terms Native Shell reads in a browser
+  (the page has `viewport-fit=cover` already): the narrow frame pads by the safe area's top, left,
+  and right, and by the keyboard's height at its bottom; the bottom bar's glass reaches the screen's
+  bottom, its tiles above the home indicator; with no bottom bar the page's end clears the home
+  indicator; while the keyboard is up the bottom bar goes under it, as a phone's tab bar does; a
+  sheet lifts by the whole keyboard and never covers the places' bar; a corner overlay and the
+  toasts clear the indicator and the status bar. `env()` is 0 on GTK and on a desktop.
+- **Rationale**: the places' bar sat under the status bar and the bottom bar under the home
+  indicator, and the keyboard covered the composer, a round's comment, and a note's field: the
+  spec's "the keyboard opens and stays open" failed on every phone.
+- **If wrong**: a real phone's browser that resizes the layout for the keyboard (Android with
+  `interactive-widget=resizes-content`) reports 0, and the frame shrinks with the window instead.
+- **Where**: `app/ui/surfaces/{safe.ts,Overlay.tsx,Toast.tsx}`, `app/ui/layout/{Stacks,bars}.tsx`.
+
+## R478: In a browser a layer's content takes its layer's key scope explicitly
+
+- **Decision**: every menu and selector of the app drew nothing in a browser, at every width: the
+  `…` of places (the phone's only way to Decisions, Jobs, and Settings), a pane's menu, the
+  decisions' sort. Native Shell's web runtime runs a component under the owner of the place its
+  element was written, so `Options`, written by `Menu`, ran in the page's key scope, not in the
+  popover's layer; it declared Space there, the page's leader already had Space, the registry threw
+  "a key means two things", and the popover's content died without a word. Now `Float` makes its
+  layer's scope in its own body (`keyScope`) and gives it to its keys and its content with
+  `InScope`, and a caller that writes content with keys makes the layer's scope itself and hands it
+  to the `Popover` or `Sheet` and to `Options` (`scope`): `Menu`, `Select`, and the `…` of places.
+  Two causes found on the way, fixed too: the pane's `…` was drawn under the pane's body, whose top
+  room took its presses in a browser (`Surface` draws its title slot last), and a popover's anchor
+  was a variable read before its ref was set (a signal now).
+- **Rationale**: the root cause, found by bisection under `nsh test --target web`; a popover placed
+  by the app itself over a window-wide layer was tried first and removed once Native Shell's own
+  placement was seen to work.
+- **If wrong**: other content written by a caller and shown in a layer still sees the caller's scope
+  in a browser; a field's owner keys in a dialog are the next to check.
+- **Where**: `app/ui/surfaces/{Float,Popover,Sheet,Surface}.tsx`, `app/ui/keys/registry.tsx`
+  (`InScope`), `app/ui/controls/{Options,Menu,Select}.tsx`, `app/ui/layout/bars.tsx`.
+
+## R479: A thumb's size for every target the report found
+
+- **Decision**: the places' bar is 45 points, its tabs 44 over its line (they were 43, 368 of the
+  472 small targets); a segmented control's segments are 44 on a phone; a link on its own,
+  `Link alone` (Rename, Archive, Edit its line), is 44 high there; a one-line field is 44 with its
+  line in its middle, its whole frame takes the tap, and its text is 16 points, under which iOS
+  zooms the page into the field; the phone's one pane's title is a label, its menu the `…` beside it
+  (a press of a title 25 points high showed the pane already shown); a menu's rows show no keys on a
+  phone, where a row's keys ran past the screen's edge.
+- **Where**: `app/ui/layout/{bars,Stack}.tsx`, `app/ui/controls/{Segmented,Link,Options}.tsx`,
+  `app/ui/text/TextField.tsx`, `app/ui/surfaces/Well.tsx`, the three links.
+
+## R480: Prose is 16 points on a phone, words name a tap where they named a key
+
+- **Decision**: a document's prose is 16 points on a 25-point line on a narrow window, as the phone
+  guide asks (it was 18 there); a checkbox of a list follows the line. Git's empty stage says "tap a
+  file's box to stage it", a proposal's editor names no Ctrl+Enter, a conflict says "Save keeps it".
+  A card's head line wraps its time under its state where both do not fit: a session's "21 Oct 19:20
+  → 21 Oct 20:06" was drawn over "Needs you".
+- **Where**: `app/ui/document/{look.ts,List.tsx}`, `app/ui/lists/Card.tsx`,
+  `app/screens/git/CommitBox.tsx`, `app/screens/proposal/FileEditor.tsx`,
+  `app/screens/conflict/ConflictEditor.tsx`.
+
+## R481: The three notes left for the phone
+
+- **Decision**: the browser's sign-in page names `ura key` (R452); the setting is "Notifications",
+  its help naming the window and the browser's tab; an extension's item of the status line, which
+  printed "Loading Hello" letter by letter in its 160 points, says its state's title on one line,
+  cut, with its icon. Task 57's `browser/app.rs` called `sign_in::first_key`, gone with R452: the
+  browser tests did not build; it reads `key_at_start`.
+- **Where**: `app/web/SignIn.tsx`, `app/screens/settings/{categories.ts,Appearance.tsx}`,
+  `app/extensions/ExtensionPlace.tsx`, `crates/server/tests/browser/{app,pictures}.rs`.
+
+## R482: What the phone's review leaves
+
+- **Decision**: left, each with its reason:
+  - A session's activity rows are 30 points high: a transcript at 44 a line is twice as long to
+    read, and a row's tap only selects it. The human decides.
+  - A diff's lines, 20 points, are a code view's.
+  - A session's header takes 140 points, so with the keyboard up the transcript has little room; the
+    composer does not fold to one line as the phone guide asks. A screen's redesign.
+  - A round's header stays while its comment is typed, where the guide lets it go.
+  - A bottom bar's tile word is its pane's title: "Questions, round 1" is three words.
+  - A popover's glass in the dark themes shows the page's words through it.
+  - After a send, the composer's emptied field keeps the scroll of its two lines: the placeholder's
+    top is cut until it is typed in.
+- **Where**: `target/shots/phone/`.
+
+## R483: One test failed once while the machine was loaded
+
+- **Decision**: `a_stale_frame_starts_no_preview` (`crates/server/tests/preview.rs`) failed once in
+  `just task uraeda-server uraeda-app`, "a running process's group: ParseIntError { kind: Empty }",
+  as in R464, at a load of 17. Run again, the whole task passed: 389 tests. Nothing was changed.
+- **Rationale**: the plan's rule for a failure of timing under load; this task touches no preview.
+- **Where**: `crates/server/tests/preview.rs`.

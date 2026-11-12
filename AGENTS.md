@@ -216,7 +216,15 @@ Running it here:
   (`URAEDA_WEB_BUILD`, as `just package` sets it), or the folder that variable names as it starts:
   `URAEDA_WEB_BUILD=$PWD/target/web just sandbox --no-app`. `just web-test` opens it in the dev
   shell's headless Chromium, `web-browser`, signs in, and writes its pictures in
-  `target/shots/web/`. No other check builds the web app.
+  `target/shots/web/`. No other check builds the web app. `just web-shots [word]` pictures every
+  page and the states a phone meets in that browser, at 390 by 844 with touch, an iPhone's safe
+  area, and a keyboard laid over the page, with `report.txt` listing what is pressed and under 44
+  points, in `target/shots/phone/`: a tool for the phone, never a check.
+- **In a browser, a layer's content runs where it was written**: Native Shell's web runtime makes a
+  component under the owner of the place its element was written, so a provider inside an overlay
+  never reaches content its caller wrote. Content that declares keys in a popover or a sheet takes
+  its layer's scope explicitly (`keyScope`, then `scope` on the `Popover`, `Sheet`, and `Options`),
+  as `Menu` and `Select` do (ruling R478). GTK and `nsh test` do not show it.
 - `vp run sandbox` still serves the old web UI over the old sandbox, in `.sandbox/`, until the
   migration removes it (task 61): the new app's is `just sandbox`.
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
