@@ -24,9 +24,12 @@ export function roundAction(args: RoundArgs): PaneAction | undefined {
   const file = fileOf(args)();
   if (file?.status !== "awaiting-human") return undefined;
   const position = roundPosition(args, () => file);
-  const left = askedOf(file.current.items.clarifications).find(
-    (one) => !answered(one) && one.id !== position.at(),
-  );
+  // The next one left after the question shown, then from the start: "Next" never goes back
+  // past where the human is while one waits after it.
+  const asked = askedOf(file.current.items.clarifications);
+  const here = asked.findIndex((one) => one.id === position.at());
+  const after = [...asked.slice(here + 1), ...asked.slice(0, Math.max(here, 0))];
+  const left = after.find((one) => !answered(one));
   return left === undefined
     ? { icon: "check", label: "To the submit", run: () => position.go(END) }
     : { icon: "arrow-right", label: `Next: ${left.id}`, run: () => position.go(left.id) };
