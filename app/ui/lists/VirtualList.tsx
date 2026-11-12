@@ -111,6 +111,7 @@ export function VirtualList(props: VirtualListProps) {
     listKeys(cursor, {
       beside: props.beside,
       onOpen: props.onOpen,
+      halfPage: () => Math.floor((shown.last - shown.first + 1) / 2),
       openLabel: props.openLabel,
       start: props.follow === true ? "last" : "first",
     });

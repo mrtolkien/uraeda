@@ -3,7 +3,8 @@
 // listens for a key itself.
 //
 // `j` `k` and the arrows move the cursor, and repeat while held; `g g` and `G`, `Home` and `End`,
-// go to the first and the last row (the shell leaves `g g` to lists: Git's place is `g c`); `Enter`
+// go to the first and the last row (the shell leaves `g g` to lists: Git's place is `g c`), and
+// `Ctrl+D` `Ctrl+U` by half the rows in view, as a page's half a screen; `Enter`
 // is the row's own, `open`. With ranges, `J` `K` and Shift with the arrows stretch the selection. A
 // move past either end does nothing and says so, so the key goes on to what is past the list: the
 // layout shell's `k` to the pane's tabs.
@@ -37,6 +38,8 @@ export type ListKeysOptions = {
   when?: () => boolean;
   /** The row the cursor starts on while it has none: the first, or the last for a transcript. */
   start?: "first" | "last";
+  /** How many rows half a screen holds, for `Ctrl+D` `Ctrl+U`: ten unless the list says. */
+  halfPage?: () => number;
 };
 
 /** What a key's `run` answers: nothing when it did something, `false` to pass the key on. */
@@ -44,6 +47,7 @@ const did = (done: boolean): false | undefined => (done ? undefined : false);
 
 export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
   const when = options.when;
+  const half = () => Math.max(1, options.halfPage?.() ?? 10);
   const works = keysWorkHere(options.scope);
   effect(() => {
     const items = cursor.items();
@@ -65,6 +69,20 @@ export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
     { keys: "k", label: "previous row", repeat: true, run: () => did(cursor.move(-1)), when },
     { keys: "ArrowDown", label: "next row", repeat: true, run: () => did(cursor.move(1)), when },
     { keys: "ArrowUp", label: "previous row", repeat: true, run: () => did(cursor.move(-1)), when },
+    {
+      keys: "mod+d",
+      label: "half a screen down",
+      repeat: true,
+      run: () => did(cursor.move(half())),
+      when,
+    },
+    {
+      keys: "mod+u",
+      label: "half a screen up",
+      repeat: true,
+      run: () => did(cursor.move(-half())),
+      when,
+    },
     { keys: "g g", label: "first row", run: () => did(cursor.to("first")), when },
     { keys: "G", label: "last row", run: () => did(cursor.to("last")), when },
     { keys: "Home", label: "first row", run: () => did(cursor.to("first")), when },
