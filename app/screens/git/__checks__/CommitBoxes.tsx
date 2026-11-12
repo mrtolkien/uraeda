@@ -20,6 +20,7 @@ const group = (id: string, name: string): GitGroup => ({
   ],
   folder: id === "." ? null : id,
   id,
+  isWorking: false,
   name,
 });
 
