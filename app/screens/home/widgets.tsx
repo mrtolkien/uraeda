@@ -102,7 +102,7 @@ export function InboxWidget(props: { repo: string }) {
           />
         )}
       />
-      <Link onPress={() => navigate({ page: "inbox" })}>
+      <Link alone onPress={() => navigate({ page: "inbox" })}>
         {count() === 0 ? "Open the inbox" : `${plural(count(), "note")} to organize`}
       </Link>
     </View>
