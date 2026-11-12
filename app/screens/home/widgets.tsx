@@ -18,6 +18,7 @@ import {
 import { registerKey } from "../../ui/keys/registry";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
+import { isNarrow } from "../../ui/width";
 import { type TextFieldRef, TextField } from "../../ui/text";
 import { plural } from "../../ui/words";
 
@@ -82,7 +83,12 @@ export function InboxWidget(props: { repo: string }) {
       <View style={{ alignItems: "flex-start", flexDirection: "row", gap: 4 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <TextField
-            hint={added() ?? "Enter adds it to the notes without a category."}
+            hint={
+              added() ??
+              (isNarrow()
+                ? "The keyboard's return adds it to the notes without a category."
+                : "Enter adds it to the notes without a category.")
+            }
             label="A note"
             lines="one"
             onChange={(value) => {
