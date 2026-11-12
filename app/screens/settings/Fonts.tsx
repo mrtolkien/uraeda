@@ -62,7 +62,8 @@ export function Fonts() {
             />
           </View>
         }
-        help="Every part back to its default, as Space u f d does."
+        help="Every part back to its default."
+        keys="Space u f d does it too."
         icon="undo-2"
         id="defaults"
         label="Default fonts"

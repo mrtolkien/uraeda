@@ -10,6 +10,7 @@ import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
 import { Refusal } from "../../ui/controls";
 import { KeyScope, registerKey } from "../../ui/keys/registry";
+import { isNarrow } from "../../ui/width";
 import { type Cursor, createCursor, DragOrder, Empty, Line, List, Row } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 import { TextField } from "../../ui/text";
@@ -112,7 +113,11 @@ export function Section(props: SectionProps) {
           <Empty
             icon="list"
             title={`Nothing in ${props.title}`}
-            words="Add a proposal below, or send one here from the section beside with H or L."
+            words={
+              isNarrow()
+                ? "Add a proposal below."
+                : "Add a proposal below, or send one here from the section beside with H or L."
+            }
           />
         </If>
         <If when={refusal()}>

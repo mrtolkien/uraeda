@@ -13,8 +13,11 @@ export type CategoryId =
   | "sign-in"
   | "server";
 
-/** A setting's words: its name, the line that says what it does, and its other names. */
-export type Words = { label: string; help: string; terms?: ReadonlyArray<string> };
+/**
+ * A setting's words: its name, the line that says what it does, the keys that do it too, hinted
+ * off the phone alone, and its other names.
+ */
+export type Words = { label: string; help: string; keys?: string; terms?: ReadonlyArray<string> };
 
 export type Category = {
   id: CategoryId;
@@ -35,12 +38,14 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     label: "Appearance",
     settings: [
       {
-        help: "System follows this device's appearance: the light theme by day, the dark one by night. Space u m cycles the three.",
+        help: "System follows this device's appearance: the light theme by day, the dark one by night.",
+        keys: "Space u m cycles the three.",
         label: "Mode",
         terms: THEMES,
       },
       {
-        help: "The theme of dark mode. Space u t tries every theme from the keys.",
+        help: "The theme of dark mode.",
+        keys: "Space u t tries every theme from the keys.",
         label: "Dark theme",
         terms: THEMES,
       },

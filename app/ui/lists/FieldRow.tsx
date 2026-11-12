@@ -14,6 +14,7 @@ import { listKeys } from "./keys";
 import { Row } from "./Row";
 import { Icon, type IconName, Text, Under } from "../controls";
 import { usePane } from "../layout/panes";
+import { isNarrow } from "../width";
 
 export type FieldRowProps = {
   /** Its place in the form's cursor. */
@@ -22,6 +23,11 @@ export type FieldRowProps = {
   label: string;
   /** What it does, in words, and when a change applies. */
   help: string;
+  /**
+   * The keys that do it too, a sentence after its help: "Space u m cycles the three". Not on a
+   * phone, where no key is hinted (`specs/ui/phone.md`, Touch).
+   */
+  keys?: string;
   /** Where its value comes from: "Set in config.toml", "Kept on this device". */
   from?: string | null;
   /** The value in force is not the file's: a flag or a variable set it for this run. */
@@ -114,7 +120,11 @@ export function FieldRow(props: FieldRowProps) {
             </View>
             <View style={{ gap: 2, paddingLeft: indent() }}>
               <If when={props.help !== ""}>
-                <Text tone="quiet">{props.help}</Text>
+                <Text tone="quiet">
+                  {props.keys === undefined || isNarrow()
+                    ? props.help
+                    : `${props.help} ${props.keys}`}
+                </Text>
               </If>
               <If when={props.from}>
                 {(from) => (

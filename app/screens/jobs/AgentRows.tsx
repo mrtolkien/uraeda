@@ -51,7 +51,8 @@ export function AgentRows(props: {
           }}
         />
       }
-      help="Its runs start on this agent, model, and effort; `e` picks the effort. A change a run starts follows your run map."
+      help="Its runs start on this agent, model, and effort. A change a run starts follows your run map."
+      keys="`e` picks the effort."
       icon="bot"
       id="agent"
       label="Runs on"
