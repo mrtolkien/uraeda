@@ -12,6 +12,7 @@ import { type KeysOf, keysOf, leaderKeys, placesOf } from "../../extensions/cont
 import { extensionHost, navigate } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import { type KeySpec, keyScope, registerKey } from "../../ui/keys";
+import { refusalOf } from "../../ui/controls";
 
 /** Why an extension's keys are left out, by its name: the registry's words. */
 const problems = signal<ReadonlyMap<string, string>>(new Map());
@@ -41,7 +42,7 @@ export function declareExtensionKeys(keys: Accessor<ExtensionKeySpecs>) {
       registerKey(specs, scope);
       untracked(() => said(name, undefined));
     } catch (error) {
-      untracked(() => said(name, error instanceof Error ? error.message : String(error)));
+      untracked(() => said(name, refusalOf(error)));
     }
   });
   effect(() => {

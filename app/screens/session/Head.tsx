@@ -5,9 +5,19 @@
 // a sub-session's parent, which it is read from. Beside the state, Rename (`R`), the effort of its
 // next turns (`m`), and a chat's Archive.
 import { signal, View } from "nsh";
-import { call, navigate, record, serverTime, StoreError } from "../../store";
+import { call, navigate, record, serverTime } from "../../store";
 import type { RuntimeRecord, Session } from "../../store/protocol";
-import { Banner, Button, Heading, Link, Refusal, sent, StatusDot, Text } from "../../ui/controls";
+import {
+  Banner,
+  Button,
+  Heading,
+  Link,
+  Refusal,
+  sent,
+  StatusDot,
+  Text,
+  refusalOf,
+} from "../../ui/controls";
 import { movedOf } from "./offers";
 import { attentionWords, runsOnWords, statusTone, waitWords } from "./words";
 import { isNarrow } from "../../ui/width";
@@ -157,7 +167,7 @@ function Attention(props: { repo: string; session: Session }) {
     try {
       await call("session.dismiss", { repo: props.repo, turn: id });
     } catch (error) {
-      refusal.set(error instanceof StoreError ? error.message : String(error));
+      refusal.set(refusalOf(error));
     } finally {
       pending.set(false);
     }

@@ -10,6 +10,7 @@
 import { signal } from "nsh";
 import { call, route, type Route, StoreError } from "../../store";
 import type { UndoChange } from "../../store/protocol";
+import { refusalOf } from "../../ui/controls";
 
 /** An action the stack can undo. */
 export type Done = {
@@ -162,7 +163,7 @@ function ask(entry: Done, forth: boolean): Promise<boolean> {
 
 /** Why a replay was refused, and what stays: the server's words, without its code. */
 function refusalWords(error: unknown, forth: boolean): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = refusalOf(error);
   const what = forth ? "redone" : "undone";
   return `${message.replace(/^(refused|conflict): /, "")} Nothing was ${what}: the files stay as they are now.`;
 }

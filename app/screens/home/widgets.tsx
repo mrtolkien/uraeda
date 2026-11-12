@@ -6,7 +6,7 @@ import { type AgentUsage, usageByAgent, LOW } from "../shell/usage";
 import { remember } from "../shell/undo";
 import { call, navigate, record } from "../../store";
 import type { Inbox, InboxNote } from "../../store/protocol";
-import { Icon, type IconName, iconNamed, Link, Text } from "../../ui/controls";
+import { Icon, type IconName, iconNamed, Link, Text, refusalOf } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
@@ -63,7 +63,7 @@ export function InboxWidget(props: { repo: string }) {
       added.set(`Added “${text}” to the inbox.`);
     } catch (error) {
       typed.set(text);
-      refusal.set(error instanceof Error ? error.message : String(error));
+      refusal.set(refusalOf(error));
     }
   };
   const notes = computed(() => latestNotes(inbox()).map((note) => ({ id: note.key, note })));

@@ -8,9 +8,9 @@
 // pane, each kept by the server as it comes (`attach.ts`), and Send waits for them. Stop is `S`,
 // a key of its own beside nothing that sends.
 import { Clipboard, effect, Image, signal, untracked, View } from "nsh";
-import { call, StoreError } from "../../store";
+import { call } from "../../store";
 import type { ChatImage, RuntimeRecord, Session } from "../../store/protocol";
-import { Button, IconButton, Text } from "../../ui/controls";
+import { Button, IconButton, Text, refusalOf } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import {
   amendUnsaved,
@@ -160,7 +160,7 @@ export function SessionComposer(props: SessionComposerProps) {
     try {
       await call("session.stop", { repo: props.repo, session: session.id });
     } catch (error) {
-      refusal.set(error instanceof StoreError ? error.message : String(error));
+      refusal.set(refusalOf(error));
     } finally {
       stopping.set(false);
     }

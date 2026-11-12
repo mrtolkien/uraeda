@@ -4,6 +4,7 @@
 // without it, by `just app-dev` or a test's picture, the app works with a sandbox, which needs no
 // sign-in.
 import { host } from "nsh";
+import { refusalOf } from "../../ui/controls";
 
 /** A server that answers. */
 export type Server = {
@@ -58,6 +59,6 @@ export function sandboxHost(address: string): ShellHost {
 
 /** The words of a failure, as the host or the server gave them. */
 export function failureWords(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = refusalOf(error);
   return message.trim() === "" ? "It gave no reason." : message;
 }

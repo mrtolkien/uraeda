@@ -6,9 +6,9 @@
 // grants the agent something and spends a turn, so its card's buttons, the row's Enter, and the
 // keys `a` and `A` ask first, naming the action and its rule (`AllowQuestion`).
 import { type Signal, signal, untracked, View } from "nsh";
-import { call, StoreError } from "../../store";
+import { call } from "../../store";
 import type { Item } from "../../store/protocol";
-import { Confirm, lastAsked, Refusal, Text } from "../../ui/controls";
+import { Confirm, lastAsked, Refusal, Text, refusalOf } from "../../ui/controls";
 import { Card, type CardAction } from "../../ui/lists";
 
 type Denial = Extract<Item, { kind: "denial" }>;
@@ -67,7 +67,7 @@ export async function allow(of: AllowOf, all = false) {
           turn: of.turn,
         }));
   } catch (error) {
-    held.refusal.set(error instanceof StoreError ? error.message : String(error));
+    held.refusal.set(refusalOf(error));
   } finally {
     held.pending.set(false);
   }

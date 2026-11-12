@@ -5,9 +5,9 @@
 // which runs go on (`continued`), by the rule its action follows; the runs it could not continue
 // are told under the button, each with why.
 import { signal, View } from "nsh";
-import { call, record, StoreError } from "../../store";
+import { call, record } from "../../store";
 import type { RefusedRun } from "../../store/protocol";
-import { Button, Confirm, Refusal, Text } from "../../ui/controls";
+import { Button, Confirm, Refusal, Text, refusalOf } from "../../ui/controls";
 import { idsWords as and } from "../round/words";
 import { plural } from "../../ui/words";
 
@@ -41,7 +41,7 @@ export function ContinueAll(props: { repo: string }) {
       const { refused } = await call("feature.continueAll", { repo: props.repo });
       if (refused.length > 0) refusal.set(refusedWords(refused));
     } catch (error) {
-      refusal.set(error instanceof StoreError ? error.message : String(error));
+      refusal.set(refusalOf(error));
     } finally {
       pending.set(false);
     }

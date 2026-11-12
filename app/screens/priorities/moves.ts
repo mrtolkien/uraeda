@@ -6,7 +6,7 @@ import { type Accessor, computed, signal, untracked } from "nsh";
 import { type Arrangement, arrangementOf, byKey, type Move, moveOf } from "./order";
 import { call, type Live, StoreError } from "../../store";
 import type { Priorities, ProposalsMove } from "../../store/protocol";
-import { sent } from "../../ui/controls";
+import { sent, refusalOf } from "../../ui/controls";
 import { remember } from "../shell/undo";
 
 /** What the page shows: an order, and the write that made it, for one the human made. */
@@ -32,7 +32,7 @@ function words(error: unknown) {
   if (error instanceof StoreError && error.code === "offline") {
     return "Not moved: the server is not reachable. It moves once the app is back online.";
   }
-  return error instanceof Error ? error.message : String(error);
+  return refusalOf(error);
 }
 
 export function createOrder(repo: Accessor<string>, priorities: Live<Priorities | null>): Order {

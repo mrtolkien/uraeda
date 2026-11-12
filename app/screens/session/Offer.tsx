@@ -4,8 +4,8 @@
 // offer has buttons: one in its last turn, once that turn ended, that moves this kind of session.
 // Once it moved, the session's page says where it went (rule 9), and the card reads as the text.
 import { cleanup, type Signal, signal, View } from "nsh";
-import { call, StoreError } from "../../store";
-import { Button, Refusal, Text } from "../../ui/controls";
+import { call } from "../../store";
+import { Button, Refusal, Text, refusalOf } from "../../ui/controls";
 import { Card } from "../../ui/lists";
 import { TextField, type TextFieldRef } from "../../ui/text";
 import { closeOffer, holdProposal, markMoved, type OfferKind, openOffer } from "./offers";
@@ -65,7 +65,7 @@ export function OfferCard(props: OfferProps) {
       }
       close();
     } catch (error) {
-      refusal.set(error instanceof StoreError ? error.message : String(error));
+      refusal.set(refusalOf(error));
     } finally {
       pending.set(false);
     }

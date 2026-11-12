@@ -14,6 +14,7 @@
 // It is written once the typing pauses, and at once when a text is sent or saved.
 import { type Accessor, cleanup, computed, effect, signal, untracked } from "nsh";
 import { device } from "../../store/device";
+import { refusalOf } from "../controls/sent";
 
 /** A field's text typed and not saved. */
 export type Unsaved = {
@@ -201,8 +202,6 @@ export type UnsavedText = {
   text: Accessor<string>;
 };
 
-const whyOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
 /**
  * A field's text by its key, over its saved text: what it shows, its unsaved text kept on the
  * device as it is typed, and whether leaving loses some. Called as the screen's component renders:
@@ -297,7 +296,7 @@ export function unsavedText(
           }
           return { ok: true, value };
         } catch (error) {
-          return { ok: false, why: whyOf(error) };
+          return { ok: false, why: refusalOf(error) };
         } finally {
           queued.splice(
             queued.findIndex((one) => one.done === done),
@@ -337,7 +336,7 @@ export function unsavedText(
       } catch (error) {
         answered(joined(sent, peek(at)?.text ?? ""));
         held?.putBack(attached);
-        return { ok: false, why: whyOf(error) };
+        return { ok: false, why: refusalOf(error) };
       }
     },
     text,

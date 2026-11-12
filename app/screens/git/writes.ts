@@ -4,7 +4,8 @@
 // whole, in git's or the hook's own words: `where` names the control, `"sync"` or a group's
 // `"commit:<folder>"`. A new write from the same control takes its refusal away.
 import { signal } from "nsh";
-import { type ActionName, call, type Input, pathOf, type StoreError } from "../../store";
+import { type ActionName, call, type Input, pathOf } from "../../store";
+import { refusalOf } from "../../ui/controls";
 
 type Where = string;
 
@@ -32,7 +33,7 @@ function setPending(where: Where, on: boolean) {
 
 /** The words a refusal shows: the server's, which hold git's or the hook's output whole. */
 function wordsOf(error: unknown): string {
-  const message = (error as StoreError | undefined)?.message ?? String(error);
+  const message = refusalOf(error);
   return message.trim() === "" ? "Git refused it, and said nothing more." : message.trim();
 }
 
