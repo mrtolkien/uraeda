@@ -32,7 +32,6 @@ mod usage;
 mod wakeups;
 
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -236,18 +235,10 @@ impl Runtime for Claude {
 
     /// The first line `claude --version` prints, within 5 seconds.
     fn version(&self) -> Option<String> {
-        let command = self.shared.environment().command(self.command());
-        let mut command = tokio::process::Command::from(command);
-        command
-            .arg("--version")
-            .stdin(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(true);
-        let printed = wait(tokio::time::timeout(VERSION_TIMEOUT, command.output()));
-        let printed = printed
-            .ok()?
-            .ok()
-            .filter(|printed| printed.status.success())?;
+        let mut command = self.shared.environment().command(self.command());
+        command.arg("--version");
+        let printed = wait(crate::process::output(command, VERSION_TIMEOUT));
+        let printed = printed?.ok().filter(|printed| printed.status.success())?;
         let printed = String::from_utf8_lossy(&printed.stdout);
         let first = printed.lines().next()?.trim();
         (!first.is_empty()).then(|| first.to_owned())

@@ -2,7 +2,6 @@
 //! an account's state and usage, `claude auth status` and its `get_usage` control request.
 
 use std::path::Path;
-use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -111,19 +110,17 @@ async fn signed_out(
     home: &Path,
     folder: &str,
 ) -> Result<bool, String> {
-    let mut status = tokio::process::Command::from(shared.environment().command(command));
+    let mut status = shared.environment().command(command);
     status
         .args(["auth", "status", "--json"])
         .envs(folder_env(folder, home))
-        .current_dir(home)
-        .stdin(Stdio::null())
-        .kill_on_drop(true);
-    let printed = tokio::time::timeout(SHORT_TIMEOUT, status.output()).await;
+        .current_dir(home);
+    let printed = crate::process::output(status, SHORT_TIMEOUT).await;
     let seconds = SHORT_TIMEOUT.as_secs();
     let slow =
         || format!("Claude Code did not give its authentication status within {seconds} seconds");
     let printed = printed
-        .map_err(|_| slow())?
+        .ok_or_else(slow)?
         .map_err(|error| error.to_string())?;
     let read: Value = serde_json::from_slice(&printed.stdout).map_err(|_| {
         let stderr = String::from_utf8_lossy(&printed.stderr).trim().to_owned();

@@ -3,7 +3,6 @@
 //! since it finds the repository from its current folder. The core reads what it answers.
 
 use std::path::Path;
-use std::process::Stdio;
 use std::time::Duration;
 
 use uraeda_core::pulls::{self, PullRequests};
@@ -49,22 +48,18 @@ fn list(
     state: &str,
     fields: &str,
 ) -> Result<Option<Vec<u8>>, Stopped> {
-    let gh = shared.environment().command("gh");
-    let mut gh = tokio::process::Command::from(gh);
+    let mut gh = shared.environment().command("gh");
     gh.args(["pr", "list", "--state", state, "--json", fields])
         .args(["--limit", LIMIT])
-        .current_dir(root)
-        .stdin(Stdio::null())
-        .stderr(Stdio::null())
-        .kill_on_drop(true);
+        .current_dir(root);
     let answered = wait(async {
         tokio::select! {
             biased;
             () = shared.stopping() => Err(Stopped),
-            answer = tokio::time::timeout(WITHIN, gh.output()) => Ok(answer),
+            answer = crate::process::output(gh, WITHIN) => Ok(answer),
         }
     })?;
-    let printed = answered.ok().and_then(Result::ok);
+    let printed = answered.and_then(Result::ok);
     let printed = printed.filter(|printed| printed.status.success());
     Ok(printed.map(|printed| printed.stdout))
 }
