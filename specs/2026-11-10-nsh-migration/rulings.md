@@ -9995,7 +9995,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   them.
 - **Where**: `specs/decisions/`.
 
-## T67.1: A reply stuck on a background command is checked, then fails with its last message
+## R500: A reply stuck on a background command is checked, then fails with its last message
 
 - **Decision**: the default branch's `9d0337f0` is ported to the Rust runner. A turn whose reply
   ended while a background task runs, and that showed nothing for 10 minutes (`QUIET`), gets a
@@ -10025,18 +10025,18 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `sub_sessions.rs`, `transcript.rs`, `manager.rs`, `message.rs`, and `live.rs` beside it;
   `crates/server/tests/sessions/{background,tools}.rs`.
 
-## T67.2: The rebase on v1.4.0, and the run lifecycle decision over its shape
+## R501: The rebase on v1.4.0, and the run lifecycle decision over its shape
 
 - **Decision**: the branch is rebased on the default branch's `2ebbc5e3` (`chore: release v1.4.0`),
   its 262 commits in order. One commit conflicted, the removal of the Node server: the six files of
-  `packages/server/src/runner/` that `9d0337f0` changed stay deleted, its change ported in T67.1.
+  `packages/server/src/runner/` that `9d0337f0` changed stay deleted, its change ported in R500.
   `Cargo.toml` merged by itself, at the default branch's 1.4.0; `Cargo.lock` took each replayed
   commit's own lock with the workspace's crates at 1.4.0. `specs/PRIORITIES.md`, `specs/INBOX.md`,
   and `CHANGELOG.md` are the default branch's: this branch never wrote them.
   - **One decision changed on both sides**, [run lifecycle](../decisions/run-lifecycle.md): the
     default branch adds the rule of a reply waiting on background work, its reason, and two
     consequences; this branch moved its "Applies to" from `packages/server/` to `crates/server/`.
-    Git merged both, which do not disagree. The new rule applies to the Rust runner, which T67.1
+    Git merged both, which do not disagree. The new rule applies to the Rust runner, which R500
     makes follow it, checked by its tests.
   - **`the_ledger_reads_alone` lists run lifecycle as approved over its shape**: the human's new
     text holds two MUSTs in one rule, a Why of 116 words, and six consequences, so the test failed

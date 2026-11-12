@@ -3857,7 +3857,7 @@ nudging)."
   stopped at `67f4dad0`: `git log 67f4dad0..origin/main`.
 - Produces: the new stack with every change of the default branch that is worth having, and a list
   of each commit read, kept or left, with its reason.
-- As built (rulings T67.1 and T67.2): five commits since `67f4dad0`, to `2ebbc5e3` (v1.4.0). One was
+- As built (rulings R500 and R501): five commits since `67f4dad0`, to `2ebbc5e3` (v1.4.0). One was
   ported, `9d0337f0`, the "idle session nudging" the human named: a reply that ended while a
   background command runs is asked about it after 10 quiet minutes (`QUIET`), and fails 10 minutes
   later unanswered (`UNANSWERED`), its process closed; a sub-agent's failed call gives its last
