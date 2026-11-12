@@ -240,7 +240,7 @@ fn bombs_of_every_type_are_refused_from_their_headers() {
     }
 }
 
-/// The bombs are refused fast, each under a second: run by `vp run bench`.
+/// The bombs are refused fast, each under a second: run by `just bench`.
 #[test]
 #[ignore = "benchmark"]
 fn bench_bombs_are_refused_fast() {

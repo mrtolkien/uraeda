@@ -11,20 +11,12 @@ rust-version.workspace = true
 [lib]
 doctest = false
 
-[features]
-napi = ["dep:napi", "dep:napi-derive"]
-
 [dependencies]
 # The lines' diff of a patch: gitoxide's copy of imara-diff, which gix compares blobs with.
 gix-imara-diff.workspace = true
-napi = { workspace = true, optional = true }
-napi-derive = { workspace = true, optional = true }
 pulldown-cmark.workspace = true
 serde.workspace = true
 sha2.workspace = true
-
-[build-dependencies]
-napi-build.workspace = true
 
 [lints]
 workspace = true

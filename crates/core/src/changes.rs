@@ -3,8 +3,6 @@
 
 use std::path::Path;
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::api::{self, ApiError};
@@ -15,7 +13,6 @@ use crate::workspace::{Feature, Workspace, folder_path, record_path};
 const LISTED: usize = 50;
 
 /// A file changed on a feature's branch, from the default branch's merge base to its tip.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangedFile {
@@ -27,7 +24,6 @@ pub struct ChangedFile {
 }
 
 /// The changes of a feature's branch, outside the feature's own folder.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BranchChanges {
@@ -40,7 +36,6 @@ pub struct BranchChanges {
 }
 
 /// A feature's branch changes, by its folder: what the sidebar's cards show, for every feature.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeatureChanges {

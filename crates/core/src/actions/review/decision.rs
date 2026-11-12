@@ -9,7 +9,6 @@ use super::quoted;
 
 /// The decision a comment points into: its file's stem, `specs/decisions/<name>.md`, and whether
 /// the lines are of a part the branch removed.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DecisionTarget {
     pub name: String,

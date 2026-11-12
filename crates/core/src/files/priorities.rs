@@ -124,7 +124,6 @@ impl Proposal {
 }
 
 /// A proposal of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProposalItem {
@@ -155,7 +154,6 @@ pub struct ProposalItem {
     pub merged: Option<crate::workspace::MergedFeature>,
 }
 
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SectionItems {
@@ -169,7 +167,6 @@ pub struct SectionItems {
 }
 
 /// `PRIORITIES.md` read for editing.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Priorities {

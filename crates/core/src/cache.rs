@@ -20,8 +20,6 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, PoisonError};
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::git::Git;
@@ -29,7 +27,6 @@ use crate::view::WorkspaceView;
 use crate::workspace::{Problem, Workspace, WorkspaceError};
 
 /// The reads of a watched repository since its watch started.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct CacheStats {
     /// The reads of git.

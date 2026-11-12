@@ -1,9 +1,7 @@
-//! What the web UI reads, as napi-rs objects: the workspace, a feature, a file with its document
+//! What the app reads, as the server sends it: the workspace, a feature, a file with its document
 //! and items, a proposal file. Numbers are `u32` and enums are strings, as JavaScript receives
 //! them.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::api::SetupItem;
@@ -28,7 +26,6 @@ mod version;
 pub use since::{SinceChange, SinceReview};
 pub use version::VersionView;
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProblemView {
@@ -52,7 +49,6 @@ impl From<&Problem> for ProblemView {
     }
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProposalView {
@@ -71,7 +67,6 @@ pub struct ProposalView {
     pub file: Option<String>,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceView {
@@ -93,7 +88,6 @@ pub struct WorkspaceView {
 
 /// A workflow file: the version on disk, the version committed at its branch's tip when it
 /// differs, and its pending review.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileView {
@@ -145,7 +139,6 @@ pub(crate) fn kind_name(kind: Option<FileKind>) -> String {
 
 /// A proposal file, a postponed folder's proposal, a note file, or a feature's or a change's
 /// proposal, for its editor.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProposalFileView {
@@ -183,7 +176,6 @@ pub struct ProposalFileView {
 }
 
 /// A commit an action made.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommitView {
@@ -192,7 +184,6 @@ pub struct CommitView {
 }
 
 /// An image attached to a workflow file.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AttachedView {
@@ -205,7 +196,6 @@ pub struct AttachedView {
 }
 
 /// A feature's next step, as `ura next` gives it, for an agent's run.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NextStepView {
@@ -234,7 +224,6 @@ pub struct NextStepView {
 }
 
 /// What a branch behind the default branch catches up with, at the step `catch-up`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatchUpView {
@@ -274,7 +263,6 @@ impl From<&Step> for NextStepView {
 }
 
 /// A feature, its branch, and its next step, with the main checkout's path.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NextView {
@@ -286,7 +274,6 @@ pub struct NextView {
 }
 
 /// A section of the proposal template, with the guidance the editor shows while it is empty.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProposalHint {
@@ -294,8 +281,8 @@ pub struct ProposalHint {
     pub hint: String,
 }
 
-/// A workflow file waiting for the human, in the checkout that has it. Not exposed to the binding:
-/// the language server reads it.
+/// A workflow file waiting for the human, in the checkout that has it. The language server
+/// reads it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WaitingFile {
@@ -313,7 +300,7 @@ pub struct WaitingFile {
 }
 
 /// What a proposal of the priorities links to: a feature or a change and its step, or a proposal
-/// file. Not exposed to the binding: the language server reads it.
+/// file. The language server reads it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProposalLink {
@@ -390,7 +377,6 @@ impl WorkspaceView {
 
 /// A repository of the list.
 // `Repository` in JavaScript, where the core's own `Repository` has no type.
-#[cfg_attr(feature = "napi", napi(object, js_name = "Repository"))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RepositoryView {
@@ -407,7 +393,6 @@ pub struct RepositoryView {
 }
 
 /// The name a feature or a change shows in the sidebar.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemSettingsView {
@@ -437,7 +422,6 @@ impl From<crate::repositories::Repository> for RepositoryView {
 
 /// A repository added to the list, or found listed already.
 // `Added` in JavaScript.
-#[cfg_attr(feature = "napi", napi(object, js_name = "Added"))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AddedView {

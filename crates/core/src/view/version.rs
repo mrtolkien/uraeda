@@ -1,7 +1,5 @@
 //! A workflow file at one version: its text, its document, and its items.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::document::{self, Document};
@@ -9,7 +7,6 @@ use crate::files::items::{Items, items};
 use crate::files::stories::{MockupEmbed, StoryLink, mockup_embeds, story_links};
 
 /// A file's document and items, at one version.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VersionView {

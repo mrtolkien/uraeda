@@ -1,4 +1,4 @@
-//! Writes the client's TypeScript types to the file given: `vp run protocol:types`.
+//! Writes the client's TypeScript types to the file given: `just protocol-types`.
 
 use std::path::PathBuf;
 

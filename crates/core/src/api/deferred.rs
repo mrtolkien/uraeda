@@ -9,7 +9,6 @@ use crate::cache;
 use crate::view::CommitView;
 
 /// A commit deferred by a write, waiting to land.
-#[cfg_attr(feature = "napi", napi_derive::napi(object, js_name = "Deferred"))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct DeferredView {
     pub id: String,

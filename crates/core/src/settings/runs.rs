@@ -2,8 +2,6 @@
 //! implementers, the reviewers, and the review's depth. Read, checked, and merged here, the only
 //! home of their rules, and written by `runs_write` (see `specs/decisions/run-options.md`).
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use toml_edit::{Item, Key, TableLike};
 
 use super::file::{Problem, offset};
@@ -18,7 +16,6 @@ const DEPTHS: [&str; 2] = ["waves", "branch"];
 
 /// The run options a settings file or a feature holds, every value optional: what was picked,
 /// nothing resolved.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RunOptions {
     /// The steps with an option set, in the workflow's order.
@@ -33,7 +30,6 @@ pub struct RunOptions {
 }
 
 /// One step's options, a table `[runs.steps.<step>]`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct StepOptions {
     /// The step: `discovery`, `spec`, `plan`, `build`, `review`, or `comments`.
@@ -50,7 +46,6 @@ pub struct StepOptions {
 }
 
 /// An agent, a model, and an effort picked for a role, like the implementers'.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RunPick {
     pub agent: Option<String>,
@@ -59,7 +54,6 @@ pub struct RunPick {
 }
 
 /// A reviewer, a table of `[[runs.reviewers]]`: an agent, or a command the human wrote.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ReviewerOptions {
     /// An agent reviewer's runtime; absent on a command reviewer.

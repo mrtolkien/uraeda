@@ -11,7 +11,6 @@ use crate::view::{StepView, recorded_pull_request};
 pub use uraeda_text::links::resolve;
 
 /// The proposal file a proposal of the priorities links, as it is on the default branch.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkedFile {
@@ -20,7 +19,6 @@ pub struct LinkedFile {
 }
 
 /// The feature or change a proposal of the priorities links, while its step is not `done`.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunningFeature {
@@ -32,7 +30,6 @@ pub struct RunningFeature {
 
 /// The feature or change a proposal of the priorities links, once its step is `done`: merged, its
 /// line left for `ura clean` to remove.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MergedFeature {

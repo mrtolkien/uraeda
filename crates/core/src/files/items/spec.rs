@@ -2,14 +2,11 @@
 //! lists, its stories and their scenarios and mockups, its edge cases, criteria, architecture, and
 //! principles, and the risk tiers an approval may pick.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::document::Span;
 use crate::files::stories::StoryTarget;
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Scenario {
@@ -21,7 +18,6 @@ pub struct Scenario {
 
 /// A step of a scenario: its word, and the spans up to the next step, without the blanks and the
 /// comma the word leaves before them.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScenarioStep {
@@ -30,7 +26,6 @@ pub struct ScenarioStep {
     pub spans: Vec<Span>,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Story {
@@ -56,7 +51,6 @@ pub struct Story {
     pub more_blocks: Vec<u32>,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Criterion {
@@ -72,7 +66,6 @@ pub struct Criterion {
 
 /// An answer of `## Your review` to a comment of the last review:
 /// `- **C2** (undo too short): done. The undo stays 5 seconds.`
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReviewAnswer {
@@ -87,7 +80,6 @@ pub struct ReviewAnswer {
 }
 
 /// An item of `## Decisions`: a decision the spec creates, changes, or removes.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListedDecision {
@@ -102,7 +94,6 @@ pub struct ListedDecision {
 }
 
 /// A level-2 section of a spec, in file order.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpecPart {
@@ -117,7 +108,6 @@ pub struct SpecPart {
 }
 
 /// A row of the `## Edge cases` table.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EdgeCase {
@@ -128,7 +118,6 @@ pub struct EdgeCase {
 }
 
 /// A principle of the `## Constitution check` table: a header cell, and the cell below it.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Principle {
@@ -138,7 +127,6 @@ pub struct Principle {
     pub ok: bool,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpecItems {
@@ -174,7 +162,6 @@ pub struct SpecItems {
 }
 
 /// A link of a spec's story to an HTML file under `mockups/`, or to a story.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MockupLink {
@@ -191,7 +178,6 @@ pub struct MockupLink {
 
 /// A risk tier an approval may pick, and whether the plan then waits for the human's review,
 /// unless the human says otherwise.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TierChoice {

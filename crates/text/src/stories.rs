@@ -2,8 +2,6 @@
 //! `[Dragging](/packages/web/src/SidebarHandle.stories.tsx#Dragging)`. A paragraph holding only
 //! one embeds the story; anywhere else it links to it.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::document::{BlockKind, Document, Span, SpanLink};
@@ -13,7 +11,6 @@ use crate::links::resolve;
 const EXTENSIONS: [&str; 6] = ["js", "jsx", "ts", "tsx", "mjs", "svelte"];
 
 /// The story a link names.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoryTarget {
@@ -24,7 +21,6 @@ pub struct StoryTarget {
 }
 
 /// A paragraph that embeds a story.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoryLink {
@@ -83,7 +79,6 @@ pub fn story_links(doc: &Document) -> Vec<StoryLink> {
 const MOCKUP_WIDTH: u32 = 1440;
 
 /// A paragraph that embeds an HTML mockup.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MockupEmbed {

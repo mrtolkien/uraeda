@@ -1,11 +1,9 @@
 //! The document tree of a workflow file: its blocks in source order, each with its lines, and the
-//! spans of their text, sent flat so napi-rs can generate their types. The UI draws it without
+//! spans of their text, sent flat, as plain objects. The UI draws it without
 //! parsing markdown (see `specs/decisions/stack.md`).
 
 use std::ops::Range;
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use pulldown_cmark::{
     Alignment, BlockQuoteKind, CodeBlockKind, Event, HeadingLevel, LinkType, Parser, Tag, TagEnd,
 };
@@ -20,14 +18,12 @@ use inline::Marks;
 pub use inline::{Span, SpanImage, SpanLink};
 
 /// Lines of a file, 1-based and inclusive.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct LineRange {
     pub start: u32,
     pub end: u32,
 }
 
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BlockKind {
@@ -66,7 +62,6 @@ impl BlockKind {
 
 /// What a list item is, from its marker: a task, a typed bullet (`[pro]`, `[con]`, `[?]`, `[!]`),
 /// or a list callout (`!`, `?`, `&`).
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ItemMarker {
@@ -81,7 +76,6 @@ pub enum ItemMarker {
     Note,
 }
 
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CalloutKind {
@@ -94,7 +88,6 @@ pub enum CalloutKind {
 }
 
 /// A block, its place in the tree, its lines, and the fields of its kind.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
@@ -130,7 +123,6 @@ pub struct Block {
 }
 
 /// The tree of one workflow file.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Document {

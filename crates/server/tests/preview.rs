@@ -53,7 +53,7 @@ fn project(name: &str, mode: &str) -> Project {
         STORIES,
         "export default {};\n\nexport const Dragging = {};\n",
     );
-    // The command ends in `&& true`, so its shell waits for the fake, as `pnpm exec` waits for
+    // The command ends in `&& true`, so its shell waits for the fake, as a package manager waits for
     // Storybook: only a signal to the whole process group stops both.
     let command = format!(
         "{FAKE} --port {{port}} --mode {mode} --log {} && true",

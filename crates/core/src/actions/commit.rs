@@ -149,7 +149,6 @@ fn committed(
 /// Whether "Add and commit" committed its file: `reason` is `other-changes` when the file had
 /// uncommitted changes before the add, or `hook-failed`, with `message` the hook's first line.
 // `AddCommit` in JavaScript: `Added` is a repository added to the list.
-#[cfg_attr(feature = "napi", napi_derive::napi(object, js_name = "AddCommit"))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Added {
@@ -169,7 +168,6 @@ impl Added {
 }
 
 /// The priorities after "Add and commit", and whether it committed.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct ProposalAdded {
     pub priorities: Priorities,
@@ -177,7 +175,6 @@ pub struct ProposalAdded {
 }
 
 /// The inbox after "Add and commit", and whether it committed.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct InboxAdded {
     pub inbox: Inbox,

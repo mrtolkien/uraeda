@@ -3,7 +3,7 @@
 //! unrun, and every recipe that runs tests is isolated.
 //!
 //! These read the `justfile`, `.config/nextest.toml`, the crates' manifests, and CI's workflow,
-//! as the toolchain configuration's tests of the Node server's package read Vite+'s tasks.
+//! as the tests of the earlier toolchain's configuration read its tasks.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;

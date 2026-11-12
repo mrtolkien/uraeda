@@ -67,6 +67,6 @@ fn the_clients_types_are_fresh() {
 
     assert!(
         written == typescript(&catalog()),
-        "app/store/protocol.d.ts is stale: run `vp run protocol:types`, and commit the file"
+        "app/store/protocol.d.ts is stale: run `just protocol-types`, and commit the file"
     );
 }

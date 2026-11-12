@@ -1,5 +1,5 @@
 //! SC-001 of the CLI core: `ura status` and `ura next` complete in under 1 second on a repository
-//! with 20 feature branches. The test checks what they print; the benchmark, run by `vp run bench`,
+//! with 20 feature branches. The test checks what they print; the benchmark, run by `just bench`,
 //! their time. It runs the debug build, on machines of any speed, so the bound is five times the
 //! criterion's; the release build on Linux x64 is the one the criterion names.
 //!

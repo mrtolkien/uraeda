@@ -14,7 +14,6 @@ use crate::git::Git;
 use crate::workspace::Workspace;
 
 /// A buffer's file as read: its whole text, frontmatter included, and the branch it is written on.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BufferView {

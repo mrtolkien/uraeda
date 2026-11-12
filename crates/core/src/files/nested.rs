@@ -19,7 +19,6 @@ pub(crate) struct Node {
 }
 
 /// An item nested under a list's item, for editing: its address, its depth, and its text.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NestedItem {

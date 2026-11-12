@@ -1,4 +1,4 @@
-//! The operations the binding exposes, by repository path: each reads the workspace, reaches the
+//! The operations the server calls, by repository path: each reads the workspace, reaches the
 //! branch it writes on through a worktree, acts, and returns what the UI shows next.
 
 use std::path::{Path, PathBuf};

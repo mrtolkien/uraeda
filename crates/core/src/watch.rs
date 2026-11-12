@@ -9,8 +9,6 @@ use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant, SystemTime};
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher as _};
 use serde::Serialize;
 
@@ -26,7 +24,6 @@ pub const QUIET: Duration = Duration::from_millis(200);
 pub const LONGEST: Duration = Duration::from_secs(1);
 
 /// What changed since the last report.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Changes {

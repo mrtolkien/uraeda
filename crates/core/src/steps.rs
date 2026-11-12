@@ -1,7 +1,5 @@
 //! The skill's tables of steps, as a function of a feature's files.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::items::TaskItem;
@@ -170,7 +168,6 @@ pub struct CatchUp {
 }
 
 /// The plan's progress during the implementation: the tasks done, and the first task left.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskProgress {

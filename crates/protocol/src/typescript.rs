@@ -70,7 +70,7 @@ impl TypeVisitor for Types {
 pub fn typescript(catalog: &Catalog) -> String {
     let mut text = format!(
         "// The protocol between Uraeda's server and its clients, as a client reads it.\n\
-         // Written by `vp run protocol:types` from `crates/protocol/`: never by hand.\n\n\
+         // Written by `just protocol-types` from `crates/protocol/`: never by hand.\n\n\
          /** The protocol's version, which a client's `hello` gives. */\n\
          export type Protocol = {PROTOCOL};\n"
     );

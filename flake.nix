@@ -1,5 +1,5 @@
 {
-  description = "Uraeda: the ura CLI, and the development shell with Node, pnpm, the pinned Rust toolchain, and Native Shell";
+  description = "Uraeda: the ura CLI, and the development shell with the pinned Rust toolchain, Native Shell, and the tools of the justfile";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -177,9 +177,6 @@
           packages =
             with pkgs;
             [
-              nodejs_24
-              # pnpm downloads the exact version pinned in package.json's devEngines.
-              pnpm
               (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
               # The Rust tests' runner, and their coverage.
               cargo-nextest
@@ -248,15 +245,11 @@
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
           # `nsh check` runs this TypeScript, the version NSH pins, and downloads none.
           NSH_TSC = "${pkgs.typescript}/bin/tsc";
-          # The browsers of the screenshot scripts in `packages/web/scripts/`: the playwright package pins
-          # the same version as nixpkgs' driver, so its browsers run here without a download.
-          PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
-          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           # WebKit needs an EGL driver, which machines without a GPU stack, like CI's, lack.
           __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.mesa}/share/glvnd/egl_vendor.d";
-          # The browsers' fonts, the same on every machine: text in the screenshots does not depend on the
-          # fonts a machine has installed.
+          # The fonts of the web build's browser and of what GTK draws outside the app's own, the
+          # same on every machine: text in a picture does not depend on the fonts a machine has
+          # installed.
           FONTCONFIG_FILE = pkgs.writeText "fonts.conf" ''
             <?xml version="1.0"?>
             <!DOCTYPE fontconfig SYSTEM "fonts.dtd">

@@ -4,8 +4,6 @@
 
 use std::path::{Path, PathBuf};
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use toml_edit::{Array, DocumentMut, Item, Key, TableLike, Value};
 
 use crate::api::ApiError;
@@ -29,7 +27,6 @@ pub(crate) const HEADER: &str =
     "# Uraeda's settings. The settings page writes this file too, and keeps your comments.\n";
 
 /// The settings the file holds, an absent key unset.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Settings {
     pub server: ServerSettings,
@@ -38,7 +35,6 @@ pub struct Settings {
 }
 
 /// The `[server]` table.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ServerSettings {
     /// Trimmed and in lower case.
@@ -48,7 +44,6 @@ pub struct ServerSettings {
 }
 
 /// The `[runs]` table: how the workflow's runs start.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RunSettings {
     /// Whether a run the server's restart cut continues by itself: `true` when unset.
@@ -96,7 +91,6 @@ impl ContinueKey {
 }
 
 /// The `[keyboard]` table: how the web UI's keys behave.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct KeyboardSettings {
     /// Whether the keys of one printable character act: `true` when unset.

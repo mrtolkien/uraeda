@@ -5,7 +5,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 impl Git {
     /// gix asserts when recreating its object store if the directory disappeared during a read.
-    /// Keep that panic inside the status read instead of letting it abort the Node binding.
+    /// Keep that panic inside the status read instead of letting it abort the server.
     pub(super) fn status_items(
         &self,
         what: &str,

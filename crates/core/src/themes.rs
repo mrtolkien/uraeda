@@ -8,8 +8,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use include_dir::{Dir, include_dir};
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 
 pub mod contrast;
 mod parse;
@@ -96,7 +94,6 @@ static SHIPPED: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/themes");
 const LARGEST: u64 = 1024 * 1024;
 
 /// A theme in the lists, every role resolved to a colour.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Theme {
     /// The file's name without `.toml`.
@@ -114,7 +111,6 @@ pub struct Theme {
 }
 
 /// A problem of a theme file: an error, or a warning, which never leaves the lists.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ThemeProblem {
     /// The line it is on, from 1, to sort and to point at; absent for the whole file.
@@ -132,7 +128,6 @@ pub struct ThemeProblem {
 }
 
 /// A theme file of the user's, listed or not, and its problems.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ThemeFile {
     /// The file's name, `ember.toml`.
@@ -149,7 +144,6 @@ pub struct ThemeFile {
 }
 
 /// The themes the lists show, and the user's files.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Themes {
     /// The user's themes folder, as messages show it, the home folder written `~`, and a `/` last.

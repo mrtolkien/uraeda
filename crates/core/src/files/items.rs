@@ -2,8 +2,6 @@
 //! and their scenarios, plan tasks and their steps, review comments, rulings. Each points into the
 //! file's document tree by block id, so the UI draws the blocks and acts on the items.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::document::{BlockKind, Document, ItemMarker, Span, plain};
@@ -24,7 +22,6 @@ pub use spec::{
 };
 
 /// An option of a question.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Choice {
@@ -43,7 +40,6 @@ pub struct Choice {
     pub block: u32,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QuestionItem {
@@ -81,7 +77,6 @@ pub struct QuestionItem {
     pub answer_line: u32,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoundItems {
@@ -106,7 +101,6 @@ pub struct RoundItems {
 }
 
 /// The verdict of a round's block, by its phrase.
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum VerdictKind {
@@ -119,7 +113,6 @@ pub enum VerdictKind {
 }
 
 /// The block's item starting "Verdict: ", then one of the three phrases.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoundVerdict {
@@ -132,7 +125,6 @@ pub struct RoundVerdict {
 }
 
 /// A part of a round's context: a `###` sub-heading and its blocks.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextPart {
@@ -146,7 +138,6 @@ pub struct ContextPart {
 
 /// The kind of a settled group: `## Check these`, or the settled section's `### Behaviour` or
 /// `### Under the hood`.
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SettledKind {
@@ -157,7 +148,6 @@ pub enum SettledKind {
 
 /// A group of the points settled without the human: the `## Check these` section, or a `###`
 /// sub-heading of the settled section, and its blocks.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettledGroup {
@@ -173,7 +163,6 @@ pub struct SettledGroup {
 }
 
 /// A point settled without the human, by its bold start.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettledPoint {
@@ -184,7 +173,6 @@ pub struct SettledPoint {
 }
 
 /// A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettledComment {
@@ -197,7 +185,6 @@ pub struct SettledComment {
     pub text: String,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StepItem {
@@ -205,7 +192,6 @@ pub struct StepItem {
     pub checked: bool,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskItem {
@@ -224,7 +210,6 @@ impl TaskItem {
     }
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanItems {
@@ -235,7 +220,6 @@ pub struct PlanItems {
 
 /// A plan's lead paragraph: a top-level paragraph before the first `##` whose first span is bold
 /// text ending in ":", such as "**Goal:**".
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanLead {
@@ -248,7 +232,6 @@ pub struct PlanLead {
     pub text: Vec<Span>,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommentItem {
@@ -267,7 +250,6 @@ pub struct CommentItem {
     pub text: String,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReviewItems {
@@ -277,7 +259,6 @@ pub struct ReviewItems {
     pub comments: Vec<CommentItem>,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ruling {
@@ -289,7 +270,6 @@ pub struct Ruling {
 }
 
 /// The items of a file, by its kind: at most one field is set.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Items {

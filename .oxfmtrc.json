@@ -5,12 +5,6 @@
     ".github/workflows/release.yml",
     "app/store/protocol.d.ts",
     "fixtures/**",
-    "packages/**",
-    "pnpm-lock.yaml",
-    "vite.config.ts",
-    "vite.fast.config.ts",
-    "vite.tasks.ts",
-    "scripts/**/*.ts",
     ".sandbox/**",
     ".sandbox-*/**"
   ]

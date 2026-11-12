@@ -4,8 +4,6 @@
 
 use std::path::{Component, Path};
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::frontmatter::{self, Frontmatter, Value};
@@ -16,7 +14,6 @@ const FOLDER_RULE: &str = "frontmatter.preview-folder";
 const COMMAND_RULE: &str = "frontmatter.preview-command";
 
 /// A checkout's preview, from its active preview decision.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Preview {

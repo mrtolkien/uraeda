@@ -16,7 +16,6 @@ pub const CHECK_DIR: &str = "specs/decisions-check";
 const DECISIONS: &str = "specs/decisions";
 
 /// The candidate of one option of a question of a decisions check.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Candidate {

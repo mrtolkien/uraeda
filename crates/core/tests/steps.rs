@@ -355,7 +355,7 @@ fn order_follows_the_workflow() {
     }
 }
 
-/// The run step each workflow step belongs to, as the binding's `NextView.step.runStep` gives it,
+/// The run step each workflow step belongs to, as `NextView.step.runStep` gives it,
 /// and `runStepOf` by the step's name: a step outside every run, as a gate, belongs to none.
 #[test]
 fn each_step_belongs_to_its_run_step() {

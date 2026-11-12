@@ -11,17 +11,12 @@ rust-version.workspace = true
 [lib]
 doctest = false
 
-[features]
-napi = ["dep:napi", "dep:napi-derive", "uraeda-text/napi"]
-
 [dependencies]
 gif.workspace = true
 gix.workspace = true
 image.workspace = true
 include_dir.workspace = true
 libwebp-sys.workspace = true
-napi = { workspace = true, optional = true }
-napi-derive = { workspace = true, optional = true }
 notify.workspace = true
 pulldown-cmark.workspace = true
 serde.workspace = true
@@ -39,9 +34,6 @@ libc.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-
-[build-dependencies]
-napi-build.workspace = true
 
 [lints]
 workspace = true

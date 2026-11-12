@@ -3799,7 +3799,7 @@ shrink by 66 to 91% alone; the long chat's 110 small `TurnLog`s by 33%.
 - [ ] **Step 1: Leave the human's data alone.** `ura import-sessions` is theirs to run once, after
       the build: say how in `INSTALL.md`. Nothing more is built for upgrades: the human is the only
       user.
-- [ ] **Step 2: Delete the old code**, as the spec's
+- [x] **Step 2: Delete the old code**, as the spec's
       [replaced behaviour](spec.md#replaced-behaviour) lists it, with its tests.
 - [ ] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
       and test it, the web UI's page in `docs/`, and the guides of `specs/ui/` that named Astryx or

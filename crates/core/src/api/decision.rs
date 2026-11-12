@@ -4,8 +4,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::{Result, feature_dir, find, open, refused};
@@ -17,7 +15,6 @@ use crate::workspace::Feature;
 
 /// A decision as a feature's branch has it, and its change against the merge base of the branch
 /// and the default branch.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BranchDecision {

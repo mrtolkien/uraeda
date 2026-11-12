@@ -24,7 +24,6 @@ const DECISIONS: &str = "specs/decisions";
 
 /// The constitution and the decisions: `None` without `specs/CONSTITUTION.md`, and no decision
 /// without `specs/decisions/`.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ledger {
@@ -37,7 +36,6 @@ pub struct Ledger {
 
 /// `specs/CONSTITUTION.md`: its title, its version line's fields when it has them, and its
 /// principles, the `### <number>. <title>` headings.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Constitution {
@@ -51,7 +49,6 @@ pub struct Constitution {
 }
 
 /// A principle of the constitution.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Principle {
@@ -66,7 +63,6 @@ pub struct Principle {
 }
 
 /// A decision of `specs/decisions/`.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Decision {

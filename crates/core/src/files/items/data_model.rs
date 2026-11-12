@@ -1,14 +1,11 @@
 //! A data model's sections and tables: the entities a feature adds or changes, each a `##`
 //! section, its tables' rows marked by their column headed "Change".
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::document::{Block, BlockKind, Document, plain};
 
 /// What a data model's row does: its "Change" cell, "New", "Changed", or "Removed".
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RowChangeKind {
@@ -38,7 +35,6 @@ impl RowChangeKind {
 }
 
 /// A row of a data model's table, and its change.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RowChange {
@@ -48,7 +44,6 @@ pub struct RowChange {
 }
 
 /// A table of a data model, and the rows its "Change" column marks.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DataTable {
@@ -62,7 +57,6 @@ pub struct DataTable {
 }
 
 /// A `##` section of a data model: an entity.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DataSection {
@@ -79,7 +73,6 @@ pub struct DataSection {
 }
 
 /// A data model's items.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DataModelItems {

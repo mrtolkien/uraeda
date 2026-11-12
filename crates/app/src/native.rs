@@ -13,7 +13,7 @@
 //! 3. Name the file in `lib.rs`, `mod <part>;`, and add `.module::<crate::<part>::<Struct>>()`
 //!    below.
 //!
-//! TypeScript's types come from Rust's: `vp run app:check` writes them in
+//! TypeScript's types come from Rust's: `just app-check` writes them in
 //! `app/.nsh/types/uraeda/native.d.ts`, then checks the TSX against them. A function that is
 //! neither `async` nor takes a `ModuleCx` returns its value inside the TSX call; the others return
 //! a promise. A struct TSX reads or writes derives `JsObject`.

@@ -16,7 +16,6 @@ const CONSTITUTION: &str = "specs/CONSTITUTION.md";
 const DECISIONS_FOLDER: &str = "specs/decisions";
 
 /// An item of the setup.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetupItem {

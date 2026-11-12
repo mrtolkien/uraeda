@@ -1,8 +1,6 @@
 //! A decision's change between two versions of its file, its parts compared as `compare` matches
 //! them, each rule with its strength and its check apart.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::strength::strength;
@@ -11,7 +9,6 @@ use crate::files::document::LineRange;
 use crate::files::frontmatter;
 
 /// The change of one decision, from its version at the merge base to the branch's.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DecisionChange {
@@ -31,7 +28,6 @@ pub struct DecisionChange {
 }
 
 /// A field of a decision that differs between two versions: its `title`, or a frontmatter key.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FieldChange {
@@ -43,7 +39,6 @@ pub struct FieldChange {
 }
 
 /// A section of a decision: the intent before the first `##`, titled `""`, then each `##`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SectionChange {
@@ -52,7 +47,6 @@ pub struct SectionChange {
 }
 
 /// A paragraph or a list item of a decision, compared.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PartChange {

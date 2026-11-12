@@ -5,7 +5,6 @@ use super::agent::{NoteFile, agent_notes};
 use super::{Note, body, category_names, link_text, parse, scan};
 
 /// A note of `INBOX.md`, for editing.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InboxNote {
@@ -41,7 +40,6 @@ pub struct InboxNote {
     pub children: Vec<super::super::nested::NestedItem>,
 }
 
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InboxCategory {
@@ -51,7 +49,6 @@ pub struct InboxCategory {
 }
 
 /// `INBOX.md` read for editing.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Inbox {

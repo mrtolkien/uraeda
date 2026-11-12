@@ -8,6 +8,15 @@
   "plugins": ["typescript", "unicorn", "oxc", "import"],
   "ignorePatterns": ["app/.nsh/**", "app/store/protocol.d.ts"],
   "rules": {
-    "import/no-unassigned-import": "off"
-  }
+    "import/no-unassigned-import": "off",
+    "max-depth": ["error", { "max": 4 }],
+    "max-lines": ["error", { "max": 500 }],
+    "max-params": ["error", { "max": 7 }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": { "max-lines": "off" }
+    }
+  ]
 }

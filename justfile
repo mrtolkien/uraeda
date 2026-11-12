@@ -61,9 +61,10 @@ fmt-check:
 lint: lint-app lint-workflows
     {{ heavy }} cargo clippy --workspace --all-targets -- -D warnings
 
-# The lints of the app's TSX.
+# The lints of the app's TSX, with the code quality decision's limits on nesting, parameters, and
+# a file's length. A directive that turns a rule off where nothing breaks it fails.
 lint-app:
-    oxlint -c .oxlintrc.json --deny-warnings app
+    oxlint -c .oxlintrc.json --deny-warnings --report-unused-disable-directives app
 
 # The GitHub workflows' lint, with ShellCheck on their scripts.
 lint-workflows:
@@ -254,6 +255,11 @@ release *args:
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:
     {{ nsh }} "$@"
+
+# The benchmarks of the specs' success criteria, the ignored tests named `bench_`: they measure
+# time, so no check runs them. Run them once, on a quiet machine.
+bench:
+    {{ isolated }} cargo nextest run --run-ignored only -E 'test(/^bench_/)'
 
 # Write the client's types of the protocol, `app/store/protocol.d.ts`, from the protocol's crate.
 protocol-types:

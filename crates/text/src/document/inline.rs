@@ -1,7 +1,5 @@
 //! A block's inline text as it is read: runs of text with the same marks, links, and images.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::Builder;
@@ -9,7 +7,6 @@ use crate::links::resolve;
 use crate::stories::{StoryTarget, story_target};
 
 /// A link of a span: its target as written, and the file it points to in the repository.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpanLink {
@@ -25,7 +22,6 @@ pub struct SpanLink {
 }
 
 /// An image of a span: its target as written, and the file it shows in the repository.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpanImage {
@@ -36,7 +32,6 @@ pub struct SpanImage {
 }
 
 /// A run of text with the same marks. An image's span holds its alt text.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Span {

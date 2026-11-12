@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Formats the files a commit stages, as `just fmt` formats every file: Rust with rustfmt, and
+# what Cargo does not read (TSX, Markdown, JSON, TOML, YAML) with oxfmt, which skips what
+# `.oxfmtrc.json` ignores and what it does not format. Turn it on once in a clone:
+#
+#   git config core.hooksPath .githooks
+#
+# A staged file that also has changes left out of the commit is not rewritten, since formatting
+# it would add those to the commit: it is checked instead, and the commit stops when it is not
+# formatted, naming it. Outside the dev shell, the formatters are the dev shell's.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if ! command -v oxfmt >/dev/null || ! command -v rustfmt >/dev/null; then
+  exec nix develop -c "$0" "$@"
+fi
+
+whole=()
+partial=()
+while IFS= read -r -d '' file; do
+  [ -f "$file" ] || continue
+  if git diff --quiet -- "$file"; then
+    whole+=("$file")
+  else
+    partial+=("$file")
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+# The Rust files of a list, and the others, each ended by a null.
+rust() {
+  for file in "$@"; do
+    if [[ "$file" == *.rs ]]; then printf '%s\0' "$file"; fi
+  done
+}
+other() {
+  for file in "$@"; do
+    if [[ "$file" != *.rs ]]; then printf '%s\0' "$file"; fi
+  done
+}
+
+if [ ${#whole[@]} -gt 0 ]; then
+  rust "${whole[@]}" | xargs -0 -r rustfmt --edition 2024
+  other "${whole[@]}" | xargs -0 -r oxfmt --no-error-on-unmatched-pattern >/dev/null
+  git add -- "${whole[@]}"
+fi
+
+if [ ${#partial[@]} -gt 0 ]; then
+  if ! rust "${partial[@]}" | xargs -0 -r rustfmt --edition 2024 --check >/dev/null ||
+    ! other "${partial[@]}" | xargs -0 -r oxfmt --check --no-error-on-unmatched-pattern >/dev/null; then
+    echo "pre-commit: a file staged in part is not formatted: run \`just fmt\`, and stage it again:" >&2
+    printf '  %s\n' "${partial[@]}" >&2
+    exit 1
+  fi
+fi

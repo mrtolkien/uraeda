@@ -1,6 +1,5 @@
 name: Set up the dev shell
-description:
-  Nix, for the `flake.nix` dev shell every check runs in, the Rust cache, and the pnpm dependencies.
+description: Nix, for the `flake.nix` dev shell every check runs in, and the Rust cache.
 
 runs:
   using: composite
@@ -8,13 +7,8 @@ runs:
     - uses: cachix/install-nix-action@v31
     - uses: Swatinem/rust-cache@v2
       with:
-        # One cache per job, shared by its shards: each job builds other crates (the binding's napi,
-        # clippy's, release's), and one cache for all held only the first job to save's. Saved by
-        # pull requests too, which read their own and `main`'s, so a branch's runs reuse its builds.
+        # One cache per job: each job builds other crates (the checks', the web build's
+        # WebAssembly, the release's), and one cache for all held only the first job to save's.
+        # Saved by pull requests too, which read their own and `main`'s, so a branch's runs reuse
+        # its builds.
         shared-key: ci-${{ github.job }}
-
-    - name: Install dependencies
-      # Without scripts: `prepare` runs `vp config`, which sets up git hooks and rewrites the
-      # Vite+ section of AGENTS.md unwrapped, failing the formatting check.
-      run: nix develop --command pnpm install --frozen-lockfile --ignore-scripts
-      shell: bash

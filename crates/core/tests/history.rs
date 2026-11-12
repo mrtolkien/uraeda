@@ -946,7 +946,7 @@ fn a_squash_merged_feature_has_no_figures() {
     assert!(history.decisions.is_empty());
 }
 
-/// SC-002, with `vp run bench`: a merged feature of 80 commits, among 400 others of 20 other
+/// SC-002, with `just bench`: a merged feature of 80 commits, among 400 others of 20 other
 /// features, gets its history in under 100 ms, the median of 5 reads.
 #[test]
 #[ignore = "benchmark"]

@@ -4,8 +4,6 @@
 
 use std::time::{Duration, UNIX_EPOCH};
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::decisions::DecisionChange;
@@ -21,7 +19,6 @@ mod stages;
 pub use stages::Stage;
 
 /// A feature's or a change's stages, and what it produced.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoryView {
@@ -48,7 +45,6 @@ pub struct HistoryView {
 }
 
 /// A stage, and when it started.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StageView {
@@ -59,7 +55,6 @@ pub struct StageView {
 }
 
 /// Lines added and removed, over a number of files.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinesView {
