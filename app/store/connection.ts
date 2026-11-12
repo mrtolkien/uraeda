@@ -13,14 +13,20 @@
 // - **Moved**, to a server found at another address, as this machine's started again on another
 //   port, the records keep their values, stale, until that server's come.
 // - **Refused**, nothing tries again: `refused()` says which side to update, or to sign in.
+// - **A binary frame** holds a message whose large part, a record's first value, came compressed:
+//   `unpackFrame` of `uraeda/native` inflates it, in Rust on GTK and in the browser alike, before
+//   it is parsed. One it cannot read fails the subscription or the call its head names, with its
+//   words.
 import { type Accessor, batch, type Signal, signal, untracked } from "nsh";
+import { unpackFrame } from "uraeda/native";
+import { measured } from "../ui/timing";
 import { dropped, offline, type Refused, refusedBy, StoreError } from "./errors";
 import { Held } from "./held";
 import { type Line, liveUrl, type Opener, openSocket } from "./line";
 import type { ClientMessage, JsonValue, Protocol, ServerMessage, SignIn } from "./protocol";
 
 /** The version of the protocol this client speaks: it stops compiling when the server's rises. */
-export const PROTOCOL: Protocol = 1;
+export const PROTOCOL: Protocol = 2;
 
 /** The waits before each new try, after a drop: the last one repeats. */
 export const WAITS = [500, 1000, 2000, 4000, 8000, 10_000] as const;
@@ -65,6 +71,9 @@ export type Entry = {
 
 type Waiting = { resolve: (output: unknown) => void; reject: (error: StoreError) => void };
 
+/** What waits to be applied: a server's message, or a frame of one that could not be read. */
+type Inbound = ServerMessage | { type: "unreadable"; id: number; message: string };
+
 export class Connection {
   private readonly where: Signal<string>;
   readonly signIn: SignIn;
@@ -82,7 +91,7 @@ export class Connection {
   private readonly entries = new Map<string, Entry>();
   private readonly subs = new Map<number, Entry>();
   private readonly calls = new Map<number, Waiting>();
-  private inbox: ServerMessage[] = [];
+  private inbox: Inbound[] = [];
   private flushing: number | undefined;
 
   /**
@@ -236,8 +245,8 @@ export class Connection {
       closed: () => {
         if (this.line === line) this.lost();
       },
-      message: (text) => {
-        if (this.line === line) this.heard(text);
+      message: (frame) => {
+        if (this.line === line) this.heard(frame);
       },
       opened: () => {
         if (this.line !== line) return;
@@ -251,13 +260,9 @@ export class Connection {
     this.line?.send(JSON.stringify(message));
   }
 
-  private heard(text: string) {
-    let message: ServerMessage;
-    try {
-      message = JSON.parse(text) as ServerMessage;
-    } catch {
-      return;
-    }
+  private heard(frame: string | ArrayBuffer) {
+    const message = typeof frame === "string" ? parsed(frame) : unpacked(frame);
+    if (message === undefined) return;
     this.inbox.push(message);
     this.flushing ??= setTimeout(() => this.flush(), FRAME);
   }
@@ -275,8 +280,11 @@ export class Connection {
     for (const entry of told) for (const listener of entry.listeners) listener();
   }
 
-  private receive(message: ServerMessage, told: Set<Entry>) {
+  private receive(message: Inbound, told: Set<Entry>) {
     switch (message.type) {
+      case "unreadable":
+        this.failed(message.id, new StoreError("unreadable", message.message), told);
+        return;
       case "welcome":
         this.heardZone(message.timeZone);
         this.welcomed(message.epoch);
@@ -411,6 +419,33 @@ export class Connection {
       this.open();
     }, wait);
   }
+}
+
+/** A text frame's message, or none when it is not JSON. */
+function parsed(text: string): ServerMessage | undefined {
+  try {
+    return JSON.parse(text) as ServerMessage;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A binary frame's message, its large part inflated, or what fails in its place: the
+ * subscription or the call its head names, or nothing when it names none.
+ */
+function unpacked(frame: ArrayBuffer): Inbound | undefined {
+  const read = measured("inflate", frame.byteLength, () => unpackFrame(new Uint8Array(frame)));
+  const text = read.text;
+  if (text !== undefined && text !== null) {
+    return measured("parse", text.length, () => parsed(text));
+  }
+  const problem = read.problem ?? "The server sent a frame this app cannot read.";
+  if (read.id === undefined || read.id === null) {
+    console.warn(`[store] ${problem}`);
+    return undefined;
+  }
+  return { id: read.id, message: problem, type: "unreadable" };
 }
 
 /** A value as a text with its records' fields in order, so equal arguments name one record. */

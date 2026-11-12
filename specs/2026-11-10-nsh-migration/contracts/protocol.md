@@ -1,6 +1,6 @@
 # Contract: the protocol
 
-How a client talks to `ura serve`, at version **1**. It implements the
+How a client talks to `ura serve`, at version **2**. It implements the
 [protocol decision](../../decisions/protocol.md).
 
 - The messages are defined once, in [`crates/protocol/`](/crates/protocol/src/message.rs). The
@@ -10,26 +10,57 @@ How a client talks to `ura serve`, at version **1**. It implements the
 - The examples below are those of
   [`fixtures/protocol/messages.json`](/fixtures/protocol/messages.json), which the crate's tests
   read. [`fixtures/protocol/changes.json`](/fixtures/protocol/changes.json) holds pairs of values
-  with the change between them, for the tests of anything that applies a change.
+  with the change between them, for the tests of anything that applies a change, and
+  [`fixtures/protocol/frames.json`](/fixtures/protocol/frames.json) a binary frame with the message
+  it holds.
 
 ## The connection
 
-- One WebSocket, at `/live`. Each message is one text frame holding one JSON object, with its
-  `type`.
+- One WebSocket, at `/live`. Each message is one frame holding one JSON object, with its `type`: a
+  text frame, or, from the server only, a binary frame whose large part is compressed. See
+  [Frames](#frames).
 - A receiver ignores a field it does not know. A client ignores a message whose `type` it does not
   know. A server answers a message it cannot read with an `error`, code `bad-message`.
 - Bytes stay on HTTP: see [the HTTP routes](#the-http-routes).
+
+## Frames
+
+A client sends text frames only. A binary frame from a client is answered with an `error`, code
+`bad-message`, and the connection goes on.
+
+The server sends a message as one text frame, except one whose large part is longer than 1 KB of
+JSON: a `data`'s `value`, a `change`'s `ops`, or a `result`'s `output`. That message goes in one
+binary frame:
+
+```text
+{"type":"data","id":1,"seq":40,"size":2571}
+<the value's JSON, 2,571 bytes, compressed with raw deflate>
+```
+
+- The frame is the message's **head**, its JSON without its large part and with that part's `size`,
+  the bytes of the part's JSON; then one newline byte; then the part's JSON compressed with raw
+  deflate (RFC 1951, no zlib or gzip header). A client reads the message as the head with the part
+  in its field.
+- **A change made of appends alone stays text**, however long: a reply's pieces come as they did. So
+  do `welcome`, `refused`, and `error`: a `refused` keeps its shape in every version.
+- **A client bounds what it inflates.** It refuses a frame whose head declares more than 16 MiB, or
+  whose part inflates to more or less than its `size`, or is not JSON. The subscription or the call
+  the head's `id` names fails, as an `error` would end it, with words that say why; the connection
+  goes on.
+- The threshold and the codec are the server's choice: a client reads any frame of this shape.
+  [`frame.rs`](/crates/protocol/src/frame.rs) in the crate writes and reads them, and the app reads
+  them with it (`unpackFrame` of `uraeda/native`).
 
 ## The handshake
 
 The first message of a connection is the client's `hello`: its version, and how it signs in.
 
 ```json
-{ "type": "hello", "protocol": 1, "signIn": { "by": "cookie" } }
+{ "type": "hello", "protocol": 2, "signIn": { "by": "cookie" } }
 ```
 
 ```json
-{ "type": "hello", "protocol": 1, "signIn": { "by": "token", "token": "p8Zk1mQ4" } }
+{ "type": "hello", "protocol": 2, "signIn": { "by": "token", "token": "p8Zk1mQ4" } }
 ```
 
 - `cookie` signs in with the session cookie of the request that opened the connection, as a browser
@@ -38,7 +69,7 @@ The first message of a connection is the client's `hello`: its version, and how 
 - The server answers `welcome`, and the connection is open:
 
 ```json
-{ "type": "welcome", "protocol": 1, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" }
+{ "type": "welcome", "protocol": 2, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" }
 ```
 
 - `epoch` is a random text the server draws each time it starts. A
@@ -270,6 +301,8 @@ start of a message.
   keeps the version.
 - A removed or renamed message, field, or operation, or a new one an older side must understand,
   raises it. There is one version at a time: an older client is refused, and updated.
+- Version 2 added the binary frames, which a client of version 1 cannot read: it is refused, and
+  told to update.
 
 ## Signing in
 

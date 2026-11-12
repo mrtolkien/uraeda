@@ -10,6 +10,7 @@ mod extension_view;
 #[cfg(all(target_os = "linux", feature = "host"))]
 pub use extension_view::share_app_assets;
 mod fonts;
+mod frames;
 mod highlight;
 #[cfg(all(target_os = "linux", feature = "host"))]
 pub mod host;

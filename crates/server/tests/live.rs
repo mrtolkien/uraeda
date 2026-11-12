@@ -471,6 +471,102 @@ async fn a_resume_after_a_drop_gets_what_it_missed() {
     assert_eq!((seq, &value), (held.seq, &held.value));
 }
 
+/// A `resume` of a counter, as of the change `seq` applied under `epoch`.
+fn resume(id: u32, counter: &str, epoch: &str, seq: u64) -> ClientMessage {
+    ClientMessage::Resume {
+        id,
+        record: "Counter".to_owned(),
+        args: json!({ "id": counter }),
+        epoch: epoch.to_owned(),
+        seq,
+    }
+}
+
+// The break it catches: a first value sent whole as text to a phone, read back another, or a
+// reply's pieces held up by a compression they do not need.
+#[tokio::test]
+async fn a_long_first_value_arrives_compressed_and_reads_the_same() {
+    let server = support::server().await;
+    let counters = Counters::on(&server);
+    let mut client = server.connect().await;
+    let long = "A decision, its summary, and its state. ".repeat(100);
+    counters.write("long", &long);
+
+    // Past 1 KB, the value comes in a binary frame, and reads as it was.
+    client.send(&sub(1, "long")).await;
+    let ServerMessage::Data { id: 1, value, .. } = client.next().await else {
+        panic!("a sub is answered with the whole value");
+    };
+    assert!(client.was_packed(), "a long first value is compressed");
+    assert_eq!(value, json!({ "id": "long", "count": 0, "tape": long }));
+
+    // A short value, a long append, a change, and an answer stay text.
+    client.send(&sub(2, "short")).await;
+    assert!(matches!(
+        client.next().await,
+        ServerMessage::Data { id: 2, .. }
+    ));
+    assert!(!client.was_packed(), "a short value is text");
+    let piece = "and a reply that grows by long pieces ".repeat(50);
+    counters.say("long", &piece);
+    let ServerMessage::Change { id: 1, ops, .. } = client.next().await else {
+        panic!("an append is a change");
+    };
+    assert!(!client.was_packed(), "an append is text, however long");
+    assert!(ops.iter().all(Op::is_append), "{ops:?}");
+    client.send(&add(3, "long", 1)).await;
+    for _ in 0..2 {
+        let message = client.next().await;
+        assert!(!client.was_packed(), "{message:?} is text");
+    }
+
+    // Another subscriber gets the same value; one that comes back gets only what it missed.
+    let mut other = server.connect().await;
+    other.send(&sub(1, "long")).await;
+    let ServerMessage::Data { id: 1, seq, value } = other.next().await else {
+        panic!("a sub is answered with the whole value");
+    };
+    assert!(other.was_packed());
+    assert_eq!(value["tape"], json!(format!("{long}{piece}")));
+    let epoch = other.epoch().to_owned();
+    drop(other);
+    counters.say("long", "!");
+    let mut back = server.connect().await;
+    back.send(&resume(1, "long", &epoch, seq)).await;
+    let ServerMessage::Change { id: 1, ops, .. } = back.next().await else {
+        panic!("a resume gets the changes it missed, not the whole value");
+    };
+    assert!(!back.was_packed());
+    assert_eq!(
+        ops,
+        [Op::Append {
+            path: vec!["tape".to_owned()],
+            text: "!".to_owned()
+        }]
+    );
+}
+
+// The break it catches: a server that inflates what a client sends, which only the server does
+// for the client.
+#[tokio::test]
+async fn a_binary_frame_from_a_client_is_refused() {
+    let server = support::server().await;
+    Counters::on(&server);
+    let mut client = server.connect().await;
+
+    client.send_binary(br#"{"type":"call"}"#).await;
+
+    let ServerMessage::Error { id, code, message } = client.next().await else {
+        panic!("a binary frame is answered with an error");
+    };
+    assert_eq!((id, code), (None, ErrorCode::BadMessage));
+    assert!(message.contains("text frame"), "{message}");
+    // The connection goes on.
+    client.send(&add(1, "a", 2)).await;
+    let output = json!(2);
+    assert_eq!(client.next().await, ServerMessage::Result { id: 1, output });
+}
+
 /// Who a newly paired device is, as sign-in checks its `hello`.
 async fn identity(server: &TestServer) -> Identity {
     let token = server.pair("A test's device").await;

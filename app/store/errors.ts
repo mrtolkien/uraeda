@@ -1,10 +1,13 @@
 // Why a call failed, or why a record has no value: the server's own code and words, or the
-// client's two, `offline` and `dropped`. The message is for a person, and a screen shows it as it
+// client's three, `offline`, `dropped`, and `unreadable`. The message is for a person, and a screen shows it as it
 // is, under the control it answers (`sent`, `app/ui/controls/sent.ts`).
 import type { ErrorCode, Refusal } from "./protocol";
 
-/** The server's codes, and the client's: no line to send on, or a line that dropped mid-call. */
-export type StoreErrorCode = ErrorCode | "offline" | "dropped";
+/**
+ * The server's codes, and the client's: no line to send on, a line that dropped mid-call, or a
+ * frame of the server the client cannot read.
+ */
+export type StoreErrorCode = ErrorCode | "offline" | "dropped" | "unreadable";
 
 export class StoreError extends Error {
   readonly code: StoreErrorCode;

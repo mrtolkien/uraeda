@@ -1,23 +1,26 @@
 //! What `/live` sends a screen, read from the browser's own record of the socket's frames: the
 //! bytes from a navigation to its page drawn with its records, the largest message with its
 //! record's name, what each message would weigh compressed, and how long the page waited for its
-//! records' first values. The protocol's contract says every message is one text frame.
+//! records' first values. A message whose large part is long comes in a binary frame, that part
+//! compressed (the contract's "Frames"): a row says what went on the wire, and what the same
+//! messages weigh as text, as they all went before task 69.
 
 use std::collections::HashMap;
-use std::io::Write as _;
 
-use flate2::Compression;
-use flate2::write::DeflateEncoder;
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD;
 use serde_json::Value;
+use uraeda_protocol::unpack;
 use uraeda_server::sandbox::LONG_CHAT;
 
 use super::bench::{Timed, ms};
 
 /// A frame of the app's socket: whether the page sent it, when, in the browser's clock, in
-/// seconds, and its text.
+/// seconds, its bytes on the wire, and its message's text, a binary frame's unpacked.
 pub struct Frame {
     pub sent: bool,
     pub at: f64,
+    pub wire: usize,
     pub text: String,
 }
 
@@ -37,13 +40,22 @@ pub fn frames(events: Vec<(String, Value)>) -> Vec<Frame> {
                 "Network.webSocketFrameReceived" => false,
                 _ => return None,
             };
+            let payload = event["response"]["payloadData"]
+                .as_str()
+                .unwrap_or_default();
+            // A binary frame's payload is in base64.
+            let (wire, text) = if event["response"]["opcode"].as_u64() == Some(2) {
+                let bytes = STANDARD.decode(payload).unwrap_or_default();
+                let text = unpack(&bytes).unwrap_or_default();
+                (bytes.len(), text)
+            } else {
+                (payload.len(), payload.to_owned())
+            };
             Some(Frame {
                 sent,
                 at: event["timestamp"].as_f64().unwrap_or_default(),
-                text: event["response"]["payloadData"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_owned(),
+                wire,
+                text,
             })
         })
         .collect()
@@ -84,43 +96,43 @@ impl Names {
 /// The table's head.
 pub fn table() -> Vec<String> {
     vec![
-        "| Screen | Settled | First frame | Waiting for first values | Records | Messages | Sent | Compressed | Largest message: bytes, compressed, record |".to_owned(),
-        "| ------ | ------- | ----------- | ------------------------ | ------- | -------- | ---- | ---------- | ------------------------------------------ |".to_owned(),
+        "| Screen | Settled | First frame | Waiting for first values | Records | Messages | Sent | As text | Largest message: sent, as text, record |".to_owned(),
+        "| ------ | ------- | ----------- | ------------------------ | ------- | -------- | ---- | ------- | -------------------------------------- |".to_owned(),
     ]
 }
 
 /// A screen's row: what the server sent from the navigation to the page drawn with its records.
 pub fn row(screen: &str, timed: &Timed, frames: &[Frame], names: &Names) -> String {
     let received: Vec<&Frame> = frames.iter().filter(|frame| !frame.sent).collect();
-    let bytes: usize = received.iter().map(|frame| frame.text.len()).sum();
-    let compressed: usize = received.iter().map(|frame| deflated(&frame.text)).sum();
+    let sent: usize = received.iter().map(|frame| frame.wire).sum();
+    let text: usize = received.iter().map(|frame| frame.text.len()).sum();
     let largest = received.iter().max_by_key(|frame| frame.text.len());
     let largest = largest.map_or_else(
         || "none".to_owned(),
         |frame| {
             format!(
                 "{}, {}, {}",
+                kb(frame.wire),
                 kb(frame.text.len()),
-                kb(deflated(&frame.text)),
                 names.of(&frame.message())
             )
         },
     );
     let (subs, waiting) = waiting(frames);
-    let saved = if bytes == 0 {
+    let saved = if text == 0 {
         0.0
     } else {
-        100.0 * (1.0 - compressed as f64 / bytes as f64)
+        100.0 * (1.0 - sent as f64 / text as f64)
     };
     format!(
-        "| {screen} | {} | {} | {} ({:.0}%) | {subs} | {} | {} | {} ({saved:.0}% less) | {largest} |",
+        "| {screen} | {} | {} | {} ({:.0}%) | {subs} | {} | {} ({saved:.0}% less) | {} | {largest} |",
         ms(timed.ms),
         ms(timed.first),
         ms(waiting),
         100.0 * waiting / timed.ms.max(1.0),
         received.len(),
-        kb(bytes),
-        kb(compressed),
+        kb(sent),
+        kb(text),
     )
 }
 
@@ -152,14 +164,6 @@ fn waiting(frames: &[Frame]) -> (usize, f64) {
         .map(|frame| frame.at)
         .fold(start, f64::max);
     (asked.len(), (last - start) * 1000.0)
-}
-
-/// A message's bytes compressed alone, as a WebSocket's per-message deflate without a shared
-/// window would send it.
-fn deflated(text: &str) -> usize {
-    let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(text.as_bytes()).expect("in memory");
-    encoder.finish().expect("in memory").len()
 }
 
 fn kb(bytes: usize) -> String {

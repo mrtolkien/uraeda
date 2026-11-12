@@ -5,7 +5,7 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::http::HeaderMap;
 use axum::response::Response;
 use axum::routing::get;
-use uraeda_protocol::{PROTOCOL, ServerMessage, handshake};
+use uraeda_protocol::{ErrorCode, Frame, PROTOCOL, ServerMessage, frame, handshake};
 
 use crate::Failure;
 use crate::http::Routes;
@@ -49,9 +49,11 @@ async fn welcomed(
     headers: &HeaderMap,
     socket: &mut WebSocket,
 ) -> Option<Identity> {
-    let first = next(shared, socket).await?;
-    let checked =
-        handshake(&first).and_then(|sign_in| Ok(sign_in::check(shared, headers, &sign_in)?));
+    let checked = match next(shared, socket).await? {
+        Said::Text(first) => handshake(&first),
+        Said::Binary => Err(binary_refused()),
+    };
+    let checked = checked.and_then(|sign_in| Ok(sign_in::check(shared, headers, &sign_in)?));
     match checked {
         Ok(identity) => {
             let welcome = ServerMessage::Welcome {
@@ -77,17 +79,33 @@ fn zone_name() -> String {
         .to_owned()
 }
 
-/// The connection's next text frame: none once the client closed it, or the server stops.
-pub(crate) async fn next(shared: &Shared, socket: &mut WebSocket) -> Option<String> {
+/// What a client sent: a message's text, or a binary frame, which only the server sends.
+pub(crate) enum Said {
+    Text(String),
+    Binary,
+}
+
+/// The `error` that answers a client's binary frame.
+pub(crate) fn binary_refused() -> ServerMessage {
+    ServerMessage::Error {
+        id: None,
+        code: ErrorCode::BadMessage,
+        message: "a client's message is a text frame: binary frames are the server's".to_owned(),
+    }
+}
+
+/// The connection's next message: none once the client closed it, or the server stops.
+pub(crate) async fn next(shared: &Shared, socket: &mut WebSocket) -> Option<Said> {
     loop {
         let message = tokio::select! {
             message = socket.recv() => message,
             () = shared.stopping() => None,
         };
         match message? {
-            Ok(Message::Text(text)) => return Some(text.to_string()),
+            Ok(Message::Text(text)) => return Some(Said::Text(text.to_string())),
+            Ok(Message::Binary(_)) => return Some(Said::Binary),
             Ok(Message::Close(_)) | Err(_) => return None,
-            // A message is a text frame: pings are answered by the socket itself.
+            // Pings are answered by the socket itself.
             Ok(_) => {}
         }
     }
@@ -95,6 +113,14 @@ pub(crate) async fn next(shared: &Shared, socket: &mut WebSocket) -> Option<Stri
 
 /// Sends a message: false when the client is gone.
 pub(crate) async fn send(socket: &mut WebSocket, message: &ServerMessage) -> bool {
-    let text = serde_json::to_string(message).expect("a server message is JSON");
-    socket.send(Message::Text(text.into())).await.is_ok()
+    send_frame(socket, frame(message)).await
+}
+
+/// Sends a frame, as `frame` or the live engine wrote it: false when the client is gone.
+pub(crate) async fn send_frame(socket: &mut WebSocket, frame: Frame) -> bool {
+    let message = match frame {
+        Frame::Text(text) => Message::Text(text.into()),
+        Frame::Binary(bytes) => Message::Binary(bytes.into()),
+    };
+    socket.send(message).await.is_ok()
 }

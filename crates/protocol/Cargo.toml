@@ -12,6 +12,9 @@ rust-version.workspace = true
 doctest = false
 
 [dependencies]
+# A long part of a message is compressed with raw deflate: `frame.rs`. Its backend is Rust's own,
+# which builds for the web's WebAssembly, where the app inflates it.
+flate2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

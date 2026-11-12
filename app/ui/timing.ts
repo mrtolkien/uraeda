@@ -26,8 +26,11 @@ export const TARGET = 100;
 /** How long an interaction is followed at most, past which it is left untimed: 10 s. */
 const LONGEST = 10_000;
 
+/** A part of the app's work the benchmark times alone, as the store's inflate of a frame. */
+type Part = { what: string; bytes: number; ms: number };
+
 /** What the browser's benchmark puts on the page around the app, before the app starts. */
-type Bench = { timed: Array<Timed & { at: number }>; now(): number };
+type Bench = { timed: Array<Timed & { at: number }>; parts?: Part[]; now(): number };
 
 /**
  * The page's benchmark, in a browser that runs one: the frame's `top` is the page. An extension's
@@ -89,6 +92,19 @@ export function interaction(what: string, options: { joins?: boolean } = {}) {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+}
+
+/**
+ * Runs `run`, timed as `what` over `bytes` for the browser's benchmark, when the page holds one
+ * that keeps `parts`: anywhere else it runs untimed.
+ */
+export function measured<T>(what: string, bytes: number, run: () => T): T {
+  const parts = bench?.parts;
+  if (parts === undefined) return run();
+  const start = performance.now();
+  const result = run();
+  parts.push({ bytes, ms: performance.now() - start, what });
+  return result;
 }
 
 function done(timed: Timed) {

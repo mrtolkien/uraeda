@@ -2,7 +2,10 @@
 // the platform's `WebSocket`. A test passes an opener that wraps the real one, to see what is sent,
 // hold what comes, or drop the line, against the real server: never a stand-in of the protocol.
 
-/** A line to the server: one text frame per message. */
+/**
+ * A line to the server: one frame per message. The client sends text frames only; the server's
+ * binary frames hold a message whose large part is compressed (the contract's "Frames").
+ */
 export type Line = {
   send(text: string): void;
   /** Ends the line: `closed` follows. */
@@ -12,7 +15,8 @@ export type Line = {
 /** What the line tells its connection. `closed` comes once, whether it opened or not. */
 export type Heard = {
   opened(): void;
-  message(text: string): void;
+  /** A frame of the server: a message's text, or a binary frame's bytes. */
+  message(frame: string | ArrayBuffer): void;
   closed(): void;
 };
 
@@ -29,6 +33,7 @@ const FULL_WAIT = 4;
  */
 export const openSocket: Opener = (url, heard) => {
   const socket = new WebSocket(url);
+  socket.binaryType = "arraybuffer";
   const waiting: string[] = [];
   let pumping: number | undefined;
   let ended = false;
@@ -56,7 +61,7 @@ export const openSocket: Opener = (url, heard) => {
   socket.addEventListener("open", () => heard.opened());
   socket.addEventListener("message", (event) => {
     const { data } = event as WebSocketMessageEvent;
-    if (typeof data === "string") heard.message(data);
+    if (typeof data === "string" || data instanceof ArrayBuffer) heard.message(data);
   });
   socket.addEventListener("error", end);
   socket.addEventListener("close", end);

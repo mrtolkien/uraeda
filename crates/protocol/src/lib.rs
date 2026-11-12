@@ -9,6 +9,7 @@ mod devices;
 mod diff;
 mod extensions;
 mod features;
+mod frame;
 mod git;
 mod jobs;
 mod message;
@@ -27,6 +28,7 @@ pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
 pub use diff::diff;
 pub use extensions::*;
 pub use features::*;
+pub use frame::{CEILING, Frame, Head, PACK_ABOVE, Part, Unreadable, frame, framed, unpack};
 pub use git::{
     ConflictFile, ConflictFileArgs, GitAbort, GitClean, GitCommit, GitCommitArgs, GitCommitFile,
     GitCommitRow, GitCommitStaged, GitConflict, GitContinue, GitDiff, GitDiffArgs, GitDiscard,

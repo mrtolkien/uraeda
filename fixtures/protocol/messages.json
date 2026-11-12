@@ -1,7 +1,7 @@
 {
   "client": [
-    { "type": "hello", "protocol": 1, "signIn": { "by": "cookie" } },
-    { "type": "hello", "protocol": 1, "signIn": { "by": "token", "token": "p8Zk1mQ4" } },
+    { "type": "hello", "protocol": 2, "signIn": { "by": "cookie" } },
+    { "type": "hello", "protocol": 2, "signIn": { "by": "token", "token": "p8Zk1mQ4" } },
     {
       "type": "sub",
       "id": 1,
@@ -26,10 +26,10 @@
     }
   ],
   "server": [
-    { "type": "welcome", "protocol": 1, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" },
+    { "type": "welcome", "protocol": 2, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" },
     { "type": "refused", "reason": "client-too-old", "protocol": 2 },
-    { "type": "refused", "reason": "server-too-old", "protocol": 1 },
-    { "type": "refused", "reason": "not-signed-in", "protocol": 1 },
+    { "type": "refused", "reason": "server-too-old", "protocol": 2 },
+    { "type": "refused", "reason": "not-signed-in", "protocol": 2 },
     { "type": "data", "id": 1, "seq": 40, "value": { "id": "t7", "items": [] } },
     {
       "type": "change",

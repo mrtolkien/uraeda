@@ -2,12 +2,12 @@
 //! one task that reads it again and sends what changed, at a pace.
 
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, Weak};
 use std::time::Duration;
 
 use serde_json::Value;
 use tokio::time::Instant;
-use uraeda_protocol::{Op, Path, apply, diff, get};
+use uraeda_protocol::{Op, Part, Path, apply, diff, get};
 
 use super::bus::Engine;
 use super::fault::Fault;
@@ -29,12 +29,33 @@ pub(super) const KEPT_IDLE: Duration = Duration::from_secs(60);
 pub(super) enum News {
     /// Nothing yet: it is told again when there is.
     Nothing,
-    /// The whole value, as of the change `seq`.
-    Whole { seq: u64, value: Value },
+    /// The whole value.
+    Whole(Arc<Whole>),
     /// The changes it misses, the first numbered `first`.
     Changes { first: u64, changes: Vec<Vec<Op>> },
     /// The read failed: the subscription is over.
     Ended(Fault),
+}
+
+/// A record's whole value as of one change, as every subscriber that needs it is sent it: its JSON
+/// is written, and compressed when long, once for all of them.
+pub(super) struct Whole {
+    pub seq: u64,
+    pub value: Value,
+    part: OnceLock<Part>,
+}
+
+impl Whole {
+    /// The value as it is sent, written the first time it is asked for. Compressing a long value
+    /// takes milliseconds: a connection asks for it on a blocking thread (`Connection::next_frame`).
+    pub(super) fn part(&self) -> &Part {
+        self.part.get_or_init(|| Part::of(&self.value))
+    }
+
+    /// Whether the value was written already.
+    pub(super) fn written(&self) -> bool {
+        self.part.get().is_some()
+    }
 }
 
 /// A text that grew: where, from which length, and by what.
@@ -103,6 +124,8 @@ pub(super) struct Topic {
 struct State {
     /// The value, with every operation of `log` and `pending` applied: none before the first read.
     value: Option<Value>,
+    /// The value as the subscribers that need it whole are sent it, until it changes.
+    whole: Option<Arc<Whole>>,
     /// The number of the last change sent.
     seq: u64,
     /// The last changes sent, the newest last: the change `seq` is its last one.
@@ -139,6 +162,7 @@ impl Topic {
     ) -> Arc<Topic> {
         let state = State {
             value: None,
+            whole: None,
             seq,
             log: VecDeque::new(),
             pending: Vec::new(),
@@ -221,7 +245,10 @@ impl Topic {
             None => Fit::Apart,
         };
         match fit {
-            Fit::Grew => state.grew(append),
+            Fit::Grew => {
+                state.whole = None;
+                state.grew(append);
+            }
             Fit::Held => {}
             Fit::Apart => state.said += 1,
         }
@@ -231,7 +258,7 @@ impl Topic {
     /// What a subscriber gets next: `sent` is the number of the last change it holds, or none
     /// when it holds no value, and `need` what `join` gave it.
     pub(super) fn news(&self, sent: Option<u64>, need: u64) -> News {
-        let state = self.lock();
+        let mut state = self.lock();
         if let Some(fault) = &state.ended {
             return News::Ended(fault.clone());
         }
@@ -324,12 +351,19 @@ impl State {
 
     /// The whole value, once it holds every change said before the subscriber came and nothing
     /// applied to it waits to be sent.
-    fn whole(&self, need: u64) -> News {
+    fn whole(&mut self, need: u64) -> News {
         match &self.value {
-            Some(value) if self.read >= need && self.pending.is_empty() => News::Whole {
-                seq: self.seq,
-                value: value.clone(),
-            },
+            Some(value) if self.read >= need && self.pending.is_empty() => {
+                let seq = self.seq;
+                let whole = self.whole.get_or_insert_with(|| {
+                    Arc::new(Whole {
+                        seq,
+                        value: value.clone(),
+                        part: OnceLock::new(),
+                    })
+                });
+                News::Whole(whole.clone())
+            }
             _ => News::Nothing,
         }
     }
@@ -373,6 +407,9 @@ impl State {
         }
         if let Some(held) = &self.value {
             self.pending.extend(diff(held, &value));
+        }
+        if !self.pending.is_empty() || self.value.is_none() {
+            self.whole = None;
         }
         self.value = Some(value);
         self.read = self.began;

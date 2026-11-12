@@ -24,9 +24,11 @@ use super::signed_sandbox;
 /// How many times a slow phone's processor is slower than this machine's.
 const SLOWER: u32 = 4;
 
-/// What the page holds before the app starts: the app's timing writes there (`ui/timing.ts`).
+/// What the page holds before the app starts: the app's timing writes there (`ui/timing.ts`),
+/// its interactions in `timed`, and the store's inflate and parse of each binary frame in
+/// `parts`.
 const HOOK: &str = "if (window === window.top) \
-    window.uraedaBench = { timed: [], now: () => performance.now() };";
+    window.uraedaBench = { timed: [], parts: [], now: () => performance.now() };";
 
 /// One interaction the app timed, in the page's clock: its name, its milliseconds to the frame
 /// drawn with its records, to its first frame, and to the first frame with every record.
@@ -165,6 +167,45 @@ impl Phone {
         self.names = Names::default();
         self.names.learn(&frames);
         (timed, frames)
+    }
+
+    /// The store's inflate and parse of the largest binary frame the page read since it loaded,
+    /// and of all of them, on the slow phone.
+    async fn parts(&mut self) -> String {
+        let parts = self
+            .browser
+            .evaluate("window.uraedaBench?.parts ?? []")
+            .await;
+        let parts = parts.as_array().cloned().unwrap_or_default();
+        let of = |what: &str| -> Vec<(f64, f64)> {
+            parts
+                .iter()
+                .filter(|part| part["what"] == what)
+                .map(|part| {
+                    let bytes = part["bytes"].as_f64().unwrap_or_default();
+                    (bytes, part["ms"].as_f64().unwrap_or_default())
+                })
+                .collect()
+        };
+        let line = |what: &str| {
+            let all = of(what);
+            let largest = all
+                .iter()
+                .copied()
+                .fold((0.0, 0.0), |a, b| if b.0 > a.0 { b } else { a });
+            let total: f64 = all.iter().map(|(_, ms)| ms).sum();
+            format!(
+                "{what}: {} frames, {total:.1} ms in all; the largest, {:.1} KB, {:.1} ms",
+                all.len(),
+                largest.0 / 1000.0,
+                largest.1
+            )
+        };
+        format!(
+            "the store's work on binary frames, slowed {SLOWER} times, since the reload:\n{}\n{}",
+            line("inflate"),
+            line("parse")
+        )
     }
 
     pub async fn stop(self) {
@@ -326,6 +367,7 @@ async fn the_navigation_on_a_slow_phone() {
         "\nwhat /live sent, a screen's first visit:\n{}",
         sent.join("\n")
     );
+    println!("\n{}", phone.parts().await);
     phone.stop().await;
 }
 

@@ -9608,3 +9608,100 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   as in R464, at a load of 17. Run again, the whole task passed: 389 tests. Nothing was changed.
 - **Rationale**: the plan's rule for a failure of timing under load; this task touches no preview.
 - **Where**: `crates/server/tests/preview.rs`.
+
+## R484: WebSockets' own compression is still not available: the protocol compresses
+
+- **Decision**: checked again, at the lockfile: axum 0.8.9 takes `tokio-tungstenite` 0.29, and
+  `tungstenite` 0.28, 0.29, and the newest, 0.30, all say "There is no support for
+  permessage-deflate at the moment" in their README; only a test of their header parser names the
+  extension. With the server unable to offer it, whether the browser's and Native Shell's sockets
+  negotiate it does not matter. The protocol compresses on its own (R485).
+- **If wrong**: a release of `tungstenite` that implements it, taken by axum, lets the server offer
+  it; the browser's socket negotiates it by itself, and Native Shell's (`nsh-js`'s, on `tungstenite`
+  too) would need checking. Then the protocol's binary frames could go, in a version of their own.
+- **Where**: `Cargo.lock`, `crates/protocol/src/frame.rs`.
+
+## R485: A long part goes in a binary frame: a head, then raw deflate, once per value
+
+- **Decision**: a `data`'s `value`, a `change`'s `ops`, or a `result`'s `output` whose JSON is
+  longer than 1 KB goes in a binary frame: the message's head, its JSON without that part and with
+  the part's `size`, a newline, then the part's JSON compressed with raw deflate (RFC 1951), by
+  `flate2` at its default level. Everything else is text: a change made of appends alone however
+  long, so a reply's pieces go as they did, and `welcome`, `refused`, and `error`, so a refusal
+  keeps its shape across versions. The protocol is version 2, and a client of version 1 is refused
+  and told to update, as the spec's edge case says. A client sends text only: a binary frame of a
+  client is answered with `bad-message`, and the connection goes on.
+  - **The threshold, 1 KB**, from R470's table: every message above it shrinks by 63 to 91%, and
+    below it the long chat's pages of 400 bytes by 33% only, where a frame's head and a native call
+    would eat what is saved.
+  - **The level**: on a Ledger-like value of 890 KB (Uraeda's own decisions, text and tree),
+    `flate2`'s fast level wrote 218 KB in 2.5 ms, the default 145 KB in 17 ms. 73 KB is 1.5 s on the
+    link of 50 KB a second the rule's numbers assume; 15 ms is spent once per value.
+  - **Once per value**: a record's whole value, as of one change, is a `Whole` its subscribers share
+    (`live/topic.rs`), its part written and compressed the first time one of them is sent it, on a
+    blocking thread, so a connection's task and its runtime thread never compress; the value is
+    cloned once per change, not once per subscriber as before. The message stays first in the
+    connection's queue meanwhile: a wait dropped by the socket's loop loses nothing.
+  - **The head**, and not the whole message compressed: a client reads its id before it inflates, so
+    a frame it cannot read fails the one subscription or call it names, and the server compresses a
+    value once for all subscribers, whatever their ids.
+  - **Deflate, not zstd**: `flate2`'s backend is Rust's own, `miniz_oxide`, which builds for the
+    browser's WebAssembly with nothing more, and is already in it (`syntect`, `wuff`); `zstd` is C,
+    and its decoder would be new bytes of the first load.
+- **Measured**, by `just bench-navigation web` (Chromium at 390 by 844, slowed four times, the
+  sandbox with the long chat), each screen's first visit, the base and this task on the same
+  machine, at a load of 2 to 3: R470's estimate held to the hundred bytes.
+
+  | Screen                  | Sent before | Sent after         | Settled before | Settled after   |
+  | ----------------------- | ----------- | ------------------ | -------------- | --------------- |
+  | A reload, the shell's   | 181.0 KB    | 28.9 KB (84% less) | 874 ms         | 867 to 1,086 ms |
+  | Priorities              | 5.8 KB      | 1.2 KB (79% less)  | 249 ms         | 239 ms          |
+  | Sessions                | 80.6 KB     | 29.9 KB (63% less) | 435 ms         | 448 to 458 ms   |
+  | Decisions (realistic)   | 534.3 KB    | 51.3 KB (90% less) | 417 ms         | 475 to 478 ms   |
+  | Git                     | 4.5 KB      | 1.6 KB (63% less)  | 269 ms         | 291 ms          |
+  | Jobs                    | 874 B       | 874 B (text)       | 218 ms         | 247 ms          |
+  | A feature               | 8.9 KB      | 3.4 KB (61% less)  | 270 ms         | 259 ms          |
+  | A long plan (realistic) | 40.3 KB     | 3.7 KB (91% less)  | 300 ms         | 260 ms          |
+  | A session               | 10.5 KB     | 3.7 KB (64% less)  | 396 ms         | 362 ms          |
+  | The chat of 20,000      | 38.8 KB     | 39.2 KB (text)     | 675 ms         | 812 to 872 ms   |
+
+  The times are on the machine's own loopback, where bytes cost nothing: the chat, which sends no
+  binary frame, moved by 140 to 200 ms between runs, so a first visit's time moves by that much
+  alone. What compression costs there is the server's compression, 10 to 17 ms for the `Ledger`, and
+  the client's inflate, below; on a link of 50 KB a second it saves the `Ledger` 9.7 s and the
+  reload 3 s.
+
+- **Where**: `crates/protocol/src/frame.rs`,
+  `crates/server/src/live/{topic,subscription,socket}.rs`, `crates/server/src/http/socket.rs`,
+  `contracts/protocol.md` ("Frames"), `fixtures/protocol/frames.json`.
+
+## R486: The client inflates in `uraeda/native`, with the protocol crate's reader
+
+- **Decision**: `unpackFrame(frame: Uint8Array)` of `uraeda/native` (`crates/app/src/frames.rs`)
+  reads a binary frame with `uraeda_protocol::unpack`, the reader the server's tests use, and gives
+  the message's JSON text, or the id its head names with why it cannot be read. The store
+  (`connection.ts`) calls it on a binary frame, then parses as it parses a text frame: the same code
+  on GTK and in a browser, where the crate runs as WebAssembly. The socket is told
+  `binaryType = "arraybuffer"`, which NSH's QuickJS socket and the browser's both take.
+  - **What Native Shell 0.5.0 offers**, read at the pin: its engine has no `DecompressionStream` (no
+    part of `nsh-js` names it), and a binary message is an `ArrayBuffer`. Its standard module `zlib`
+    inflates natively on GTK, bounded at 64 MiB, but in a browser importing it links its operations
+    (`nsh_std_zlib`, `nsh-platform-web`), which hold `brotli`'s and `zstd`'s encoders and decoders
+    beside `flate2`, into the module every first load carries, 20 KB under its limit. The browser's
+    `DecompressionStream` is the browser's alone, and asynchronous: messages applied in order would
+    wait on it. A Rust function takes and gives bytes and text by copy, on both.
+  - **The first load**: 2,935,618 bytes compressed for the base, 2,928,766 with this task, under the
+    2.95 MB limit; the module is 21 KB larger raw (8,878,952 to 8,900,187 bytes), and 7 KB smaller
+    under brotli, which packs it otherwise: `miniz_oxide`'s inflate was linked already.
+  - **Its cost on the slow phone**, timed by the store itself in the benchmark's page (`measured` of
+    `ui/timing.ts`, which times nothing without the benchmark): the `Ledger`'s 50.7 KB inflated to
+    532.5 KB in 7.9 to 8.0 ms, the call, its copies, and the text included, and parsed in 2.7 to 2.9
+    ms; 35 binary frames over the whole navigation took 33 to 36 ms to inflate.
+- **The ceiling**: a part is inflated only up to the `size` its head declares, which may not pass 16
+  MiB, thirty times the largest value measured; a part longer or shorter than declared, or not JSON,
+  is refused. The record or the call the head names fails with the code `unreadable`, the client's
+  own, and words that say why ("The server sent a frame this app cannot read: it declares 999999999
+  bytes, more than the 16777216 this app reads."); the connection and the app go on. A frame that
+  names no id is dropped with a warning in the console.
+- **Where**: `crates/app/src/frames.rs`, `app/store/{line,connection,errors}.ts`,
+  `app/ui/timing.ts`, `crates/server/tests/browser/{bench,protocol}.rs`.

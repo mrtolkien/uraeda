@@ -3751,12 +3751,28 @@ What task 60 found for it: tungstenite 0.28 and 0.29, the versions locked, and 0
 per-message deflate (only a test of their header parser names it). The table's messages above 1 KB
 shrink by 66 to 91% alone; the long chat's 110 small `TurnLog`s by 33%.
 
-- [ ] **Step 1: Write the failing tests** above, and run them. Expected: FAIL.
-- [ ] **Step 2: Implement.**
-- [ ] **Step 3: Run `just bench-navigation web` again**, and record step A's table before and after.
-- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`,
+- [x] **Step 1: Write the failing tests** above, and run them. Expected: FAIL.
+- [x] **Step 2: Implement.**
+- [x] **Step 3: Run `just bench-navigation web` again**, and record step A's table before and after.
+- [x] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`,
       `just task-app`, `just web-build`, `just web-test`. Expected: PASS.
-- [ ] **Step 5: Commit**: `perf(nsh-migration): compressed first values`.
+- [x] **Step 5: Commit**: `perf(nsh-migration): compressed first values`.
+
+**As built** (rulings R484 to R486):
+
+- **The frame**: a `data`'s `value`, a `change`'s `ops`, or a `result`'s `output` longer than 1 KB
+  of JSON goes in a binary frame, its head, a newline, then the part in raw deflate; a change of
+  appends alone, and every other message, stays text. `uraeda_protocol::{frame, framed, unpack}`,
+  `Part`, `Head`, `PACK_ABOVE`, `CEILING` (`crates/protocol/src/frame.rs`); the contract's "Frames";
+  `fixtures/protocol/frames.json`. The protocol is version 2.
+- **The server**: a record's whole value is a `Whole` its subscribers share, compressed once, on a
+  blocking thread (`live/topic.rs`, `Connection::next_frame`); a client's binary frame is answered
+  with `bad-message`. `TestClient` reads both kinds, with `was_packed()` and `send_binary`.
+- **The client**: `unpackFrame` of `uraeda/native` (`crates/app/src/frames.rs`) inflates, on GTK and
+  in a browser; a frame it cannot read fails the record or call it names with the code `unreadable`.
+  `Heard.message` takes `string | ArrayBuffer`.
+- **Numbers**: the `Ledger` 534.3 to 51.3 KB, a reload 181.0 to 28.9 KB; the `Ledger`'s inflate 8 ms
+  on the slowed phone; the first load 2,928,766 bytes, against the base's 2,935,618.
 
 ## Task 61: Remove the React UI and the Node server
 

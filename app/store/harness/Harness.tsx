@@ -4,9 +4,11 @@
 //
 // The test plays the host: each `step` event does one thing, and the app posts its `facts`, what a
 // caller sees, after each change. A connection's line is the platform's WebSocket, wrapped by the
-// seam to see what is sent, hold what comes, or drop it. `move` sends a connection to another
-// address: the sandbox's with a slash after it, the same server under another name.
+// seam to see what is sent, hold what comes, or drop it, and to hand its connection a frame of the
+// test's own (`inject`). `move` sends a connection to another address: the sandbox's with a slash
+// after it, the same server under another name.
 import { effect, host, mount, signal, Text, View } from "nsh";
+import { unpackFrame } from "uraeda/native";
 import { valueAt } from "../apply";
 import { Connection } from "../connection";
 import { list, read, text } from "../records";
@@ -29,13 +31,16 @@ type Step =
   | { do: "unread"; key: string }
   | { do: "call"; conn: string; key: string; name: string; input: JsonValue }
   | { do: "hold" | "release" | "drop" | "close"; conn: string }
+  | { do: "inject"; conn: string; bytes: number[] }
   | { do: "move"; conn: string; to: string };
+
+type Frame = string | ArrayBuffer;
 
 type Wire = {
   got: JsonValue[];
   sent: JsonValue[];
-  held: string[] | undefined;
-  deliver?: (text: string) => void;
+  held: Frame[] | undefined;
+  deliver?: (frame: Frame) => void;
   drop?: () => void;
   opened: number;
 };
@@ -79,8 +84,10 @@ function wired(name: string, protocol: number | undefined): Opener {
         tell();
       },
       message: (said) => {
-        const { id, type } = JSON.parse(said) as { id?: number; type: string };
-        wire.got.push({ id: id ?? null, type });
+        const binary = typeof said !== "string";
+        const message = binary ? (unpackFrame(new Uint8Array(said)).text ?? "{}") : said;
+        const { id, type } = JSON.parse(message) as { id?: number; type?: string };
+        wire.got.push({ binary, id: id ?? null, type: type ?? "unreadable" });
         if (wire.held !== undefined) wire.held.push(said);
         else heard.message(said);
         tell();
@@ -157,6 +164,9 @@ function step(it: Step) {
     }
     case "drop":
       wire!.drop?.();
+      break;
+    case "inject":
+      wire!.deliver?.(new Uint8Array(it.bytes).buffer);
       break;
     case "close":
       conns.get(it.conn)!.close();

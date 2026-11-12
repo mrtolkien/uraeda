@@ -2,7 +2,9 @@
 // runs against the real server: `just app-test` starts a sandbox, and `harness/Harness.tsx`, an
 // app opened with the network, connects to it, as the test says step by step.
 import { type App, expect, open, test } from "nsh/test";
+import { unpackFrame } from "uraeda/native";
 import changes from "../../fixtures/protocol/changes.json";
+import frames from "../../fixtures/protocol/frames.json";
 import messages from "../../fixtures/protocol/messages.json";
 import { apply } from "./apply";
 import { Held } from "./held";
@@ -14,7 +16,7 @@ type Conn = {
   stale: boolean;
   refused: { update: string; words: string; reason: string } | null;
   sent: Sent[];
-  got: Array<{ id: number | null; type: string }>;
+  got: Array<{ id: number | null; type: string; binary: boolean }>;
   open: number;
   opened: number;
   held: number | null;
@@ -99,6 +101,65 @@ test("a list keeps the objects of the rows that did not change", () => {
   held.data({ items: [{ id: "c", text: "" }, a!, { id: "b", text: "World, again" }] }, 9);
   expect(log.rows()).toBe(moved);
   expect(reply()).toBe("World, again");
+});
+
+test("a binary frame reads as the protocol's crate reads it", () => {
+  const read = unpackFrame(new Uint8Array(frames.frame));
+  expect(JSON.parse(read.text ?? "null")).toEqual(frames.message);
+});
+
+test("a long first value arrives compressed and reads as it was; a short one stays text", async () => {
+  const app = await harness();
+  await step(app, { conn: "a", do: "connect" });
+  await until(app, (f) => f.conns.a?.status === "live");
+  // Every theme's colours, about 120 KB of JSON: the shell's largest first value.
+  await step(app, {
+    args: null,
+    conn: "a",
+    do: "read",
+    key: "themes",
+    name: "Themes",
+    pick: ["folder"],
+    rows: "themes",
+  });
+  await step(app, {
+    conn: "a",
+    do: "call",
+    input: { on: false },
+    key: "set",
+    name: "settings.setVimMode",
+  });
+  await until(app, (f) => (f.reads.themes?.rows?.length ?? 0) > 0 && f.calls.set !== undefined);
+
+  const { got, sent } = facts(app).conns.a!;
+  const themes = sent.find((one) => one.type === "sub" && one.record === "Themes")!.id;
+  const set = sent.find((one) => one.type === "call")!.id;
+  expect(got.find((one) => one.id === themes && one.type === "data")?.binary).toBe(true);
+  expect(got.find((one) => one.id === set && one.type === "result")?.binary).toBe(false);
+  expect(got.find((one) => one.type === "welcome")?.binary).toBe(false);
+  const read = facts(app).reads.themes!;
+  expect(read.error).toBe(null);
+  expect(typeof last(read.values)).toBe("string");
+  expect(read.rows).toContain("catppuccin-mocha");
+  expect(read.rows!.length).toBeGreaterThan(20);
+});
+
+test("a frame the app cannot read fails its record with words, and the app goes on", async () => {
+  const app = await harness();
+  await step(app, { conn: "a", do: "connect" });
+  await until(app, (f) => f.conns.a?.status === "live");
+  await step(app, { conn: "a", do: "hold" });
+  await step(app, { args: null, conn: "a", do: "read", key: "vim", name: "Settings", pick: VIM });
+  await until(app, (f) => f.conns.a!.sent.some((one) => one.type === "sub"));
+  const id = facts(app).conns.a!.sent.find((one) => one.type === "sub")!.id!;
+
+  // A frame that declares more than the 16 MiB the app inflates: it is refused before it is read.
+  const head = `{"type":"data","id":${id},"seq":1,"size":999999999}\n`;
+  const bytes = [...head].map((char) => char.charCodeAt(0)).concat([0x4b, 0x04, 0x00]);
+  await step(app, { bytes, conn: "a", do: "inject" });
+  await until(app, (f) => f.reads.vim?.error !== null && f.reads.vim?.error !== undefined);
+  expect(facts(app).reads.vim!.error).toBe("unreadable");
+  expect(facts(app).conns.a!.status).toBe("live");
 });
 
 test("a record's signal follows the server", async () => {
@@ -259,8 +320,8 @@ test("a change that arrives after its unsub is ignored, and no subscription is l
 test("a refused connection says which side to update", async () => {
   const app = await harness();
   // A client newer than the server, and one older: the real server refuses both.
-  await step(app, { conn: "newer", do: "connect", protocol: 2 });
-  await step(app, { conn: "older", do: "connect", protocol: 0 });
+  await step(app, { conn: "newer", do: "connect", protocol: 3 });
+  await step(app, { conn: "older", do: "connect", protocol: 1 });
   await until(
     app,
     (f) => f.conns.newer?.status === "refused" && f.conns.older?.status === "refused",

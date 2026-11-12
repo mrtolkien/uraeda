@@ -5,7 +5,7 @@ use std::pin::Pin;
 use axum::extract::ws::WebSocket;
 
 use super::subscription::Connection;
-use crate::http::socket::{next, send};
+use crate::http::socket::{Said, next, send_frame};
 use crate::shared::Shared;
 use crate::sign_in::Identity;
 
@@ -41,22 +41,26 @@ pub(crate) async fn serve(shared: &Shared, socket: &mut WebSocket, caller: Calle
     } = caller;
     let mut connection = Connection::open(shared, identity);
     loop {
-        let message = tokio::select! {
+        let frame = tokio::select! {
             biased;
             () = &mut ended => return,
-            text = next(shared, socket) => match text {
-                Some(text) => {
+            said = next(shared, socket) => match said {
+                Some(Said::Text(text)) => {
                     connection.read(&text);
+                    continue;
+                }
+                Some(Said::Binary) => {
+                    connection.refuse_binary();
                     continue;
                 }
                 None => return,
             },
-            message = connection.next() => message,
+            frame = connection.next_frame() => frame,
         };
         let sent = tokio::select! {
             biased;
             () = &mut ended => false,
-            sent = send(socket, &message) => sent,
+            sent = send_frame(socket, frame) => sent,
         };
         if !sent {
             return;

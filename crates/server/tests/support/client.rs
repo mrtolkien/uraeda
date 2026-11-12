@@ -7,7 +7,7 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
-use uraeda_protocol::{ClientMessage, PROTOCOL, ServerMessage, SignIn};
+use uraeda_protocol::{ClientMessage, PROTOCOL, ServerMessage, SignIn, unpack};
 
 /// How long a test waits for a message before it fails: a server that answers does so at once.
 const PATIENCE: Duration = Duration::from_secs(10);
@@ -20,6 +20,8 @@ pub struct TestClient {
     time_zone: Option<String>,
     /// What the test waits for, said when nothing comes.
     waiting_for: String,
+    /// Whether the last message came in a binary frame, its large part compressed.
+    packed: bool,
 }
 
 impl TestClient {
@@ -42,6 +44,7 @@ impl TestClient {
             epoch: None,
             time_zone: None,
             waiting_for: String::new(),
+            packed: false,
         }
     }
 
@@ -96,6 +99,20 @@ impl TestClient {
             .await;
     }
 
+    /// Whether the last message [`TestClient::next`] gave came in a binary frame, its large part
+    /// compressed, as the contract's "Frames" says.
+    pub fn was_packed(&self) -> bool {
+        self.packed
+    }
+
+    /// Sends a binary frame, which no client sends.
+    pub async fn send_binary(&mut self, bytes: &[u8]) {
+        self.socket
+            .send(Message::binary(bytes.to_vec()))
+            .await
+            .expect("the message is sent");
+    }
+
     /// Sends a text frame as it is, as a client of another version would.
     pub async fn send_text(&mut self, text: &str) {
         self.socket
@@ -126,7 +143,8 @@ impl TestClient {
         }
     }
 
-    /// The next text frame, or none once the connection is closed.
+    /// The next message's text, a binary frame's unpacked, or none once the connection is
+    /// closed.
     async fn frame(&mut self) -> Option<String> {
         loop {
             let next = tokio::time::timeout(PATIENCE, self.socket.next()).await;
@@ -135,7 +153,17 @@ impl TestClient {
                 what => panic!("the server did not answer: waiting for {what}"),
             });
             match next {
-                Some(Ok(Message::Text(text))) => return Some(text.to_string()),
+                Some(Ok(Message::Text(text))) => {
+                    self.packed = false;
+                    return Some(text.to_string());
+                }
+                Some(Ok(Message::Binary(bytes))) => {
+                    self.packed = true;
+                    let text = unpack(&bytes).unwrap_or_else(|refused| {
+                        panic!("a binary frame the client cannot read: {refused:?}")
+                    });
+                    return Some(text);
+                }
                 Some(Ok(Message::Close(_)) | Err(_)) | None => return None,
                 Some(Ok(_)) => {}
             }

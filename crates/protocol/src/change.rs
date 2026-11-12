@@ -38,6 +38,13 @@ pub enum Op {
     },
 }
 
+impl Op {
+    /// Whether it grows a text: a reply's pieces are appends.
+    pub fn is_append(&self) -> bool {
+        matches!(self, Op::Append { .. })
+    }
+}
+
 /// Why a change does not apply: the value is not the one the change was made for.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum ApplyError {

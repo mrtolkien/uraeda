@@ -39,6 +39,7 @@ pub(crate) fn register(registry: &mut Registry) {
     registry.module::<crate::notify::Notifications>();
     registry.module::<crate::highlight::Highlight>();
     registry.module::<crate::time::Clocks>();
+    registry.module::<crate::frames::Frames>();
     registry.module::<crate::patch::Patches>();
     registry.module::<crate::editing::Editing>();
     registry

@@ -6,13 +6,13 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 use tokio::sync::Notify;
-use uraeda_protocol::{ClientMessage, ErrorCode, ServerMessage};
+use uraeda_protocol::{ClientMessage, ErrorCode, Frame, Head, ServerMessage, frame, framed};
 
 use super::bus::{Bus, Engine};
 use super::locked;
 use super::order::Order;
 use super::registry::{Call, blocking};
-use super::topic::{News, Topic};
+use super::topic::{News, Topic, Whole};
 use crate::shared::Shared;
 use crate::sign_in::Identity;
 
@@ -73,6 +73,32 @@ struct Sub {
     need: u64,
 }
 
+/// A message ready to send: a record's whole value is shared with its other subscribers.
+enum Out {
+    Message(ServerMessage),
+    Whole { id: u32, whole: Arc<Whole> },
+}
+
+impl Out {
+    fn message(self) -> ServerMessage {
+        match self {
+            Out::Message(message) => message,
+            Out::Whole { id, whole } => ServerMessage::Data {
+                id,
+                seq: whole.seq,
+                value: whole.value.clone(),
+            },
+        }
+    }
+
+    fn frame(self) -> Frame {
+        match self {
+            Out::Message(message) => frame(&message),
+            Out::Whole { id, whole } => framed(Head::Data { id, seq: whole.seq }, whole.part()),
+        }
+    }
+}
+
 /// One client's connection to the engine, after its `hello` was welcomed: it takes the client's
 /// messages, and gives the server's, in order. Dropping it ends its subscriptions; the calls it
 /// made still run to their end.
@@ -83,7 +109,7 @@ pub struct Connection {
     mailbox: Arc<Mailbox>,
     subs: HashMap<u32, Sub>,
     /// The messages ready to send, the next one first.
-    out: VecDeque<ServerMessage>,
+    out: VecDeque<Out>,
     /// The order of its calls.
     calls: Order,
 }
@@ -138,12 +164,33 @@ impl Connection {
     /// The next message for the client: it waits until there is one. Dropping the wait loses
     /// nothing.
     pub async fn next(&mut self) -> ServerMessage {
-        loop {
-            if let Some(message) = self.out.pop_front() {
-                return message;
-            }
+        self.ready().await;
+        self.out.pop_front().expect("a message is ready").message()
+    }
+
+    /// The next message's frame, as the socket sends it. A whole value is written on a blocking
+    /// thread the first time one of its subscribers is sent it: compressing a long one takes
+    /// milliseconds. Dropping the wait loses nothing.
+    pub(super) async fn next_frame(&mut self) -> Frame {
+        self.ready().await;
+        if let Some(Out::Whole { whole, .. }) = self.out.front()
+            && !whole.written()
+        {
+            let whole = whole.clone();
+            // The message stays first meanwhile: a wait dropped finds the value written.
+            let _ = tokio::task::spawn_blocking(move || {
+                whole.part();
+            })
+            .await;
+        }
+        self.out.pop_front().expect("a message is ready").frame()
+    }
+
+    /// Waits until a message is ready to send.
+    async fn ready(&mut self) {
+        while self.out.is_empty() {
             let Waiting { news, answers } = self.mailbox.take();
-            self.out.extend(answers);
+            self.out.extend(answers.into_iter().map(Out::Message));
             news.into_iter().for_each(|id| self.report(id));
             if self.out.is_empty() {
                 self.mailbox.bell.notified().await;
@@ -151,9 +198,15 @@ impl Connection {
         }
     }
 
+    /// Answers a binary frame, which only the server sends.
+    pub(super) fn refuse_binary(&mut self) {
+        self.out
+            .push_back(Out::Message(crate::http::socket::binary_refused()));
+    }
+
     fn refuse(&mut self, id: Option<u32>, code: ErrorCode, message: String) {
         self.out
-            .push_back(ServerMessage::Error { id, code, message });
+            .push_back(Out::Message(ServerMessage::Error { id, code, message }));
     }
 
     fn subscriber(&self, id: u32) -> Subscriber {
@@ -171,7 +224,7 @@ impl Connection {
             Ok((topic, need)) => {
                 self.subs.insert(id, Sub { topic, sent, need });
             }
-            Err(fault) => self.out.push_back(fault.answer(id)),
+            Err(fault) => self.out.push_back(Out::Message(fault.answer(id))),
         }
     }
 
@@ -187,7 +240,7 @@ impl Connection {
     fn call(&mut self, id: u32, action: &str, input: Value) {
         let run = match self.engine.registry.runner(action) {
             Ok(run) => run,
-            Err(fault) => return self.out.push_back(fault.answer(id)),
+            Err(fault) => return self.out.push_back(Out::Message(fault.answer(id))),
         };
         let call = Call {
             shared: self.shared.clone(),
@@ -213,19 +266,20 @@ impl Connection {
         };
         match sub.topic.news(sub.sent, sub.need) {
             News::Nothing => {}
-            News::Whole { seq, value } => {
-                sub.sent = Some(seq);
-                self.out.push_back(ServerMessage::Data { id, seq, value });
+            News::Whole(whole) => {
+                sub.sent = Some(whole.seq);
+                self.out.push_back(Out::Whole { id, whole });
             }
             News::Changes { first, changes } => {
                 for (seq, ops) in (first..).zip(changes) {
                     sub.sent = Some(seq);
-                    self.out.push_back(ServerMessage::Change { id, seq, ops });
+                    let change = ServerMessage::Change { id, seq, ops };
+                    self.out.push_back(Out::Message(change));
                 }
             }
             News::Ended(fault) => {
                 self.subs.remove(&id);
-                self.out.push_back(fault.answer(id));
+                self.out.push_back(Out::Message(fault.answer(id)));
             }
         }
     }
