@@ -89,6 +89,7 @@ function SessionPick(props: {
   );
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the form's fields, its checks, and its start in one scope; each kind's fields can be a component
 export function NewView(props: { repo: string; kind: NewKind }) {
   const pane = usePane();
   const kind = () => props.kind;

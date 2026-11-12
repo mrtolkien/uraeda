@@ -10523,3 +10523,21 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `.oxlintrc.json`, `crates/app/tests/layers.rs`, `app/__checks__/breaks.tsx` (Oxlint
   1.86's `no-new-array` refused its array of a length, marked in place: `Array.from` fills by a
   callback, which the check found too slow).
+
+## T193.2: A TSX function's length is held at 150 lines, with 18 functions marked in place
+
+- **Decision**: `.oxlintrc.json` turns `max-lines-per-function` back on, at 150 lines, blank lines
+  and comments not counted. The 18 functions over it are marked in place
+  (`oxlint-disable-next-line max-lines-per-function -- <what it holds; how to split it>`), so
+  `--report-unused-disable-directives` fails a marker once its function is split: the list can
+  only shrink. `InboxPane.tsx`'s `Notes` is held by an override of its file at 260 instead, since a
+  marker above it collided with another polish branch's change of the same lines.
+- **Rationale**: the old stack's removal turned the limit off because 49 functions passed 100
+  lines (47 now). At 150, a function twice the usual size of a screen's component is refused,
+  and the exceptions fit one screen of a list. The 18 are components whose state, keys, and
+  markup share one scope, and one closure (`round/saves.ts`): each split is a change of its own,
+  in a file other branches were changing.
+- **If wrong**: the limit goes down to 100 once the list is under ten, with the functions between
+  marked the same way.
+- **Where**: `.oxlintrc.json`, the 17 marked files. `specs/decisions/code-quality.md`'s
+  consequence "A TSX function's length is not checked yet" is now out of date: a human amends it.

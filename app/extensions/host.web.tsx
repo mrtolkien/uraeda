@@ -186,6 +186,7 @@ type Shown = { of: FrameOf; page: Verified; home: Home };
 const now = () => performance.now();
 
 /** One page of an extension, in a frame of its own: the web's `uraeda.extension`. */
+// oxlint-disable-next-line max-lines-per-function -- a frame's channel, its messages, and its lifetime share one state; the messages can be a table of handlers
 export function ExtensionFrame(props: PageViewProps) {
   const watch = new PageWatch();
   const shown = signal<Shown | undefined>(undefined);

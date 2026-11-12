@@ -34,6 +34,7 @@ export type DragOrderProps = {
 /** A row carried by the pointer: where it was, where it would land, and how far it went. */
 type Drag = { id: string; from: number; to: number; by: number; height: number };
 
+// oxlint-disable-next-line max-lines-per-function -- a drag's gesture, its target, and its keys share one state; the gesture can be a function of its own
 export function DragOrder(props: DragOrderProps) {
   const cursor = props.cursor;
   /** The order shown while a row is carried by keys, else the screen's. */

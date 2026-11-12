@@ -122,6 +122,7 @@ export function savesOf(args: RoundArgs, file: Reader): Saves {
   return held.saves;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- one queue's closure, whose saves share its chain and what it wrote
 function createSaves(target: Target, args: RoundArgs, first: Reader, onIdle: () => void): Queue {
   let file = first;
   const pending = signal(0);

@@ -24,6 +24,7 @@ export type Shape = "columns" | "list";
 /** The sections the page shows, by their id: Ongoing's is its own. */
 type Shown = { id: string; title: string; context: string | null };
 
+// oxlint-disable-next-line max-lines-per-function -- the sections, the cursor across them, and the moves in one scope; the moves can be a hook of their own
 export function Priorities(props: { repo: string; width: WidthClass; open?: string }) {
   const pane = usePane();
   const priorities = record("Priorities", { repo: props.repo });

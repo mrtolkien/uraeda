@@ -26,6 +26,14 @@
       {
         "max": 7
       }
+    ],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 150,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
     ]
   },
   "overrides": [
@@ -102,6 +110,19 @@
                 "message": "app/extensions/ is the page API and its host: it imports no screen. Move what both need into app/ui/ or app/store/."
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["app/screens/inbox/InboxPane.tsx"],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 260,
+            "skipBlankLines": true,
+            "skipComments": true
           }
         ]
       }

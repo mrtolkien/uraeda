@@ -81,6 +81,7 @@ function keysOf(rows: ReadonlyArray<RowOf>, from: number, to: number, into: Set<
 export type FeedOptions = { keep?: (item: Item) => boolean; heads?: boolean };
 
 /** The rows of `session`'s transcript in `repo`, read by a window of pages. Call it in a view. */
+// oxlint-disable-next-line max-lines-per-function -- the transcript's window of pages, read and let go in one effect; the row array can be a function of its own
 export function transcriptFeed(
   repo: Accessor<string>,
   session: Accessor<Session | null | undefined>,

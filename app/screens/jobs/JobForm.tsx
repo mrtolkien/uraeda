@@ -72,6 +72,7 @@ function useRepositories(form: Form) {
   ];
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a form of many fields, each a row of markup; the schedule's rows can be a component
 export function JobForm(props: JobFormProps) {
   const form = props.form;
   const values = () => form.value();

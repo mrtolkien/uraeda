@@ -38,6 +38,7 @@ function groupOf(page: GitPage, id: string | undefined): GitGroup | undefined {
 const held = (page: GitPage, group: GitGroup) =>
   group.folder === null ? page.agentWorking : group.isWorking;
 
+// oxlint-disable-next-line max-lines-per-function -- the tree, its folds, discards, and resolutions in one scope; the writes can be a hook of their own
 export function Changes(props: { narrow: boolean; onOpen: () => void; repo: string }) {
   const pane = usePane();
   const page = gitPage(props.repo);

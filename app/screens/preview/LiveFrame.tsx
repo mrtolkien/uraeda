@@ -58,6 +58,7 @@ export type LiveFrameProps = {
   width: Width | number;
 };
 
+// oxlint-disable-next-line max-lines-per-function -- the frame's reloads, errors, and scale in one scope; the scale can be a hook of its own
 export function LiveFrame(props: LiveFrameProps) {
   const scale = signal(1);
   const inPage = signal(false);

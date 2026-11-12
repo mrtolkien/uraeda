@@ -210,6 +210,7 @@ function Hints(props: { column: boolean }) {
   );
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the map's layout, cursor, and keys in one scope; the layout is pure and can leave the component
 export function RunMap(props: RunMapProps) {
   const kind = () => props.kind ?? "feature";
   const column = () => props.column === true || kind() === "change";

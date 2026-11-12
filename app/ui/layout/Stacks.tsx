@@ -72,6 +72,7 @@ const narrow = () => width() === "narrow";
 const drawn = signal<Layout | undefined>(undefined);
 export const frameLayout = () => drawn();
 
+// oxlint-disable-next-line max-lines-per-function -- the two stacks' moves, focus, and markup share one scope; each stack's markup can be a component
 export function Stacks(props: StacksProps) {
   const place = computed(() => props.place ?? placeOf(route()), { equals: same });
   const { layout, mover, set } = frameState(place, narrow);

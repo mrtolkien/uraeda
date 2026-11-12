@@ -70,6 +70,7 @@ function Choices(props: {
   );
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the verdict's choices, comments, and send in one scope; the confirmation can be a component
 export function Verdict(props: { args: FileArgs; file: () => FileView }) {
   const spec = () => shownOf(props.file()).items.spec;
   const tier = signal<string>(untracked(() => spec()?.riskTier ?? spec()?.tiers[0]?.value ?? ""));

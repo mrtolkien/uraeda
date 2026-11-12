@@ -51,6 +51,7 @@ export type QuestionProps = {
 
 const sorted = (letters: ReadonlyArray<string>) => letters.toSorted();
 
+// oxlint-disable-next-line max-lines-per-function -- a question's letters, comment, and markup in one scope; the letters' markup can be a component
 export function Question(props: QuestionProps) {
   const q = props.question;
   const document = () => props.file().current.document;

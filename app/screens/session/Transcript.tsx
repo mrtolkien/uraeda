@@ -109,6 +109,7 @@ function ById(props: { args: SessionArgs; id: string }) {
   );
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the window of pages, the follow, and the rows in one scope; the window can be a hook of its own
 function Conversation(props: { args: SessionArgs; session: () => Session }) {
   const repo = props.args.repo;
   const pane = usePane();

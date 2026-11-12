@@ -56,6 +56,7 @@ export type EndProps = {
   saves: Saves;
 };
 
+// oxlint-disable-next-line max-lines-per-function -- the round's checks, its submit, and their words in one scope; the checks can be a function of their own
 export function End(props: EndProps) {
   const target = targetOf(props.args);
   const path = () => props.file().path;

@@ -103,6 +103,7 @@ function blockedWords(runtime: RuntimeRecord | undefined, session: Session | nul
   return undefined;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the field, its attachments, and the send in one scope; the attachments can be a hook of their own
 export function SessionComposer(props: SessionComposerProps) {
   const key = () => draftKey(props.repo, props.session?.id ?? null, props.folder);
   // The draft waits in its place: leaving the page does not ask about it.

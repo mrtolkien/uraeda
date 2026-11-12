@@ -23,6 +23,7 @@ const hasMarkers = (text: string) => /^(<<<<<<<|=======|>>>>>>>)( |$)/m.test(tex
 
 type Side = "ours" | "theirs" | "both";
 
+// oxlint-disable-next-line max-lines-per-function -- the hunks, their choices, and the save in one scope; the hunk's markup can be a component
 export function ConflictEditor(props: { path: string; repo: string }) {
   const pane = usePane();
   const file = record("ConflictFile", { path: props.path, repo: props.repo });
