@@ -69,7 +69,17 @@ export function Line(props: LineProps) {
             }}
           >
             <If when={props.meta}>
-              {(meta) => <Text tone={props.metaTone ?? "faint"}>{meta()}</Text>}
+              {(meta) => (
+                // A long fact wraps inside the row, never past the pane's edge, and stays a fact:
+                // two lines at most.
+                <Text
+                  lines={2}
+                  style={{ flexShrink: 1, minWidth: 0 }}
+                  tone={props.metaTone ?? "faint"}
+                >
+                  {meta()}
+                </Text>
+              )}
             </If>
             <If when={props.count !== undefined && props.count > 0}>
               <Badge tone={props.countTone ?? "needs"}>{String(props.count)}</Badge>
