@@ -76,6 +76,7 @@ export function TriageBanner(props: { here?: boolean; repo: string; status: stri
               <If when={props.here !== true}>
                 <Button
                   icon="message-circle-question"
+                  keys="t"
                   label="Answer it"
                   onPress={() => navigate({ page: "triage", repo: props.repo })}
                 />
