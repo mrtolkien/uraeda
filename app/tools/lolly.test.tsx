@@ -297,3 +297,12 @@ step("13-decisions reading the decisions", async (hand) => {
   await hand.rightClick("text:Agents >> nth=1", "decision-title");
 });
 
+// Errand 3: "See it land". Lolly opens the feature whose work is done, to try it and land it.
+
+step("15-land the finished feature, tried and landed", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:keyboard-shortcuts >> nth=1", "needs-you-card", 1500);
+  hand.page("finished feature");
+  await hand.point("id:feature-next", "next-step");
+  await hand.wheel("text:Keyboard shortcuts >> nth=1", 600, "down");
+});
