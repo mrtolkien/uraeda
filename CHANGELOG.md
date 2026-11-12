@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.0 - last node release
+
+Released on 2026-11-12.
+
+### Features
+
+- **[Multi-accounts management](https://github.com/mrtolkien/uraeda/blob/v1.4.0/specs/done/2026-11-10-multi-accounts.md)**
+  ([#121](https://github.com/mrtolkien/uraeda/pull/121)): The human has three Claude Code Max
+  accounts and wanted Uraeda to use them all, so a five-hour limit rarely stops their work. Each new
+  Claude Code session starts on the listed account with the most of its five hours left, and keeps
+  that account. Home and the sidebar show each account's usage, and the settings say when an account
+  needs the human. Uraeda never touches a credential: the human makes and signs in each account's
+  configuration folder, from a script in the documentation.
+- **[Scheduled jobs](https://github.com/mrtolkien/uraeda/blob/v1.4.0/specs/done/2026-11-10-scheduled-jobs.md)**
+  ([#122](https://github.com/mrtolkien/uraeda/pull/122)): A job is a prompt Uraeda sends to an agent
+  at set times, in each repository it names, like a daily dependencies upgrade or a performance
+  pass. Recurring upkeep should not wait for someone to start it. Each run is a new session of the
+  main checkout, and starts the change it offers, up to a pull request, unless the human made the
+  job report only. Nothing merges without the human.
+
 ## 1.3.0 - model options per step
 
 Released on 2026-11-10.
