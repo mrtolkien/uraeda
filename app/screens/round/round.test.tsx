@@ -93,10 +93,10 @@ test("c at the end asks first, naming what it commits, and commits nothing by it
   await app.waitUntil(() => words(app).includes("What does editing one occurrence change?"), {
     timeout: 30_000,
   });
-  for (const key of ["a", "a"]) {
-    await app.keyboard.press(key);
-    await app.wait(300);
-  }
+  await app.keyboard.press("a");
+  await app.wait(300);
+  await app.keyboard.press("a");
+  await app.wait(300);
   await app.type("id:round-comment", "Never, for now.");
   await app.keyboard.press("escape");
   await app.keyboard.press("n");

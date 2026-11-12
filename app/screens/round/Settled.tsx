@@ -59,7 +59,7 @@ export function settledCursor(args: RoundArgs, points: () => ReadonlyArray<numbe
           ? all[0]
           : all.at(-1)
         : all[Math.max(0, Math.min(all.length - 1, index + by))];
-    cursors.update((all) => ({ ...all, [args.id]: next ?? null }));
+    cursors.update((held) => ({ ...held, [args.id]: next ?? null }));
     return undefined;
   };
   // A round of the default branch takes no comment on its points: nothing to move to.

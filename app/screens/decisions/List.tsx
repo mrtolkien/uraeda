@@ -222,8 +222,8 @@ function Tools(props: { count: number; noCheck: boolean; onJump: () => void; rep
           icon="history"
           label="Order of the decisions"
           onChange={(next: DecisionSort) => chooseSort(next)}
-          opener={(open) => {
-            order = open;
+          opener={(opens) => {
+            order = opens;
           }}
           options={SORTS}
           value={sortChosen()}
