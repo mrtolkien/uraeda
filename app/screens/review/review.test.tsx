@@ -69,3 +69,17 @@ test("a and r in the verdict ask first, naming what they commit", async () => {
   await app.waitUntil(() => words().includes("Add a comment first"), { timeout: 10_000 });
   expect(words()).toContain("Waits for your review");
 }, 120_000);
+
+test("an approved spec's review pane says it is approved, never that none was sent", async () => {
+  const app = await open("../shell/__checks__/Places.tsx", {
+    height: 800,
+    host: { handlers: { places: null, problem: null, shown: null } },
+    network: "live",
+    width: 1400,
+  });
+  await app.waitUntil(() => app.shows("id:frame"), { timeout: 30_000 });
+  await app.host.send("go", "/r/sample/f/2026-10-12-cli-tuis/spec.md");
+  const words = () => app.texts().join(" ");
+  await app.waitUntil(() => words().includes("Approved"), { timeout: 30_000 });
+  expect(words()).not.toContain("No review yet");
+}, 120_000);

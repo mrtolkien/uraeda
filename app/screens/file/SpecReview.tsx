@@ -97,6 +97,9 @@ function Parts(props: { args: FileArgs; file: () => FileView }) {
   const pending = () => props.file().review?.review ?? null;
   const since = () => props.file().sinceReview;
   const what = () => (props.file().kind === "plan" ? "plan" : "spec");
+  // A verdict given: `Given` says it, and what comes next.
+  const settled = () =>
+    props.file().status === "approved" || props.file().status === "changes-requested";
   return (
     <View style={{ gap: 16 }}>
       <If when={reviewable(props.file())}>
@@ -150,6 +153,7 @@ function Parts(props: { args: FileArgs; file: () => FileView }) {
       <If
         when={
           !reviewable(props.file()) &&
+          !settled() &&
           pending() === null &&
           props.file().answered === null &&
           since() === null
