@@ -140,11 +140,11 @@
           if [ "''${1:-}" = "--gpu" ]; then
             shift
             exec ${pkgs.bash}/bin/bash ${./scripts/isolated.sh} env -u DISPLAY GDK_BACKEND=wayland \
-              ${pkgs.dbus}/bin/dbus-run-session --config-file=${hiddenBusFor pkgs} -- \
+              ${pkgs.dbus}/bin/dbus-run-session --dbus-daemon=${pkgs.dbus}/bin/dbus-daemon --config-file=${hiddenBusFor pkgs} -- \
               ${pkgs.bash}/bin/bash ${./scripts/gpu-display.sh} ${pkgs.weston}/bin/weston "$@"
           fi
           exec ${pkgs.bash}/bin/bash ${./scripts/isolated.sh} env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
-            ${pkgs.dbus}/bin/dbus-run-session --config-file=${hiddenBusFor pkgs} -- \
+            ${pkgs.dbus}/bin/dbus-run-session --dbus-daemon=${pkgs.dbus}/bin/dbus-daemon --config-file=${hiddenBusFor pkgs} -- \
             ${pkgs.xvfb-run}/bin/xvfb-run -d -s "-screen 0 1400x800x24 -nolisten tcp" "$@"
         '';
 
@@ -199,8 +199,10 @@
             ++ lib.optionals stdenv.hostPlatform.isLinux [
               pkg-config
               clang
-              # `flock`, with which `scripts/isolated.sh` shares the machine's heavy slots.
+              # `flock`, with which `scripts/isolated.sh` shares the machine's heavy slots, and
+              # `ps`, with which the server's tests find the processes a server left.
               util-linux
+              procps
               (hiddenDisplayFor pkgs)
               # Real key presses and clicks on the hidden display, for the checks of
               # `crates/app/tests/outside.rs`.
