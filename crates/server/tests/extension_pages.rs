@@ -453,11 +453,13 @@ async fn the_signing_key_never_leaves_the_data_folder() {
             if (method, route) == ("POST", "/session/key") {
                 continue;
             }
+            // Both at once: a wrong sign-in or pairing is answered a second late.
             let asked = server.request(method, &path).json(&json!({}));
-            let answers = [
-                asked.cookie(&client.cookie).send().await,
-                server.request(method, &path).bearer(&host).send().await,
-            ];
+            let (signed_in, by_host) = tokio::join!(
+                asked.cookie(&client.cookie).send(),
+                server.request(method, &path).bearer(&host).send(),
+            );
+            let answers = [signed_in, by_host];
             for answer in answers {
                 let headers = format!("{:?}", answer.headers);
                 assert!(

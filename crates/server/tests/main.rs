@@ -6,7 +6,6 @@
 //! runs the browser's, and `cargo test -p uraeda-server --test tests -- sessions::` those of
 //! the sessions.
 
-mod support;
 mod accounts;
 mod browser;
 mod claude;
@@ -29,6 +28,7 @@ mod sandbox;
 mod sessions;
 mod sign_in;
 mod skeleton;
+mod support;
 mod web;
 mod workspace;
 mod writing;
@@ -38,7 +38,9 @@ mod writing;
 fn every_test_file_is_a_module_of_this_program() {
     let tests = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     let main = std::fs::read_to_string(tests.join("main.rs")).expect("tests/main.rs");
-    let entries = std::fs::read_dir(&tests).expect("the tests' folder").flatten();
+    let entries = std::fs::read_dir(&tests)
+        .expect("the tests' folder")
+        .flatten();
     let files = entries.filter_map(|entry| entry.file_name().into_string().ok());
     let mut missing: Vec<String> = files
         .filter_map(|name| name.strip_suffix(".rs").map(str::to_owned))
