@@ -66,6 +66,18 @@ export const asking = signal<{ done: Done; redo: boolean; answer: (yes: boolean)
   null,
 );
 
+/**
+ * What the last replay brought back, by its repository and its subject, the note's or the line's
+ * text: a list of the page it returns to puts its cursor on that row once it shows it, then
+ * `took` it.
+ */
+export const broughtBack = signal<{ id: number; repo: string; subject: string } | null>(null);
+
+/** A list put its cursor on what came back: no later change of its rows moves it there again. */
+export function took(id: number) {
+  if (broughtBack()?.id === id) broughtBack.set(null);
+}
+
 let saidId = 0;
 let lastMove: { at: number; run: string } | null = null;
 /** Moves on at each action remembered: a replay that lands after one leaves its entry off both sides. */
@@ -180,6 +192,7 @@ async function replay(forth: boolean) {
       else undone.set([...undone(), moved]);
     }
     say(moved, forth ? "redone" : "undone");
+    broughtBack.set({ id: saidId, repo: entry.repo, subject: entry.subject });
   } catch (error) {
     // The server refused it, a file having changed since: it goes, as it can never apply. A line
     // that dropped keeps it for another try.

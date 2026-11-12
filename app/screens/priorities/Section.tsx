@@ -1,10 +1,10 @@
 // One section of the priorities: its title, what it holds, its rows in the order the human sets,
 // a refused move's words under them, and its Add row. Its keys are its own scope's, on while the
 // section has the pane's focus, so Now, Next, and Later each have `j` `k` `m` without a clash.
-import { type Accessor, computed, View } from "nsh";
+import { type Accessor, computed, effect, untracked, View } from "nsh";
 import type { Order } from "./moves";
 import { shownIn } from "./order";
-import { remember } from "../shell/undo";
+import { broughtBack, remember, took } from "../shell/undo";
 import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
 import { Refusal } from "../../ui/controls";
@@ -72,6 +72,21 @@ export function Section(props: SectionProps) {
     onChange: (id) => id !== undefined && props.onTouched(),
   });
   props.cursor(cursor);
+  // A proposal an undo brought back: the cursor goes to it once the section shows it.
+  effect(() => {
+    const back = broughtBack();
+    if (back === null || back.repo !== props.repo) return;
+    const key = keys().find((one) => {
+      const proposal = props.proposals().get(one);
+      return proposal !== undefined && plain(proposal) === back.subject;
+    });
+    if (key === undefined) return;
+    untracked(() => {
+      took(back.id);
+      cursor.set(key, { reveal: true });
+      props.onTouched();
+    });
+  });
   const label = (key: string) => {
     const proposal = props.proposals().get(key);
     return proposal === undefined ? "The proposal" : `“${plain(proposal)}”`;

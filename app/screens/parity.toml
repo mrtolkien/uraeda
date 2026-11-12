@@ -171,6 +171,13 @@ why = "a transcript opens at its newest message, the rule of task 43 (R337)"
 fate = "brought-back"
 now = "the session's conversation opens at the turn an address names, `#turn-<id>` (an old run's link), once per visit, its cursor on the turn's first row and the end no longer followed; the window reads the pages around it. Back's place was already the visit's"
 
+[[left]]
+what = "Selecting what came back after an undo"
+old = "Undo"
+why = "each pane keeps its own cursor (task 50)"
+fate = "brought-back"
+now = "the inbox and the priorities: after an undo or a redo, the list of the page it returns to puts its cursor on the note or the proposal it brought back, found by the action's subject (`broughtBack` in `app/screens/shell/undo.ts`)"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -220,14 +227,6 @@ why = "a look, not a fact: the turn's end is its own row (R337)"
 fate = "left"
 needs = "a frame around the last text of a done turn, in `Rows.tsx`"
 missed = "nobody will"
-
-[[left]]
-what = "Selecting what came back after an undo"
-old = "Undo"
-why = "each pane keeps its own cursor (task 50)"
-fate = "left"
-needs = "the remembered action naming the row it changed, and the pane moving its cursor there"
-missed = "nobody much: the page where it happened opens"
 
 # --- Replaced by something the rewrite does otherwise --------------------------------------------
 

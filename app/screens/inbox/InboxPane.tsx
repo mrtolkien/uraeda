@@ -12,7 +12,7 @@ import type { TextFieldRef } from "../../ui/text";
 import { TriageBanner } from "../triage/TriageBanner";
 import { ORGANIZE_INBOX, startChat } from "../triage/chat";
 import { deleteNote } from "./actions";
-import { remember } from "../shell/undo";
+import { broughtBack, remember, took } from "../shell/undo";
 import { AddNote, heldFor, holdImages } from "./AddNote";
 import { CategoryDialog } from "./CategoryDialog";
 import { droppedImages, pastedImage, pickImages } from "../images";
@@ -86,6 +86,17 @@ function Notes(props: { inbox: Inbox; repo: string }) {
   const cursor = createCursor(rows, {
     initial: at() ?? undefined,
     onChange: (id) => at.set(id ?? null),
+  });
+  // A note an undo brought back, or moved back: the cursor goes to it once the list shows it.
+  effect(() => {
+    const back = broughtBack();
+    if (back === null || back.repo !== props.repo) return;
+    const row = rows().find((one) => one.kind === "note" && one.note.text === back.subject);
+    if (row === undefined) return;
+    untracked(() => {
+      took(back.id);
+      cursor.set(row.id, { reveal: true });
+    });
   });
   const refusal = signal<string | null>(null);
   const picking = signal<Picking | null>(null);
