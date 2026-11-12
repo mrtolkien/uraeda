@@ -18,6 +18,18 @@ const said = (key: string) => (key === LEADER ? "Space" : key);
 /** How many rows a column holds before the next begins. */
 const ROWS = 12;
 
+type Column = { key: string; entries: ReadonlyArray<MenuEntry> };
+
+/** The entries in columns of `ROWS`, one column on a narrow window, which scrolls as a sheet. */
+function columnsOf(entries: ReadonlyArray<MenuEntry>): Column[] {
+  if (isNarrow()) return [{ entries, key: "all" }];
+  const columns: Column[] = [];
+  for (let at = 0; at < entries.length; at += ROWS) {
+    columns.push({ entries: entries.slice(at, at + ROWS), key: String(at) });
+  }
+  return columns;
+}
+
 /** A key and what it does, pressed as the key is: the focus stays where it was. */
 function Press(props: { arrow?: boolean; keys: string; word: string }) {
   return (
@@ -53,25 +65,22 @@ export function LeaderMenu(props: {
       testID="leader-menu"
       title={props.path.map(said).join(" ")}
     >
-      <View
-        style={{
-          columnGap: 24,
-          flexDirection: "column",
-          flexWrap: isNarrow() ? "nowrap" : "wrap",
-          maxHeight: isNarrow() ? undefined : ROWS * tokens.space.row,
-          minWidth: isNarrow() ? undefined : 240,
-        }}
-      >
-        <Each
-          key={(entry: MenuEntry) => `${entry.key} ${entry.label}`}
-          of={sortedEntries(props.entries)}
-        >
-          {(entry: () => MenuEntry) => (
-            <Press
-              arrow
-              keys={entry().key}
-              word={entry().isGroup === true ? `+${entry().label}` : entry().label}
-            />
+      {/* Its columns made here: a wrapping column of rows does not widen its box in Native
+          Shell's layout, which cut the second column off at the window's edge. */}
+      <View style={{ columnGap: 24, flexDirection: isNarrow() ? "column" : "row" }}>
+        <Each key={(column: Column) => column.key} of={columnsOf(sortedEntries(props.entries))}>
+          {(column: () => Column) => (
+            <View style={{ minWidth: isNarrow() ? undefined : 240 }}>
+              <Each key={(entry: MenuEntry) => `${entry.key} ${entry.label}`} of={column().entries}>
+                {(entry: () => MenuEntry) => (
+                  <Press
+                    arrow
+                    keys={entry().key}
+                    word={entry().isGroup === true ? `+${entry().label}` : entry().label}
+                  />
+                )}
+              </Each>
+            </View>
           )}
         </Each>
       </View>
