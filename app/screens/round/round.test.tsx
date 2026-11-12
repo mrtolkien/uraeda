@@ -70,3 +70,18 @@ test("submitting sends every answer once", async () => {
   expect(sent.filter((call) => call.action === "answers.submit")).toHaveLength(1);
   expect(sent.at(-1)?.action).toBe("answers.submit");
 }, 120_000);
+
+test("Shift and a letter adds it to the answer, and stays on the question", async () => {
+  const app = await page("Q2", true);
+  await app.waitUntil(() => words(app).includes("How should the app store due dates?"), {
+    timeout: 30_000,
+  });
+  await app.keyboard.press("shift+b");
+  await app.waitUntil(() => calls(app).some((call) => call.action === "answer.save"), {
+    timeout: 10_000,
+  });
+  await app.wait(300);
+  // B is added, and the question stays: a letter alone would have gone on to Q3.
+  expect(words(app)).toContain("How should the app store due dates?");
+  expect(calls(app).at(-1)).toMatchObject({ letters: ["B"], question: "Q2" });
+}, 90_000);

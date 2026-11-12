@@ -1,9 +1,10 @@
 // One question of a round, with everything needed to answer it in view: its context drawn by the
 // document renderer, an example, why it matters, its options as cards with their pros and cons,
 // the recommended one marked and why, and a comment. A letter's key picks that option alone and
-// goes on; a press on a card toggles it, for an answer of several letters, and stays. The pick
-// shows at once and is saved in its turn; the comment is kept on the device as it is typed and
-// saved after a pause, as the field leaves, or with Ctrl+Enter. Nothing is submitted here.
+// goes on; Shift and the letter, or a press on its card, toggles it, for an answer of several
+// letters, and stays. The pick shows at once and is saved in its turn; the comment is kept on the
+// device as it is typed and saved after a pause, as the field leaves, or with Ctrl+Enter. Nothing
+// is submitted here.
 import { cleanup, type JSX, signal, untracked, View } from "nsh";
 import type { Choice, FileView, QuestionItem } from "../../store/protocol";
 import { Button, Heading, Kbd, Refusal, sent, Text } from "../../ui/controls";
@@ -30,6 +31,7 @@ export type QuestionHands = {
   ask?: () => false | undefined;
   comment?: () => void;
   pick?: (key: string) => false | undefined;
+  toggle?: (key: string) => false | undefined;
 };
 
 export type QuestionProps = {
@@ -96,6 +98,12 @@ export function Question(props: QuestionProps) {
     const option = keyed().find((one) => one.letter.toLowerCase() === key);
     if (option === undefined) return false;
     pick(option.letter, true);
+    return undefined;
+  };
+  props.hands.toggle = (key) => {
+    const option = keyed().find((one) => one.letter.toLowerCase() === key);
+    if (option === undefined) return false;
+    toggle(option.letter);
     return undefined;
   };
   props.hands.comment = () => field?.focus();
@@ -167,7 +175,9 @@ export function Question(props: QuestionProps) {
         <If when={!isNarrow() && keyed().length > 0}>
           <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             <Each of={keyed()}>{(option) => <Kbd keys={option().letter.toLowerCase()} />}</Each>
-            <Text tone="quiet">picks it and goes on, a press adds a letter,</Text>
+            <Text tone="quiet">picks it and goes on,</Text>
+            <Kbd keys={keyed()[0]!.letter.toUpperCase()} />
+            <Text tone="quiet">adds it to the answer,</Text>
             <Kbd keys="i" />
             <Text tone="quiet">
               {asks() === undefined ? "writes a comment." : "writes a comment,"}

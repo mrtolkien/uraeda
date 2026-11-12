@@ -2,7 +2,8 @@
 // its end, which submits. The one way to answer a question in the app: a feature's round, the
 // inbox's triage, and the decisions check all draw it. Where the human is, is kept on the device;
 // each answer is saved as it is made, in order, and the round is submitted only by its end's
-// button. A letter picks and goes on, `n` and `p` move, `i` writes a comment.
+// button. A letter picks and goes on, Shift and a letter adds it, `n` and `p` move, `i` writes a
+// comment.
 import { effect, View } from "nsh";
 import type { FileView, QuestionItem } from "../../store/protocol";
 import { Banner, Button, Progress, Text } from "../../ui/controls";
@@ -75,6 +76,12 @@ export function Answering(props: {
         keys: key,
         label: `Answer ${key.toUpperCase()}, and go on`,
         run: () => hands.pick?.(key) ?? false,
+      })),
+      // Shift and a letter adds it to the answer, or takes it out, and stays: an answer of several.
+      ...LETTERS.map((key): KeySpec => ({
+        keys: key.toUpperCase(),
+        label: `Add ${key.toUpperCase()} to the answer, or take it out`,
+        run: () => hands.toggle?.(key) ?? false,
       })),
       {
         hint: "i",
