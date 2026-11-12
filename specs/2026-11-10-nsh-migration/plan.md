@@ -2577,6 +2577,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   the feature page's continue, which replaced its plain start.
 - `app/screens/images.ts` holds every screen's image helpers, with `attachToFile` and `keepForChat`.
   `LeaveGuard` resolves its answer now (R322).
+- A proposal's nested lines (T90.7): `Nested.tsx`, an outline over `proposals.outline` in the
+  proposal's pane.
 
 ## Task 39: Inbox and triage
 

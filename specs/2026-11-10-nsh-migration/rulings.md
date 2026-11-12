@@ -7880,3 +7880,16 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: one zoom for every pane, with the old page's button on the preview, where a person
   reviewing a desktop mockup looks for it.
 - **Where**: `app/ui/layout/here.ts`, `frame.ts`, `app/screens/preview/LiveFrame.tsx`.
+
+## T90.7: A proposal's nested lines are an outline in its pane, the inbox's stay in its file
+
+- **Decision**: the proposal's pane lists its nested lines (`ProposalItem.children`) as an outline,
+  each row indented by its depth, with the keys of the old outliner: `>` and `<` indent and outdent,
+  `J` and `K` move among siblings, `o` adds a line below, Enter edits, `d` removes, and "Add a
+  nested line" appends one, each a `proposals.outline` on the undo stack. Drag to nest stays out.
+  The inbox gets no outliner.
+- **Rationale**: counted on the default branch on 2026-11-12, the human's `PRIORITIES.md` nests 16
+  lines under 26 proposals, and `INBOX.md` none: the priorities' outline is used, the inbox's is
+  not. Keys over a list cost a component; drag to nest, the old page's most fragile part, costs a
+  week.
+- **Where**: `app/screens/proposal/Nested.tsx`, `ProposalPane.tsx`.

@@ -17,6 +17,7 @@ import { createOrder } from "../priorities/moves";
 import { byKey } from "../priorities/order";
 import { plain, stepWords } from "../priorities/Section";
 import { FileEditor } from "./FileEditor";
+import { Nested } from "./Nested";
 import { remember } from "../shell/undo";
 import { NameDialog } from "../NameDialog";
 import { registerKey } from "../../ui/keys";
@@ -230,6 +231,9 @@ function Body(props: {
           )}
         </If>
       </View>
+      <If when={!props.proposal.running && !props.proposal.merged}>
+        <Nested priorities={props.priorities} proposal={props.proposal} repo={props.repo} />
+      </If>
       <If
         when={feature()}
         else={

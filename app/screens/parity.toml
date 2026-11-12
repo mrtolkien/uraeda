@@ -178,6 +178,13 @@ why = "each pane keeps its own cursor (task 50)"
 fate = "brought-back"
 now = "the inbox and the priorities: after an undo or a redo, the list of the page it returns to puts its cursor on the note or the proposal it brought back, found by the action's subject (`broughtBack` in `app/screens/shell/undo.ts`)"
 
+[[left]]
+what = "A proposal's nested lines edited in place, and dropped across proposals"
+old = "Priorities (`proposals.outline`, `proposals.drop`)"
+why = "left by task 37 to task 38, which built the proposal's file instead"
+fate = "brought-back"
+now = "the proposal's pane: \"Its nested lines\", an outline with a cursor: `>` `<` indent and outdent, `J` `K` move, `o` adds below, Enter edits, `d` removes, \"Add a nested line\" at the end, each over `proposals.outline` and on the undo stack. Dragging across proposals (`proposals.drop`) stays out"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -186,15 +193,7 @@ old = "Inbox (`inbox.outline`, `inbox.drop`, `inbox.place`)"
 why = "rare, and the largest and most fragile part of the old page; a note's sub-items are read in its pane (R278)"
 fate = "left"
 needs = "an outline of a note in its pane over `inbox.outline`, and order within a category over `inbox.place`"
-missed = "nobody much: notes are sorted by category, and nested lines are edited in `INBOX.md`, one press away"
-
-[[left]]
-what = "A proposal's nested lines edited in place, and dropped across proposals"
-old = "Priorities (`proposals.outline`, `proposals.drop`)"
-why = "left by task 37 to task 38, which built the proposal's file instead"
-fate = "left"
-needs = "an outline field in the proposal's pane over `proposals.outline`"
-missed = "nobody much: a proposal with more than a line is written into its file, which the pane edits"
+missed = "nobody much: the human's own `INBOX.md` on the default branch nests no line (counted on 2026-11-12), where `PRIORITIES.md` nests 16, whose outline came back; notes are sorted by category, and a nested line is edited in `INBOX.md`, one press away"
 
 [[left]]
 what = "Recent: the features merged lately"
