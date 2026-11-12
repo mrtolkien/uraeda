@@ -7,7 +7,7 @@
 import { signal, View } from "nsh";
 import type { CommentItem, FileView } from "../../store/protocol";
 import { Button, Text } from "../../ui/controls";
-import { TextField, unsavedKey, unsavedText } from "../../ui/text";
+import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
 import type { FileArgs } from "../file/read";
 import { addComment, editComment, removeComment } from "./writes";
 
@@ -30,6 +30,8 @@ export type CommentFieldProps = {
   /** Closes the field: its text, if not saved, stays on the device. */
   onClose?: () => void;
   autoFocus?: boolean;
+  /** Its field, for a key that writes in it. */
+  ref?: (field: TextFieldRef) => void;
   testID?: string;
 };
 
@@ -88,6 +90,7 @@ export function CommentField(props: CommentFieldProps) {
         onSave={() => void save()}
         onChange={text.change}
         placeholder="What should change, or be kept in mind"
+        ref={props.ref}
         refusal={refusal()}
         rows={{ max: 10, min: 2 }}
         testID={props.testID}

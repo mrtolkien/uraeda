@@ -2,11 +2,24 @@
 // general comment, always there; a spec's risk tier and plan review; what an approval accepts of
 // the decisions its branch changes; then Approve or Request changes, each pressed, each saying what
 // it commits. Request changes needs a comment, and says so where the hand was. Once committed, the
-// pane says so, and the agent's next run is one press away, never started by itself.
+// pane says so, and the agent's next run is one press away, never started by itself. By keys, in
+// the pane `n` brings: `i` writes the general comment, and `a` and `r` ask first, in the shared
+// confirmation, what they commit (rule 2).
 import { type Signal, signal, untracked, View } from "nsh";
 import { call, record } from "../../store";
 import type { FileView, SpecItems } from "../../store/protocol";
-import { Banner, Button, Heading, Refusal, Segmented, Switch, Text } from "../../ui/controls";
+import {
+  Banner,
+  Button,
+  Confirm,
+  Heading,
+  Refusal,
+  Segmented,
+  Switch,
+  Text,
+} from "../../ui/controls";
+import { registerKey } from "../../ui/keys";
+import type { TextFieldRef } from "../../ui/text";
 import type { FileArgs } from "../file/read";
 import { shownOf } from "../file/read";
 import { NextRun } from "../round/NextRun";
@@ -65,6 +78,8 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
   const refusal = signal<string | null>(null);
   const feature = record("Feature", { id: props.args.folder, repo: props.args.repo });
   const comments = () => pendingOf(props.file()).length;
+  const asking = signal<"approve" | "changes" | null>(null);
+  let general: TextFieldRef | undefined;
 
   const send = async (approve: boolean) => {
     if (pending() !== null) return;
@@ -104,6 +119,55 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
     pending.set(null);
   };
 
+  const subject = () => `${theFile(props.file())} of ${feature()?.title ?? props.args.folder}`;
+  const withComments = () =>
+    comments() === 0
+      ? ""
+      : ` with ${comments() === 1 ? "your comment" : `your ${comments()} comments`}`;
+  const asked = () =>
+    asking() === "approve"
+      ? {
+          icon: "badge-check" as const,
+          label: "Approve",
+          title: `Approve ${subject()}?`,
+          words: [
+            `Commits ${props.file().name}${withComments()} as approved.`,
+            props.file().kind === "spec" ? decisionsWords(props.file()) : undefined,
+          ]
+            .filter((one) => one !== undefined)
+            .join(" "),
+        }
+      : {
+          icon: "pencil-line" as const,
+          label: "Request changes",
+          title: `Request changes to ${subject()}?`,
+          words: `Commits ${props.file().name}${withComments()}: the agent revises ${theFile(props.file())} from them, once you start its next run.`,
+        };
+  registerKey([
+    {
+      hint: "i",
+      hintLabel: "comment",
+      keys: "i",
+      label: "Write the general comment",
+      run: () => general?.focus(),
+    },
+    {
+      hint: "a",
+      hintLabel: "approve",
+      keys: "a",
+      label: "Approve, after a confirmation",
+      run: () => asking.set("approve"),
+    },
+    {
+      hint: "r",
+      hintLabel: "request changes",
+      keys: "r",
+      label: "Request changes, after a confirmation",
+      // Without a comment there is nothing to confirm: the refusal says what to add.
+      run: () => (comments() === 0 ? void send(false) : asking.set("changes")),
+    },
+  ]);
+
   return (
     <View style={{ gap: 12 }} testID="review-verdict-pane">
       <Heading level={2}>Your verdict</Heading>
@@ -113,6 +177,9 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
         file={props.file()}
         label="A general comment"
         lines={null}
+        ref={(field) => {
+          general = field;
+        }}
         testID="review-general"
       />
       <If when={props.file().kind === "spec" ? spec() : null}>
@@ -157,6 +224,17 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
       >
         {(words) => <Refusal testID="review-refusal" words={words()} />}
       </If>
+      <Confirm
+        icon={asked().icon}
+        keys={asking() === "changes" ? "r" : "a"}
+        label={asked().label}
+        onClose={() => asking.set(null)}
+        onConfirm={() => void send(asking() === "approve")}
+        open={asking() !== null}
+        testID="review-confirm"
+        title={asked().title}
+        words={asked().words}
+      />
     </View>
   );
 }
