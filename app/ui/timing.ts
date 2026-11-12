@@ -29,8 +29,18 @@ const LONGEST = 10_000;
 /** What the browser's benchmark puts on the page around the app, before the app starts. */
 type Bench = { timed: Array<Timed & { at: number }>; now(): number };
 
-/** The page's benchmark, in a browser that runs one: the frame's `top` is the page. */
-const bench = (globalThis as { top?: { uraedaBench?: Bench } }).top?.uraedaBench;
+/**
+ * The page's benchmark, in a browser that runs one: the frame's `top` is the page. An extension's
+ * page, which imports this through `uraeda/ui`, runs in a frame of another origin, whose `top`
+ * the browser refuses to read: it has none.
+ */
+const bench = ((): Bench | undefined => {
+  try {
+    return (globalThis as { top?: { uraedaBench?: Bench } }).top?.uraedaBench;
+  } catch {
+    return undefined;
+  }
+})();
 
 const timing = process.env.NODE_ENV !== "production" || bench !== undefined;
 /** Nothing is drawn with its records before the store connects, which says when they came. */

@@ -196,7 +196,7 @@ export function VirtualList(props: VirtualListProps) {
           // following, where the same offset against a longer content read as "scrolled away".
           // Rows above measured shorter than their estimates shrink the content, and Native Shell
           // moves the offset up by as much to keep what shows in place: in a browser that was
-          // read as the reader going up, and a streaming reply was left behind (ruling T60.4).
+          // read as the reader going up, and a streaming reply was left behind (ruling R473).
           const shrunk = Math.max(0, length - event.contentSize.height);
           if (now + event.size.height >= event.contentSize.height - NEAR_END) follows(true);
           else if (now < rested - shrunk - 1) follows(false);

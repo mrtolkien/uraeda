@@ -1,4 +1,4 @@
-// The bundled fonts' files in a browser, fetched as a device shows them (ruling T60.2). On a
+// The bundled fonts' files in a browser, fetched as a device shows them (ruling R471). On a
 // machine Native Shell registers every font of the app's crate before the first frame. A browser
 // would fetch all of them, 2.4 MB, before its first frame: there the engine registers only
 // Monaspace Neon's regular face as the app starts (`crates/app/src/fonts.rs`), and each family

@@ -9,7 +9,7 @@
 // turn's id for a turn not read. Its object is kept for as long as its id is in the rows, so the
 // list keeps its cell; the rows change when an item comes or goes, never for a piece of a reply.
 //
-// A reply that streams is split into its blocks as they finish (ruling T60.3): each finished block
+// A reply that streams is split into its blocks as they finish (ruling R472): each finished block
 // is a row of its own, `${turn}/${item}~${block}#${page}`, before the reply's row, which draws only
 // the block still growing. So the list lays out and paints the rows shown, and a long reply costs
 // a frame what a short one does.

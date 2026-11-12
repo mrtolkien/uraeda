@@ -3668,7 +3668,7 @@ without stopping for the human.
       Expected: PASS.
 - [x] **Step 5: Commit**: `perf(nsh-migration): the web build on a slow phone`.
 
-**As built** (rulings T60.1 to T60.5):
+**As built** (rulings R470 to R474):
 
 - **The benchmarks in a browser**: `just bench-navigation web` and `just frames <scene> web`
   (`streaming`, `scrolling`, `reading`; `web-profile` adds a trace and the profiler's samples) run
@@ -3677,21 +3677,21 @@ without stopping for the human.
   `app/tools/navigation.ts` or `frames.sh`, which drive GTK. A release build times itself only on a
   page holding `uraedaBench` (`app/ui/timing.ts`), and opens pages through its `go` (`App.tsx`). The
   sandbox's fake answers `at length` with a reply of about 12,000 words.
-- **What `/live` sends**: the table of T60.1, by `browser/protocol.rs`; the rule said build, and
-  task 69 follows. `Browser::heard()` (`cdp.rs`) gives a test what the page said.
-- **The first load** is 2.84 MB, under 3: the fonts come as a device shows them (T60.2), and the
-  size test's limit is 2.9 MB.
-- **Fixed**: a streaming reply's finished blocks are rows of the transcript (T60.3); the transcript
-  follows a streaming reply on a phone (T60.4); `repositories.open` once per repository opened
-  (T60.5).
+- **What `/live` sends**: the table of R470, by `browser/protocol.rs`; the rule said build, and task
+  69 follows. `Browser::heard()` (`cdp.rs`) gives a test what the page said.
+- **The first load** is 2.84 MB, under 3: the fonts come as a device shows them (R471). Beside task
+  58's verification of extension pages it is 2.93 MB, and the size test's limit 2.95 MB (R475).
+- **Fixed**: a streaming reply's finished blocks are rows of the transcript (R472); the transcript
+  follows a streaming reply on a phone (R473); `repositories.open` once per repository opened
+  (R474).
 - **Numbers**, on the slowed phone: streaming 42.7 to 54.8 fps (the spike's 57), scrolling 53.8 to
-  60.3 (37), no frame over 100 ms but one, 250 ms, as the turn starts (T60.4).
+  60.3 (37), no frame over 100 ms but one, 250 ms, as the turn starts (R473).
 
 ## Task 69: Compressed first values
 
 Added by task 60 on 2026-11-12, as its step C asks, because its rule said build: the realistic
 project's Decisions sends 534 KB before it settles, of which compression would save 90%, and a
-reload 181 KB, of which it would save 84% (ruling T60.1, with the table of every screen).
+reload 181 KB, of which it would save 84% (ruling R470, with the table of every screen).
 
 **Files:**
 

@@ -218,15 +218,17 @@ fn real_build() -> PathBuf {
     )
 }
 
-/// The most a first load may weigh, compressed: under the plan's 3 MB. The build weighs 2.84 MB,
-/// of which Native Shell's engine and the app's Rust are 2.36 MB, and the one font face before the
-/// first frame 0.2 MB; the others come with the chunks that register them (ruling T60.2). This
-/// limit keeps what was gained, and only goes down.
-const FIRST_LOAD: u64 = 2_900_000;
+/// The most a first load may weigh, compressed: under the plan's 3 MB. The build weighs 2.93 MB,
+/// of which Native Shell's engine and the app's Rust are 2.44 MB, the verification of extension
+/// pages 86 KB of them, and the one font face before the first frame 0.2 MB; the others come with
+/// the chunks that register them (rulings R471, R475). This limit keeps what was gained, and
+/// only goes down.
+const FIRST_LOAD: u64 = 2_950_000;
 
 /// What a first load never fetches: the syntaxes and the formulas' fonts, which come with the
-/// first code block and the first formula, the icons a browser picks one of, the licences, and
-/// what the page fetches with a chunk the app imports later, `later`: its script and its fonts.
+/// first code block and the first formula, the icons a browser picks one of, the licences, an
+/// extension page's frame, which comes with the first extension page, and what the page fetches
+/// with a chunk the app imports later, `later`: its script and its fonts.
 fn comes_later(path: &str, later: &[String]) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
     later.iter().any(|chunk| *chunk == unhashed(path))
@@ -236,6 +238,7 @@ fn comes_later(path: &str, later: &[String]) -> bool {
         || name.starts_with("LICENSE")
         || path.starts_with("icons/")
         || name == "manifest.webmanifest"
+        || path == "extension.html"
 }
 
 /// A file's path without the digest of its content Native Shell names it with:
@@ -328,6 +331,6 @@ fn the_first_load_is_within_its_limit() {
     }
     assert!(
         total <= FIRST_LOAD,
-        "the first load is {total} bytes, over {FIRST_LOAD}: see rulings R445 and T60.2"
+        "the first load is {total} bytes, over {FIRST_LOAD}: see rulings R445 and R471"
     );
 }

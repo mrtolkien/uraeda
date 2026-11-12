@@ -9307,7 +9307,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   extension's record: `stolen` true.
 - **Where**: `crates/server/tests/browser/{extensions.rs,cdp.rs}`, `fixtures/extensions/`.
 
-## T60.1: What `/live` sends each screen, and the rule says build compression: task 69
+## R470: What `/live` sends each screen, and the rule says build compression: task 69
 
 - **Decision**: measured by `just bench-navigation web` (`crates/server/tests/browser/bench.rs`,
   `protocol.rs`), from the browser's own record of the socket's frames: Chromium at 390 by 844 with
@@ -9334,7 +9334,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
   The last row's screens open no record of their own: theirs are the shell's, or the page they were
   opened from already held them. Their one message was an action's refusal, sent at every
-  navigation: see T60.5.
+  navigation: see R474.
 
 - **The rule's verdict: build.** Two loads pass both of its numbers: the realistic Decisions sends
   534.3 KB before it settles, which compression would bring to 51.3 KB (90% less), and a reload
@@ -9360,7 +9360,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     63 to 91%, and a reply's appends are left as they are.
 - **Where**: `crates/server/tests/browser/{bench.rs,protocol.rs}`, `plan.md` (task 69, wave 29).
 
-## T60.2: In a browser the fonts come as a device shows them: the first load is 2.84 MB
+## R471: In a browser the fonts come as a device shows them: the first load is 2.84 MB
 
 - **Decision**: the engine registers only Monaspace Neon's regular face as the app starts in a
   browser (`registered()` in `crates/app/src/fonts.rs`, on `wasm32` only), and each family comes in
@@ -9397,7 +9397,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/src/{fonts.rs,native.rs}`, `app/ui/tokens/faces.ts`,
   `app/ui/tokens/faces/`, `app/ui/theme.ts`, `crates/server/tests/web.rs`.
 
-## T60.3: A streaming reply's finished blocks are rows of the transcript
+## R472: A streaming reply's finished blocks are rows of the transcript
 
 - **Decision**: a reply that streams in a session's transcript is split as it finishes blocks: each
   finished block is a row of the list of its own (`${turn}/${item}~${block}#${page}`, before the
@@ -9405,8 +9405,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   growing (`Reply`'s `onFinished`). It stays split once ended, for the life of the feed; a reply
   read whole is one row, as before. The gallery's scene feeds no split, and draws its reply in its
   row, as it did.
-- **Measured**, `just frames streaming web` (T60.4's scene: the chat of 20,000 messages, a reply of
-  about 12,000 words for a minute), at loads of 4 to 6, each build with the following fix of T60.4:
+- **Measured**, `just frames streaming web` (R473's scene: the chat of 20,000 messages, a reply of
+  about 12,000 words for a minute), at loads of 4 to 6, each build with the following fix of R473:
   the reply in one row, 35.2 frames a second, falling from 49 to 27 as it grew, the 95th percentile
   50 ms, 3 frames over 100 ms; split, 54.8, steady from 52 to 58, the 95th percentile 33 ms, 1 frame
   over 100 ms, 250 ms in the first second. The profile of the one-row reply, before the fixes and
@@ -9418,7 +9418,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/session/{pages.ts,Rows.tsx}`, `app/ui/document/Reply.tsx`,
   `app/screens/session/panels/Activity.tsx`.
 
-## T60.4: The web build on a slow phone, before and after, against the spike's
+## R473: The web build on a slow phone, before and after, against the spike's
 
 - **Decision**: `just frames <scene> web` and `just bench-navigation web` run the benchmarks in the
   dev shell's Chromium at 390 by 844 with touch, the processor slowed four times
@@ -9439,7 +9439,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     left on screen: 42.7 fps once, 59.9 another time with the reply out of view. The list read the
     offset Native Shell moved up, as rows above were measured shorter than estimated, as the reader
     going up; it now counts only what a shrink of the content does not explain (`VirtualList.tsx`),
-    and the reply stays followed. With that fix alone, 35.2 fps; with T60.3, 54.8, 2 short of the
+    and the reply stays followed. With that fix alone, 35.2 fps; with R472, 54.8, 2 short of the
     spike's, and its one frame over 100 ms as the turn starts.
   - **Reading**: task 57's stall of 2.5 to 3 seconds did not come back in four runs, the spec opened
     as its frames were counted: one or two frames of 150 to 233 ms as it first draws, then 60. One
@@ -9447,22 +9447,44 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     app's; run again, 57.0.
   - **Navigation**, medians of three, on the slowed phone: 118 to 224 ms after, 110 to 242 before,
     the first visits 115 to 767 ms; the long chat 224 ms warm and 767 ms cold, its 110 records'
-    answers most of it (T60.1). No target of the plan is the slowed phone's: the decision's 100 ms
-    is the desktop's, which R416 measured. A reload is 888 ms, within its second (T60.2).
+    answers most of it (R470). No target of the plan is the slowed phone's: the decision's 100 ms is
+    the desktop's, which R416 measured. A reload is 888 ms, within its second (R471).
 
 - **Rationale**: a quiet machine's timing or nothing: each number with its load, one run each but
   where said.
 - **Where**: `crates/server/tests/browser/`, `crates/server/src/sandbox/agent.rs`,
   `app/ui/timing.ts`, `app/App.tsx`, `app/ui/lists/VirtualList.tsx`, the `justfile`.
 
-## T60.5: Two small findings of the measurements
+## R474: Two small findings of the measurements
 
 - **Decision**:
   - The shell asked the server `repositories.open` at every navigation, not once for each repository
     opened, as its comment said: its effect read the repository's row, which every route makes
     again. It now reads the row's name (`Frame.tsx`). The sandbox refuses the action, which is how
-    T60.1's table saw it.
+    R470's table saw it.
   - The browser tests did not compile on the feature's branch: `browser/app.rs` called
     `sign_in::first_key`, which R452 had made `key_at_start`. It calls that now, so `just web-test`
     runs.
 - **Where**: `app/screens/shell/Frame.tsx`, `crates/server/tests/browser/app.rs`.
+
+## R475: Beside extension pages: the first load is 2.93 MB, and a page's frame fetches the faces its theme shows
+
+- **Decision**: three things broke only with tasks 58 and 60 together, each fixed where it starts.
+  - **The first load**: task 58's verification of a page in the app's WebAssembly (`nsh-package`,
+    with `ed25519-dalek`'s precomputed tables and `sha2`) adds 86 KB to the module, 2.36 to 2.44 MB
+    compressed. It protects the owner, and stays. `extension.html`, which the browser fetches with
+    the first extension page, is no longer counted in the first load. The first load is 2,928,039
+    bytes, and the size test's limit 2.95 MB, under the plan's 3 MB.
+  - **The benchmark's hook**: `ui/timing.ts` read `top.uraedaBench` as it was imported, and an
+    extension page imports it through `uraeda/ui`, in a frame of another origin, whose `top` the
+    browser refuses to read: every page failed at load with a `SecurityError`, and
+    `a_page_reads_a_record_and_calls_an_action_of_its_extension` stopped at "the page never showed
+    Counter". The read is guarded: such a frame holds no benchmark.
+  - **A page's faces**: the frame registered only `app.fonts`, which is now Monaspace Neon's regular
+    face alone (R471), and has no `prepareChunk`. A page's `applyFonts` registers the faces of the
+    families the app shows, and the engine reads a face's bytes at once (`readAsset`, in
+    `nsh-engine` 0.5.0's font registration), so every other face failed and fell back to Neon's
+    regular. The frame now fetches, before the page runs and before each `theme` event reaches it,
+    the faces of the families that theme names, from `app.chunkFonts`, and never the others: the
+    same faces the app's page fetches.
+- **Where**: `crates/server/tests/web.rs`, `app/ui/timing.ts`, `app/web/frame.html`.

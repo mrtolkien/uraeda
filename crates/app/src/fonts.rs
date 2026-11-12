@@ -9,7 +9,7 @@
 //! In a browser the engine registers only Neon's regular face as the app starts: Native Shell's
 //! page fetches every font the engine registers before the first frame, 2.4 MB of them. The
 //! others come in the chunks of `app/ui/tokens/faces/`, once a device shows their family (ruling
-//! T60.2).
+//! R471).
 
 use nsh_core::element::{AssetFile, AssetKind, FontAsset};
 use nsh_core::prelude::*;

@@ -86,7 +86,7 @@ async fn the_frames_on_a_slow_phone() {
             phone.browser.tap_at(at).await;
             phone.browser.shows("Stop the agent").await;
             // The reply is followed as it grows. Where the transcript stopped following, a person
-            // presses the button that follows it again, and the run says so (ruling T60.4).
+            // presses the button that follows it again, and the run says so (ruling R473).
             tokio::time::sleep(second).await;
             let left = "document.body.innerText.includes('Jump to the latest')";
             if phone.browser.evaluate(left).await == true {
