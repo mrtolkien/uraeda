@@ -233,6 +233,16 @@ walk filter="" on="software":
 
 # A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
+# The thinking work, as the owner at the desk does it on the sandbox: a round answered, a spec
+# reviewed, a plan read, the decisions and their check, the inbox's triage, by keys only: the steps
+# of `app/tools/think.test.tsx`, each a numbered picture in `target/shots/polish-4/`. A tool to run
+# again after a fix, never a check: `just think`, or `just think 04` for the steps it names.
+think filter="":
+    mkdir -p target/shots/polish-4
+    find target/shots/polish-4 -name '{{ filter }}*.png' -delete
+    {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/think.test.tsx --target linux --filter "{{ filter }}"
+    @ls target/shots/polish-4
+
 sandboxed +command:
     {{ isolated }} scripts/sandboxed.sh "$@"
 
