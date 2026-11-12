@@ -8,6 +8,7 @@
 // On a narrow window either is a sheet: across the width, at the bottom, from where it rises.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
 import type { SurfaceIcon } from "./mark";
+import type { Scope } from "../keys/store";
 import { Float, type Place } from "./Float";
 import { belowStatus, keyboardUp, safe } from "./safe";
 import { isNarrow } from "../width";
@@ -47,6 +48,8 @@ export type OverlayProps = {
   open?: boolean;
   /** `middle` unless given. Fixed for as long as it is drawn. */
   place?: "corner" | "middle";
+  /** Its layer's key scope, for content that declares keys (`Float`'s `scope`). */
+  scope?: Scope;
   /** The style of its box: its padding, its gap. */
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -87,6 +90,7 @@ export function Overlay(props: OverlayProps) {
       open={props.open}
       place={place}
       scrim={middle}
+      scope={props.scope}
       style={props.style}
       testID={props.testID}
       title={props.title}

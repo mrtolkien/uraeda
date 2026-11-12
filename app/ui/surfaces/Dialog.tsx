@@ -5,6 +5,7 @@
 // a sheet. It never holds a view of its own to read: that is a page.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
 import type { SurfaceIcon } from "./mark";
+import type { Scope } from "../keys/store";
 import { Overlay } from "./Overlay";
 
 export type DialogProps = {
@@ -14,6 +15,8 @@ export type DialogProps = {
   onClose?: () => void;
   /** Shown while true, and for its way out after: true unless given. */
   open?: boolean;
+  /** Its layer's key scope, for content that declares keys (`Float`'s `scope`). */
+  scope?: Scope;
   style?: StyleProp<ViewStyle>;
   testID?: string;
   /** What it asks, on its plate: also its layer's name in the key map. */
@@ -29,6 +32,7 @@ export function Dialog(props: DialogProps) {
       name={props.title}
       onClose={props.onClose}
       open={props.open}
+      scope={props.scope}
       style={props.style}
       testID={props.testID}
       title={props.title}

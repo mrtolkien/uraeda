@@ -25,6 +25,7 @@ import { type PressProps, pressable } from "./press";
 import { Spinner } from "./Spinner";
 import { Text } from "./Text";
 import { registerKey } from "../keys/registry";
+import type { Scope } from "../keys/store";
 import { Tooltip, useGlass, useHeight } from "../surfaces";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
@@ -40,6 +41,11 @@ export type ButtonProps = PressProps & {
   icon?: IconName;
   /** Its key, declared in the registry and shown: "Enter", "mod+Enter", "d". */
   keys?: string;
+  /**
+   * The key scope its key is declared in, where it is not where it is drawn: a button in a
+   * layer's content takes the layer's (`Float`'s `scope`), which a browser does not give it.
+   */
+  scope?: Scope;
   label: string;
   /** A write on its way: a spinner in place of its icon. It still takes presses. */
   pending?: boolean;
@@ -113,12 +119,15 @@ export function Button(props: ButtonProps) {
     !onGlass() &&
     height() !== "overlay";
   if (props.keys !== undefined && props.state === undefined) {
-    registerKey({
-      keys: props.keys,
-      label: props.label,
-      run: press.press,
-      when: () => !press.isOff(),
-    });
+    registerKey(
+      {
+        keys: props.keys,
+        label: props.label,
+        run: press.press,
+        when: () => !press.isOff(),
+      },
+      props.scope,
+    );
   }
   const mark = (): JSX.Element => {
     if (props.pending === true) {

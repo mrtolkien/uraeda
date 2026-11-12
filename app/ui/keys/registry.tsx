@@ -81,8 +81,7 @@ export function keyScope(spec: ScopeSpec, parent: Scope = Current()): Scope {
  * Whether the keys the caller would declare work now, read as a signal: its pane has the focus, its
  * section's scope is on, and no dialog over it holds the keys. A list's cursor is lit while they do.
  */
-export function keysWorkHere(): () => boolean {
-  const scope = Current();
+export function keysWorkHere(scope: Scope = Current()): () => boolean {
   return () => store.works(scope);
 }
 

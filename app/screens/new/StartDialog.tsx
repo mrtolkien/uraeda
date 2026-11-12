@@ -10,6 +10,8 @@ import { Scroll, signal, View, windowSize } from "nsh";
 import { record } from "../../store";
 import type { RunOptions } from "../../store/protocol";
 import { Button, Segmented, Text } from "../../ui/controls";
+import { keyScope } from "../../ui/keys/registry";
+import type { Scope } from "../../ui/keys/store";
 import { Dialog } from "../../ui/surfaces";
 import { TextField } from "../../ui/text";
 import { width, windowWidth } from "../../ui/width";
@@ -44,7 +46,7 @@ const isNone = (options: RunOptions) =>
   options.reviewers === null &&
   options.reviewDepth === null;
 
-function Ask(props: StartDialogProps) {
+function Ask(props: StartDialogProps & { layer: Scope }) {
   const proposed = record("SlugProposal", { text: props.text });
   const settings = record("Settings", null);
   const agents = record("Agent", { repo: props.repo });
@@ -148,6 +150,7 @@ function Ask(props: StartDialogProps) {
           label={props.kind === "change" ? "Start the change" : "Start the feature"}
           onPress={() => void start()}
           pending={pending()}
+          scope={props.layer}
           testID="start-confirm"
           variant="main"
         />
@@ -157,18 +160,26 @@ function Ask(props: StartDialogProps) {
 }
 
 export function StartDialog(props: StartDialogProps) {
+  // The dialog's layer, for its button's key: a browser gives what is written here the caller's
+  // scope (`Float`'s `scope`).
+  const layer = keyScope({
+    kind: "layer",
+    name: props.kind === "change" ? "Start a change" : "Start a feature",
+    on: () => props.open,
+  });
   return (
     <Dialog
       icon={props.kind === "change" ? "wrench" : "flag"}
       onClose={props.onClose}
       open={props.open}
+      scope={layer}
       title={props.kind === "change" ? "Start a change" : "Start a feature"}
       width={
         props.kind === "change" || width() !== "wide" ? 640 : Math.min(1180, windowWidth() - 48)
       }
     >
       <If when={props.open}>
-        <Ask {...props} />
+        <Ask {...props} layer={layer} />
       </If>
     </Dialog>
   );

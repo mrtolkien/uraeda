@@ -8,7 +8,7 @@ import { signal, View } from "nsh";
 import { record } from "../../store";
 import type { GitPage } from "../../store/protocol";
 import { Banner, Button, Confirm, Refusal, Text } from "../../ui/controls";
-import { registerKey } from "../../ui/keys/registry";
+import { keyScope, registerKey } from "../../ui/keys/registry";
 import { Dialog } from "../../ui/surfaces";
 import { Line, List, createCursor } from "../../ui/lists";
 import { ago } from "./when";
@@ -261,6 +261,9 @@ function MergePicker(props: { merging: boolean; onClose: () => void; repo: strin
   const rows = () => branches().map((name) => ({ id: name }));
   const cursor = createCursor(rows);
   const into = () => page()?.branch ?? "the branch";
+  // The dialog's layer, for its list's keys, which the page's `j` and `k` would clash with in a
+  // browser (`Float`'s `scope`).
+  const layer = keyScope({ kind: "layer", name: "Merge", on: () => props.merging });
   const merge = (branch: string) => {
     props.onClose();
     void write(
@@ -275,6 +278,7 @@ function MergePicker(props: { merging: boolean; onClose: () => void; repo: strin
       icon="git-merge"
       onClose={props.onClose}
       open={props.merging}
+      scope={layer}
       title={`Merge into ${into()}`}
     >
       <List
@@ -282,6 +286,7 @@ function MergePicker(props: { merging: boolean; onClose: () => void; repo: strin
         onOpen={merge}
         openLabel="merge"
         row={(id) => <Line icon="git-branch" label={id()} />}
+        scope={layer}
       />
     </Dialog>
   );

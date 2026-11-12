@@ -13,6 +13,7 @@
 // for a list that opens at its end (a transcript), without scrolling. A pointer user meets a quiet bar there; a pane at rest keeps its cursor, unlit.
 import { effect, untracked } from "nsh";
 import { type KeySpec, keysWorkHere, registerKey } from "../keys/registry";
+import type { Scope } from "../keys/store";
 import { besideOpener, offerBeside } from "../layout/here";
 import type { PaneRef } from "../layout/layout";
 import type { Cursor } from "./cursor";
@@ -27,6 +28,11 @@ export type ListKeysOptions = {
   onOpen?: (id: string) => void;
   /** What `Enter` says in the key map: "open" unless given. */
   openLabel?: string;
+  /**
+   * The scope its keys are declared in, where it is not where the list is drawn: a list in a
+   * dialog takes the dialog's layer (`Float`'s `scope`), which a browser does not give it.
+   */
+  scope?: Scope;
   /** Whether the keys are on beside the scope's own: off while the list is hidden. */
   when?: () => boolean;
   /** The row the cursor starts on while it has none: the first, or the last for a transcript. */
@@ -38,7 +44,7 @@ const did = (done: boolean): false | undefined => (done ? undefined : false);
 
 export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
   const when = options.when;
-  const works = keysWorkHere();
+  const works = keysWorkHere(options.scope);
   effect(() => {
     const items = cursor.items();
     const first = options.start === "last" ? items.at(-1) : items[0];
@@ -114,5 +120,5 @@ export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
       { keys: "shift+ArrowUp", label: "stretch up", repeat: true, run: stretch(-1), when },
     );
   }
-  registerKey(keys);
+  registerKey(keys, options.scope);
 }

@@ -12,7 +12,8 @@ import { isNarrow } from "../width";
 import { Kbd, Text } from "../controls";
 import { tokens } from "../tokens";
 import { searchRanked } from "./pickerSearch";
-import { registerKey } from "./registry";
+import { keyScope, registerKey } from "./registry";
+import type { Scope } from "./store";
 import { Overlay } from "../surfaces";
 import { TextField } from "../text/TextField";
 
@@ -53,7 +54,7 @@ export type KeyPickerProps<Item extends PickerItem> = {
 };
 
 /** The filter, the list, and the preview, with the picker's keys: made anew at each opening. */
-function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> }) {
+function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item>; layer: Scope }) {
   const picker = props.picker;
   const query = signal("");
   const found = computed(() => searchRanked(picker.items, query(), (item) => item));
@@ -78,20 +79,23 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
   const here = { inField: true } as const;
   const moves = (by: number) => ({ repeat: true, run: () => move(by) });
   // Heard in the search, which has the focus: none of them types.
-  registerKey([
-    { ...here, hint: "↑ ↓", hintLabel: "move", keys: "ArrowDown", label: "Next", ...moves(1) },
-    { ...here, keys: "mod+j", label: "Next", ...moves(1) },
-    { ...here, keys: "ArrowUp", label: "Previous", ...moves(-1) },
-    { ...here, keys: "mod+k", label: "Previous", ...moves(-1) },
-    {
-      ...here,
-      hint: "⏎",
-      hintLabel: "open",
-      keys: "Enter",
-      label: "Open",
-      run: () => pick(held()),
-    },
-  ]);
+  registerKey(
+    [
+      { ...here, hint: "↑ ↓", hintLabel: "move", keys: "ArrowDown", label: "Next", ...moves(1) },
+      { ...here, keys: "mod+j", label: "Next", ...moves(1) },
+      { ...here, keys: "ArrowUp", label: "Previous", ...moves(-1) },
+      { ...here, keys: "mod+k", label: "Previous", ...moves(-1) },
+      {
+        ...here,
+        hint: "⏎",
+        hintLabel: "open",
+        keys: "Enter",
+        label: "Open",
+        run: () => pick(held()),
+      },
+    ],
+    props.layer,
+  );
 
   effect(() => picker.onCursor?.(held()));
   // The cursor's row stays in the list's sight.
@@ -172,17 +176,21 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
 }
 
 export function KeyPicker<Item extends PickerItem>(props: KeyPickerProps<Item>) {
+  // Its layer, for the search's keys: a browser gives what is written here the caller's scope
+  // (`Float`'s `scope`).
+  const layer = keyScope({ kind: "layer", name: props.title, on: () => props.open !== false });
   return (
     <Overlay
       name={props.title}
       onClose={() => props.onClose()}
       open={props.open}
+      scope={layer}
       testID="key-picker"
       title={props.title}
       top
       width={920}
     >
-      <Picking picker={props} />
+      <Picking layer={layer} picker={props} />
     </Overlay>
   );
 }

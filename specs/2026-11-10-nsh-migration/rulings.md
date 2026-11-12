@@ -10052,3 +10052,26 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the human trims the decision to its shape, and the line of `approved_over_its_shape`
   goes with it.
 - **Where**: `crates/core/tests/check.rs`, `specs/decisions/run-lifecycle.md`.
+
+## T81.1: Every dialog whose content declares keys gives it the layer's scope
+
+- **Decision**: R478 fixed the menus and the selectors; the confirmations were the same cause.
+  `Confirm` wrote its keys (`Enter`, `y`, the key that asked) and its button inside `Dialog`, so in
+  a browser they ran in the caller's scope: the Jobs list declares `r`, "Run now?" declared a second
+  `r` there, the registry threw, and the dialog drew nothing (seen by the new browser test, its
+  layer on and its box empty). Now `Overlay` and `Dialog` take `scope` as `Popover` and `Sheet` do,
+  and `Confirm` makes the layer's scope and hands it to the dialog, its keys, and its button
+  (`Button`'s new `scope`). Searched for the class, every `Dialog`, `Overlay`, `Sheet`, and
+  `Popover` whose content declares keys: three more did, fixed the same way. The key picker's arrows
+  and Enter (the palettes); the start dialog's `Ctrl+Enter`; the git page's merge picker, whose list
+  declared `j` and `k` beside the page's own (`List` and `listKeys` take `scope`).
+- **Rationale**: the explicit scope is R478's one way; a provider written by the caller does not
+  reach content in a browser.
+- **If wrong**: the sidebar's sheet on a phone (`app/ui/layout/Stacks.tsx`) holds whole panes whose
+  scopes hang under the shell's, not the sheet's layer, in a browser: not changed here, since a
+  phone's keys are rare and a pane's scope is made by the pane itself. A dialog added later with
+  keys in its content needs the same `scope`.
+- **Where**: `app/ui/controls/{Confirm,Button}.tsx`, `app/ui/surfaces/{Dialog,Overlay}.tsx`,
+  `app/ui/keys/{KeyPicker,registry}.tsx`, `app/ui/lists/{List.tsx,keys.ts}`,
+  `app/screens/new/StartDialog.tsx`, `app/screens/git/Sync.tsx`; the browser test
+  `a_confirmation_opens_and_confirms_by_its_key`.

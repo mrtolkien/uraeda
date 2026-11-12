@@ -13,7 +13,8 @@ import { Dialog } from "../surfaces";
 import { Button } from "./Button";
 import type { IconName } from "./Icon";
 import { Text } from "./Text";
-import { registerKey } from "../keys/registry";
+import { keyScope, registerKey } from "../keys/registry";
+import type { Scope } from "../keys/store";
 import { tokens } from "../tokens";
 
 export type ConfirmProps = {
@@ -51,8 +52,8 @@ export function lastAsked<T>(now: Accessor<T | null>): Accessor<T | null> {
 }
 
 /** A key in the confirmation's own layer, whatever has the focus there. */
-function Key(props: { keys: string; label: string; run: () => void }) {
-  registerKey({ keys: props.keys, label: props.label, run: props.run });
+function Key(props: { keys: string; label: string; run: () => void; scope: Scope }) {
+  registerKey({ keys: props.keys, label: props.label, run: props.run }, props.scope);
   return null;
 }
 
@@ -82,11 +83,16 @@ export function Confirm(props: ConfirmProps) {
     props.onClose();
   };
   const loses = () => props.loses === true;
+  // The dialog's layer, made here and given to its keys and its button: in a browser, content
+  // written here runs in the caller's scope, where the key that asked is declared already (the
+  // jobs' `r`), and the registry refused the second (`Float`'s `scope`, ruling R478).
+  const layer = keyScope({ kind: "layer", name: props.title, on: () => props.open });
   return (
     <Dialog
       icon={props.icon ?? (loses() ? "triangle-alert" : undefined)}
       onClose={props.onClose}
       open={props.open}
+      scope={layer}
       testID={props.testID}
       title={props.title}
       width={480}
@@ -97,14 +103,14 @@ export function Confirm(props: ConfirmProps) {
             when={loses()}
             else={
               <>
-                <Key keys="Enter" label={props.label} run={confirm} />
+                <Key keys="Enter" label={props.label} run={confirm} scope={layer} />
                 <Text>{props.words}</Text>
               </>
             }
           >
             {/* Without a key of its own, its button takes `y`. */}
             <If when={props.keys !== undefined}>
-              <Key keys="y" label={props.label} run={confirm} />
+              <Key keys="y" label={props.label} run={confirm} scope={layer} />
             </If>
             <Lost words={props.words} />
           </If>
@@ -119,6 +125,7 @@ export function Confirm(props: ConfirmProps) {
               keys={props.keys ?? (loses() ? "y" : undefined)}
               label={props.label}
               onPress={confirm}
+              scope={layer}
               testID="confirm"
               variant={loses() ? "danger" : "main"}
             />

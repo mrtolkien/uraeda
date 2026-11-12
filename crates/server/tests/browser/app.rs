@@ -162,3 +162,28 @@ async fn a_touch_in_a_field_keeps_the_focus() {
     }
     served.stop().await;
 }
+
+#[tokio::test]
+#[ignore = "needs the real web build and a browser: `just web-test` runs it"]
+async fn a_confirmation_opens_and_confirms_by_its_key() {
+    let mut served = Served::start(DESKTOP, "dark").await;
+    let address = served.address("/r/sample/jobs");
+    let browser = &mut served.browser;
+    browser.open(&address).await;
+    browser.shows("Weekly report").await;
+    // `r` asks first: the list declares it, and so does the confirmation's own layer, over it.
+    browser.press("r").await;
+    browser.shows("now?").await;
+    // The same key again confirms: the run starts, and its session opens.
+    browser.press("r").await;
+    let started = std::time::Instant::now();
+    while !browser.path().await.starts_with("/r/sample/sessions/") {
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(10),
+            "the run's session never opened: the page is at {}",
+            browser.path().await
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    served.stop().await;
+}

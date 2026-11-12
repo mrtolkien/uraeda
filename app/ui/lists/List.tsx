@@ -8,6 +8,7 @@ import { type Accessor, type JSX, type StyleProp, View, type ViewStyle } from "n
 import type { Cursor } from "./cursor";
 import { besideOpener } from "../layout/here";
 import type { PaneRef } from "../layout/layout";
+import type { Scope } from "../keys/store";
 import { listKeys } from "./keys";
 import { Row } from "./Row";
 
@@ -26,6 +27,8 @@ export type ListProps = {
   row: (id: Accessor<string>, index: Accessor<number>) => JSX.Element;
   /** A quiet line between rows. */
   rules?: boolean;
+  /** The scope its keys are declared in, where it is not where it is drawn (`listKeys`). */
+  scope?: Scope;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -33,7 +36,12 @@ export type ListProps = {
 export function List(props: ListProps) {
   const cursor = props.cursor;
   if (props.keys !== false) {
-    listKeys(cursor, { beside: props.beside, onOpen: props.onOpen, openLabel: props.openLabel });
+    listKeys(cursor, {
+      beside: props.beside,
+      onOpen: props.onOpen,
+      openLabel: props.openLabel,
+      scope: props.scope,
+    });
   }
   const open = besideOpener();
   /** A long press, the touch's way to a row's second action: its pane beside. */
