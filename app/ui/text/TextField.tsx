@@ -15,6 +15,7 @@
 //   a dialog's Tab, a picker's arrows.
 import {
   type Accessor,
+  cleanup,
   computed,
   signal,
   type StyleProp,
@@ -177,6 +178,12 @@ export function TextField(props: TextFieldProps) {
     first: props.first,
   });
   const status = signal<VimStatus>(NO_FIELD);
+  // A field that goes while the status line shows its mode, a picker's filter closed by its Enter,
+  // takes its mode away with it: no INSERT stays on a page with no field.
+  let reported: VimStatus | null = null;
+  cleanup(() => {
+    if (reported !== null && untracked(vimStatus) === reported) vimStatus.set(NO_FIELD);
+  });
   const jump = signal<CaretTrail | null>(null);
   const vim = () => vimMode() && props.readOnly !== true;
   const shownMode = () =>
@@ -300,6 +307,7 @@ export function TextField(props: TextFieldProps) {
             onStatus={({ status: now }) => {
               status.set(now);
               vimStatus.set(now);
+              reported = now;
             }}
             onTrail={({ trail }) => jump.set(trail)}
             placeholder={props.placeholder}
