@@ -96,7 +96,7 @@ export function StartPart(props: StartPartProps) {
         <Text size="under" tone="quiet">
           {kind() === "change"
             ? "It asks its short name and how its fix runs, then commits the proposal, makes the change's branch and worktree, and sends its fix to the agent."
-            : "It asks its short name and how each step runs, then commits the proposal, and makes the feature's branch and worktree; its first run follows."}
+            : "It asks its short name and how each step runs, then commits the proposal, and makes the feature's branch and worktree; its first run waits on its page for your Continue."}
         </Text>
       </View>
       <StartDialog

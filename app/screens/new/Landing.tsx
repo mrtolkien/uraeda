@@ -1,8 +1,8 @@
 // What a feature's start shows once it is planned (rule 9: no dead end): where the work went, its
 // steps landing as the write queue runs them, the proposal's commit with its hooks, then its branch
 // and worktree, and, once the feature can be read, the way to its page. A refused step says why,
-// with what the hooks printed, and the way back. The start's first run is the server's: it sends
-// it once the start landed.
+// with what the hooks printed, and the way back. A feature's first run waits on its page for the
+// human's Continue, its message shown there; a change's is the server's, sent once it landed.
 import { View } from "nsh";
 import { navigate, record } from "../../store";
 import type { QueuedWrite, StartStep } from "../../store/protocol";
@@ -123,8 +123,8 @@ export function Landing(props: {
         else={
           <If when={landed()} else={<Spinner label="Waiting for the start's commit to land" />}>
             <Text tone="quiet">
-              Its branch and worktree are made, and the agent's first run is on its way: its page
-              follows it.
+              Its branch and worktree are made. Its first run waits on its page, with the message it
+              sends: Continue there sends it.
             </Text>
           </If>
         }
