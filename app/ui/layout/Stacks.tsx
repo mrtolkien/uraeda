@@ -3,7 +3,16 @@
 // window's width: on a wide and a semi-wide window the rail, the main stack, the side stack, and
 // the status line; on a narrow one the places' bar, one stack holding every pane, and its bar of
 // tiles. The rail's, the status line's, and the bars' contents are the app's shell's slots.
-import { computed, effect, type Signal, signal, untracked, View, type ViewRef } from "nsh";
+import {
+  computed,
+  effect,
+  type Signal,
+  signal,
+  untracked,
+  View,
+  type ViewRef,
+  windowSize,
+} from "nsh";
 import { ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { BottomBar, NavBar } from "./bars";
 import { kindOfKey } from "./arrangement";
@@ -252,6 +261,9 @@ export function Stacks(props: StacksProps) {
                   <Sheet
                     onClose={() => sheet.set(false)}
                     open={sheet()}
+                    // The sidebar's panes fill what holds them: a sheet as tall as its content
+                    // had none, and showed its title alone.
+                    style={{ height: Math.round(windowSize().height * 0.75) }}
                     title={props.rail?.title ?? "Sidebar"}
                   >
                     {props.rail?.sidebar}
