@@ -115,7 +115,15 @@ function Tile(props: {
   const under = () =>
     props.place.kind === "step" ? props.map.under?.(props.place.step) : undefined;
   return (
-    <View style={{ flexBasis: 0, flexGrow: 1, gap: 6, minWidth: 128 }}>
+    <View
+      // In a row, the tiles share its width; in a column, each is as tall as what it holds, the
+      // runs listed under it included, which a basis of 0 drew over the next joint.
+      style={
+        props.map.column === true || props.map.kind === "change"
+          ? { gap: 6 }
+          : { flexBasis: 0, flexGrow: 1, gap: 6, minWidth: 128 }
+      }
+    >
       <SelectableCard
         disabled={props.map.disabled}
         icon={props.icon}
