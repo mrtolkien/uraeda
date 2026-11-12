@@ -172,7 +172,9 @@ export function createCursor<Row extends Item>(
     to: (end, extend = false) => {
       const rows = untracked(items);
       const target = end === "first" ? rows[0] : rows[rows.length - 1];
-      if (target === undefined || target.id === untracked(at)) {
+      // On it already, it is still shown again: the list was scrolled away from it, by a wheel or
+      // a reply that grew, and `G` must bring the end back.
+      if (target === undefined) {
         return false;
       }
       place = end === "first" ? 0 : rows.length - 1;

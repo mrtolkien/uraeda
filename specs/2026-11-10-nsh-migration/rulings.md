@@ -10344,3 +10344,73 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   boxes of a missing glyph, in every spec the human reads. An emoji font would add megabytes to the
   package, and draw the marks in a second family of pictures beside the app's icons.
 - **Where**: `app/ui/document/Spans.tsx`; the gallery's spec shows them.
+## T189.1: Following a transcript's end is the reader's state, held by Native Shell at every layout
+
+- **Decision**: whether a `<VirtualList follow>` follows its end is a state only the reader turns
+  off (`app/ui/lists/follow.ts`), never one read from where the list is.
+  - **On**: as it opens at its end, by `G` (a key to the last row, even with the cursor on it
+    already), by "Jump to the latest", and by the reader's own scroll down to the end. `G` and the
+    button jump, without a drawn way: they land where the end is now.
+  - **Off**: a key that takes the cursor to another row; a hand on the list (a drag, a touchpad's
+    swipe, the scroll bar's thumb, `onScrollDragStart`) that leaves the end; a scroll up, by a wheel
+    or keys, that ends away from the end (`onScrollEnd`). Nothing else.
+  - **While on**, `maintainVisibleContentPosition` holds the list at its end with no distance limit,
+    so Native Shell moves it with the content in the layout that changes it; off, the prop is gone
+    and nothing moves the list. A move away from the end the reader did not make is put back with a
+    jump to the end. A move up with no hand on the list lets the list go for 300 ms from its last
+    move up: ended within them, the reader left; not, it goes back to the end.
+  - The list's own scroll to the end at every new row (R172) is gone, and so is the drawn way for a
+    near end (R425); the transcript's list always has `follow`, so a session opened at a kept place
+    follows once "Jump to the latest" is pressed.
+- **Root cause**, measured on GTK with the scroll events logged in a session of the sandbox: when a
+  block of a reply finishes, it becomes a row of its own before the growing one (R472), at its
+  estimated height until measured, so the content is shorter for a layout. GTK clamps the offset to
+  that shorter content, a move the core did not issue; the core's next scroll for the growth is
+  relative, from where it thinks the list is, and lands short by the clamp. Its follow stopped at 48
+  points from the end, and the list read the same report as the reader going up: 48 to 22 as the
+  content grew 496 to 538, then no scroll event again. The list's own scroll to the end at each new
+  row landed on the estimate too. A clamp and a wheel's first notch look the same in a scroll event,
+  26 to 96 points up; only a wheel, a swipe, or a key's scroll ends with `onScrollEnd`.
+- **Measured**, `just follow-check` (the sandbox's reply at length, looked at every 200 ms on the
+  hidden display, a look that finds "Jump to the latest" while the list should follow is the reply
+  left behind):
+
+  | Step                | Before | After, dark 1400 | light 1400 | dark 390 |
+  | ------------------- | ------ | ---------------- | ---------- | -------- |
+  | watched, untouched  | 49/50  | 0/50             | 0/50       | 0/50     |
+  | left by `k`         | 13/13  | 13/13            | 13/13      | 13/13    |
+  | after `G`           | 30/30  | 0/30             | 0/30       | 0/30     |
+  | left by a scroll up | 13/13  | 13/13            | 13/13      | 13/13    |
+  | after the button    | 30/30  | 0/30             | 0/30       | 0/30     |
+
+  With the scroll events logged through a whole reply after the fix: 323 events, following never
+  turned off, 9 moves up by the layout, of which one left the end and went back after 300 ms.
+
+- **Alternatives considered**: `alignment="bottom"`, Native Shell's own chat mode: its end was lost
+  the same way, at 174 to 108 with the content still. Reading the move's cause from the offsets (the
+  two changes the session walk of polish 5 tried and reverted, and a window after rows change): a
+  clamp and a notch have the same numbers, and rows change several times a second while a reply
+  streams at length, so a window swallowed the reader's wheel.
+- **Upstream report**, for the human to file at <https://github.com/longbridge/nsh/issues>:
+
+  > **`maintainVisibleContentPosition` stops following when GTK clamps the offset as content shrinks
+  > for a frame**
+  >
+  > Version 0.5.0 (`f4d68f7f`), GTK. A `List` following its end (`autoscrollToBottomThreshold: 48`)
+  > whose last item grows every frame, and where an item is sometimes inserted before the last one
+  > at `estimatedItemSize` while the last one shrinks by more (a chat reply whose finished paragraph
+  > becomes its own row). For the layout before the new row is measured the content is shorter; the
+  > scroll view's frame tick pulls the offset back to the content's end
+  > (`Phase::Idle if pos > max`). The core does not know of that move: its next `ScrollBy` for the
+  > growth is relative to the offset it last had, and lands short of the end by what was clamped.
+  > With the clamp above the threshold, `anchor_end` reads the list as scrolled away and never
+  > follows again, and `onScroll` reports the clamp as a move up. Expected: a clamp of the
+  > platform's is reported as such, or the follow scrolls to the end's offset rather than by a
+  > delta.
+
+- **If wrong**: a reader's wheel up while a reply streams is pulled back to the end before
+  `onScrollEnd` says it was theirs, which `just follow-check`'s step "left by a scroll" shows; or a
+  layout's move up away from the end leaves the reply behind for 300 ms, `LEAVING` in `follow.ts`.
+- **Where**: `app/ui/lists/follow.ts`, `app/ui/lists/VirtualList.tsx`, `app/ui/lists/cursor.ts`
+  (`to` reveals the row it is on), `app/screens/session/Transcript.tsx`; the tests
+  `app/ui/lists/follow.test.ts` and `lists.test.tsx`; the tool `app/tools/follow.test.tsx`.

@@ -68,15 +68,19 @@ test("a list that follows its end stops when the reader scrolls away", async () 
   await app.keyboard.press("a");
   await app.wait(300);
   expect(app.texts()).toContain("Following: yes");
-  expect(said(app.texts(), "Offset: ")).toBe(51 * ROW - HEIGHT);
+  // Native Shell pins it to its end, a move the headless runner sends no scroll event for: the
+  // rows it shows say it.
+  expect(app.texts()).toContain("Last shown: 51");
   await app.scroll("Row 45", -300);
   await app.wait(300);
   expect(app.texts()).toContain("Following: no");
   const before = said(app.texts(), "Offset: ");
+  const shown = said(app.texts(), "Last shown: ");
   await app.keyboard.press("a");
   await app.keyboard.press("a");
   await app.wait(300);
   expect(said(app.texts(), "Offset: ")).toBe(before);
+  expect(said(app.texts(), "Last shown: ")).toBe(shown);
   expect(app.texts()).toContain("Following: no");
 });
 

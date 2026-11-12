@@ -13,6 +13,7 @@
 // - **Follow the end**: with `follow`, a transcript opens at its end and stays there while it
 //   grows, until the reader scrolls away from it; scrolled back to the end, it follows again.
 //   `onFollowing` hears each change, for a "jump to the latest" button, and `toEnd()` jumps.
+//   Whether it follows is the reader's to say, never read from where the list is (`follow.ts`).
 // - **Its scroll** is the caller's to keep, in the visit's entry: `offset` is where it opens, and
 //   `onOffset` hears where it is as it scrolls. The list keeps nothing of its own.
 import {
@@ -21,12 +22,12 @@ import {
   type JSX,
   List,
   type ListRef,
-  signal,
   type StyleProp,
   untracked,
   type ViewStyle,
 } from "nsh";
 import type { Cursor } from "./cursor";
+import { createFollow } from "./follow";
 import { listKeys } from "./keys";
 import { besideOpener } from "../layout/here";
 import type { PaneRef } from "../layout/layout";
@@ -80,11 +81,11 @@ export type VirtualListProps = {
   testID?: string;
 };
 
-/** How near its end a list that follows must be to stay at it, in points. */
-const NEAR_END = 48;
-
-/** How many rows away the end may be for the way there to be drawn: further, the list jumps. */
-const FAR = 100;
+/**
+ * How far its end may move in a layout for a list that follows to follow it: any distance. The
+ * reader, not a distance, says when it stops (`follow.ts`).
+ */
+const ANYWHERE = 1e9;
 
 export function VirtualList(props: VirtualListProps) {
   const cursor = props.cursor;
@@ -95,17 +96,12 @@ export function VirtualList(props: VirtualListProps) {
   // a turn asks.
   const atEnd =
     props.follow === true && props.offset === undefined && untracked(cursor.reveal) === undefined;
-  const following = signal(atEnd);
-  // Where it was at its last scroll, and how long its content was: a reader moves away from the
-  // end by going up from there.
-  let rested = props.offset ?? 0;
-  let length = 0;
-  const follows = (now: boolean) => {
-    if (untracked(following) !== now) {
-      following.set(now);
-      props.onFollowing?.(now);
-    }
-  };
+  const follow = createFollow({
+    atEnd,
+    back: () => list?.scrollToEnd({ animated: false }),
+    offset: props.offset ?? 0,
+    onFollowing: (now) => props.onFollowing?.(now),
+  });
 
   if (props.keys !== false) {
     listKeys(cursor, {
@@ -125,28 +121,29 @@ export function VirtualList(props: VirtualListProps) {
   };
 
   /**
-   * To the list's end, the one way there of a key and of "Jump to the latest": drawn when the end
-   * is near, a jump when it is more than `FAR` rows away. An index's offset is estimated for rows
-   * not drawn yet, and an animated way from far back came to rest short of the end.
+   * To the list's end, the one way there of a key and of "Jump to the latest": a jump, which lands
+   * where the end is now, and following keeps it there. A way drawn toward an end that kept moving
+   * came to rest short of it, and so did one from far back in a long list (ruling R425).
    */
   const toEnd = () => {
-    const rows = untracked(cursor.items).length;
-    list?.scrollToEnd({ animated: rows - 1 - shown.last <= FAR });
+    list?.scrollToEnd({ animated: false });
+    if (props.follow === true) follow.follows(true);
   };
 
   const show = (id: string) => {
     const rows = untracked(cursor.items);
     const index = rows.findIndex((row) => row.id === id);
-    if (index === -1 || list === undefined || (index >= shown.first && index <= shown.last)) {
-      return;
-    }
-    // The last row is the list's end: `G` on a chat of 20,000 messages came to rest forty short of
-    // its index, "Jump to the latest" shown.
+    if (index === -1 || list === undefined) return;
+    // The last row is the list's end, which `G` follows again wherever it is: on a chat of 20,000
+    // messages a way to its index came to rest forty short, and a reply taller than the list is
+    // never wholly shown.
     if (index === rows.length - 1) {
       toEnd();
-      if (props.follow === true) follows(true);
       return;
     }
+    // Any other row a key goes to is the reader leaving the end: the list stays with them.
+    if (props.follow === true) follow.follows(false);
+    if (index >= shown.first && index <= shown.last) return;
     list.scrollToIndex({ animated: true, index, viewPosition: index < shown.first ? 0 : 1 });
   };
   effect(() => {
@@ -155,19 +152,6 @@ export function VirtualList(props: VirtualListProps) {
       untracked(() => show(asked.id));
     }
   });
-
-  // Rows that come while it follows: to its end, at once. A row that grows, as a reply does, is
-  // Native Shell's to follow (`maintainVisibleContentPosition`).
-  if (props.follow === true) {
-    let count = untracked(cursor.items).length;
-    effect(() => {
-      const now = cursor.items().length;
-      if (now > count && untracked(following)) {
-        list?.scrollToEnd({ animated: false });
-      }
-      count = now;
-    });
-  }
 
   const pick = (id: string) => {
     cursor.set(id);
@@ -195,26 +179,26 @@ export function VirtualList(props: VirtualListProps) {
       // row's index landed where the rows' estimated heights put it, short of the end.
       initialScrollAtEnd={atEnd}
       initialScrollIndex={firstShown}
+      // Pinned to its end at every layout while it follows, rows that come and a reply that grows
+      // alike, in the frame they change: a scroll of the list's own, as a row came, landed where
+      // the row's estimated height put the end.
       maintainVisibleContentPosition={
-        props.follow === true ? { autoscrollToBottomThreshold: NEAR_END } : undefined
+        follow.pins() ? { autoscrollToBottomThreshold: ANYWHERE } : undefined
       }
       onScroll={(event) => {
         const now = event.offset.y;
         props.onOffset?.(now);
         if (props.follow === true) {
-          // At its end it follows. It stops only as the reader goes up from where it was: content
-          // that grows under a list at rest, rows measured or a row that came, leaves it
-          // following, where the same offset against a longer content read as "scrolled away".
-          // Rows above measured shorter than their estimates shrink the content, and Native Shell
-          // moves the offset up by as much to keep what shows in place: in a browser that was
-          // read as the reader going up, and a streaming reply was left behind (ruling R473).
-          const shrunk = Math.max(0, length - event.contentSize.height);
-          if (now + event.size.height >= event.contentSize.height - NEAR_END) follows(true);
-          else if (now < rested - shrunk - 1) follows(false);
+          follow.scrolled({
+            content: event.contentSize.height,
+            offset: now,
+            size: event.size.height,
+          });
         }
-        rested = now;
-        length = event.contentSize.height;
       }}
+      onScrollDragEnd={() => follow.hand(false)}
+      onScrollDragStart={() => follow.hand(true)}
+      onScrollEnd={() => follow.ended()}
       onViewableItemsChange={({ viewableItems }) => {
         let first = Number.POSITIVE_INFINITY;
         let last = -1;
@@ -230,10 +214,7 @@ export function VirtualList(props: VirtualListProps) {
         props.ref?.({
           scrollTo: (offset, animated = false) => node.scrollToOffset({ animated, offset }),
           show,
-          toEnd: () => {
-            toEnd();
-            follows(true);
-          },
+          toEnd,
         });
       }}
       style={[{ flex: 1 }, props.style]}

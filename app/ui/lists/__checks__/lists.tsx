@@ -45,6 +45,7 @@ function Follow() {
   const cursor = createCursor(items);
   const offset = signal(0);
   const following = signal(true);
+  const last = signal(-1);
   registerKey({
     keys: "a",
     label: "add a row",
@@ -55,6 +56,7 @@ function Follow() {
       <Text>Offset: {String(Math.round(offset()))}</Text>
       <Text>Following: {following() ? "yes" : "no"}</Text>
       <Text>Rows: {String(items().length)}</Text>
+      <Text>Last shown: {String(last() + 1)}</Text>
       <View style={{ height: 400 }}>
         <VirtualList
           cursor={cursor}
@@ -62,6 +64,7 @@ function Follow() {
           keys={false}
           onFollowing={(now) => following.set(now)}
           onOffset={(next) => offset.set(next)}
+          onShown={(_, at) => last.set(at)}
           framed={false}
           row={line}
           rowHeight={28}

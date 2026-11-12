@@ -271,7 +271,9 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
               />
             </View>
           }
-          follow={untracked(followed)}
+          // A transcript always follows its end once the reader is there: opened at a kept place,
+          // it opens there, and "Jump to the latest" follows from then on.
+          follow
           framed={false}
           offset={untracked(followed) ? undefined : where.at(place)}
           onFollowing={(now) => {
