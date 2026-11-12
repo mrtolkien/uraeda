@@ -7846,3 +7846,26 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   answered check led nowhere (rule 9).
 - **Where**: `app/screens/decisions/Errand.tsx`, `Check.tsx`, `List.tsx`,
   `app/screens/runs/ContinueDialog.tsx`.
+
+## T90.5: Pick mode is the story's pick script, in mockups too, and a pick is a review comment
+
+- **Decision**: a review comment on a story or a mockup is a comment on the spec's block that shows
+  it, as the old embed and mockup page wrote it; a pick adds the element to its start
+  (`Mockup picker.html, button “Save”: …`, `Story Handle.stories.tsx#Dragging, …: …`), the old
+  `storyComment` words. In the reader, while the spec waits for review, an embed has Comment and,
+  once its page's pick script says it is ready, "Pick an element"; the comment field opens under the
+  embed. A preview's own page has the same (`c`, `p`) while its feature's spec waits and shows it:
+  the spec opens beside the page, at that block, the field open. The pick script is
+  `skills/uraeda/assets/storybook/uraeda-pick.js`, which a project's Storybook loads; for a mockup,
+  the server puts it at the end of the page's head when the page is asked with `uraeda-pick`, which
+  the app asks only where a comment can go. The web view's bridge (R341) already carried its
+  `window.parent.postMessage` both ways.
+- **Rationale**: it ported in a day: no new server action (a review comment takes the block's lines
+  and the text), one script, and the bridge existing. A comment where the spec does not show the
+  page has no line to stand on: the page offers none, where the old one wrote a general comment
+  naming it.
+- **If wrong**: the pick itself is not driven by a test, as the headless runner draws no web view:
+  `a_mockup_page_asked_for_picking_carries_the_pick_script` guards the script's injection.
+- **Where**: `crates/server/src/files/raw.rs`, `app/screens/preview/LiveFrame.tsx`, `pick.ts`,
+  `specComment.ts`, `MockupPage.tsx`, `StoryPage.tsx`, `app/screens/file/Reader.tsx`,
+  `app/screens/review/`.

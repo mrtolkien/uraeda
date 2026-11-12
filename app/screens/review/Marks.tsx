@@ -82,7 +82,9 @@ export function reviewMark(
       reviewable(file()) ? pendingOf(file()).filter((one) => hangsUnder(one, block)) : [];
     const writing = () => {
       const now = review.writing();
-      return reviewable(file()) && now !== null && "block" in now && now.block === block.id;
+      return reviewable(file()) && now !== null && "block" in now && now.block === block.id
+        ? now
+        : undefined;
     };
     return (
       <View style={{ gap: 6 }}>
@@ -90,17 +92,20 @@ export function reviewMark(
           {(comment) => <Pending args={args} comment={comment()} file={file} />}
         </Each>
         <If when={writing()}>
-          <CommentField
-            args={args}
-            autoFocus
-            file={file()}
-            heading={block.heading}
-            label={`Your comment on lines ${block.startLine} to ${block.endLine}`}
-            lines={{ endLine: block.endLine, startLine: block.startLine }}
-            onAsk={ask === undefined ? undefined : (text) => ask(block, text)}
-            onClose={() => review.writing.set(null)}
-            testID="review-comment"
-          />
+          {(now) => (
+            <CommentField
+              about={now().about}
+              args={args}
+              autoFocus
+              file={file()}
+              heading={block.heading}
+              label={`Your comment on lines ${block.startLine} to ${block.endLine}`}
+              lines={{ endLine: block.endLine, startLine: block.startLine }}
+              onAsk={ask === undefined ? undefined : (text) => ask(block, text)}
+              onClose={() => review.writing.set(null)}
+              testID="review-comment"
+            />
+          )}
         </If>
       </View>
     );

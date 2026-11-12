@@ -12,6 +12,8 @@ import { Banner, Button, Spinner, Text } from "../../ui/controls";
 import { definePane } from "../../ui/layout";
 import { Card, Empty } from "../../ui/lists";
 import { LiveFrame, served, type Width } from "./LiveFrame";
+import { type EmbedComment, mockupAbout, type Picked, withPick } from "./pick";
+import { useSpecComment } from "./specComment";
 import { type Sibling, Siblings, show } from "./Siblings";
 import type { Checkout } from "./states";
 
@@ -44,6 +46,8 @@ function Gone(props: { path: string }) {
  */
 function MockupLive(props: {
   after?: string;
+  /** Where a review comment on it goes, when one can: the page then loads the pick script. */
+  comment?: (picked?: Picked) => void;
   height?: number;
   keys?: boolean;
   path: string;
@@ -60,10 +64,13 @@ function MockupLive(props: {
           <If when={read()?.frame} else={<Gone path={props.path} />}>
             {(frame) => (
               <LiveFrame
+                comment={props.comment}
                 height={props.height}
                 keys={props.keys}
                 onWidth={props.width === undefined ? pickWidth : undefined}
-                src={served(`${frame()}${props.after ?? ""}`)}
+                src={served(
+                  `${frame()}${props.comment === undefined ? (props.after ?? "") : withPick(props.after ?? "")}`,
+                )}
                 testID="mockup-frame"
                 title={props.title}
                 width={props.width ?? mockupWidth()}
@@ -82,6 +89,32 @@ function MockupLive(props: {
   );
 }
 
+/**
+ * The page's mockup, live. While the spec waits for review and shows it, a comment on it (`c`), or
+ * on an element picked in it (`p`), opens the spec beside it, the field under the block that
+ * shows it: a review comment, as the old page wrote.
+ */
+function MockupPageLive(props: Of) {
+  const comment = useSpecComment(
+    props.repo,
+    props.folder,
+    (version) => version.mockups.find((one) => one.path === pathOf(props))?.block,
+  );
+  return (
+    <MockupLive
+      comment={
+        comment() === undefined
+          ? undefined
+          : (picked) => comment()?.(mockupAbout(pathOf(props), picked))
+      }
+      keys
+      path={pathOf(props)}
+      repo={props.repo}
+      title={`the mockup ${props.name}`}
+    />
+  );
+}
+
 export const mockupPane = definePane<Of>({
   icon: "layout-template",
   kind: "preview-mockup",
@@ -90,14 +123,7 @@ export const mockupPane = definePane<Of>({
   view: (props) => (
     <View style={{ flex: 1, gap: 8 }}>
       <Text tone="quiet">{pathOf(props.args)}</Text>
-      {/* A comment on a mockup is the review's, on the line of the file that links it: written
-          under its embed in the reader (`app/screens/review/`). Pick mode is not built. */}
-      <MockupLive
-        keys
-        path={pathOf(props.args)}
-        repo={props.args.repo}
-        title={`the mockup ${props.args.name}`}
-      />
+      <MockupPageLive {...props.args} />
     </View>
   ),
 });
@@ -148,7 +174,7 @@ export const mockupsPane = definePane<Of>({
  * link's `?w=` names: `mockup` is the paragraph's `MockupEmbed`, of the file's feature, `folder`.
  * Its button opens the mockup's page, for one of the feature's own `mockups/` folder.
  */
-export function MockupEmbed(props: Checkout & { mockup: Embedded }) {
+export function MockupEmbed(props: Checkout & { comment?: EmbedComment; mockup: Embedded }) {
   const own = `specs/${props.folder}/mockups/`;
   const after = () =>
     `${props.mockup.query ? `?${props.mockup.query}` : ""}${props.mockup.anchor ? `#${props.mockup.anchor}` : ""}`;
@@ -178,6 +204,11 @@ export function MockupEmbed(props: Checkout & { mockup: Embedded }) {
       </View>
       <MockupLive
         after={after()}
+        comment={
+          props.comment?.on() === true
+            ? (picked) => props.comment?.open(mockupAbout(props.mockup.path, picked))
+            : undefined
+        }
         height={560}
         path={props.mockup.path}
         repo={props.repo}

@@ -19,6 +19,8 @@ export type CommentFieldProps = {
   /** A pending comment edited, or a new one on `lines`. */
   editing?: CommentItem;
   lines: Lines;
+  /** What a new comment is about, its text's start: `Mockup ui.html, button “Save”`. */
+  about?: string;
   /** The heading of the part a new comment is on, as its undo names it: none for the general one. */
   heading?: string | null;
   label: string;
@@ -37,7 +39,7 @@ function keyOf(props: CommentFieldProps) {
       ? `edit:${props.editing.number}`
       : props.lines === null
         ? "general"
-        : `lines:${props.lines.startLine}-${props.lines.endLine}`;
+        : `lines:${props.lines.startLine}-${props.lines.endLine}${props.about === undefined ? "" : `:${props.about}`}`;
   return unsavedKey(props.args.repo, `${props.file.path}#review:${where}`);
 }
 
@@ -56,7 +58,8 @@ export function CommentField(props: CommentFieldProps) {
           ? removeComment(props.args, props.editing)
           : editComment(props.args, props.editing, words));
       } else if (words !== "") {
-        await addComment(props.args, props.lines, props.heading ?? null, words);
+        const written = props.about === undefined ? words : `${props.about}: ${words}`;
+        await addComment(props.args, props.lines, props.heading ?? null, written);
       }
       text.discard();
       props.onClose?.();
@@ -70,7 +73,7 @@ export function CommentField(props: CommentFieldProps) {
       <TextField
         autoFocus={props.autoFocus}
         hint={text.dirty() ? "Kept on this device until it is saved" : undefined}
-        label={props.label}
+        label={props.about === undefined ? props.label : `${props.label}, on ${props.about}`}
         onBlur={() => void save()}
         onQuit={props.onClose}
         onSave={() => void save()}

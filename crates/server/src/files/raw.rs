@@ -51,6 +51,10 @@ pub(super) async fn mockup(
         };
         match read {
             Ok(text) => {
+                let text = match picking(&uri) && kind(file).starts_with("text/html") {
+                    true => with_pick(&text),
+                    false => text,
+                };
                 let sandbox = (CONTENT_SECURITY_POLICY, "sandbox allow-scripts");
                 ([sandbox, (CONTENT_TYPE, kind(file))], text).into_response()
             }
@@ -68,6 +72,25 @@ pub(super) async fn mockup(
     let no_referrer = HeaderValue::from_static("no-referrer");
     response.headers_mut().insert(REFERRER_POLICY, no_referrer);
     response
+}
+
+/// The pick script, which tells the app the element pressed in a page while it picks.
+const PICK: &str = include_str!("../../../../skills/uraeda/assets/storybook/uraeda-pick.js");
+
+/// Whether the page is asked for picking: its query names `uraeda-pick`.
+fn picking(uri: &Uri) -> bool {
+    let query = uri.query().unwrap_or_default();
+    query
+        .split('&')
+        .any(|pair| pair.split('=').next() == Some("uraeda-pick"))
+}
+
+/// The page with the pick script at the end of its head; at its start
+/// when it has no head.
+fn with_pick(page: &str) -> String {
+    let script = format!("<script>{PICK}</script>");
+    let at = page.to_ascii_lowercase().find("</head>").unwrap_or(0);
+    format!("{}{script}{}", &page[..at], &page[at..])
 }
 
 /// The file's text, or the status of why it was not read: 404 when the core finds no such file,

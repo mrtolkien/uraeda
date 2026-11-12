@@ -5,8 +5,11 @@
 import { type Signal, signal } from "nsh";
 import type { FileArgs } from "../file/read";
 
-/** The comment being written: a new one on a block, or a pending one by its number. */
-export type Writing = { block: number } | { number: number } | null;
+/**
+ * The comment being written: a new one on a block, `about` what its text starts with, as a story or
+ * an element picked in it; or a pending one by its number.
+ */
+export type Writing = { about?: string; block: number } | { number: number } | null;
 
 type Review = { cursor: Signal<number | null>; writing: Signal<Writing> };
 

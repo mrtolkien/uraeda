@@ -13,6 +13,8 @@ import { definePane } from "../../ui/layout";
 import { Card, type CardState, Empty } from "../../ui/lists";
 import { isNarrow } from "../../ui/width";
 import { LiveFrame, served, type Width } from "./LiveFrame";
+import { type EmbedComment, type Picked, storyAbout } from "./pick";
+import { useSpecComment } from "./specComment";
 import { type Sibling, Siblings, show } from "./Siblings";
 import { shortCommand } from "./command";
 import { type Checkout, PreviewWords, Restart } from "./states";
@@ -54,7 +56,9 @@ function Missing(props: Of & { keys?: boolean }) {
 }
 
 /** The story, as its record says. `height` is an embed's; the page's fills its pane. */
-export function StoryLive(props: Of & { height?: number; keys?: boolean }) {
+export function StoryLive(
+  props: Of & { comment?: (picked?: Picked) => void; height?: number; keys?: boolean },
+) {
   const read = storyOf(props);
   const ready = () => {
     const shown = read();
@@ -73,6 +77,7 @@ export function StoryLive(props: Of & { height?: number; keys?: boolean }) {
         {(frame) => (
           <LiveFrame
             actions={<Restart folder={props.folder} icon keys={props.keys} repo={props.repo} />}
+            comment={props.comment}
             height={props.height}
             keys={props.keys}
             onWidth={pickWidth}
@@ -99,6 +104,33 @@ function Words(props: Checkout & { keys?: boolean; story: Story }) {
   );
 }
 
+/** The story `story` names, `<path>#<export>`, as a link to it says it. */
+const linkOf = (story: string) => ({ export: exportOf(story), path: fileOf(story) });
+
+/**
+ * The page's story, live. While the spec waits for review and shows it, a comment on it (`c`), or
+ * on an element picked in it (`p`), opens the spec beside it, the field under the block that shows
+ * it.
+ */
+function StoryPageLive(props: Of) {
+  const comment = useSpecComment(
+    props.repo,
+    props.folder,
+    (version) => version.stories.find((one) => `${one.path}#${one.export}` === props.story)?.block,
+  );
+  return (
+    <StoryLive
+      {...props}
+      comment={
+        comment() === undefined
+          ? undefined
+          : (picked) => comment()?.(storyAbout(linkOf(props.story), picked))
+      }
+      keys
+    />
+  );
+}
+
 export const storyPane = definePane<Of>({
   icon: "swatch-book",
   kind: "preview-story",
@@ -108,7 +140,7 @@ export const storyPane = definePane<Of>({
   view: (props) => (
     <View style={{ flex: 1, gap: 8 }}>
       <Text tone="quiet">{fileOf(props.args.story)}</Text>
-      <StoryLive {...props.args} keys />
+      <StoryPageLive {...props.args} />
     </View>
   ),
 });
@@ -223,7 +255,7 @@ export const storiesPane = definePane<Of>({
  * paragraph's `StoryLink`, of the file's checkout, `folder`, `main` for the main checkout. Its
  * button opens its page, where its keys are.
  */
-export function StoryEmbed(props: Checkout & { link: StoryLink }) {
+export function StoryEmbed(props: Checkout & { comment?: EmbedComment; link: StoryLink }) {
   const story = () => `${props.link.path}#${props.link.export}`;
   return (
     <View style={{ gap: 6 }} testID="story-embed">
@@ -238,6 +270,11 @@ export function StoryEmbed(props: Checkout & { link: StoryLink }) {
         />
       </View>
       <StoryLive
+        comment={
+          props.comment?.on() === true
+            ? (picked) => props.comment?.open(storyAbout(props.link, picked))
+            : undefined
+        }
         folder={props.folder}
         height={isNarrow() ? 640 : 520}
         repo={props.repo}

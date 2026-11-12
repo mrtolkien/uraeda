@@ -4,13 +4,16 @@
 // above it. The page's own pane, `keys`, declares the keys: `w` the next width, `R` loads it
 // again, `o` opens it in the browser. A press in the page, or Tab, gives it the keys, and Escape
 // takes them back, which the status line says while the page has them. A document's embed draws
-// it without keys, at a height of its own, and its row's buttons take presses.
+// it without keys, at a height of its own, and its row's buttons take presses. Where a review
+// comment can go, `comment` adds "Comment" (`c`) and, once the page's pick script is ready, pick
+// mode (`p`): the element pressed then opens the comment on it, and Escape in the page ends it.
 import { type JSX, openUrl, signal, View } from "nsh";
 import { connection } from "../../store";
-import { IconButton, Segmented, Text } from "../../ui/controls";
+import { Button, IconButton, Segmented, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { WebFrame, type WebFrameRef, Well } from "../../ui/surfaces";
 import { shownTheme } from "../../ui/theme";
+import { type Picked, pickedOf } from "./pick";
 
 /** The widths a page is shown at: a phone's, a desktop's, or its room's. */
 export type Width = "phone" | "desktop" | "fit";
@@ -34,6 +37,8 @@ const after = (width: Width): Width =>
 export type LiveFrameProps = {
   /** The screen's own buttons, before the frame's, as Restart. */
   actions?: JSX.Element;
+  /** Opens a review comment on the page, or on the element picked in it. */
+  comment?: (picked?: Picked) => void;
   /** Its height: its room's without one, as a page's pane gives it. */
   height?: number;
   /** Declares the frame's keys in the pane around it: only the page's own frame does. */
@@ -63,6 +68,13 @@ export function LiveFrame(props: LiveFrameProps) {
         : WIDTHS[props.width];
   // The height a story reports, by its pick script: an embed is as tall as its story, up to its own.
   const reported = signal<number | undefined>(undefined);
+  // Pick mode: possible once the page's pick script said it is ready, on until a pick or Escape.
+  const pickable = signal(false);
+  const picking = signal(false);
+  const pick = (on: boolean) => {
+    picking.set(on);
+    frame?.post({ on, uraeda: "pick" });
+  };
   const height = () => {
     const own = props.height;
     const told = reported();
@@ -74,7 +86,17 @@ export function LiveFrame(props: LiveFrameProps) {
       height?: unknown;
       uraeda?: unknown;
     };
-    if (said.uraeda === "ready") frame?.post({ mode: shownTheme().mode, uraeda: "mode" });
+    if (said.uraeda === "ready") {
+      frame?.post({ mode: shownTheme().mode, uraeda: "mode" });
+      pickable.set(true);
+    }
+    if (said.uraeda === "pick-stopped") picking.set(false);
+    const picked = pickedOf(data);
+    // A page may still send a pick after pick mode ended, before it heard so.
+    if (picked !== undefined && picking()) {
+      picking.set(false);
+      props.comment?.(picked);
+    }
     if (said.uraeda === "size" && typeof said.height === "number") reported.set(said.height);
     props.onMessage?.(data);
   };
@@ -127,6 +149,27 @@ export function LiveFrame(props: LiveFrameProps) {
         </If>
         <View style={{ flex: 1 }} />
         {props.actions}
+        <If when={props.comment !== undefined && pickable()}>
+          <Button
+            icon="mouse-pointer-click"
+            keys={props.keys === true ? "p" : undefined}
+            label={picking() ? "Picking: press an element" : "Pick an element"}
+            onPress={() => pick(!picking())}
+            testID="pick"
+            variant={picking() ? "main" : undefined}
+          />
+        </If>
+        <If when={props.comment}>
+          {(comment) => (
+            <Button
+              icon="message-square"
+              keys={props.keys === true ? "c" : undefined}
+              label="Comment"
+              onPress={() => comment()()}
+              testID="preview-comment"
+            />
+          )}
+        </If>
         <IconButton
           icon="refresh-cw"
           keys={props.keys === true ? "R" : undefined}

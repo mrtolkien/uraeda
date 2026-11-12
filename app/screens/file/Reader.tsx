@@ -50,13 +50,28 @@ export function imageFor(repo: string, image: SpanImage): string | undefined {
   return /^https?:\/\//.test(image.target) ? image.target : undefined;
 }
 
-/** A story or a mockup its paragraph links alone, live in place, in the feature's checkout. */
-export function embedAt(args: FileArgs, version: VersionView, block: Block) {
+/**
+ * A story or a mockup its paragraph links alone, live in place, in the feature's checkout. With
+ * `comment`, while the file waits for its review, a comment on it, or on an element picked in it,
+ * opens under its block.
+ */
+export function embedAt(
+  args: FileArgs,
+  version: VersionView,
+  block: Block,
+  comment?: { on: () => boolean; open: (block: Block, about: string) => void },
+) {
+  const on =
+    comment === undefined
+      ? undefined
+      : { on: comment.on, open: (about: string) => comment.open(block, about) };
   const link = version.stories.find((one) => one.block === block.id);
-  if (link !== undefined) return <StoryEmbed folder={args.folder} link={link} repo={args.repo} />;
+  if (link !== undefined) {
+    return <StoryEmbed comment={on} folder={args.folder} link={link} repo={args.repo} />;
+  }
   const mockup = version.mockups.find((one) => one.block === block.id);
   if (mockup !== undefined) {
-    return <MockupEmbed folder={args.folder} mockup={mockup} repo={args.repo} />;
+    return <MockupEmbed comment={on} folder={args.folder} mockup={mockup} repo={args.repo} />;
   }
   return undefined;
 }
@@ -144,9 +159,9 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
     return undefined;
   };
   /** Opens a comment on a part: it comes to the top, its field under it, as J and K bring it. */
-  const comment = (block: number) => {
+  const comment = (block: number, about?: string) => {
     review.cursor.set(block);
-    review.writing.set({ block });
+    review.writing.set(about === undefined ? { block } : { about, block });
     scroll?.toBlock(block);
   };
   registerKey([
@@ -235,7 +250,12 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
         atTop(props.args, block);
         if (untracked(review.writing) === null) review.cursor.set(block);
       }}
-      override={(block) => embedAt(props.args, shown(), block)}
+      override={(block) =>
+        embedAt(props.args, shown(), block, {
+          on: reviewing,
+          open: (at, about) => comment(at.id, about),
+        })
+      }
       ref={(ref) => {
         scroll = ref;
         const hash = untracked(route).hash;

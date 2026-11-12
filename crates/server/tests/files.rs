@@ -257,6 +257,36 @@ async fn a_mockup_is_served_sandboxed_to_its_frame_and_only_from_a_mockups_folde
     }
 }
 
+// Pick mode: a mockup's page asked with `uraeda-pick` carries the pick script, which tells the app
+// the element pressed in it; the page asked without it, and what it loads, are as they are.
+#[tokio::test]
+async fn a_mockup_page_asked_for_picking_carries_the_pick_script() {
+    let served = served().await;
+    let folder = "specs/2026-10-11-web-ui";
+    let repo = &served.repo;
+    let page = "<html><head><title>UI</title></head><body><p>UI</p></body></html>";
+    repo.write(&format!("{folder}/mockups/ui.html"), page);
+    repo.write(&format!("{folder}/mockups/ui.js"), "let a = 1;");
+    repo.commit("chore: mockups");
+    let secret = preview::frame_secret(served.server.shared());
+    let framed = |path: String| {
+        let path = format!("/r/todo-app/mockups/{secret}/{folder}/mockups/{path}");
+        served.server.get(&path).header("origin", "null").send()
+    };
+
+    let picking = framed("ui.html?theme=dark&uraeda-pick".to_owned())
+        .await
+        .text();
+    let plain = framed("ui.html?theme=dark".to_owned()).await.text();
+    let script = framed("ui.js?uraeda-pick".to_owned()).await.text();
+
+    let head = "<html><head><title>UI</title><script>";
+    assert!(picking.starts_with(head), "{picking}");
+    assert!(picking.contains(r#"uraeda: "picked""#));
+    assert!(picking.ends_with("</script></head><body><p>UI</p></body></html>"));
+    assert_eq!((plain.as_str(), script.as_str()), (page, "let a = 1;"));
+}
+
 // The attachments decision: an image attached to a workflow file is committed beside it, as one
 // small WebP, and served so that a browser cannot run it as a page.
 #[tokio::test]

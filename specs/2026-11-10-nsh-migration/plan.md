@@ -3017,6 +3017,10 @@ Follows [what every screen task does](#what-every-screen-task-does).
   for it, and counts a frame's request as a view.
 - The sandbox's "sample" has `2026-10-20-sidebar-resize`, with three stories, a mockup, and the fake
   Storybook of `fixtures/preview/serve.mjs`.
+- Pick mode and comments (T90.5): `LiveFrame`'s `comment(picked?)` adds Comment (`c`) and, once the
+  page's pick script is ready, "Pick an element" (`p`); `StoryEmbed` and `MockupEmbed` take
+  `comment: { on, open(about) }`; a preview's page comments through `useSpecComment`
+  (`specComment.ts`). A mockup asked with `uraeda-pick` gets the pick script from the server.
 
 ## Task 50: Notifications, undo, and writes
 

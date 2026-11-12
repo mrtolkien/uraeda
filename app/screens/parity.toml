@@ -129,15 +129,14 @@ why = "its message was the Node server's (`round-messages`), and the Rust server
 fate = "brought-back"
 now = "the decisions check's page and the decisions' list: \"Review with AI\" (`r`) while no check is on the default branch, \"Apply the answers\" (`r`) once it is answered, each through the continue dialog with the server's message whole (`ErrandMessage`), a new chat of the main checkout started only from its Start"
 
-# --- Left: each with what it needs, and who misses it ---------------------------------------------
-
 [[left]]
 what = "Pick mode and comments on a story or a mockup"
 old = "Previews (StoryEmbed, MockupPage)"
 why = "a comment there is a review comment, which task 42 attached to the embedding block (R345, R379)"
-fate = "left"
-needs = "the web view's `picked` message turned into a review comment on the element's lines, in `MockupPage.tsx` and the embeds"
-missed = "a person will miss this on UI features: a comment says where in the page, not which element"
+fate = "brought-back"
+now = "a mockup's or a story's page (`c`, and `p` once its pick script is ready) and its embed in a spec under review: a review comment on the spec's block that shows it, opened beside the page (or under the embed), its text starting `Mockup <file>, <role> “<name>”:` or `Story <file>#<export>, …:`; the server puts `uraeda-pick.js` in a mockup asked with `uraeda-pick`, a Storybook loads its own"
+
+# --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
 what = "The inbox's outliner: indent, outdent, nested drags, an add beside each row"
