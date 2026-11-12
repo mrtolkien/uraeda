@@ -17,7 +17,7 @@ import { rows } from "./lists/rows";
 import { table } from "./lists/table";
 import { reading } from "./scenes/reading";
 import { scene } from "./scenes/session";
-import { corner, dialog, popover, sheet, tip, toasts } from "./surfaces/overlays";
+import { confirm, corner, dialog, popover, sheet, tip, toasts } from "./surfaces/overlays";
 import { heights } from "./surfaces/heights";
 import { states } from "./surfaces/states";
 import { web } from "./surfaces/web";
@@ -29,6 +29,7 @@ const VIEWS: Record<string, (narrow: boolean) => JSX.Element> = {
   buttons,
   cards,
   choices,
+  confirm,
   corner,
   diagrams,
   dialog,

@@ -1,11 +1,13 @@
 // The main checkout's branch against `origin`, and what moves it: "main · 3 to pull · 6 to push ·
 // fetched 4 min ago", with Fetch, Pull, Push, and Merge, and lazygit's keys for them, `f` `p` `P`
-// `M`, on in every pane of the page. Push names where it pushes. What holds them back says so, in
-// a banner with its way out: an agent at work, the last fetch's failure, a stopped pull or merge.
+// `M`, on in every pane of the page. A push leaves this machine, so `P` and its button ask first,
+// naming what goes where, and `P` again or Enter pushes; so do a stopped merge's Continue, which
+// commits it, and its Abort, which drops what was resolved. What holds them back says so, in a
+// banner with its way out: an agent at work, the last fetch's failure, a stopped pull or merge.
 import { signal, View } from "nsh";
 import { record } from "../../store";
 import type { GitPage } from "../../store/protocol";
-import { Banner, Button, Refusal, Text } from "../../ui/controls";
+import { Banner, Button, Confirm, Refusal, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { Dialog } from "../../ui/surfaces";
 import { Line, List, createCursor } from "../../ui/lists";
@@ -15,11 +17,17 @@ import { isPending, refusalAt, write } from "./writes";
 /** The repository whose merge picker is open, drawn by its Changes pane. */
 const merging = signal<string | null>(null);
 
+/** The repository whose push is asked about, drawn by its Changes pane. */
+const pushing = signal<string | null>(null);
+
 /** The page's record, as every pane of it reads it. */
 export const gitPage = (repo: string) => record("GitPage", { repo });
 
 /** The control the sync's writes come from, and their refusals show under. */
 const syncAt = (repo: string) => `${repo}/sync`;
+
+/** "1 commit", "3 commits". */
+const commits = (count: number) => `${count} ${count === 1 ? "commit" : "commits"}`;
 
 /** Whether a pull or a merge stopped, which holds the others back until it goes on or aborts. */
 const stuck = (page: GitPage) => page.stopped !== null;
@@ -60,7 +68,12 @@ export function syncActions(repo: string, toChanges: () => void = () => undefine
       merging.set(repo);
     },
     pull: () => void write(syncAt(repo), "git.pull", { repo }, `Pulling ${branch()} from origin`),
-    push: () => void write(syncAt(repo), "git.push", { repo }, `Pushing ${branch()} to origin`),
+    // Asked first, in the Changes pane: a push leaves this machine.
+    push: () => {
+      toChanges();
+      pushing.set(repo);
+    },
+    pushNow: () => void write(syncAt(repo), "git.push", { repo }, `Pushing ${branch()} to origin`),
   };
 }
 
@@ -107,7 +120,7 @@ export function Sync(props: { narrow: boolean; repo: string }) {
             <Button
               disabled={!act.canPush()}
               icon="arrow-up"
-              label={`Push to origin${page().ahead > 0 ? ` · ${page().ahead}` : ""}`}
+              label={`Push to origin${page().ahead > 0 ? ` · ${page().ahead}` : ""}…`}
               onPress={act.push}
             />
             <If when={!props.narrow}>
@@ -128,6 +141,25 @@ export function Sync(props: { narrow: boolean; repo: string }) {
             onClose={() => merging.set(null)}
             repo={props.repo}
           />
+          <Confirm
+            icon="arrow-up"
+            keys="P"
+            label={page().ahead > 0 ? `Push ${commits(page().ahead)}` : "Push"}
+            onClose={() => pushing.set(null)}
+            onConfirm={act.pushNow}
+            open={pushing() === props.repo}
+            testID="git-push"
+            title={
+              page().ahead > 0
+                ? `Push ${commits(page().ahead)} to origin/${page().branch ?? ""}?`
+                : `Push ${page().branch ?? "the branch"} to origin?`
+            }
+            words={
+              page().ahead > 0
+                ? "They leave this machine for origin, where others pull them: a push is not taken back from here."
+                : "Nothing waits to be pushed, as far as the last fetch says: it pushes what origin lacks, if anything."
+            }
+          />
         </View>
       )}
     </If>
@@ -140,6 +172,10 @@ function Holds(props: { page: GitPage; repo: string }) {
   const left = () => props.page.conflicts.filter((one) => !one.isResolved).length;
   const goOn = () => void write(at, "git.continue", { repo: props.repo }, "Continuing");
   const abort = () => void write(at, "git.abort", { repo: props.repo }, "Aborting");
+  // Either asks first: one commits the merge, the other drops what was resolved.
+  const asking = signal<"continue" | "abort" | null>(null);
+  const kind = () => props.page.stopped?.kind ?? "merge";
+  const files = () => props.page.conflicts.length;
   return (
     <>
       <If when={props.page.agentWorking}>
@@ -162,12 +198,17 @@ function Holds(props: { page: GitPage; repo: string }) {
                 <Button
                   disabled={left() > 0}
                   keys="m"
-                  label="Continue"
-                  onPress={goOn}
+                  label="Continue…"
+                  onPress={() => asking.set("continue")}
                   pending={isPending(at)}
                   variant="main"
                 />
-                <Button keys="A" label="Abort" onPress={abort} variant="danger" />
+                <Button
+                  keys="A"
+                  label="Abort…"
+                  onPress={() => asking.set("abort")}
+                  variant="danger"
+                />
               </View>
             }
             title={`The ${stopped().kind} stopped: ${left() === 0 ? "every conflict is resolved." : `${left()} ${left() === 1 ? "file conflicts" : "files conflict"}.`}`}
@@ -180,6 +221,27 @@ function Holds(props: { page: GitPage; repo: string }) {
         )}
       </If>
       <If when={refusalAt(at)}>{(words) => <Refusal words={words()} />}</If>
+      <Confirm
+        icon="git-merge"
+        keys="m"
+        label={`Continue the ${kind()}`}
+        onClose={() => asking.set(null)}
+        onConfirm={goOn}
+        open={asking() === "continue"}
+        title={`Continue the ${kind()}?`}
+        words={`Every conflict is resolved: it commits the ${kind()} on ${props.page.branch ?? "the branch"}, with ${files() === 1 ? "the file" : `the ${files()} files`} as resolved here.`}
+      />
+      <Confirm
+        danger
+        keep="Keep resolving"
+        keys="A"
+        label={`Abort the ${kind()}`}
+        onClose={() => asking.set(null)}
+        onConfirm={abort}
+        open={asking() === "abort"}
+        title={`Abort the ${kind()}?`}
+        words={`The branch goes back as it was before the ${kind()}, and what you resolved here is dropped. Nothing brings it back.`}
+      />
     </>
   );
 }

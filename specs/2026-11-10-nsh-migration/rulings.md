@@ -8608,3 +8608,56 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   under the message typed: the key came before the field's last change, and the commit took what the
   field held before. The code before this fix read the message the same way.
 - **Where**: `app/screens/git/git.test.tsx`.
+
+## T89.6: A key that cannot be taken back opens its action's own confirmation
+
+- **Decision**: every single-letter key of every pane was sorted in three (the table below, from
+  `grep -rn 'keys' app/screens` and ruling R420's table): undone by `u`; cheap and put back by hand;
+  or neither, which spends an agent's time, starts a run, leaves this machine, or loses something
+  for good. A key of the third kind, and its button, open `Confirm` (`app/ui/controls/Confirm.tsx`,
+  with its gallery page): its title says what will be done, with the names and the numbers, its main
+  button takes the key that asked, and Enter confirms too; Escape leaves everything as it was. The
+  confirmations that screens drew by hand (a file's discard, a worktree's removal, a job's deletion,
+  the editor's two, the undo of a committed change, the triage's dismissal) are `Confirm` too, so
+  each is confirmed the same way.
+- **Rationale**: Codex's P2, confirmed: `C` on Home called `feature.continueAll` at once, `r` on
+  Jobs `jobs.runNow`, `P` on Git `git.push`, `a` and `A` in a transcript `session.allow` and
+  `session.allowAll`. `deliberate.test.tsx` failed on the old Jobs list with the run called and no
+  question
+  (`expected ["/r/sample/jobs",false,["jobs.runNow"]] to equal ["/r/sample/jobs",true,[]]`). Rule 2
+  of "What makes a screen good": an action that commits, starts a branch, or spends an agent's time
+  is deliberate.
+- **It replaces a line of the keyboard guide**: "The shared confirmation focuses Cancel, so that
+  Enter changes nothing", and its `y` `n`. The request for this fix is "the same key or Enter
+  confirms", one press more and not a chore; a confirmation that Enter leaves is two keys more. For
+  the human to rule if the old line should stand for what loses something for good.
+- **The table**. Third kind, asked first now: Home `C` (continue all: was at once); Jobs `r`, in the
+  list, a job's page, its history, a card's button, and the phone's bar (run now: was at once); Git
+  `P` (push: was at once), `m` (continue a stopped merge, which commits it: was at once), `A` (abort
+  it: was at once), `o` `t` on a conflict, in Changes and in the conflict's editor (a side, whole:
+  was at once), `d` on a file (discard: asked), `d` on a worktree (clean or remove: asked); a
+  transcript's `a` `A`, its card's buttons, and the row's Enter (allow, and retry: was at once); a
+  feature's `n` when it cleans a merged feature (was at once; its continue already opened its
+  dialog); Jobs `d` (delete: asked); a changed file's `F` `w` (asked); `u` `U` over a committed
+  change (asked). Already deliberate by a dialog of their own, with more to read or pick: a
+  proposal's `s` and the New page's Ctrl+Enter (the start dialog), a feature's `n` to continue (the
+  run map), Git's `M` (the branch picker), `R` and `e` (a name), the decisions' `r` (the errand's
+  message), the inbox's `c` `p` `C` `R` (pickers and names). Undone by `u`: the inbox's `d` and `a`,
+  a note's `d`, the priorities' `a` and its moves `h` `l` `H` `L`, a proposal's `w` (written in a
+  file) and `e`, a nested line's `d` `o` `J` `K` `<` `>`. Saved, and changed back the same way: a
+  round's `a` to `f`. Cheap, at once: Git's `s` `a` (stage), `f` (fetch), `p` (pull: local, and a
+  conflict stops it with Abort as its way back), `c` (the message's field); Jobs' `p` (pause), `a`,
+  `e`; a session's `x` (stop: the safe way, nothing the agent wrote is lost, and a stop must not
+  wait), `i`, `m`, `c` (opens the offer); the previews' `w` `f` `p` `i` `o` `R` `r` (restart a
+  preview); the run map's `e` `a` `d` (a setting, saved and put back by its control); a conflict's
+  `1` `2` `3` `n` (edits of the text, unsaved); every key that moves, folds, opens, or focuses.
+- **Not covered by the test**: Home's `C`, as the sandbox's sample holds no stopped run that the
+  server would continue, and the sandbox's builders are another fixer's; it is the same `Confirm`.
+- **If wrong**: a key asked about that should act at once loses its `Confirm`; one that acts at once
+  and should ask gains one, with its words.
+- **Where**: `app/ui/controls/Confirm.tsx`; `app/screens/home/ContinueAll.tsx`,
+  `jobs/{RunNow,JobsList,JobPage,History,JobCard,index}.tsx`, `git/{Sync,Changes,Worktrees}.tsx`,
+  `conflict/ConflictEditor.tsx`, `session/{Permission,Transcript}.tsx`, `feature/Overview.tsx`,
+  `editor/Changed.tsx`, `shell/Undo.tsx`, `triage/TriageBanner.tsx`;
+  `app/screens/shell/deliberate.test.tsx`; `specs/ui/keyboard.md`, "A key that cannot be taken
+  back"; `specs/ui/components.md`.

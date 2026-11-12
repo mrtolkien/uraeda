@@ -32,7 +32,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                 | Every page                            |
 | `[`, `]`                  | Fold the sidebar, and the right column                                                                                 | `[` everywhere; `]` on wide screens   |
 | `Escape`                  | Leave the field, the layer, or the mode, and nothing more; with Vim mode on, insert mode goes to normal mode first     | Every page                            |
-| `y`, `n`                  | Answer a confirmation                                                                                                  | The shared confirmation               |
+| The key again, `Enter`    | Confirm what a key asked for; `Escape` leaves everything as it was                                                     | The shared confirmation               |
 | `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                            | Every field of several lines          |
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
@@ -42,6 +42,28 @@ and `v` to switch between columns and a list. A composer's `m` opens its model p
 effort's in a running session, as `Space a` does, on the New page, a session's page, and a session
 in a review's column: none of them has a row to move. A round's banner, beside the inbox's notes,
 keeps `Space a` alone. A page never gives a base key another meaning while its own content uses it.
+
+## A key that cannot be taken back
+
+A single key is a slip away, so what one key does is sorted in three:
+
+- **Undone by `u`**: it acts at once. Deleting a note, moving a proposal, editing a line.
+- **Cheap, and put back by hand**: it acts at once. Staging a file, pausing a job, a fetch, a pull,
+  folding a pane, stopping an agent, which is the safe way and loses nothing it wrote.
+- **Neither**: it spends an agent's time, starts a run, leaves this machine, or loses something for
+  good. The key, and its button, open the action's own confirmation, `Confirm`, which says what will
+  be done, with its names and numbers: "Continue 4 runs?", "Push 3 commits to origin/main?", "Run
+  “Weekly report” now?". The same key again, or `Enter`, does it; `Escape` leaves everything as it
+  was. One press more, never a chore, and never "Are you sure?".
+
+The keys of the third kind: `C` on Home (continue all), `r` on Jobs (run now), `P` on Git (push),
+`m` and `A` on a stopped merge (continue, which commits it, and abort), `o` and `t` on a conflict (a
+side, whole), `d` on a changed file, a worktree, and a job (discard, remove, delete), `a` and `A` on
+a blocked action (allow, and retry), `n` on a merged feature (clean), `F` and `w` on a file changed
+under its editor, and `u` `U` over a change committed since. A key that opens a dialog with more to
+read or to pick, a start's, a continue's with its run map, a merge's branches, is already
+deliberate: its dialog's own button starts it. A new key of this kind follows the same rule: its
+label ends with "…", as its button's does.
 
 ## In a field
 
@@ -134,7 +156,8 @@ it holds has a few keys of its own.
 ## Focus
 
 - A layer that opens takes the focus where typing goes: a picker its filter, a form its field. The
-  shared confirmation focuses Cancel, so that Enter changes nothing.
+  shared confirmation takes the keys: the key that asked, or `Enter`, confirms, and `Escape` leaves
+  (see [A key that cannot be taken back](#a-key-that-cannot-be-taken-back)).
 - `Escape` gives the focus back where it was before the layer opened.
 - A page that starts something opens with the focus in its text field: the New page in the picked
   kind's composer, and again after `s c f` pick a card, a feature's New session in its composer, and

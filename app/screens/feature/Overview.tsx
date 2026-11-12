@@ -4,7 +4,7 @@
 import { openUrl, signal, View } from "nsh";
 import { call, navigate, record } from "../../store";
 import type { Feature } from "../../store/protocol";
-import { Banner, Button, Heading, Refusal, StatusDot, Text } from "../../ui/controls";
+import { Banner, Button, Confirm, Heading, Refusal, StatusDot, Text } from "../../ui/controls";
 import { PaneScroll, usePane } from "../../ui/layout";
 import { Collapsible } from "../../ui/lists";
 import { Pane, Well } from "../../ui/surfaces";
@@ -113,10 +113,17 @@ function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
   // The run the dialog asks about, kept after it closes so it leaves with its motion.
   const asked = signal<Extract<NextAction, { kind: "continue" }> | null>(null);
   const asking = signal(false);
-  const press = async (action: NextAction) => {
+  // Cleaning removes the worktree, the branch, and the priorities' line: asked first, as the Git
+  // page's Worktrees does.
+  const cleaning = signal<NextAction | null>(null);
+  const press = async (action: NextAction, sure = false) => {
     if (action.kind === "continue") {
       asked.set(action);
       asking.set(true);
+      return;
+    }
+    if (action.kind === "clean" && !sure) {
+      cleaning.set(action);
       return;
     }
     if (pending()) return;
@@ -153,6 +160,21 @@ function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
         )}
       </If>
       <If when={props.proposal}>{(path) => <CommitProposal args={props.args} path={path()} />}</If>
+      <Confirm
+        danger
+        icon="brush-cleaning"
+        keep="Keep it"
+        keys="n"
+        label="Clean it"
+        onClose={() => cleaning.set(null)}
+        onConfirm={() => {
+          const action = cleaning();
+          if (action !== null) void press(action, true);
+        }}
+        open={cleaning() !== null}
+        title={`Clean ${props.args.folder}?`}
+        words="Its worktree, its branch, and its line of the priorities go, as ura clean does. Nothing undoes it."
+      />
       <If when={asked()}>
         {(next) => (
           <ContinueDialog

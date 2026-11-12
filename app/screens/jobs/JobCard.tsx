@@ -3,7 +3,8 @@
 // left, and its two actions by a tap, "Run now" and "Delete", which `r` and `d` are on the list. The switch moves at once, and a refusal puts it back under it; a refusal of "Run now" or
 // of a delete shows under the card until it is dismissed.
 import { cleanup, View } from "nsh";
-import { dismissRun, runNow, runRefusal } from "./actions";
+import { dismissRun, runRefusal } from "./actions";
+import { askRun } from "./RunNow";
 import { lastFact, nextFacts, whenItRuns } from "./words";
 import { call, record } from "../../store";
 import type { Job } from "../../store/protocol";
@@ -63,7 +64,7 @@ export function JobCard(props: JobCardProps) {
           </View>
         }
         actions={[
-          { icon: "play", label: "Run now", run: () => void runNow(args()) },
+          { icon: "play", label: "Run now…", run: () => askRun(args(), "list") },
           { icon: "trash-2", label: "Delete", run: props.onDelete },
         ]}
         facts={[

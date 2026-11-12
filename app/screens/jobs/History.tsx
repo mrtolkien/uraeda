@@ -3,7 +3,8 @@
 // the change that blocked it; a time whose run could not start, with why. A run whose session is
 // gone says so.
 import { computed, View } from "nsh";
-import { type JobArgs, jobNamed, jobsOf, runNow } from "./actions";
+import { type JobArgs, jobNamed, jobsOf } from "./actions";
+import { askRun, RunQuestion } from "./RunNow";
 import { ticking } from "./clock";
 import { failedWords, skippedWords, whenWords } from "./words";
 import { navigate, record } from "../../store";
@@ -93,12 +94,13 @@ export function History(props: JobArgs) {
       hint: "r",
       hintLabel: "run now",
       keys: "r",
-      label: "run the job now",
-      run: () => void runNow(props),
+      label: "run the job now…",
+      run: () => askRun(props, "history"),
     },
   ]);
   return (
     <PaneScroll style={{ flex: 1 }}>
+      <RunQuestion from="history" />
       <View style={{ gap: 8, paddingBottom: 16 }}>
         <If
           when={runs().length > 0}

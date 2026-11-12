@@ -3,7 +3,9 @@
 // as the key registry's "A key means two things", is posted as `problem` and drawn in its place.
 // At the start the app posts `places`, the pages the screens declared a place for; after each `go`,
 // `shown`, the page opened and the pane it focuses. `hold` keeps what the server says until
-// `release`, as a slow line does: what the human does meanwhile is done before the answer.
+// `release`, as a slow line does: what the human does meanwhile is done before the answer. An
+// action that spends an agent's time or leaves the machine is never sent: it is posted as `called`
+// and refused, so the shared sandbox stays as it is.
 import { ErrorBoundary, host, mount, Text } from "nsh";
 import { boot } from "../boot";
 import { appHost } from "../host";
@@ -20,17 +22,39 @@ host.on("go", (address) => {
   host.post("shown", { page: route().page, pane });
 });
 
+/** The actions a check never sends: each spends an agent's time, or leaves this machine. */
+const NEVER_SENT = new Set(["feature.continueAll", "jobs.runNow", "git.push"]);
+
 /** The real line, whose messages wait while the test holds them. */
 let holding = false;
 const waiting: Array<() => void> = [];
-const line: Opener = (url, heard) =>
-  openSocket(url, {
+const line: Opener = (url, heard) => {
+  const real = openSocket(url, {
     ...heard,
     message: (text) => {
       if (holding) waiting.push(() => heard.message(text));
       else heard.message(text);
     },
   });
+  return {
+    close: () => real.close(),
+    send(text) {
+      const message = JSON.parse(text) as { action?: string; id: number; type: string };
+      if (message.type !== "call" || !NEVER_SENT.has(message.action ?? "")) {
+        real.send(text);
+        return;
+      }
+      host.post("called", message.action);
+      const refused = {
+        code: "refused",
+        id: message.id,
+        message: "Not done: this is a check.",
+        type: "error",
+      };
+      setTimeout(() => heard.message(JSON.stringify(refused)), 0);
+    },
+  };
+};
 host.on("hold", () => {
   holding = true;
 });

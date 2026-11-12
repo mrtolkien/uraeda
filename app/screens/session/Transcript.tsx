@@ -17,7 +17,7 @@ import { SessionBanners, SessionHead } from "./Head";
 import { OfferCard } from "./Offer";
 import { openedOffer, openOffer } from "./offers";
 import { type Feed, transcriptFeed } from "./pages";
-import { allow, answerable } from "./Permission";
+import { AllowQuestion, answerable, askAllow } from "./Permission";
 import { type SessionArgs, sessionIdOf } from "./place";
 import { type RowHands, TranscriptRow } from "./Rows";
 import { statusNews } from "./words";
@@ -208,22 +208,30 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
     const entry = at === undefined ? undefined : feed.entry(at);
     const item = entry?.kind === "item" ? entry.item() : undefined;
     return item?.kind === "denial" && answerable(item) && !working() && entry !== undefined
-      ? { denial: item.id, repo, row: at!, session: props.session().id, turn: entry.turn }
+      ? {
+          item,
+          of: { denial: item.id, repo, row: at!, session: props.session().id, turn: entry.turn },
+        }
       : undefined;
+  };
+  /** Asks about the blocked action under the cursor: one, or with `all` the latest turn's. */
+  const askAt = (all: boolean) => {
+    const at = denialAt();
+    if (at !== undefined) askAllow(at.of, at.item, all ? props.session().allowable : null);
   };
   registerKey([
     {
       icon: "shield",
       keys: "a",
-      label: "Allow the blocked action, and retry",
-      run: () => void allow(denialAt()!),
+      label: "Allow the blocked action, and retry…",
+      run: () => askAt(false),
       when: () => denialAt() !== undefined,
     },
     {
       icon: "shield",
       keys: "A",
-      label: "Allow every blocked action of the latest turn",
-      run: () => void allow(denialAt()!, true),
+      label: "Allow every blocked action of the latest turn…",
+      run: () => askAt(true),
       when: () => denialAt() !== undefined && props.session().allowable >= 2,
     },
     {
@@ -242,6 +250,7 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
       }
       style={{ flex: 1 }}
     >
+      <AllowQuestion session={props.session().id} />
       <SessionHead repo={repo} runtime={runtime()} session={props.session()} />
       <SessionBanners repo={repo} session={props.session()} />
       <View style={{ flex: 1, minHeight: 0 }}>

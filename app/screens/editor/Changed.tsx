@@ -5,9 +5,7 @@
 // keys, `v`, `F`, and `w`, are free in every pane that holds an editor: a buffer's, a proposal's,
 // beside its nested lines' `d`, and a conflicted file's, beside its `t`.
 import { signal, View } from "nsh";
-import { Button, Text } from "../../ui/controls";
-import { Banner } from "../../ui/controls";
-import { Dialog } from "../../ui/surfaces";
+import { Banner, Button, Confirm, lastAsked } from "../../ui/controls";
 import type { Edited } from "./edited";
 
 export type ChangedProps = {
@@ -34,13 +32,12 @@ export function Changed(props: ChangedProps) {
 
 function Ways(props: ChangedProps) {
   const asking = signal<Asking>(null);
-  const answer = (yes: boolean) => {
-    const asked = asking();
-    asking.set(null);
-    if (!yes) return;
+  const asked = lastAsked(asking);
+  const answer = () => {
+    const what = asking();
     props.onShowsDiff(false);
-    if (asked === "take") props.edited.takeFile();
-    if (asked === "save") void props.edited.saveOver();
+    if (what === "take") props.edited.takeFile();
+    if (what === "save") void props.edited.saveOver();
   };
   return (
     <>
@@ -64,36 +61,32 @@ function Ways(props: ChangedProps) {
           <Button
             icon="undo-2"
             keys="F"
-            label="Take the file's version"
+            label="Take the file's version…"
             onPress={() => asking.set("take")}
           />
           <Button
             icon="save"
             keys="w"
-            label="Save yours over it"
+            label="Save yours over it…"
             onPress={() => asking.set("save")}
           />
         </View>
       </View>
-      <Dialog
-        onClose={() => answer(false)}
+      <Confirm
+        danger
+        keep="Keep editing"
+        keys={asked() === "take" ? "F" : "w"}
+        label={asked() === "take" ? "Drop my text" : "Save over it"}
+        onClose={() => asking.set(null)}
+        onConfirm={answer}
         open={asking() !== null}
-        title={asking() === "take" ? "Drop your text?" : "Save over the file?"}
-      >
-        <Text>
-          {asking() === "take"
+        title={asked() === "take" ? `Drop your text of ${props.name}?` : `Save over ${props.name}?`}
+        words={
+          asked() === "take"
             ? "Your unsaved text is lost, and the file's version shows. Copy what you need first."
-            : "What changed on disk since you began is lost, unless it was committed."}
-        </Text>
-        <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-          <Button label="Keep editing" onPress={() => answer(false)} />
-          <Button
-            label={asking() === "take" ? "Drop my text" : "Save over it"}
-            onPress={() => answer(true)}
-            variant="danger"
-          />
-        </View>
-      </Dialog>
+            : "What changed on disk since you began is lost, unless it was committed."
+        }
+      />
     </>
   );
 }

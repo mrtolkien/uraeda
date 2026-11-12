@@ -35,6 +35,12 @@ export const CATALOGUE: ReadonlyArray<GroupEntry> = [
       { icon: "layers", name: "heights", shows: "overlay", title: "Heights" },
       { icon: "square", name: "states", shows: "With the focus", title: "States" },
       { icon: "triangle-alert", name: "dialog", shows: "Delete task 27?", title: "Dialog" },
+      {
+        icon: "shield",
+        name: "confirm",
+        shows: "Push 3 commits to origin/main?",
+        title: "Confirmation",
+      },
       { icon: "rows-3", name: "sheet", shows: "Outline", title: "Sheet" },
       { icon: "chevron-down", name: "popover", shows: "Codex", title: "Popover" },
       { icon: "bell", name: "toasts", shows: "Landing in git", title: "Toasts" },

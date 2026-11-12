@@ -3,18 +3,28 @@
 // cannot be read, or scheduled jobs are off, each with its way out. Where the Jobs extension is off,
 // the place is gone, and its address says so (`../extension`).
 // The keys act on the selected card, each also by a press: `j` `k` move the selection, Enter opens
-// the job, `r` runs it now, `p` pauses or resumes it, `d` deletes it after asking, `a` adds one.
+// the job, `r` runs it now and `d` deletes it, each after asking, `p` pauses or resumes it, `a`
+// adds one.
 import { computed, signal, untracked, View } from "nsh";
-import { jobsOf, openJob, runNow } from "./actions";
+import { jobsOf, openJob } from "./actions";
+import { askRun, RunQuestion } from "./RunNow";
 import { ticking } from "./clock";
 import { JobCard } from "./JobCard";
 import { call, navigate } from "../../store";
 import type { Job } from "../../store/protocol";
-import { Banner, Button, refusalOf, type Sent, Spinner, Text } from "../../ui/controls";
+import {
+  Banner,
+  Button,
+  Confirm,
+  lastAsked,
+  refusalOf,
+  type Sent,
+  Spinner,
+  Text,
+} from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { PaneScroll, usePane } from "../../ui/layout";
 import { createCursor, Empty, listKeys } from "../../ui/lists";
-import { Dialog } from "../../ui/surfaces";
 
 /** A card's id in the cursor: its place in the file, since two jobs may share a name. */
 const idOf = (job: Job) => String(job.index);
@@ -67,6 +77,8 @@ export function JobsList(props: { repo: string }) {
     JSON.parse(keptRefusals()) as Record<string, string>;
   const toggles = new Map<string, Sent<boolean>>();
   const deleting = signal<Job | null>(null);
+  // The job asked about last, kept as the question closes, so its words leave whole.
+  const deleted = lastAsked(deleting);
   const selected = () => jobs().find((job) => idOf(job) === cursor.at());
   const add = () => navigate({ page: "job-new", repo: props.repo });
 
@@ -105,8 +117,8 @@ export function JobsList(props: { repo: string }) {
       hint: "r",
       hintLabel: "run now",
       keys: "r",
-      label: "run the job now",
-      run: onSelected((job) => void runNow({ name: job.name, repo: props.repo })),
+      label: "run the job now…",
+      run: onSelected((job) => askRun({ name: job.name, repo: props.repo }, "list")),
     },
     {
       hint: "p",
@@ -187,26 +199,19 @@ export function JobsList(props: { repo: string }) {
           )}
         </If>
       </View>
-      <Dialog
+      <RunQuestion from="list" />
+      <Confirm
+        danger
         icon="trash-2"
+        keep="Keep it"
+        keys="d"
+        label="Delete the job"
         onClose={() => deleting.set(null)}
+        onConfirm={() => void remove()}
         open={deleting() !== null}
-        title={`Delete the job “${deleting()?.name ?? ""}”?`}
-      >
-        <View style={{ gap: 14 }}>
-          <Text>Its prompt leaves config.toml, and its sessions stay.</Text>
-          <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-            <Button label="Keep it" onPress={() => deleting.set(null)} />
-            <Button
-              icon="trash-2"
-              keys="d"
-              label="Delete"
-              onPress={() => void remove()}
-              variant="danger"
-            />
-          </View>
-        </View>
-      </Dialog>
+        title={`Delete the job “${deleted()?.name ?? ""}”?`}
+        words="Its prompt leaves config.toml, and its sessions stay."
+      />
     </PaneScroll>
   );
 }

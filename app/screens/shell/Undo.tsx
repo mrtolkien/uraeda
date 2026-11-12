@@ -8,9 +8,9 @@
 import { cleanup, effect, untracked, View } from "nsh";
 import { asking, canRedo, canUndo, quiet, redo, said, type Said, undo } from "./undo";
 import { navigate, pathOf, route } from "../../store";
-import { Button, IconButton, Kbd, Text } from "../../ui/controls";
+import { Button, Confirm, IconButton, Kbd, lastAsked, Text } from "../../ui/controls";
 import { registerKey, singleKeys } from "../../ui/keys";
-import { Dialog, Toast } from "../../ui/surfaces";
+import { Toast } from "../../ui/surfaces";
 import { isNarrow } from "../../ui/width";
 
 /** How long a toast of the stack stays, left alone, in ms: a refusal stays until closed. */
@@ -129,27 +129,24 @@ export function UndoToast() {
 }
 
 /** The question of an undo, or a redo, of an action committed since. */
+/** The question asked last, kept as it closes, so its words leave whole. */
+const last = lastAsked(asking);
+
 /** The question's verb. */
-const word = () => (asking()?.redo === true ? "Redo" : "Undo");
+const word = () => (last()?.redo === true ? "Redo" : "Undo");
 
 export function UndoQuestion() {
   return (
-    <Dialog
+    <Confirm
       icon="git-commit-horizontal"
+      keep="Keep it"
+      keys={word() === "Redo" ? "U" : "u"}
+      label={`${word()} it`}
       onClose={() => asking()?.answer(false)}
+      onConfirm={() => asking()?.answer(true)}
       open={asking() !== null}
       title={`${word()} a committed change?`}
-    >
-      <View style={{ gap: 14 }}>
-        <Text>{asking()?.done.words ?? ""}</Text>
-        <Text tone="quiet">
-          {`It was committed since. ${word() === "Redo" ? "Redoing" : "Undoing"} it writes the reverse as a new change, which waits on the Git page: the commit stays.`}
-        </Text>
-        <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-          <Button label="Keep it" onPress={() => asking()?.answer(false)} />
-          <Button label={word()} onPress={() => asking()?.answer(true)} />
-        </View>
-      </View>
-    </Dialog>
+      words={`${last()?.done.words ?? ""} It was committed since: ${word() === "Redo" ? "redoing" : "undoing"} it writes the reverse as a new change, which waits on the Git page, and the commit stays.`}
+    />
   );
 }

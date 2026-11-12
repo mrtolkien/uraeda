@@ -2,14 +2,13 @@
 // feature's offers Clean, which removes its worktree, its branch, and its line of the priorities;
 // one with nothing in it, or whose folder is gone, offers Remove, which keeps its branch. Both ask
 // first, since nothing undoes them; one with changes, or locked, offers neither, and says why.
-import { signal, View } from "nsh";
+import { signal, untracked, View } from "nsh";
 import { gitPage } from "./Sync";
 import { refusalAt, write } from "./writes";
 import type { GitWorktree } from "../../store/protocol";
-import { Button, Refusal, Text } from "../../ui/controls";
+import { Confirm, lastAsked, Refusal } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { Card, createCursor, Empty, listKeys } from "../../ui/lists";
-import { Dialog } from "../../ui/surfaces";
 import { tokens } from "../../ui/tokens";
 import { PaneScroll, usePane } from "../../ui/layout";
 
@@ -44,6 +43,11 @@ export function Worktrees(props: { repo: string }) {
   // The list's keys, as every list's: `j` `k`, `g g` `G`, `Home` `End`, the cursor shown at once.
   listKeys(cursor);
   const asking = signal<GitWorktree | null>(null);
+  const asked = lastAsked(asking);
+  const cleans = () => {
+    const tree = asked();
+    return tree !== null && offerOf(tree) === "clean";
+  };
   const where = (tree: GitWorktree) => `${props.repo}/worktree:${tree.path}`;
   const run = (tree: GitWorktree) => {
     asking.set(null);
@@ -130,35 +134,27 @@ export function Worktrees(props: { repo: string }) {
           </Each>
         </If>
       </View>
-      <Dialog
-        icon={offerOf(asking() ?? trees()[0]!) === "clean" ? "brush-cleaning" : "trash-2"}
+      <Confirm
+        danger
+        icon={cleans() ? "brush-cleaning" : "trash-2"}
+        keep="Keep it"
+        keys="d"
+        label={cleans() ? `Clean ${asked()?.name ?? "it"}` : "Remove the worktree"}
         onClose={() => asking.set(null)}
+        onConfirm={() => {
+          const tree = untracked(asking);
+          if (tree !== null) run(tree);
+        }}
         open={asking() !== null}
         title={
-          asking() !== null && offerOf(asking()!) === "clean"
-            ? `Clean ${asking()?.name}?`
-            : `Remove the worktree of ${asking()?.name ?? "it"}?`
+          cleans() ? `Clean ${asked()?.name}?` : `Remove the worktree of ${asked()?.name ?? "it"}?`
         }
-      >
-        <View style={{ gap: 14 }}>
-          <Text>
-            {asking() !== null && offerOf(asking()!) === "clean"
-              ? "Its worktree, its branch, and its line of the priorities go, as ura clean does. Nothing undoes it."
-              : "Its folder goes; its branch stays, so it can be checked out again."}
-          </Text>
-          <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-            <Button label="Keep it" onPress={() => asking.set(null)} />
-            <Button
-              label={asking() !== null && offerOf(asking()!) === "clean" ? "Clean" : "Remove"}
-              onPress={() => {
-                const tree = asking();
-                if (tree !== null) run(tree);
-              }}
-              variant="danger"
-            />
-          </View>
-        </View>
-      </Dialog>
+        words={
+          cleans()
+            ? "Its worktree, its branch, and its line of the priorities go, as ura clean does. Nothing undoes it."
+            : "Its folder goes; its branch stays, so it can be checked out again."
+        }
+      />
     </PaneScroll>
   );
 }

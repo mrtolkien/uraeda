@@ -1,9 +1,9 @@
-// The overlays, each open over a busy page: a dialog, which is a sheet on a narrow window; a
-// sheet; a popover, which stays a popover at every width; toasts, stacked from the top; an
+// The overlays, each open over a busy page: a dialog, which is a sheet on a narrow window; the
+// confirmation of an act that cannot be taken back, which says what it will do; a sheet; a popover, which stays a popover at every width; toasts, stacked from the top; an
 // overlay in the corner; and a tip beside what the pointer rests on.
 import { type JSX, signal, View, type ViewRef } from "nsh";
 import { Busy, gapOf } from "../parts";
-import { Button, Icon, Kbd, Text } from "../../ui/controls";
+import { Button, Confirm, Icon, Kbd, Text } from "../../ui/controls";
 import { Row } from "../../ui/lists";
 import {
   Dialog,
@@ -79,6 +79,26 @@ export function dialog(narrow: boolean) {
             <Button icon="trash-2" label="Delete" onPress={nothing} variant="danger" />
           </View>
         </Dialog>
+      }
+    />
+  );
+}
+
+export function confirm(narrow: boolean) {
+  return (
+    <Under
+      narrow={narrow}
+      over={
+        <Confirm
+          icon="arrow-up"
+          keys="P"
+          label="Push 3 commits"
+          onClose={nothing}
+          onConfirm={nothing}
+          open
+          title="Push 3 commits to origin/main?"
+          words="They leave this machine for origin, where others pull them: a push is not taken back from here."
+        />
       }
     />
   );

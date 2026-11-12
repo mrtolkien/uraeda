@@ -7,6 +7,7 @@ export { Banner, type BannerProps } from "./Banner";
 export { Breadcrumbs, type BreadcrumbsProps, type Crumb } from "./Breadcrumbs";
 export { Button, type ButtonProps, pressHeight } from "./Button";
 export { Checkbox, type CheckboxProps } from "./Checkbox";
+export { Confirm, type ConfirmProps, lastAsked } from "./Confirm";
 export { Divider, type DividerProps } from "./Divider";
 export { Heading, type HeadingProps } from "./Heading";
 export { Icon, type IconName, type IconProps, iconNamed, isIconName } from "./Icon";

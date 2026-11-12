@@ -3,10 +3,11 @@
 // shows the new name. Unticking the page's own repository, while another stays ticked, takes the
 // job off this repository's list: the page says so, and "Run it here again" ticks it back.
 import { effect, signal, untracked, View } from "nsh";
-import { dismissRun, type JobArgs, jobNamed, jobsOf, runNow, runRefusal } from "./actions";
+import { dismissRun, type JobArgs, jobNamed, jobsOf, runRefusal } from "./actions";
 import { ticking } from "./clock";
 import { inputOf, savedForm } from "./form";
 import { JobForm } from "./JobForm";
+import { askRun, RunQuestion } from "./RunNow";
 import { whenItRuns } from "./words";
 import { call, navigate, redirect } from "../../store";
 import type { JobInput } from "../../store/protocol";
@@ -52,24 +53,30 @@ function Left(props: { job: JobInput; onBack: () => void; repo: string }) {
   );
 }
 
-/** "Run now", by the title on a wide window; on a narrow one it is the bottom bar's action. */
+/**
+ * "Run now", by the title on a wide window; on a narrow one it is the bottom bar's action. Either
+ * asks first, as a run spends an agent's time.
+ */
 function RunNow(props: JobArgs) {
   return (
-    <If
-      when={isNarrow()}
-      else={
-        <Button
-          icon="play"
-          keys="r"
-          label="Run now"
-          onPress={() => void runNow(props)}
-          testID="job-run"
-          variant="main"
-        />
-      }
-    >
-      <RunKey {...props} />
-    </If>
+    <>
+      <If
+        when={isNarrow()}
+        else={
+          <Button
+            icon="play"
+            keys="r"
+            label="Run now…"
+            onPress={() => askRun(props, "page")}
+            testID="job-run"
+            variant="main"
+          />
+        }
+      >
+        <RunKey {...props} />
+      </If>
+      <RunQuestion from="page" />
+    </>
   );
 }
 
@@ -79,8 +86,8 @@ function RunKey(props: JobArgs) {
       hint: "r",
       hintLabel: "run now",
       keys: "r",
-      label: "run the job now",
-      run: () => void runNow(props),
+      label: "run the job now…",
+      run: () => askRun(props, "page"),
     },
   ]);
   return null;

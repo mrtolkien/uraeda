@@ -2,7 +2,8 @@
 // cards; `/jobs/<name>`, a job's form in the main stack and its history in the side one, "Run now"
 // the phone's bottom bar's action; `/jobs/new`, a new job's form. Task 51 wires the built-ins'
 // declarations through the page API: until then the place is declared here, as every screen's.
-import { jobsOf, runNow } from "./actions";
+import { jobsOf } from "./actions";
+import { askRun } from "./RunNow";
 import { History } from "./History";
 import { JobPage } from "./JobPage";
 import { JobsList } from "./JobsList";
@@ -22,7 +23,7 @@ export const jobsList = definePane<Repo>({
 });
 
 export const jobForm = definePane<Of>({
-  action: (args) => ({ icon: "play", label: "Run now", run: () => void runNow(args) }),
+  action: (args) => ({ icon: "play", label: "Run now…", run: () => askRun(args, "page") }),
   icon: "calendar-clock",
   kind: "job-form",
   stack: "main",
@@ -31,7 +32,7 @@ export const jobForm = definePane<Of>({
 });
 
 export const jobHistory = definePane<Of>({
-  action: (args) => ({ icon: "play", label: "Run now", run: () => void runNow(args) }),
+  action: (args) => ({ icon: "play", label: "Run now…", run: () => askRun(args, "history") }),
   icon: "history",
   kind: "job-history",
   mark: ({ name, repo }) => ({

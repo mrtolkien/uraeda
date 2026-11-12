@@ -10,7 +10,7 @@ import { computed, signal, View } from "nsh";
 import { conflictBlocks, takeConflict } from "uraeda/native";
 import { call, pathOf, record, type StoreError } from "../../store";
 import type { Actions } from "../../store/protocol";
-import { Button, Refusal, Spinner, Text } from "../../ui/controls";
+import { Button, Confirm, lastAsked, Refusal, Spinner, Text } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
 import { TextField, type TextFieldRef, unsavedKey } from "../../ui/text";
 import { Changed } from "../editor/Changed";
@@ -69,7 +69,6 @@ export function ConflictEditor(props: { path: string; repo: string }) {
       pending.set(false);
     }
   }
-  const said = (error: Error) => refusal.set(error.message);
   const save = () => {
     const read = file();
     if (read === undefined || read === null || hasMarkers(text.text())) return;
@@ -78,12 +77,27 @@ export function ConflictEditor(props: { path: string; repo: string }) {
       if (!saved) refusal.set(edited.saves.refusal());
     });
   };
+  // Taking a side whole drops the other's changes to the file, and what was edited here: asked.
+  const taking = signal<"ours" | "theirs" | null>(null);
+  const taken = lastAsked(taking);
+  const asked = () => {
+    const [ours, theirs] = [stopped()?.ours ?? "ours", stopped()?.theirs ?? "theirs"];
+    return taken() === "theirs" ? { other: ours, side: theirs } : { other: theirs, side: ours };
+  };
+  // The text edited here goes with the side not taken, as it was when asked: what is typed while
+  // git answers stays.
   const takeWhole = (resolution: "ours" | "theirs") =>
-    void write(
-      "git.resolve",
-      { path: props.path, repo: props.repo, resolution },
-      `Taking ${resolution} for ${props.path}`,
-    ).catch(said);
+    void text
+      .save(() =>
+        write(
+          "git.resolve",
+          { path: props.path, repo: props.repo, resolution },
+          `Taking ${resolution} for ${props.path}`,
+        ),
+      )
+      .then((done) => {
+        if (!done.ok) refusal.set(done.why);
+      });
   /** Goes to block `index`, its marker's line in the middle of the field. */
   const goTo = (index: number) => {
     const block = blocks()[index];
@@ -117,11 +131,11 @@ export function ConflictEditor(props: { path: string; repo: string }) {
         <If when={stopped()}>
           {(sides) => (
             <>
-              <Button keys="o" label={`Take ${sides().ours}`} onPress={() => takeWhole("ours")} />
+              <Button keys="o" label={`Take ${sides().ours}…`} onPress={() => taking.set("ours")} />
               <Button
                 keys="t"
-                label={`Take ${sides().theirs}`}
-                onPress={() => takeWhole("theirs")}
+                label={`Take ${sides().theirs}…`}
+                onPress={() => taking.set("theirs")}
               />
             </>
           )}
@@ -161,6 +175,20 @@ export function ConflictEditor(props: { path: string; repo: string }) {
         </View>
       </If>
       <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
+      <Confirm
+        danger
+        keep="Keep the conflict"
+        keys={taken() === "theirs" ? "t" : "o"}
+        label={`Take ${asked().side}`}
+        onClose={() => taking.set(null)}
+        onConfirm={() => {
+          const side = taking();
+          if (side !== null) takeWhole(side);
+        }}
+        open={taking() !== null}
+        title={`Take ${asked().side} for ${props.path}?`}
+        words={`The file becomes ${asked().side}'s version, whole: what ${asked().other} changed in it${text.dirty() ? ", and what you edited here," : ""} is dropped. Aborting the ${stopped()?.kind ?? "merge"} is the only way back.`}
+      />
       <Changed edited={edited} name={name} onShowsDiff={showsDiff.set} showsDiff={showsDiff()} />
       <If
         when={file()}

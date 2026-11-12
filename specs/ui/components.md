@@ -27,7 +27,7 @@ Controls, [`app/ui/controls/`](/app/ui/controls/) (gallery [Controls](/app/galle
 - Words: `Text` (`tone`, `size`, `font`), `Heading`, `Link`, `Kbd` for a key, `Icon` (Lucide's
   names, and `claude`, `openai`, `pi`).
 - Actions: `Button` (`main` for the view's one main action, a tube otherwise, `danger`),
-  `IconButton`, `Menu` as a last resort.
+  `IconButton`, `Menu` as a last resort; before an act that cannot be taken back, `Confirm`.
 - Choices: `Switch`, `Checkbox`, `Radio`, `Segmented` (two to five), `Select` (more), and
   `NumberInput`, each with `hint` and `refusal`.
 - States: `Badge`, `StatusDot`, `Banner`, `Spinner` (with its words), `Progress`, `Tabs` inside a
@@ -113,6 +113,13 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   overwritten silently. The save is refused in place, the text stays, and the human sees what
   changed, takes the file's version, or saves theirs over it. Never send a record's newest hash with
   a text typed over an older version.
+- **An act that cannot be taken back asks first, in its own words.** What spends an agent's time,
+  starts a run, pushes, revokes, or loses something for good goes through `Confirm`, from its key
+  and from its button alike: its `title` says what will be done, with the names and the numbers
+  ("Push 3 commits to origin/main?"), its `words` what it costs, its `label` the act, its `keys` the
+  key that asked, which confirms as Enter does. `danger` where something is lost. Never a dialog
+  drawn by hand for it, never "Are you sure?", and never such an act on a single key
+  ([keyboard](keyboard.md#a-key-that-cannot-be-taken-back) lists them). What `u` undoes needs none.
 - **One main action per view**, a `Button` of `variant="main"`; the rest are tubes. An action that
   starts work is a button or `Ctrl+Enter`, never Enter in a field.
 - **A key is declared where it acts**, by `registerKey` or a `Button`'s `keys`, and shown by `Kbd`:

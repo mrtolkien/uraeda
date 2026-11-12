@@ -106,7 +106,7 @@ test("a proposal changed on disk while it is edited is not overwritten silently"
     ]);
     expect(app.shows("id:buffer-changed")).toBe(true);
     // Saving over it is deliberate: asked, then done.
-    await app.press("text:Save yours over it");
+    await app.press("text:/^Save yours over it/");
     await app.press("text:Save over it");
     await app.waitUntil(() => disk(app).includes("Mine."), { timeout: 15_000 });
     await app.waitUntil(() => !app.shows("id:buffer-changed"), { timeout: 15_000 });

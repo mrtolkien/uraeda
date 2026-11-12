@@ -3,7 +3,8 @@
 // cursor is in. Moving the cursor onto a file shows its diff in the Diff pane; `s` stages or
 // unstages it, or every file under a folder or a checkout, `a` every file of the checkout; `d`
 // discards a file's changes, after asking, since nothing undoes it; `c` goes to the message, which
-// `Ctrl+Enter` or Commit commits. A conflict takes `o` or `t`, a side whole.
+// `Ctrl+Enter` or Commit commits. A conflict takes `o` or `t`, a side whole, after asking too: the
+// other side's changes to the file go.
 import { computed, effect, signal, untracked, View } from "nsh";
 import { CommitBox } from "./CommitBox";
 import { gitPage, Sync } from "./Sync";
@@ -12,10 +13,9 @@ import { CONFLICTS, folderOf, rowOf, treeOf } from "./tree";
 import { dismiss, refusalAt, write } from "./writes";
 import { call, parseRoute, record } from "../../store";
 import type { GitGroup, GitPage } from "../../store/protocol";
-import { Button, Refusal, Text } from "../../ui/controls";
+import { Button, Confirm, lastAsked, Refusal } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { createCursor, Empty, Tree, treeRows } from "../../ui/lists";
-import { Dialog } from "../../ui/surfaces";
 import { PaneScroll, usePane } from "../../ui/layout";
 
 /** The files of a group under a tree's row: a file, a folder's, or the whole group's. */
@@ -113,17 +113,31 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
     );
     return undefined;
   };
+  // Taking a side whole drops the other's changes to the file: asked first.
+  const taking = signal<{ path: string; resolution: "ours" | "theirs" } | null>(null);
+  const taken = lastAsked(taking);
   const resolve = (resolution: "ours" | "theirs") => {
     const id = cursor.at();
     const row = id === undefined ? undefined : rowOf(id);
     if (row?.kind !== "conflict") return false;
+    taking.set({ path: row.path, resolution });
+    return undefined;
+  };
+  const take = () => {
+    const what = untracked(taking);
+    if (what === null) return;
     void write(
       `${props.repo}/stopped`,
       "git.resolve",
-      { path: row.path, repo: props.repo, resolution },
-      `Taking ${resolution === "ours" ? "ours" : "theirs"} for ${row.path}`,
+      { path: what.path, repo: props.repo, resolution: what.resolution },
+      `Taking ${what.resolution === "ours" ? "ours" : "theirs"} for ${what.path}`,
     );
-    return undefined;
+  };
+  /** The branch a side is, and the other's, as the stopped pull or merge names them. */
+  const sideOf = (resolution: "ours" | "theirs") => {
+    const sides = now()?.stopped;
+    const [ours, theirs] = [sides?.ours ?? "ours", sides?.theirs ?? "theirs"];
+    return resolution === "ours" ? { other: theirs, side: ours } : { other: ours, side: theirs };
   };
   const askDiscard = () => {
     const shown = now();
@@ -136,9 +150,9 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
     discarding.set({ group: target, isNew: file.state === "new", path: file.path });
     return undefined;
   };
+  const discarded = lastAsked(discarding);
   const discard = () => {
-    const what = discarding();
-    discarding.set(null);
+    const what = untracked(discarding);
     if (what === null) return;
     const input = { folder: what.group.folder, path: what.path, repo: props.repo };
     void write(groupAt(what.group.folder), "git.discard", input, `Discarding ${what.path}`);
@@ -257,24 +271,33 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
           )}
         </Each>
       </View>
-      <Dialog
+      <Confirm
+        danger
         icon="trash-2"
+        keep="Keep them"
+        keys="d"
+        label="Discard the changes"
         onClose={() => discarding.set(null)}
+        onConfirm={discard}
         open={discarding() !== null}
-        title={`Discard the changes to ${discarding()?.path ?? "the file"}?`}
-      >
-        <View style={{ gap: 14 }}>
-          <Text>
-            {discarding()?.isNew === true
-              ? "The file is new: it is deleted. Nothing can bring it back."
-              : "The file goes back to its last commit. Nothing can bring the changes back."}
-          </Text>
-          <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-            <Button label="Keep them" onPress={() => discarding.set(null)} />
-            <Button icon="trash-2" label="Discard" onPress={discard} variant="danger" />
-          </View>
-        </View>
-      </Dialog>
+        title={`Discard the changes to ${discarded()?.path ?? "the file"}?`}
+        words={
+          discarded()?.isNew === true
+            ? "The file is new: it is deleted. Nothing can bring it back."
+            : "The file goes back to its last commit. Nothing can bring the changes back."
+        }
+      />
+      <Confirm
+        danger
+        keep="Keep the conflict"
+        keys={taken()?.resolution === "theirs" ? "t" : "o"}
+        label={`Take ${sideOf(taken()?.resolution ?? "ours").side}`}
+        onClose={() => taking.set(null)}
+        onConfirm={take}
+        open={taking() !== null}
+        title={`Take ${sideOf(taken()?.resolution ?? "ours").side} for ${taken()?.path ?? "the file"}?`}
+        words={`The file becomes ${sideOf(taken()?.resolution ?? "ours").side}'s version, whole: what ${sideOf(taken()?.resolution ?? "ours").other} changed in it is dropped. Aborting the ${now()?.stopped?.kind ?? "merge"} is the only way back.`}
+      />
     </PaneScroll>
   );
 }

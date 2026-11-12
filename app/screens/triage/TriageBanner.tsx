@@ -4,8 +4,7 @@
 // answers not committed asks first, as those are lost for good.
 import { signal, View } from "nsh";
 import { call, navigate, record } from "../../store";
-import { Banner, Button, Text } from "../../ui/controls";
-import { Dialog } from "../../ui/surfaces";
+import { Banner, Button, Confirm, Text } from "../../ui/controls";
 import { APPLY_TRIAGE, startChat, TRIAGE_ID } from "./chat";
 
 /** Dismiss, which asks first only when answers would be lost. */
@@ -35,20 +34,16 @@ function Dismiss(props: { onRefused: (words: string | null) => void; repo: strin
         onPress={() => (file()?.committed == null ? void dismiss() : asking.set(true))}
         pending={pending()}
       />
-      <If when={asking()}>
-        <Dialog
-          icon="triangle-alert"
-          onClose={() => asking.set(false)}
-          title="Dismiss the inbox triage?"
-          width={460}
-        >
-          <Text>The answers you saved but did not submit are deleted with it.</Text>
-          <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
-            <Button first label="Keep it" onPress={() => asking.set(false)} />
-            <Button label="Dismiss" onPress={() => void dismiss()} variant="danger" />
-          </View>
-        </Dialog>
-      </If>
+      <Confirm
+        danger
+        keep="Keep it"
+        label="Dismiss the triage"
+        onClose={() => asking.set(false)}
+        onConfirm={() => void dismiss()}
+        open={asking()}
+        title="Dismiss the inbox triage?"
+        words="The answers you saved but did not submit are deleted with it."
+      />
     </>
   );
 }

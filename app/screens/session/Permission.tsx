@@ -2,11 +2,13 @@
 // opens the session's process again with its rule, and a turn of its own asks the agent to try
 // again (`session.allow`); "Allow all" allows every blocked action of the latest turn that has a
 // rule, in one turn (`session.allowAll`). Neither while the agent works: allowing reopens its
-// process. An action no rule can match alone, as a command with a `*`, says so instead.
+// process. An action no rule can match alone, as a command with a `*`, says so instead. Allowing
+// grants the agent something and spends a turn, so its card's buttons, the row's Enter, and the
+// keys `a` and `A` ask first, naming the action and its rule (`AllowQuestion`).
 import { type Signal, signal, untracked, View } from "nsh";
 import { call, StoreError } from "../../store";
 import type { Item } from "../../store/protocol";
-import { Refusal, Text } from "../../ui/controls";
+import { Confirm, lastAsked, Refusal, Text } from "../../ui/controls";
 import { Card, type CardAction } from "../../ui/lists";
 
 type Denial = Extract<Item, { kind: "denial" }>;
@@ -71,6 +73,53 @@ export async function allow(of: AllowOf, all = false) {
   }
 }
 
+/** The allow asked about: one action's, with its words and its rule, or every one of the turn's. */
+type Asked = { all: number | null; of: AllowOf; rule: string | null; wanted: string };
+const asked = signal<Asked | null>(null);
+
+/** Asks whether to allow `denial`, or with `all` the latest turn's `all` blocked actions. */
+export function askAllow(
+  of: AllowOf,
+  denial: Pick<Denial, "rule" | "target" | "tool">,
+  all: number | null = null,
+) {
+  asked.set({ all, of, rule: denial.rule, wanted: wantedWords(denial) });
+}
+
+/** The session's question before an allow: drawn once, by its transcript. */
+export function AllowQuestion(props: { session: string }) {
+  const mine = () => {
+    const now = asked();
+    return now !== null && now.of.session === props.session ? now : null;
+  };
+  const last = lastAsked(mine);
+  const all = () => last()?.all ?? null;
+  return (
+    <Confirm
+      icon="shield"
+      keys={all() === null ? "a" : "A"}
+      label={all() === null ? "Allow and retry" : `Allow all ${all()} and retry`}
+      onClose={() => asked.set(null)}
+      onConfirm={() => {
+        const now = untracked(mine);
+        if (now !== null) void allow(now.of, now.all !== null);
+      }}
+      open={mine() !== null}
+      testID="allow-question"
+      title={
+        all() === null
+          ? `Allow the agent to run ${last()?.wanted ?? "it"}?`
+          : `Allow all ${all()} blocked actions of the latest turn?`
+      }
+      words={
+        all() === null
+          ? `It adds the rule ${last()?.rule ?? ""} to the session's process, and a new turn asks the agent to try again: that spends its time and usage.`
+          : "Each gets its rule in the session's process, and one new turn asks the agent to try them again: that spends its time and usage."
+      }
+    />
+  );
+}
+
 /** Whether a blocked action can be allowed now: it has a rule, and was not allowed yet. */
 export const answerable = (denial: Pick<Denial, "allowed" | "rule">) =>
   !denial.allowed && denial.rule !== null;
@@ -90,15 +139,15 @@ export function Permission(props: PermissionProps) {
       : [
           {
             icon: "shield",
-            label: "Allow and retry",
-            run: () => void allow(of()),
+            label: "Allow and retry…",
+            run: () => askAllow(of(), props.denial),
             variant: "main",
           },
           ...(props.allowable >= 2
             ? [
                 {
-                  label: `Allow all (${props.allowable})`,
-                  run: () => void allow(of(), true),
+                  label: `Allow all (${props.allowable})…`,
+                  run: () => askAllow(of(), props.denial, props.allowable),
                 } satisfies CardAction,
               ]
             : []),
