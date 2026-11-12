@@ -140,3 +140,16 @@ test("a message refused comes back beside the one begun meanwhile", async () => 
     .catch(() => undefined);
   expect([begun, draftOf(app, folder)]).toEqual(["X", "The first message\n\nX"]);
 }, 60_000);
+
+test("Enter in the sessions' search opens the match under the cursor", async () => {
+  const app = await open("../../App.tsx", { height: 800, network: "live", width: 1400 });
+  await app.waitFor("text:Sessions", { timeout: 30_000 });
+  await app.press("text:Sessions >> nth=0");
+  await app.waitFor("label:Search the sessions", { timeout: 20_000 });
+  await app.type("label:Search the sessions", "README");
+  await app.waitUntil(() => app.count("text:What does the README say?") > 0, { timeout: 20_000 });
+  await app.keyboard.press("enter");
+  // The chat opens, and the words searched are not typed into it.
+  await app.waitFor("id:composer", { timeout: 20_000 });
+  expect(app.value(FIELD) ?? "").toBe("");
+}, 60_000);

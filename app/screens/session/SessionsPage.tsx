@@ -1,7 +1,8 @@
 // Every session of the repository, each a card: its title, its state in words with its cause,
 // who runs it and on which account, when it started and when it last spoke. What needs the human
 // comes first, then the latest, as the server orders them. `/` searches their titles, folders,
-// and messages; Enter or a press opens one, beside the list when there is room.
+// and messages, and Enter there opens the match under the cursor; Enter or a press opens one,
+// beside the list when there is room.
 import { computed, View } from "nsh";
 import { navigate, record, serverTime } from "../../store";
 import type { SessionRow } from "../../store/protocol";
@@ -66,6 +67,12 @@ export function SessionsPane(props: {
             label="Search the sessions"
             lines="one"
             onChange={(value) => query.set(value)}
+            // Enter opens the match under the cursor, else the first, as a picker's filter does.
+            onEnter={() => {
+              const at = cursor.at();
+              const id = rows().some((row) => row.id === at) ? at : rows()[0]?.id;
+              if (id !== undefined) open(id);
+            }}
             placeholder="Search sessions"
             ref={(made) => (field = made)}
             value={query()}
