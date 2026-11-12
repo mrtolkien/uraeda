@@ -116,7 +116,7 @@ export function Section(props: SectionProps) {
             words={
               isNarrow()
                 ? "Add a proposal below."
-                : "Add a proposal below, or send one here from the section beside with H or L."
+                : "Add a proposal below, or move one here from its page, or by H or L beside."
             }
           />
         </If>
