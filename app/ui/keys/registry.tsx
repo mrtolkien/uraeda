@@ -17,13 +17,14 @@ import {
   createKeyStore,
   type Declared,
   type KeySpec,
+  type Refused,
   type Scope,
   type ScopeSpec,
   type StatusHint,
 } from "./store";
 import { CHORD, LEADER, SEQUENCE_KEYS, strokeOf } from "./token";
 
-export type { Declared, KeySpec, Scope, ScopeKind, ScopeSpec, StatusHint } from "./store";
+export type { Declared, KeySpec, Refused, Scope, ScopeKind, ScopeSpec, StatusHint } from "./store";
 
 /** The app's one registry, and the sequence its leader has pending. */
 const store = createKeyStore();
@@ -36,8 +37,8 @@ const Current = context<Scope>(store.shell);
  * Declares a shortcut, or several, for as long as the caller is mounted: the only way a key acts
  * on the app. Called as a component renders, in the scope of the nearest `KeyScope` around it,
  * the shell's without one; in an effect, the keys follow what the effect reads, as a hint that
- * changes. Throws where a key could never run, or would mean two things where it is on
- * (`store.ts`). Returns what removes the keys before their component goes.
+ * changes. Throws where a key could never run, or would mean two things where it is on, and in
+ * a release build names it and leaves it out (`store.ts`). Returns what removes the keys before their component goes.
  */
 export function registerKey(
   spec: KeySpec | ReadonlyArray<KeySpec>,
@@ -113,6 +114,9 @@ export const keyHints = (): ReadonlyArray<StatusHint> => store.hints(editing());
 
 /** Every key whose scope is on, whatever the switch says, read as a signal: the key map's. */
 export const keysOn = (): ReadonlyArray<Declared> => store.on();
+
+/** The keys a release build refused where the focus is, for the key map to name. */
+export const keysRefused = (): ReadonlyArray<Refused> => store.refused();
 
 /** Whether a control keeps Space now, read as a signal. */
 export const spaceIsKept = () => store.keepsSpace();

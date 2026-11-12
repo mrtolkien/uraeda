@@ -6,7 +6,15 @@ import { effect, type JSX, signal, untracked } from "nsh";
 import { KEY_MAP_TITLE, KeyMap } from "./KeyMap";
 import { keyMapSections, type KeySection } from "./keyMap";
 import { LeaderMenuHost } from "./LeaderMenu";
-import { endKeys, keysOn, listenKeys, registerKey, singleKeys, spaceIsKept } from "./registry";
+import {
+  endKeys,
+  keysOn,
+  keysRefused,
+  listenKeys,
+  registerKey,
+  singleKeys,
+  spaceIsKept,
+} from "./registry";
 
 /**
  * Hears the keys while it is mounted. `place` is where the human is, as the page's address: a
@@ -23,7 +31,13 @@ export function KeysHost(props: { children?: JSX.Element; place?: unknown }) {
   const sections = signal<ReadonlyArray<KeySection>>([]);
   const isOpen = signal(false);
   const open = () => {
-    sections.set(keyMapSections(keysOn(), { keepsSpace: spaceIsKept(), singleKeys: singleKeys() }));
+    sections.set(
+      keyMapSections(
+        keysOn(),
+        { keepsSpace: spaceIsKept(), singleKeys: singleKeys() },
+        keysRefused(),
+      ),
+    );
     isOpen.set(true);
   };
   const label = `${KEY_MAP_TITLE}…`;

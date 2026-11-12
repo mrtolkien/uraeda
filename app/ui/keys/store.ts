@@ -2,7 +2,8 @@
 // the rules over them. A scope is where keys are on together: the shell, a page, a pane of a page
 // while it has the focus, a held selection, an open layer. A key never means two things where two
 // scopes can be on together, a key is one a keyboard gives, and a sequence goes through groups
-// `groups.ts` names: each fails as it is declared, in every build, so any screen's test catches it.
+// `groups.ts` names: each fails as it is declared, so any screen's test catches it; a release build
+// names it and leaves that one key out, keeping the app up (`KeyStoreOptions`).
 //
 // - Two panes of one parent are never on together: each may have its own `j`.
 // - A held selection's keys run before the page's and the shell's, and may reuse their keys: a key
@@ -74,6 +75,17 @@ export type Scope = {
 
 /** A declared key and where it was declared, as the key map lists it. */
 export type Declared = { readonly scope: Scope; readonly spec: KeySpec };
+
+/** A key the registry refused in a release build, and why: it never runs, and the key map says so. */
+export type Refused = Declared & { readonly problem: string };
+
+/**
+ * How the registry meets a key that could never run, or would mean two things. `strict`, in
+ * development and tests, throws, so any screen's test catches it. Otherwise, in a release build,
+ * it reports it (`report`, the console's error unless given), keeps the bindings declared before,
+ * and leaves that one key out: a slip in one screen never takes the app down (ruling T88.2).
+ */
+export type KeyStoreOptions = { report?: (words: string) => void; strict?: boolean };
 
 /** A key that works, and what it does, as the status line shows it: "j k" "move". */
 export type StatusHint = {
@@ -192,11 +204,14 @@ const rank = (keys: string) => {
 /** Who runs first: a held selection, then the page with its panes and layers, then the shell. */
 const order = (scope: Scope) => (selectionOf(scope) !== null ? 0 : scope.kind === "shell" ? 2 : 1);
 
-export function createKeyStore() {
+export function createKeyStore(options: KeyStoreOptions = {}) {
+  const strict = options.strict ?? process.env.NODE_ENV !== "production";
+  const report = options.report ?? ((words: string) => console.error(words));
   const shell: Scope = { id: 0, kind: "shell", name: "Everywhere", on: () => true, parent: null };
   const scopes = new Set<Scope>([shell]);
   const keepers = new Set<() => boolean>();
   let declared: Array<Declared> = [];
+  let refused: Array<Refused> = [];
   let nextId = 1;
   /** Moves at each change of what is declared, so a read of it is tracked. */
   const changes = signal(0);
@@ -221,11 +236,11 @@ export function createKeyStore() {
     return [0, 1, 2].flatMap((place) => declared.filter(({ scope }) => order(scope) === place));
   };
 
+  /** Whether a scope's keys are on: in the newest layer, and on. */
+  const here = (scope: Scope) => layerOf(scope) === topLayer() && isOn(scope);
+
   /** The keys whose scope is on, whatever the switch says: what a chord's menu walks. */
-  const on = (): Array<Declared> => {
-    const top = topLayer();
-    return listed().filter(({ scope }) => layerOf(scope) === top && isOn(scope));
-  };
+  const on = (): Array<Declared> => listed().filter(({ scope }) => here(scope));
 
   /** The keys that work: on, and with the switch off, not a single-key one. */
   const active = () => on().filter(({ spec }) => singleKeys() || !isSingleKey(spec.keys));
@@ -280,7 +295,7 @@ export function createKeyStore() {
      */
     works(scope: Scope) {
       changes();
-      return layerOf(scope) === topLayer() && isOn(scope);
+      return here(scope);
     },
     /** The newest open layer's id, `null` while the page has the keys. */
     layer() {
@@ -290,29 +305,45 @@ export function createKeyStore() {
     listed,
     on,
     /**
-     * Declares keys in a scope, all or none: throws where one could never run, or would make a key
-     * mean two things. Returns what removes them.
+     * Declares keys in a scope: throws, declaring none, where one could never run, or would make a
+     * key mean two things; in a release build, reports it and leaves that key out (`KeyStoreOptions`).
+     * Returns what removes them.
      */
     register(scope: Scope, specs: ReadonlyArray<KeySpec>) {
-      const added = specs.map((spec) => ({ scope, spec }));
-      added.forEach((mine, index) => {
+      const added: Array<Declared> = [];
+      const left: Array<Refused> = [];
+      for (const spec of specs) {
+        const mine = { scope, spec };
         const broken = flaw(mine);
-        if (broken !== null) {
-          throw new Error(`A key cannot work in ${scope.name}: ${broken}`);
+        const problem =
+          broken ?? [...declared, ...added].map((other) => clash(other, mine)).find(Boolean);
+        if (problem === undefined || problem === null) {
+          added.push(mine);
+          continue;
         }
-        const problem = [...declared, ...added.slice(0, index)]
-          .map((other) => clash(other, mine))
-          .find((found) => found !== null);
-        if (problem !== undefined && problem !== null) {
-          throw new Error(`A key means two things in ${scope.name}: ${problem}`);
+        const words =
+          broken === null
+            ? `A key means two things in ${scope.name}: ${problem}`
+            : `A key cannot work in ${scope.name}: ${problem}`;
+        if (strict) {
+          throw new Error(words);
         }
-      });
+        report(words);
+        left.push({ ...mine, problem });
+      }
       declared = [...declared, ...added];
+      refused = [...refused, ...left];
       changed();
       return () => {
         declared = declared.filter((entry) => !added.includes(entry));
+        refused = refused.filter((entry) => !left.includes(entry));
         changed();
       };
+    },
+    /** The keys refused in a release build, where the focus is: the key map names them. */
+    refused(): Array<Refused> {
+      changes();
+      return refused.filter(({ scope }) => here(scope));
     },
     /** Removes a scope, the scopes in it, and their keys, as its component goes. */
     remove(scope: Scope) {
@@ -321,6 +352,7 @@ export function createKeyStore() {
         scopes.delete(inside);
       }
       declared = declared.filter((entry) => !gone.includes(entry.scope));
+      refused = refused.filter((entry) => !gone.includes(entry.scope));
       changed();
     },
     /**

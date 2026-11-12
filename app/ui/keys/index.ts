@@ -12,6 +12,7 @@ export {
   KeyScope,
   keyScope,
   keysOn,
+  keysRefused,
   keysWorkHere,
   type KeySpec,
   pendingKeys,

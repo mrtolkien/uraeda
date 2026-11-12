@@ -10245,15 +10245,15 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 ## T85.1: In a field, the status line says INSERT and hints only the field's keys, Vim or not
 
-- **Decision**: a text field tells the key registry it has the focus (`fieldFocused`, by a token
-  of its own, given back as it goes); while one has it, the status line hints only the keys the
-  field lets through (`inField`), and its mode reads INSERT when Vim gives none. Outside a field,
-  NAV, and the page's hints, as before.
-- **Rationale**: walking a session by keys, the composer had the focus after a chat opened, and
-  the status line still said NAV with `j k move`, `R rename`, `i write`: the person trusted it and
-  typed `gg` into the message. docs/app.md already says "NAV while keys act on the page, else the
-  field's"; Vim's modes said it only with Vim on. INSERT is the word a LazyVim hand reads as "what
-  I type goes in the text", in the mode colour the field's edge already takes.
+- **Decision**: a text field tells the key registry it has the focus (`fieldFocused`, by a token of
+  its own, given back as it goes); while one has it, the status line hints only the keys the field
+  lets through (`inField`), and its mode reads INSERT when Vim gives none. Outside a field, NAV, and
+  the page's hints, as before.
+- **Rationale**: walking a session by keys, the composer had the focus after a chat opened, and the
+  status line still said NAV with `j k move`, `R rename`, `i write`: the person trusted it and typed
+  `gg` into the message. docs/app.md already says "NAV while keys act on the page, else the
+  field's"; Vim's modes said it only with Vim on. INSERT is the word a LazyVim hand reads as "what I
+  type goes in the text", in the mode colour the field's edge already takes.
 - **Alternatives considered**: a word of its own, EDIT or TYPE, which no guide names; leaving the
   mode alone and only filtering the hints, which still said NAV over a field.
 - **If wrong**: `modeSlot` in `app/screens/shell/Status.tsx` drops the fallback; the hints' filter
@@ -10262,3 +10262,24 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   settle.
 - **Where**: `app/ui/keys/{registry.tsx,store.ts}`, `app/ui/text/TextField.tsx`,
   `app/screens/shell/Status.tsx`, `app/ui/text/text.test.tsx`.
+
+## T88.2: A key that means two things is named in a release build, never thrown
+
+- **Decision**: the registry still throws on a key that could never run, or would mean two things,
+  in development and in tests (`process.env.NODE_ENV` is not `production`, as `nsh test` and
+  `nsh run` bundle), so a screen's test catches it, and "a key means one thing on a page" stays
+  tested. In a release build it says it on the console, keeps the bindings declared before, leaves
+  that one key out, and the key map lists it first, under "Not bound", with why. The case that found
+  it: Git's Changes keyed its commit box by group, the next box is drawn before the last goes, and
+  for that moment both declared `c` and `Ctrl+Enter`: the throw took the whole app down. Each box
+  now declares its keys in a scope of its own, on only while its group is the one shown, which the
+  registry already holds apart, as two panes of one parent.
+- **Rationale**: the keyboard decision asks that every shortcut be declared in the registry and mean
+  one thing on a page; a clash breaks one key, and the person loses the whole app over it. The first
+  binding is the one already on the screen; the second's owner has never worked yet.
+- **If wrong**: a clash a release meets goes unseen in the console: the key map's "Not bound"
+  section is where it shows, and a report could go to the server later.
+- **Where**: `app/ui/keys/{store.ts,registry.tsx,keyMap.ts,KeysHost.tsx}`,
+  `app/screens/git/CommitBox.tsx`; the tests
+  `in a release build, a key that means two things is named, and the first binding kept` and
+  `c writes the message of the group the cursor is in, as the cursor crosses groups`.

@@ -121,6 +121,30 @@ test("a key means one thing on a page", () => {
   );
 });
 
+test("in a release build, a key that means two things is named, and the first binding kept", () => {
+  const said: Array<string> = [];
+  const store = createKeyStore({ report: (words) => void said.push(words), strict: false });
+  const inbox = store.scope({ name: "Inbox" });
+  const done: Array<string> = [];
+  store.register(inbox, [key("d", "Delete", { run: () => void done.push("deleted") })]);
+
+  // Nothing throws: the clash is said, and the rest of the list is declared.
+  store.register(inbox, [key("d", "Done"), key("x", "Cut"), key("ctrl+d", "Down")]);
+  expect(said[0]).toBe(
+    'A key means two things in Inbox: "d" is bound twice, to Delete and to Done',
+  );
+  expect(said[1]).toContain('A key cannot work in Inbox: "ctrl+d" (Down) can never run');
+  expect(store.listed().map(({ spec }) => spec.label)).toEqual(["Delete", "Cut"]);
+  store.run("d");
+  expect(done).toEqual(["deleted"]);
+
+  // The key map names it first, where the focus is.
+  const map = keyMapSections(store.on(), { keepsSpace: false, singleKeys: true }, store.refused());
+  const [title, clashed, broken] = titles(map)[0] ?? [];
+  expect([title, clashed]).toEqual(["Not bound", 'd: "d" is bound twice, to Delete and to Done']);
+  expect(broken).toContain('ctrl+d: "ctrl+d" (Down) can never run');
+});
+
 test("a sequence waits for its second key, then gives up", async () => {
   const app = await page();
   // Typed with no time between, the sequence runs and no menu ever shows.

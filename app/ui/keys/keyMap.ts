@@ -5,7 +5,7 @@
 // keys that still work are listed: the leader's sequences, written from the chord that opens the
 // menu then, and a fallback only with the keys nothing else listed takes.
 import { GROUPS } from "./groups";
-import type { Declared, Scope } from "./store";
+import type { Declared, Refused, Scope } from "./store";
 import { CHORD, isSingleKey, LEADER, written } from "./token";
 
 /** A row of the key map: the keys, each a sequence of tokens as typed, and what they do. */
@@ -18,6 +18,8 @@ export type KeySection = { rows: Array<KeyRow>; title: string };
 const SHELL = "Everywhere";
 const MENU = "Leader menu";
 const GO = "Go";
+/** The first section, where a release build lists the keys it refused. */
+const NOT_BOUND = "Not bound";
 const LAST = [SHELL, MENU, ...Object.values(GROUPS).map((group) => group.label), GO];
 
 /** Whether a binding is a sequence of the leader's menu: Space, then a key. */
@@ -78,11 +80,13 @@ function working(on: ReadonlyArray<Declared>, where: { keepsSpace: boolean; sing
 
 /**
  * The sections of the keys that are on (`keysOn()` of the registry), where the focus is: whether
- * its control keeps Space, and whether the single keys are on.
+ * its control keeps Space, and whether the single keys are on. The keys a release build refused
+ * (`keysRefused()`) come first, "Not bound", each with why.
  */
 export function keyMapSections(
   on: ReadonlyArray<Declared>,
   where: { keepsSpace: boolean; singleKeys: boolean },
+  refused: ReadonlyArray<Refused> = [],
 ): Array<KeySection> {
   const sections = new Map<string, Map<string, KeyRow>>();
   for (const { entry, tokens } of working(on, where)) {
@@ -98,10 +102,17 @@ export function keyMapSections(
     }
   }
   const pages = [...sections.keys()].filter((title) => !LAST.includes(title));
-  return [...pages, ...LAST].flatMap((title) => {
-    const rows = sections.get(title);
-    return rows === undefined ? [] : [{ rows: [...rows.values()], title }];
-  });
+  const unbound = refused.map(({ problem, spec }) => ({
+    keys: [spec.keys.split(" ")],
+    label: problem,
+  }));
+  return [
+    ...(unbound.length === 0 ? [] : [{ rows: unbound, title: NOT_BOUND }]),
+    ...[...pages, ...LAST].flatMap((title) => {
+      const rows = sections.get(title);
+      return rows === undefined ? [] : [{ rows: [...rows.values()], title }];
+    }),
+  ];
 }
 
 /**
