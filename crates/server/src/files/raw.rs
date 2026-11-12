@@ -10,6 +10,7 @@ use axum::http::{HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use uraeda_core::api;
 
+use super::pick::{picking, with_pick};
 use super::repository::Repository;
 use crate::http::segment;
 use crate::shared::Shared;
@@ -72,25 +73,6 @@ pub(super) async fn mockup(
     let no_referrer = HeaderValue::from_static("no-referrer");
     response.headers_mut().insert(REFERRER_POLICY, no_referrer);
     response
-}
-
-/// The pick script, which tells the app the element pressed in a page while it picks.
-const PICK: &str = include_str!("../../../../skills/uraeda/assets/storybook/uraeda-pick.js");
-
-/// Whether the page is asked for picking: its query names `uraeda-pick`.
-fn picking(uri: &Uri) -> bool {
-    let query = uri.query().unwrap_or_default();
-    query
-        .split('&')
-        .any(|pair| pair.split('=').next() == Some("uraeda-pick"))
-}
-
-/// The page with the pick script at the end of its head; at its start
-/// when it has no head.
-fn with_pick(page: &str) -> String {
-    let script = format!("<script>{PICK}</script>");
-    let at = page.to_ascii_lowercase().find("</head>").unwrap_or(0);
-    format!("{}{script}{}", &page[..at], &page[at..])
 }
 
 /// The file's text, or the status of why it was not read: 404 when the core finds no such file,

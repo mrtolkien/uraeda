@@ -16,6 +16,7 @@ mod attach;
 mod change;
 pub(crate) mod chat_images;
 mod images;
+mod pick;
 mod raw;
 mod repository;
 
