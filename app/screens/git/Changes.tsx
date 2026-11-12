@@ -9,8 +9,8 @@ import { CommitBox } from "./CommitBox";
 import { gitPage, Sync } from "./Sync";
 import { pick, picked } from "./picked";
 import { CONFLICTS, folderOf, rowOf, treeOf } from "./tree";
-import { refusalAt, write } from "./writes";
-import { call } from "../../store";
+import { dismiss, refusalAt, write } from "./writes";
+import { call, parseRoute, record } from "../../store";
 import type { GitGroup, GitPage } from "../../store/protocol";
 import { Button, Refusal, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
@@ -74,6 +74,18 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
   });
 
   const now = () => page() ?? undefined;
+  // The refused writes made on this page, which the queue keeps until dismissed: a card says them
+  // on every other page, and this page under its commit.
+  const queue = record("WriteQueue", { repo: props.repo });
+  const dismissRefused = (where: string) => {
+    dismiss(where);
+    const made = (queue()?.writes ?? []).filter(
+      (one) => one.state === "refused" && one.href !== "" && parseRoute(one.href).page === "git",
+    );
+    for (const one of made) {
+      void call("writes.dismiss", { id: one.id, repo: props.repo }).catch(() => undefined);
+    }
+  };
   const group = () => {
     const shown = now();
     return shown === undefined ? undefined : groupOf(shown, cursor.at());
@@ -224,7 +236,16 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
           {(shown) => (
             <View style={{ gap: 6 }}>
               <If when={refusalAt(groupAt(shown().folder))}>
-                {(words) => <Refusal testID="git-group-refusal" words={words()} />}
+                {(words) => (
+                  <View style={{ alignItems: "flex-start", gap: 6 }}>
+                    <Refusal testID="git-group-refusal" words={words()} />
+                    {/* Its way out, which its words name: the card elsewhere has it too. */}
+                    <Button
+                      label="Dismiss"
+                      onPress={() => dismissRefused(groupAt(shown().folder))}
+                    />
+                  </View>
+                )}
               </If>
               <CommitBox
                 group={shown()}

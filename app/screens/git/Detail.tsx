@@ -13,6 +13,7 @@ import type { GitCommitFile, GitDiff, GitFile, GitGroup } from "../../store/prot
 import { Button, Heading, Refusal, Spinner, Text } from "../../ui/controls";
 import { Diff } from "../../ui/document";
 import { Empty } from "../../ui/lists";
+import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
 import type { WidthClass } from "../../ui/width";
 import { ConflictEditor } from "../conflict";
@@ -92,6 +93,18 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
       `${unstage ? "Unstaging" : "Staging"} ${props.path} in ${target.name}`,
     );
   };
+  // Its Stage under the same key as the Changes' row: the file read is the one staged.
+  registerKey({
+    hint: "s",
+    hintLabel: "stage",
+    keys: "s",
+    label: "Stage or unstage the file",
+    run: () => {
+      if (file() === undefined || pageHeld(props.repo, props.folder)) return false;
+      stage();
+      return undefined;
+    },
+  });
   return (
     <View style={{ flex: 1, gap: 10 }}>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
