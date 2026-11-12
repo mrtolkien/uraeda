@@ -183,10 +183,10 @@ export function TextField(props: TextFieldProps) {
   let reported: VimStatus | null = null;
   // Who this field is to the key registry, which hints only its keys while it has the focus; a
   // field taken away with the focus gives it back.
-  const token = {};
+  const self = {};
   cleanup(() => {
     if (reported !== null && untracked(vimStatus) === reported) vimStatus.set(NO_FIELD);
-    fieldFocused(token, false);
+    fieldFocused(self, false);
   });
   const jump = signal<CaretTrail | null>(null);
   const vim = () => vimMode() && props.readOnly !== true;
@@ -294,7 +294,7 @@ export function TextField(props: TextFieldProps) {
             oneLine={oneLine()}
             onBlur={() => {
               stop.onBlur();
-              fieldFocused(token, false);
+              fieldFocused(self, false);
               status.set(NO_FIELD);
               vimStatus.set(NO_FIELD);
               props.onBlur?.();
@@ -306,7 +306,7 @@ export function TextField(props: TextFieldProps) {
             }}
             onFocus={() => {
               stop.onFocus();
-              fieldFocused(token, true);
+              fieldFocused(self, true);
               props.onFocus?.();
             }}
             onKey={({ key }) => heard(key)}
