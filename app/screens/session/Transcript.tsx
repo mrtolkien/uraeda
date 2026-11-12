@@ -4,7 +4,7 @@
 // button follow again (rule 9: never lost in a long session). Its rows are read by pages
 // (`pages.ts`); each message has its own signal, and a reply grows by blocks (`Rows.tsx`).
 import { effect, signal, untracked, View } from "nsh";
-import { call, navigate, positions, record, redirect, StoreError } from "../../store";
+import { call, navigate, positions, record, redirect, route, StoreError } from "../../store";
 import type { Session } from "../../store/protocol";
 import { Button, Spinner } from "../../ui/controls";
 import { keysWorkHere, registerKey } from "../../ui/keys";
@@ -129,6 +129,28 @@ function Conversation(props: { args: SessionArgs; session: () => Session }) {
   const place = `${pane.key}:transcript`;
   const following = signal(untracked(followed));
   let list: VirtualListRef | undefined;
+
+  // An address naming a turn, `#turn-<id>`, as an old run's link does: the page's conversation
+  // opens at that turn, once per visit, and stops following the end.
+  const turnShown = pane.remember("turn", "");
+  effect(() => {
+    const hash = route().hash ?? "";
+    if (!hash.startsWith("turn-") || !pane.key.startsWith("session-transcript")) return;
+    if (untracked(turnShown) === hash) return;
+    const turn = hash.slice("turn-".length);
+    const row = feed
+      .rows()
+      .find(
+        (one) => one.id === turn || one.id.startsWith(`${turn}/`) || one.id.startsWith(`${turn}#`),
+      );
+    if (row === undefined) return;
+    untracked(() => {
+      turnShown.set(hash);
+      followed.set(false);
+      following.set(false);
+      cursor.set(row.id, { reveal: true });
+    });
+  });
 
   // Shown: the human saw its latest turn, whatever its status says, as "Needs you" at a gate.
   effect(() => {

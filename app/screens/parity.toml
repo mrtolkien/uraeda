@@ -23,8 +23,8 @@ mockup = { path = "/f/<folder>/mockups/<name>", page = "mockup", screen = "app/s
 branch-decision = { path = "/f/<folder>/decisions/<name>", page = "branch-decision", screen = "app/screens/decisions" }
 session = { path = "/f/<folder>/session", page = "session", screen = "app/screens/session" }
 storybook = { path = "/f/<folder>/storybook?story=, /storybook?story=", page = "storybook", screen = "app/screens/preview" }
-# An old run's address opens its feature's session, at its newest message: `#turn-<id>` is kept in
-# the address, and the transcript does not scroll to it (see `[[left]]`).
+# An old run's address opens its feature's session: `#turn-<id>` is kept in the address, and the
+# conversation opens at that turn (see `[[left]]`).
 run = { path = "/f/<folder>/runs/<id>", page = "session", screen = "app/screens/session" }
 priorities = { path = "/priorities", page = "priorities", screen = "app/screens/priorities" }
 proposal = { path = "/priorities/<key>", page = "proposal", screen = "app/screens/proposal" }
@@ -164,6 +164,13 @@ why = "removing and adding a name does the same, in two presses (T48)"
 fate = "brought-back"
 now = "Settings, Server: an Edit beside each host name's Remove opens the name dialog (`settings.editHost`), warning when it is the name this device reaches the server through"
 
+[[left]]
+what = "`#turn-<id>` anchors, and the transcript's place kept by Back"
+old = "Session"
+why = "a transcript opens at its newest message, the rule of task 43 (R337)"
+fate = "brought-back"
+now = "the session's conversation opens at the turn an address names, `#turn-<id>` (an old run's link), once per visit, its cursor on the turn's first row and the end no longer followed; the window reads the pages around it. Back's place was already the visit's"
+
 # --- Left: each with what it needs, and who misses it ---------------------------------------------
 
 [[left]]
@@ -189,14 +196,6 @@ why = "a merged feature carries no date to order by (R274)"
 fate = "left"
 needs = "the merge's date on the workspace's done features, then a pane of Home"
 missed = "nobody much: the sidebar's Features and the Git page's history show what merged"
-
-[[left]]
-what = "`#turn-<id>` anchors, and the transcript's place kept by Back"
-old = "Session"
-why = "a transcript opens at its newest message, the rule of task 43 (R337)"
-fate = "left"
-needs = "the transcript's window opened around a turn's page, as `DocumentScroll.toAnchor` does for a heading"
-missed = "nobody much: old run links still open their session, at its end"
 
 [[left]]
 what = "The New page's `/` search over its entries"
