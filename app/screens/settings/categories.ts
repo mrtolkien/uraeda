@@ -207,11 +207,11 @@ export function search(text: string, extra: ReadonlyArray<Words>): ReadonlyArray
   /** How far from its name a setting holds the text: 0 its name, 1 another, 2 its help. */
   const rank = ({ words }: Found) => (has(words.label) ? 0 : (words.terms ?? []).some(has) ? 1 : 2);
   const holds = (words: Words) => [words.label, words.help, ...(words.terms ?? [])].some(has);
-  return found(extra, holds, needle).toSorted((a, b) => rank(a) - rank(b));
+  return holding(extra, holds, needle).toSorted((a, b) => rank(a) - rank(b));
 }
 
 /** What the search holds, in the categories' order, with a category found by its own name. */
-function found(extra: ReadonlyArray<Words>, holds: (words: Words) => boolean, needle: string) {
+function holding(extra: ReadonlyArray<Words>, holds: (words: Words) => boolean, needle: string) {
   return CATEGORIES.flatMap((category) => {
     const own = category.id === "extensions" ? extra : category.settings;
     const settings = own.filter(holds).map((words) => ({ category, words }));
