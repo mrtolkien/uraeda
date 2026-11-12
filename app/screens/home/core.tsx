@@ -61,6 +61,8 @@ export function NeedsYou(props: { repo: string }) {
   const needs = record("NeedsYouList", null);
   const workspace = record("Workspace", { repo: props.repo });
   const cards = () => {
+    // Drawn once both came: a problem of the workspace arriving after the list jumped every card.
+    if (needs() === undefined || workspace() === undefined) return [];
     const rows = needs()?.rows ?? [];
     const listed = new Set(rows.map((row) => row.folder));
     const problems = (workspace()?.features ?? []).filter(
@@ -159,6 +161,8 @@ export function InProgress(props: { repo: string }) {
   const sessions = record("SessionList", { repo: props.repo });
   const now = ticking(30_000);
   const cards = () => {
+    // Drawn once both came: the sessions order the features, and add the chats after them.
+    if (workspace() === undefined || sessions() === undefined) return [];
     const rows = sessions()?.rows ?? [];
     // The ones at work first, then those that wait for their next run; each the oldest first.
     const startOf = (feature: WorkspaceFeature) =>
