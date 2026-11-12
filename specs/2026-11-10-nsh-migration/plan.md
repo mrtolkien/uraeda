@@ -437,7 +437,7 @@ NSH moves fast: read the page again before building on it. Start from
 [`llms.txt`](https://nsh.dev/llms.txt), which lists every page, and from the NSH section of
 [`AGENTS.md`](/AGENTS.md), which says where the documentation and the source are. Paths below are
 under `https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.5.0, the release `v0.5.0`, at
-commit `f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1` (rulings R14 and T68.1): read the pages at that
+commit `f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1` (rulings R14 and R422): read the pages at that
 commit, with `v0.5.0` in place of `main` in a path.
 
 | Subject                           | Page                                                                                                                                                                                                                         |
@@ -3375,23 +3375,23 @@ build is the part of NSH that moves fastest.
 - [x] **Step 1: Read the changelog and the diff of what Uraeda uses**, from 0.4.0 to 0.5.0: every
       breaking change of the Rust API and of TSX, every fix, and what is new. List in a ruling each
       item that touches Uraeda: what breaks, what a workaround can now drop, and what is worth
-      adopting. Rulings T68.1 and T68.3.
+      adopting. Rulings R422 and R424.
 - [x] **Step 2: Take the pictures before**: the gallery's, the walk's, and the frames and navigation
       numbers, on 0.4.0, in `target/shots/before-0.5.0/`.
 - [x] **Step 3: Move the pin**, in its four places at once, and make the workspace build and its
       checks pass. The checks of `crates/app/tests/outside.rs` say which assumption of NSH broke:
-      none did. What broke is in T68.1: NSH's parts as Cargo features, GStreamer, the web runtime as
+      none did. What broke is in R422: NSH's parts as Cargo features, GStreamer, the web runtime as
       a component, two structs' new fields, the window API, the frame log's target, a press on a
       covered view, and the number field's row.
 - [x] **Step 4: Drop each workaround the release makes needless**, one commit each, with its test.
-      One was: a following list's scroll after its first frame, for `initialScrollAtEnd` (T68.4).
-      The others the plan named are still needed in 0.5.0, each seen or read in its source, and keep
+      One was: a following list's scroll after its first frame, for `initialScrollAtEnd` (R425). The
+      others the plan named are still needed in 0.5.0, each seen or read in its source, and keep
       their workaround with the release's number in its comment: an overlay's Escape taking a
       field's, a web view that no key can focus, the editor's `line` style, colours of the diff
       view, a `<Shader>`'s failure that only logs, fonts of an embedded view, the `rolldown` crates
       held beside the bundler.
 - [x] **Step 5: Take the pictures and the numbers again, and compare.** Fix what moved. Say in the
-      commit what differs, with the pictures' paths. Ruling T68.2.
+      commit what differs, with the pictures' paths. Ruling R423.
 - [x] **Step 6: Run the checks**: `just check`, `just task-app`, and `just task` on the crates that
       take NSH. Expected: PASS.
 - [x] **Step 7: Commit**: `build(nsh-migration): Native Shell 0.5.0`.
@@ -3400,7 +3400,7 @@ build is the part of NSH that moves fastest.
 the React UI and the Node server. Read NSH's web pages before each task:
 [`website/docs/web.md`](https://github.com/longbridge/nsh/blob/main/website/docs/web.md) and
 [`docs/dev/web.md`](https://github.com/longbridge/nsh/blob/main/docs/dev/web.md). The plan ends
-here: iOS and macOS are the human's, later. Ruling T68.3 says what NSH 0.5.0 gives each task.
+here: iOS and macOS are the human's, later. Ruling R424 says what NSH 0.5.0 gives each task.
 
 ## Task 56: The web build, served by `ura serve`
 

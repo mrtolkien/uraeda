@@ -83,12 +83,21 @@ export type VirtualListProps = {
 /** How near its end a list that follows must be to stay at it, in points. */
 const NEAR_END = 48;
 
+/** How many rows away the end may be for the way there to be drawn: further, the list jumps. */
+const FAR = 100;
+
 export function VirtualList(props: VirtualListProps) {
   const cursor = props.cursor;
   let list: ListRef | undefined;
   // The rows wholly shown, as the list last said: what a key's move must not scroll for.
   let shown = { first: 0, last: -1 };
-  const following = signal(props.follow === true);
+  // A list that follows opens at its end, unless a place was kept or a row asked for, as a link to
+  // a turn asks.
+  const atEnd =
+    props.follow === true && props.offset === undefined && untracked(cursor.reveal) === undefined;
+  const following = signal(atEnd);
+  // Where it was at its last scroll: a reader moves away from the end by going up from there.
+  let rested = props.offset ?? 0;
   const follows = (now: boolean) => {
     if (untracked(following) !== now) {
       following.set(now);
@@ -121,7 +130,7 @@ export function VirtualList(props: VirtualListProps) {
     // The last row is the list's end: an index's offset is estimated for rows not drawn yet, and
     // `G` on a chat of 20,000 messages came to rest forty short of it, "Jump to the latest" shown.
     if (index === rows.length - 1) {
-      list.scrollToEnd({ animated: true });
+      list.scrollToEnd({ animated: index - shown.last <= FAR });
       if (props.follow === true) follows(true);
       return;
     }
@@ -151,23 +160,13 @@ export function VirtualList(props: VirtualListProps) {
     cursor.set(id);
     props.onOpen?.(id);
   };
-  const start = untracked(cursor.items).length;
   // A list that opens with its cursor on a row, and no place kept, opens on that row: a decision
   // opened by a link shows its card, wherever it sits in the list.
   const opened = untracked(() => {
     const id = cursor.at();
     return id === undefined ? -1 : cursor.items().findIndex((row) => row.id === id);
   });
-  const firstShown =
-    props.offset !== undefined
-      ? undefined
-      : props.follow === true
-        ? start > 0
-          ? start - 1
-          : undefined
-        : opened > 0
-          ? opened
-          : undefined;
+  const firstShown = props.offset !== undefined || atEnd || opened <= 0 ? undefined : opened;
 
   return (
     <List
@@ -179,15 +178,24 @@ export function VirtualList(props: VirtualListProps) {
       header={props.header}
       // No `keyExtractor`: Native Shell reads each item's `id` itself, where a function of ours
       // ran in TSX for each of the 20,000 rows of a transcript at every row that came.
+      // At its end before its first frame, and held there while its rows are measured: the last
+      // row's index landed where the rows' estimated heights put it, short of the end.
+      initialScrollAtEnd={atEnd}
       initialScrollIndex={firstShown}
       maintainVisibleContentPosition={
         props.follow === true ? { autoscrollToBottomThreshold: NEAR_END } : undefined
       }
       onScroll={(event) => {
-        props.onOffset?.(event.offset.y);
+        const now = event.offset.y;
+        props.onOffset?.(now);
         if (props.follow === true) {
-          follows(event.offset.y + event.size.height >= event.contentSize.height - NEAR_END);
+          // At its end it follows. It stops only as the reader goes up from where it was: content
+          // that grows under a list at rest, rows measured or a row that came, leaves it
+          // following, where the same offset against a longer content read as "scrolled away".
+          if (now + event.size.height >= event.contentSize.height - NEAR_END) follows(true);
+          else if (now < rested) follows(false);
         }
+        rested = now;
       }}
       onViewableItemsChange={({ viewableItems }) => {
         let first = Number.POSITIVE_INFINITY;
@@ -201,16 +209,6 @@ export function VirtualList(props: VirtualListProps) {
       }}
       ref={(node: ListRef) => {
         list = node;
-        // A list that follows opens at its true end: the last row's index lands where its
-        // rows' estimated heights put it, short of the end, "Jump to the latest" shown at once.
-        if (props.follow === true && props.offset === undefined && start > 0) {
-          // Unless a row was asked for meanwhile, as a link to a turn asks.
-          setTimeout(() => {
-            if (untracked(cursor.reveal) !== undefined) return;
-            node.scrollToEnd({ animated: false });
-            follows(true);
-          }, 0);
-        }
         props.ref?.({
           scrollTo: (offset, animated = false) => node.scrollToOffset({ animated, offset }),
           show,

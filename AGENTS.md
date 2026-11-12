@@ -109,7 +109,7 @@ spikes measured.
 - **Read the pinned version.** The migration pins NSH **0.5.0**, the release `v0.5.0`, at commit
   `f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1`. NSH's Rust API changes between releases: read the
   source at that commit (`git clone --depth 1 --branch v0.5.0 https://github.com/longbridge/nsh.git`
-  in a temporary folder), not at `main`. The website follows `main`. Ruling T68.1 lists what 0.5.0
+  in a temporary folder), not at `main`. The website follows `main`. Ruling R422 lists what 0.5.0
   changed for Uraeda, and which of NSH's limits it left.
 - **Trust the source over the website** when they disagree, and a run over both: the spikes found
   pages that were out of date.

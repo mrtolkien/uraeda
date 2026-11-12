@@ -8114,7 +8114,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
      `g T` switch the focused stack's tab from anywhere in it.
 - **Where**: `specs/ui/` once decided; the pictures in `target/shots/walk/`.
 
-## T68.1: Native Shell 0.5.0: what the release changed for Uraeda
+## R422: Native Shell 0.5.0: what the release changed for Uraeda
 
 - **Decision**: the pin moves to NSH 0.5.0, the release `v0.5.0`, at commit
   `f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1`, in its four places. Read: the release's notes, its 563
@@ -8150,7 +8150,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     room between the steps, and, before a unit, three digits' width: a unit adds its own width.
   - **A list no longer comes to rest at its end by a scroll made after its first frame**, reads
     itself as scrolled away once its rows are measured, and an animated scroll to a far end stops
-    short: ruling T68.4, and its own commit.
+    short: ruling R425, and its own commit.
 - **What the release fixes or adds, with nothing to drop**:
   - An `<Image>` draws an SVG's text (#1291), seen, in the machine's fonts: a font the app bundles
     is not found. A diagram keeps its text as shapes, measured and drawn in the bundled font (R205).
@@ -8202,12 +8202,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/shell/Notifications.tsx`, `app/ui/controls/NumberInput.tsx`,
   `app/screens/git/git.test.tsx`.
 
-## T68.2: The pictures and the numbers, before and after
+## R423: The pictures and the numbers, before and after
 
 - **Decision**: the pin moved with the gallery's and the walk's pictures compared, pixel by pixel,
   and the frames and the navigation measured once each on both releases, on the GPU's hidden display
   with the optimised build. On 0.5.0 they were taken twice: once as the pin moved, which showed what
-  broke, and once on the branch's head, with the fixes of T68.1 and T68.4 in. The numbers below are
+  broke, and once on the branch's head, with the fixes of R422 and R425 in. The numbers below are
   the second's.
 - **The pictures**: `target/shots/before-0.5.0/`, `after-0.5.0/`, and `diff-0.5.0/`, where each
   picture that differs stands before, after, and marked; `after-0.5.0-first/` and
@@ -8220,7 +8220,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     walk on 0.4.0 threw (`Error: not a live signal`, `RunMap.tsx:224`, in one run of two, before the
     upgrade) and left its proposal not started; a list or a reader resting 1 to 12 points elsewhere
     after a reveal; and a long chat opened at its end, which no longer shows "Jump to the latest"
-    there (better, T68.4). Every step of the walk passes on 0.5.0.
+    there (better, R425). Every step of the walk passes on 0.5.0.
 - **The frames**, as `just frames` prints them, in ms: median, 95th and 99th percentile, worst. The
   machine's load was 2 to 7 over the runs on 0.4.0, the first of which built the optimised target,
   and 2 to 4 on 0.5.0.
@@ -8250,7 +8250,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `target/shots/after-0.5.0/`.
 - **Where**: `justfile`, `scripts/frames.sh`.
 
-## T68.3: What Native Shell 0.5.0 opens, for later tasks
+## R424: What Native Shell 0.5.0 opens, for later tasks
 
 - **Decision**: none of these is built here. Each names the task that should read it first.
   - **Task 56, the web build**: TSX runs in the browser's own JavaScript, with the engine in
@@ -8285,3 +8285,57 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     (#1379) to stand in for `uraeda/native` in a test; `shadersAvailable()` (#1476) for a machine
     without a GPU; the selection as Markdown (#1045).
 - **Where**: the plan's tasks 56 to 60.
+
+## R425: A following list opens with `initialScrollAtEnd`, and stops following only as the reader goes up
+
+- **Decision**: three changes to `<VirtualList follow>`, each for what Native Shell 0.5.0 moved.
+  - It opens at its end with 0.5.0's `initialScrollAtEnd`, unless a place was kept or a row asked
+    for. The scroll to the end it made a moment after its first frame, its workaround on 0.4.0, is
+    gone.
+  - It stops following only as the reader goes up from where the list was. At its end it follows.
+    Content that grows under a list at rest, rows measured or a row that came, leaves it as it was:
+    the same offset against a longer content read as "scrolled away".
+  - `G`, and any reveal of the last row, jumps there without animation when the end is more than 100
+    rows past the last row shown, and is drawn when it is near.
+- **Rationale**: all seen in the walk's and the gallery's pictures on 0.5.0, before the change. A
+  session opened on the phone rested short of its last row, "Jump to the latest" shown
+  (`target/shots/diff-0.5.0-first/walk/p3-session-01-session.png`), and the gallery's streaming
+  scene did not follow its reply (`scenes-streaming-dark-900.png`): the scroll after the first frame
+  landed where the rows' estimated heights put the end, the rows were then measured, and the list,
+  no longer at its end, read itself as scrolled away, so no row that came was followed.
+  `initialScrollAtEnd` (#1498) is the release's own answer for the first: at the end before the
+  first frame, held while the rows are measured. With it alone a session whose agent still worked
+  lost its end again at the next row, which the second change cures. And `G` in the chat of 20,000
+  messages stopped about 35 messages short (`08-sessions-05-long-chat-end.png`), where 0.4.0 reached
+  the last: a jump lands on it, and a way drawn through 20,000 rows showed nothing a person could
+  read.
+- **Upstream report**, for the human to file at <https://github.com/longbridge/nsh/issues>, not
+  reduced to a small app:
+
+  > **An animated `scrollToEnd` stops short of the end in a long list whose rows are not measured**
+  >
+  > Version 0.5.0 (`f4d68f7f`), GTK. A `List` of 20,000 rows, each taller than `estimatedItemSize`,
+  > at its start: `ref.scrollToEnd({ animated: true })` comes to rest about 35 rows before the last,
+  > and stays there. With `animated: false` it lands on the last row. On 0.4.0 the animated scroll
+  > reached it. The docs say the list "follows its target while the rows around it are measured, so
+  > it lands exactly" (`website/docs/lists.md`).
+
+- **Seen after**: the phone's session at its last row with its agent at work, no "Jump to the
+  latest"; the streaming scene at its growing end; `G` on the last message, as on 0.4.0
+  (`target/shots/after-0.5.0/walk/`).
+- **If wrong**: a list that should open elsewhere than its end says so with `offset` or its cursor's
+  `reveal`, as before. A reader who scrolls down toward the end without reaching it stays where they
+  stopped, not followed, as before.
+- **Where**: `app/ui/lists/VirtualList.tsx`; the tests
+  `a list that follows its end stops when the reader scrolls away` and
+  `the cursor stays in view as it moves`.
+
+## R426: One test failed once while the machine was loaded
+
+- **Decision**: `serve_runs_until_it_is_stopped_and_a_second_start_hands_over`
+  (`crates/cli/tests/serve.rs`) failed once, `ConnectionReset` at its line 123, in a run started at
+  a load of 10, right after the pictures and beside the app's tests. Run again at a load of 3, with
+  the whole of `just task`, it passed, as in the two runs before it. Nothing was changed.
+- **Rationale**: the plan's rule for a failure of timing under load. The test does not touch Native
+  Shell.
+- **Where**: `crates/cli/tests/serve.rs`.
