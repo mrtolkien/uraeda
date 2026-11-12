@@ -139,6 +139,11 @@ function Files(props: {
           <Padded>
             <Empty
               icon="git-compare"
+              reading={
+                props.folder !== null && branch() === undefined
+                  ? "Reading what its branch changed"
+                  : undefined
+              }
               title="No file edited"
               words={
                 props.folder === null

@@ -85,6 +85,11 @@ export function NeedsYou(props: { repo: string }) {
         cards={cards}
         empty={
           <Nothing
+            reading={
+              needs() === undefined || workspace() === undefined
+                ? "Reading what waits on you"
+                : undefined
+            }
             title="Nothing waits on you"
             words="A feature that asks a question, or waits for a review, shows here."
           />
@@ -178,6 +183,9 @@ export function InProgress(props: { repo: string }) {
       cards={cards}
       empty={
         <Nothing
+          reading={
+            workspace() === undefined || sessions() === undefined ? "Reading what runs" : undefined
+          }
           title="Nothing in progress"
           words="A feature or a chat an agent works on shows here while it runs."
         />

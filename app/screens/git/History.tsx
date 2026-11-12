@@ -69,6 +69,7 @@ export function History(props: { narrow: boolean; onOpen: () => void; repo: stri
           empty={
             <Empty
               icon="history"
+              reading={page() === undefined ? "Reading the history" : undefined}
               title="No commits yet"
               words="The branch has no commit: the first one made in Changes shows here."
             />

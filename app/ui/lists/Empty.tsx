@@ -7,13 +7,21 @@
 //   starts with its first message.";
 // - its `action`, the one thing to do, with its key where it has one: "New session" `S`. A refusal
 //   of that action sits under it, in the server's words, never in place of the words above.
+//
+// Until the record it speaks of came, "nothing here" would be a lie: while `reading` names what
+// is on its way, "Reading the inbox", it says that instead, and its own words once it came empty.
 import { View } from "nsh";
-import { Button, Icon, type IconName, Refusal, Text } from "../controls";
+import { Button, Icon, type IconName, Refusal, Spinner, Text } from "../controls";
 
 export type EmptyProps = {
   /** The way to the first row: "New session". */
   action?: { label: string; icon?: IconName; keys?: string; run: () => void };
   icon?: IconName;
+  /**
+   * What is still on its way, "Reading the inbox": said in place of what is not there until the
+   * record came, so that an empty state shows only once it came empty. `undefined` once it came.
+   */
+  reading?: string;
   /** Why the action was refused, under it: the server's words, and the way out. */
   refusal?: string | null;
   testID?: string;
@@ -24,6 +32,19 @@ export type EmptyProps = {
 };
 
 export function Empty(props: EmptyProps) {
+  return (
+    <If when={props.reading} else={<Nothing {...props} />}>
+      {(reading) => (
+        <View style={{ paddingHorizontal: 8, paddingVertical: 12 }} testID={props.testID}>
+          <Spinner label={reading()} />
+        </View>
+      )}
+    </If>
+  );
+}
+
+/** What is not there, why, and the way to the first. */
+function Nothing(props: EmptyProps) {
   return (
     <View
       style={{ alignItems: "flex-start", gap: 4, paddingHorizontal: 8, paddingVertical: 12 }}

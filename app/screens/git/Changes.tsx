@@ -243,6 +243,7 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
             empty={
               <Empty
                 icon="check"
+                reading={page() === undefined ? "Reading the changes" : undefined}
                 title="Nothing to commit"
                 words="The checkout matches its last commit, and no feature's worktree waits."
               />

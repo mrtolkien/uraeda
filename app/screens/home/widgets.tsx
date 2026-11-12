@@ -87,7 +87,13 @@ export function InboxWidget(props: { repo: string }) {
       />
       <List
         cursor={cursor}
-        empty={<Text tone="faint">The inbox is empty.</Text>}
+        empty={
+          <Empty
+            icon="inbox"
+            reading={inbox() === undefined ? "Reading the inbox" : undefined}
+            title="The inbox is empty"
+          />
+        }
         onOpen={(key) => navigate({ key, page: "note" })}
         row={(id) => (
           <Line
@@ -133,6 +139,7 @@ export function NowWidget(props: { repo: string }) {
         empty={
           <Nothing
             action={{ icon: "list", label: "Open the priorities", run: openPriorities }}
+            reading={priorities() === undefined ? "Reading the priorities" : undefined}
             title={started() === 0 ? "Nothing in Now" : "Nothing in Now waits to start"}
             words={
               started() === 0
@@ -143,7 +150,9 @@ export function NowWidget(props: { repo: string }) {
         }
       />
       <If when={cards().length > 0}>
-        <Link onPress={openPriorities}>Open the priorities</Link>
+        <Link alone onPress={openPriorities}>
+          Open the priorities
+        </Link>
       </If>
     </View>
   );
@@ -188,13 +197,15 @@ function AgentBlock(props: { agent: AgentUsage }) {
 
 /** The agents on here, each under its mark, each account by name with its five hours and week. */
 export function UsageWidget(props: { repo: string }) {
-  const agents = () => usageByAgent(record("Agent", { repo: props.repo })(), new Date());
+  const usage = record("Agent", { repo: props.repo });
+  const agents = () => usageByAgent(usage(), new Date());
   return (
     <If
       when={agents().length > 0}
       else={
         <Empty
           icon="gauge"
+          reading={usage() === undefined ? "Reading the agents' usage" : undefined}
           title="No usage reported yet"
           words="An agent's windows show once a run of it reports them."
         />

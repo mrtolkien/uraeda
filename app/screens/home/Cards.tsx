@@ -53,6 +53,16 @@ export function Cards(props: {
 /** "Nothing waits on you", with what brings one, and the way there. */
 export const Nothing = (props: {
   action?: { icon?: IconName; label: string; run: () => void };
+  /** What is still on its way: said until it came, never "nothing" before it did. */
+  reading?: string;
   title: string;
   words?: string;
-}) => <Empty action={props.action} icon="circle-check" title={props.title} words={props.words} />;
+}) => (
+  <Empty
+    action={props.action}
+    icon="circle-check"
+    reading={props.reading}
+    title={props.title}
+    words={props.words}
+  />
+);
