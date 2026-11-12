@@ -53,11 +53,14 @@ megabytes, so git keeps only plain text. History: [Benchmarks](../done/2026-10-1
 - Every run needs a human's word first, so a scheduled benchmark needs a change to this decision.
 - A run that touches the wrong model or file is thrown out, not corrected.
 - Transcripts live on one machine: a failure reads in git only through its workflow files and diff.
+- The runner went with the Node server, whose adapter it used. Until it is ported to the Rust
+  server's runtimes, nothing runs a benchmark, and no test holds the rules the runner's tests
+  checked.
 
 ## Applies to
 
-- [`benchmarks/`](/benchmarks/) and [`packages/benchmarks/`](/packages/benchmarks/), and every
-  feature that runs, changes, or adds a benchmark
+- [`benchmarks/`](/benchmarks/), its runner once it is ported, and every feature that runs, changes,
+  or adds a benchmark
 
 ## Revisit when
 
