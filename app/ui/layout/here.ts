@@ -26,7 +26,51 @@ export type Revealer = (view: ViewRef) => void;
 export const RevealContext = context<Revealer | null>(null);
 
 /** A view's or a scroller's box, as `measure()` gives it. */
-type Measured = { pagePosition: { y: number }; bounds: { size: { height: number } } };
+type Measured = {
+  pagePosition: { x: number; y: number };
+  bounds: { size: { height: number; width: number } };
+};
+
+/** A scroller a form may be revealed in: its box, and a scroll by an amount. */
+type Scroller = { measure: () => Promise<Measured | null>; by: (amount: number) => void };
+
+/**
+ * Every scroller drawn, for what reveals itself without the context: in a browser, a provider
+ * never reaches what its caller wrote inside it (ruling R478), so a form typed in asks them all.
+ */
+const scrollers = new Set<Scroller>();
+
+/** Registers a scroller while its caller is drawn: `PaneScroll` and `DocumentScroll` are. */
+export function scrollerOf(scroller: Scroller) {
+  scrollers.add(scroller);
+  cleanup(() => scrollers.delete(scroller));
+}
+
+/** Reveals `view` in the innermost drawn scroller that holds it: its width over the view's. */
+async function revealInScroller(view: ViewRef) {
+  const it = await view.measure();
+  if (it == null) return;
+  const all = [...scrollers];
+  const boxes = await Promise.all(all.map((one) => one.measure()));
+  const middle = it.pagePosition.x + it.bounds.size.width / 2;
+  const holding = all
+    .map((one, index) => ({ box: boxes[index], one }))
+    .filter(({ box }) => {
+      if (box == null || box.bounds.size.height <= 0) return false;
+      const left = box.pagePosition.x;
+      return left <= middle && middle <= left + box.bounds.size.width;
+    })
+    .filter(({ box }) => box!.pagePosition.y <= it.pagePosition.y)
+    .toSorted(
+      (a, b) =>
+        a.box!.bounds.size.width * a.box!.bounds.size.height -
+        b.box!.bounds.size.width * b.box!.bounds.size.height,
+    );
+  const inner = holding[0];
+  if (inner === undefined) return;
+  const by = revealBy(it, inner.box!);
+  if (Math.abs(by) >= 1) inner.one.by(by);
+}
 
 /**
  * How far a scroller scrolls to show `it` whole, with a line's room, or its top when it is taller
@@ -45,20 +89,20 @@ export function revealBy(it: Measured, box: Measured): number {
 /**
  * A form typed in on a phone shows whole as the keyboard rises, its field and the button that
  * saves it: a browser scrolls only the caret into view, and the keyboard covered the button. Its
- * `ref` goes on the form's view, and `typing` follows its field's focus. Inside a `PaneScroll`.
+ * `ref` goes on the form's view, and `typing` follows its field's focus. Inside a `PaneScroll` or
+ * a `DocumentScroll`, found by measure rather than by context, which a browser does not pass.
  */
 export function wholeOverKeyboard(): {
   ref: (view: ViewRef) => void;
   typing: (on: boolean) => void;
 } {
-  const reveal = RevealContext();
   const typing = signal(false);
   let form: ViewRef | undefined;
   effect(() => {
-    if (keyboardFrame().height === 0 || !typing() || form === undefined || reveal === null) return;
+    if (keyboardFrame().height === 0 || !typing() || form === undefined) return;
     const view = form;
     // Once the pane took the room the keyboard leaves.
-    const timer = setTimeout(() => reveal(view), 120);
+    const timer = setTimeout(() => void revealInScroller(view), 120);
     cleanup(() => clearTimeout(timer));
   });
   return {

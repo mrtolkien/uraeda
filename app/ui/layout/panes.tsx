@@ -2,7 +2,7 @@
 // its pages shows, with `definePlace`. The layout shell draws them: a screen never draws a pane's
 // frame, a tab, or a side column of its own. See the guide, `specs/ui/panes.md`.
 import { type JSX, Scroll, type ScrollProps, type ScrollRef, signal } from "nsh";
-import { PaneContext, RevealContext, type Revealer, revealBy } from "./here";
+import { PaneContext, RevealContext, type Revealer, revealBy, scrollerOf } from "./here";
 import { type Json, type PaneRef, paneKey, type Place, type StackName } from "./layout";
 import { entry, keep, positions } from "../../store/history";
 import type { Route, RouteOf } from "../../store/routes";
@@ -231,6 +231,13 @@ export function PaneScroll(props: ScrollProps & { children?: JSX.Element; name?:
   const rest = Object.defineProperties({}, described) as ScrollProps;
   let scroll: ScrollRef | undefined;
   let offset = start ?? 0;
+  scrollerOf({
+    by: (amount) => {
+      offset = Math.max(0, offset + amount);
+      scroll?.scrollTo({ animated: true, y: offset });
+    },
+    measure: async () => (await scroll?.measure()) ?? null,
+  });
   /** Scrolls the least that shows `view` whole, with a line's room, or its top when it is taller. */
   const reveal = async (view: Parameters<Revealer>[0]) => {
     const [it, box] = await Promise.all([view.measure(), scroll?.measure()]);

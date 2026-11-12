@@ -24,7 +24,7 @@ import {
 import type { Block, Document as Tree } from "../../store/protocol";
 import { type KeySpec, registerKey } from "../keys/registry";
 import { BlockView, read } from "./Blocks";
-import { RevealContext, revealBy } from "../layout/here";
+import { RevealContext, revealBy, scrollerOf } from "../layout/here";
 import { DocumentContext, type DocumentHands } from "./context";
 import { shared } from "./Document";
 import { BLOCK_GAP, measure } from "./look";
@@ -160,14 +160,17 @@ export function DocumentScroll(props: DocumentScrollProps) {
 
   // A view inside asks to be seen whole: the list scrolls the least that shows it.
   let frame: ViewRef | undefined;
+  const scrollBy = (amount: number) => {
+    at.offset = Math.max(0, at.offset + amount);
+    list?.scrollToOffset({ animated: true, offset: at.offset });
+  };
   const reveal = async (view: ViewRef) => {
     const [it, box] = await Promise.all([view.measure(), frame?.measure()]);
     if (it == null || box == null) return;
     const by = revealBy(it, box);
-    if (Math.abs(by) < 1) return;
-    at.offset = Math.max(0, at.offset + by);
-    list?.scrollToOffset({ animated: true, offset: at.offset });
+    if (Math.abs(by) >= 1) scrollBy(by);
   };
+  scrollerOf({ by: scrollBy, measure: async () => (await frame?.measure()) ?? null });
 
   // The header and the footer keep the prose's measure, where the prose starts.
   const column = (children: JSX.Element | undefined, room: "top" | "bottom") => (
