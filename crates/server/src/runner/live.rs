@@ -114,6 +114,10 @@ pub(super) struct Running {
     pub stop: Option<TurnEnd>,
     pub terminate: Vec<Timer>,
     pub watchdog: Option<Timer>,
+    /// Asks about the background tasks a reply that ended waits for, then fails it: `QUIET`.
+    pub quiet: Option<Timer>,
+    /// It was asked about its background tasks, and showed nothing since.
+    pub asked: bool,
     /// Its tool calls not ended, by their ids, in the order they started.
     pub tools: Vec<(String, Tool)>,
     /// The text being written: the place of its first piece, and the page of its line.

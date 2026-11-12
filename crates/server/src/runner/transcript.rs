@@ -75,6 +75,7 @@ impl Runner {
             && turn.stop.is_none()
         {
             turn.heard = Instant::now();
+            turn.asked = false;
         }
         match event {
             Event::Init {

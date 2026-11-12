@@ -3,6 +3,7 @@
 //! agent cannot read them any more.
 
 mod next;
+mod quiet;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,7 +13,7 @@ use tokio::time::Instant;
 
 use super::event::{ChatImage, Event, Limit, Origin};
 use super::live::{Queued, Reading, Running, Sent};
-use super::manager::{IDLE_CLOSE, Runner, SERVER_STOPPED, State, TERMINATE_AFTER, WATCHDOG};
+use super::manager::{IDLE_CLOSE, QUIET, Runner, SERVER_STOPPED, State, TERMINATE_AFTER, WATCHDOG};
 use super::message::{RESUMED, WORKING};
 use super::processes::proc_of;
 use super::turn::{NewTurn, Turn, TurnKind, TurnState};
@@ -203,6 +204,8 @@ impl Runner {
             stop: None,
             terminate: Vec::new(),
             watchdog: None,
+            quiet: None,
+            asked: false,
             tools: Vec::new(),
             text: None,
             skipped: None,
@@ -211,6 +214,7 @@ impl Runner {
             _hold: hold,
         });
         self.watch(state, session, WATCHDOG);
+        self.ask_after(state, session, QUIET);
         self.changed(state, session, Some(id), Some(TurnState::Running));
     }
 
@@ -338,6 +342,7 @@ impl Runner {
         };
         turn.stop = Some(end);
         turn.watchdog = None;
+        turn.quiet = None;
         let Some(proc) = live.proc.as_ref() else {
             return;
         };

@@ -49,6 +49,13 @@ pub const IDLE_CLOSE: Duration = Duration::from_secs(15 * 60);
 /// A turn without any output for this long is stopped, and fails.
 pub const WATCHDOG: Duration = Duration::from_secs(30 * 60);
 
+/// A turn whose reply ended, waiting for its background tasks, is asked about them after this
+/// long without any output, and fails as long after without an answer.
+pub const QUIET: Duration = Duration::from_secs(10 * 60);
+
+/// Why a turn failed: its agent never answered the check of the background tasks it waits for.
+pub const UNANSWERED: &str = "No answer for 10 minutes to the check of its background tasks.";
+
 /// A signal follows an unanswered interrupt after this long, and the next as long after. A
 /// closed process still running this long after is signalled too.
 pub const TERMINATE_AFTER: Duration = Duration::from_secs(10);
@@ -439,6 +446,7 @@ impl Runner {
             live.idle = None;
             if let Some(turn) = live.turn.as_mut() {
                 turn.watchdog = None;
+                turn.quiet = None;
                 turn.terminate.clear();
             }
         }

@@ -322,7 +322,7 @@ impl Runner {
     }
 
     /// A sub-session's answer: the last text of its latest turn, or why that turn did not end
-    /// done.
+    /// done, with the last text it gave, which may hold its whole report.
     pub(super) fn answer(&self, row: &Session) -> Result<String, String> {
         let store = self.store();
         let turns = store.turns(&row.id).map_err(|error| error.to_string())?;
@@ -330,17 +330,20 @@ impl Runner {
         let Some(turn) = latest_of(&turns, None) else {
             return Err(format!("{name} did not start."));
         };
-        if turn.state != TurnState::Done {
-            let why = match &turn.reason {
-                Some(reason) => format!(": {reason}"),
-                None => ".".to_owned(),
-            };
-            return Err(format!("{name} {}{why}", turn.state.name()));
-        }
-        let text = store
+        let said = store
             .last_text(turn.id)
             .map_err(|error| error.to_string())?;
-        Ok(text.unwrap_or_default())
+        if turn.state == TurnState::Done {
+            return Ok(said.unwrap_or_default());
+        }
+        let why = match &turn.reason {
+            Some(reason) => format!("{name} {}: {reason}", turn.state.name()),
+            None => format!("{name} {}.", turn.state.name()),
+        };
+        Err(match said.filter(|said| !said.is_empty()) {
+            Some(said) => format!("{why}\nIts last message:\n{said}"),
+            None => why,
+        })
     }
 
     /// Runs `run_agent` for the workflow session `parent`: an implementer of the task in its

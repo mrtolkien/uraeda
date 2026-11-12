@@ -369,16 +369,37 @@ impl Runner {
         let Some(turn) = steered else {
             return Ok(None);
         };
-        let id = uuid();
         let shown = Shown {
             origin: Origin::Human,
             text: checked.text.clone(),
             opening: None,
             images: checked.held.clone(),
         };
+        self.steer_into(state, session, turn, shown, checked.paths.clone())?;
+        Ok(Some(turn))
+    }
+
+    /// Writes a message into the session's running turn `turn`, at once: a line of its log,
+    /// pending until the agent reads it, `images` its pictures' paths.
+    pub(super) fn steer_into(
+        &self,
+        state: &mut State,
+        session: &str,
+        turn: i64,
+        shown: Shown,
+        images: Vec<SentImage>,
+    ) -> Result<(), Fault> {
+        let id = uuid();
         let (page, seq) = self.add_line(state, session, turn, &shown.event(&id))?;
         let Some(live) = state.lives.get(session) else {
             return Err(Fault::internal(format!("session {session} is not kept")));
+        };
+        let message = Outgoing {
+            id: id.clone(),
+            text: shown.text.clone(),
+            images,
+            when: When::Steer,
+            review: false,
         };
         let sent = Sent {
             turn,
@@ -386,22 +407,16 @@ impl Runner {
             page,
             written: true,
             state: Reading::Pending,
-            origin: Origin::Human,
+            origin: shown.origin,
             text: shown.text,
             opening: None,
             images: shown.images,
         };
-        live.messages.insert(id.clone(), sent);
+        live.messages.insert(id, sent);
         if let Some(proc) = live.proc.as_ref() {
-            proc.agent.send(Outgoing {
-                id,
-                text: checked.text.clone(),
-                images: checked.paths.clone(),
-                when: When::Steer,
-                review: false,
-            });
+            proc.agent.send(message);
         }
-        Ok(Some(turn))
+        Ok(())
     }
 
     /// Titles a chat without a title by its message, and brings an archived session back: a

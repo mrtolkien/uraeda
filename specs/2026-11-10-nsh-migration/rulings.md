@@ -9994,3 +9994,33 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   request. `ura check` warns that each changed after the spec's approval, and reports no problem in
   them.
 - **Where**: `specs/decisions/`.
+
+## T67.1: A reply stuck on a background command is checked, then fails with its last message
+
+- **Decision**: the default branch's `9d0337f0` is ported to the Rust runner. A turn whose reply
+  ended while a background task runs, and that showed nothing for 10 minutes (`QUIET`), gets a
+  workflow message steered into it, "Uraeda's check: …", naming what it waits for ("Waiting for 1
+  background command"). Any event of the turn resets it. With nothing shown 10 minutes after the
+  check, the turn fails, "No answer for 10 minutes to the check of its background tasks."
+  (`UNANSWERED`), the unread check is taken back, and the process closes, which ends its commands. A
+  `run_agent` or review call whose sub-session failed or stopped answers its last message after the
+  reason, "Its last message:", as the Node server's now does.
+  - **One timer beside the watchdog**, `Running::quiet`, read against `heard` as the watchdog is:
+    output since the timer was armed re-arms it for what is left, so no output path arms a timer. It
+    lives in `runner/running/quiet.rs`. A runtime that cannot steer is never asked, as before.
+  - **The steer of a written message is one helper**, `steer_into`, which the human's steered
+    message and the check both take.
+  - **The app needed nothing new**: the check is a workflow message of the turn, which the session's
+    transcript draws as "The workflow", its row already counts the background commands, and a failed
+    turn reads as needing the human, its reason under it.
+- **Rationale**: this is the "idle session nudging" the human named when they asked for task 67: a
+  command that never ends held its reply, and the `run_agent` call of the run that waited on it,
+  forever. The Node server's tests ported as three: asked then failed unanswered, an agent that
+  answers keeps its turn across three checks, and a reply not ended yet never asked.
+- **Seen failing first**, on the runner before the change: the two tests of a check timed out
+  waiting for it, and the tools test read the reason alone; the third, a reply not ended never
+  asked, passed, as the guard it is. With the reset on output removed, the answering agent's turn failed at its second
+  check.
+- **Where**:
+  `crates/server/src/runner/{running/quiet,running,send,sub_sessions,transcript,manager, message,live}.rs`,
+  `crates/server/tests/sessions/{background,tools}.rs`.

@@ -29,6 +29,18 @@ pub(super) const CLEARED: &str = "Started a new session: the agent cleared the t
 /// The line a turn shows when it opened again: its agent went on after it ended.
 pub(super) const RESUMED: &str = "The agent went on by itself: a background task reported back.";
 
+/// The check of a turn whose reply ended and that waits, `waiting` saying for what, as "Waiting
+/// for 1 background command": the agent looks at it, and ends with its answer again, the text
+/// its turn is read by.
+pub(super) fn quiet_check(waiting: &str) -> String {
+    format!(
+        "Uraeda's check: your reply ended, and nothing new came for 10 minutes. {waiting}. Look \
+         at what it does now. If it still makes progress, say so in one line, and wait for its \
+         notice. If it is stuck, or you no longer need it, stop it, then give your final answer \
+         again, whole: your turn ends with your last message, and that message is what gets read."
+    )
+}
+
 /// What a running turn says when nothing more precise is known.
 pub(super) const WORKING: &str = "Working";
 

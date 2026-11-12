@@ -8,6 +8,8 @@ mod support;
 
 #[path = "sessions/agents.rs"]
 mod agents;
+#[path = "sessions/background.rs"]
+mod background;
 #[path = "sessions/catch_ups.rs"]
 mod catch_ups;
 #[path = "sessions/escalation.rs"]

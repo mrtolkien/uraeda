@@ -133,13 +133,15 @@ async fn run_agent_runs_a_task_in_a_sub_session_and_answers_its_last_message() {
         "{refused}"
     );
 
-    // An implementer that fails says why, as the tool's error.
+    // An implementer that fails says why, as the tool's error, with its last message, which
+    // may hold its whole report.
     stage.fake.fallback(|_| {
+        let said = json!({ "type": "text", "text": "Task 3 is built, but one test fails." });
         let failed = json!({
             "type": "result", "ok": false, "interrupted": false, "denials": [],
             "errors": ["The tests do not pass."],
         });
-        Some(script(json!([failed])))
+        Some(script(json!([said, failed])))
     });
     let worktree = task_worktree(&stage, "task-3");
     let failing = json!({ "task": "Task 3", "prompt": "Build task 3.", "worktree": worktree });
@@ -148,7 +150,8 @@ async fn run_agent_runs_a_task_in_a_sub_session_and_answers_its_last_message() {
         .unwrap_err();
     assert_eq!(
         failed,
-        "The implementer of Task 3 failed: The tests do not pass."
+        "The implementer of Task 3 failed: The tests do not pass.\n\
+         Its last message:\nTask 3 is built, but one test fails."
     );
     stage.server.stop().await;
 }
