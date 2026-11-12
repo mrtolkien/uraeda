@@ -4,6 +4,7 @@
 // selector is never a sheet: it stays a popover.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
 import type { SurfaceIcon } from "./mark";
+import type { Scope } from "../keys/store";
 import { Float } from "./Float";
 import { sheetPlace } from "./Overlay";
 
@@ -15,6 +16,8 @@ export type SheetProps = {
   onClose?: () => void;
   /** Shown while true, and for its way out after: true unless given. */
   open?: boolean;
+  /** Its layer's key scope, for content that declares keys (`Float`'s `scope`). */
+  scope?: Scope;
   style?: StyleProp<ViewStyle>;
   testID?: string;
   title?: string;
@@ -30,6 +33,7 @@ export function Sheet(props: SheetProps) {
       open={props.open}
       place={() => sheetPlace(true)}
       scrim
+      scope={props.scope}
       style={props.style}
       testID={props.testID}
       title={props.title}

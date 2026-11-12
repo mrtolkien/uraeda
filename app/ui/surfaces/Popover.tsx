@@ -3,6 +3,7 @@
 // and the focus while it is open, the page is not dimmed, and Escape, the phone's Back, or a
 // press outside it asks to close: that press goes on to what is under it.
 import type { Bounds, JSX, Point, StyleProp, ViewRef, ViewStyle } from "nsh";
+import type { Scope } from "../keys/store";
 import { Float } from "./Float";
 import { tokens } from "../tokens";
 
@@ -19,6 +20,8 @@ export type PopoverProps = {
   open?: boolean;
   /** The side of its anchor it goes on, the other one where only that has room: `bottom`. */
   placement?: "top" | "bottom" | "left" | "right";
+  /** Its layer's key scope, for content that declares keys (`Float`'s `scope`). */
+  scope?: Scope;
   style?: StyleProp<ViewStyle>;
   testID?: string;
   width?: number;
@@ -36,6 +39,7 @@ export function Popover(props: PopoverProps) {
       place={() => ({ box: { width: props.width }, rise: tokens.motion.rise })}
       placement={props.placement}
       scrim={false}
+      scope={props.scope}
       style={props.style}
       testID={props.testID}
       trap={false}

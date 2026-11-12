@@ -11,6 +11,7 @@ import { type Looks, type PressProps, pressable } from "./press";
 import { Text } from "./Text";
 import { Under } from "./Under";
 import { Popover, Sheet } from "../surfaces";
+import { keyScope } from "../keys/registry";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
 
@@ -63,7 +64,8 @@ function triggerLooks(width: number | undefined): Looks {
 
 export function Select<Value extends string>(props: SelectProps<Value>) {
   const isOpen = signal(props.open === true);
-  let anchor: ViewRef | undefined;
+  // A signal: the popover reads it once it is drawn, after the ref was set.
+  const anchor = signal<ViewRef | undefined>(undefined);
   const width = signal(0);
   const press = pressable(props, () => {
     // The trigger holds the focus, so it gets it back as the list closes.
@@ -73,6 +75,8 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
   props.opener?.(() => press.press());
   const chosen = () => props.options.find((option) => option.value === props.value);
   const close = () => isOpen.set(false);
+  // The list's layer, for its rows' keys: see `Float`'s `scope`.
+  const layer = keyScope({ kind: "layer", name: props.label, on: isOpen });
   const pick = (at: number) => {
     const option = props.options[at];
     close();
@@ -83,6 +87,7 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
   const list = () => (
     <Options
       onPick={pick}
+      scope={layer}
       rows={props.options.map((option) => ({ ...option, picked: option.value === props.value }))}
       testID={props.testID === undefined ? undefined : `${props.testID}-list`}
     />
@@ -98,7 +103,7 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
         onLayout={(event) => width.set(event.bounds.size.width)}
         onPress={press.press}
         ref={(node: ViewRef) => {
-          anchor = node;
+          anchor.set(node);
           press.ref(node);
         }}
         role="combobox"
@@ -129,17 +134,18 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
         when={isNarrow()}
         else={
           <Popover
-            anchor={anchor}
+            anchor={anchor()}
             name={props.label}
             onClose={close}
             open={isOpen()}
+            scope={layer}
             style={{ minWidth: width(), paddingVertical: 4 }}
           >
             {list()}
           </Popover>
         }
       >
-        <Sheet name={props.label} onClose={close} open={isOpen()} title={props.label}>
+        <Sheet name={props.label} onClose={close} open={isOpen()} scope={layer} title={props.label}>
           {list()}
         </Sheet>
       </If>

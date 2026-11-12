@@ -8,6 +8,7 @@ import { IconButton } from "./IconButton";
 import { Options, type Row } from "./Options";
 import type { PressState } from "./press";
 import { Popover } from "../surfaces";
+import { keyScope } from "../keys/registry";
 
 /** An action of a menu: what it says, and what it does. */
 export type MenuEntry = Row & { run: () => void };
@@ -39,10 +40,13 @@ export function Menu(props: MenuProps) {
     own.set(open);
     props.onOpenChange?.(open);
   };
-  let anchor: ViewRef | undefined;
+  // A signal: the popover reads it once it is drawn, after the ref was set.
+  const anchor = signal<ViewRef | undefined>(undefined);
   const close = () => setOpen(false);
+  // The menu's layer, for its rows' keys: see `Float`'s `scope`.
+  const layer = keyScope({ kind: "layer", name: props.label, on: isOpen });
   return (
-    <View ref={(node: ViewRef) => (anchor = node)} style={{ alignSelf: "flex-start" }}>
+    <View ref={(node: ViewRef) => anchor.set(node)} style={{ alignSelf: "flex-start" }}>
       <IconButton
         disabled={props.disabled}
         icon={props.icon ?? "ellipsis"}
@@ -53,10 +57,11 @@ export function Menu(props: MenuProps) {
         testID={props.testID}
       />
       <Popover
-        anchor={anchor}
+        anchor={anchor()}
         name={props.label}
         onClose={close}
         open={isOpen()}
+        scope={layer}
         style={{ minWidth: 200, paddingVertical: 4 }}
       >
         <Options
@@ -67,6 +72,7 @@ export function Menu(props: MenuProps) {
             entry?.run();
           }}
           rows={props.entries}
+          scope={layer}
           start={props.entries.findIndex((entry) => entry.disabled !== true)}
           testID={props.testID === undefined ? undefined : `${props.testID}-list`}
         />

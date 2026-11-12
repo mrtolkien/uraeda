@@ -201,12 +201,14 @@ export function Surface(props: SurfaceProps) {
       <If when={props.running !== undefined}>
         <RunLine on={props.running === true} start={tabShape()?.[0]} />
       </If>
+      <GroundContext.Provider value={here}>{props.children}</GroundContext.Provider>
+      {/* After the children: a browser presses what is drawn last, and the body's top room,
+          under the title's lower half, took every press of the title's `…` (a pane's menu). */}
       <If when={props.tab !== undefined}>
         <View onLayout={(event) => tabWidth.set(event.bounds.size.width)} style={tabStyle()}>
           {props.tab}
         </View>
       </If>
-      <GroundContext.Provider value={here}>{props.children}</GroundContext.Provider>
     </View>
   );
 }

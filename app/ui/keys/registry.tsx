@@ -60,6 +60,14 @@ export function KeyScope(props: ScopeSpec & { children?: JSX.Element }) {
 }
 
 /**
+ * Gives what it holds a scope made with `keyScope`, where the scope's maker is not its parent: a
+ * layer's, which its caller makes and hands to the layer and to the content it writes (`Float`).
+ */
+export function InScope(props: { children?: JSX.Element; scope: Scope }) {
+  return <Current.Provider value={props.scope}>{props.children}</Current.Provider>;
+}
+
+/**
  * The same scope for a component that declares its keys itself, with `registerKey(spec, scope)`:
  * it goes, with its keys, when the component does.
  */

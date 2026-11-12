@@ -35,7 +35,8 @@ import {
 import { onChange, presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
-import { KeyScope, registerKey } from "../keys/registry";
+import { InScope, keyScope, registerKey } from "../keys/registry";
+import type { Scope } from "../keys/store";
 import { tokens } from "../tokens";
 
 /** Where a float is: a fixed place of the window, and what it travels as it comes. */
@@ -76,37 +77,51 @@ export type FloatProps = {
   title?: string;
   /** Whether Tab stays among its own stops: a dialog's and a sheet's does. */
   trap: boolean;
+  /**
+   * Its layer's key scope, made by its caller with `keyScope`, for the content the caller writes
+   * to declare its keys in (`Options`): one is made here otherwise.
+   */
+  scope?: Scope;
 };
 
 const WHOLE = { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 } as const;
 
 /** The keys every layer has: Escape closes it, and with a trap Tab stays in it. */
-function LayerKeys(props: { onClose: () => void; stops: Stops; trap: boolean }) {
-  registerKey({
-    hint: "esc",
-    hintLabel: "close",
-    inField: true,
-    keys: "Escape",
-    label: "Close",
-    run: props.onClose,
-  });
+function LayerKeys(props: { onClose: () => void; scope: Scope; stops: Stops; trap: boolean }) {
+  registerKey(
+    {
+      hint: "esc",
+      hintLabel: "close",
+      inField: true,
+      keys: "Escape",
+      label: "Close",
+      run: props.onClose,
+    },
+    props.scope,
+  );
   if (props.trap) {
     const here = { inField: true, repeat: true } as const;
-    registerKey([
-      { ...here, keys: "Tab", label: "Next field", run: () => focusNext(props.stops, false) },
-      {
-        ...here,
-        keys: "shift+Tab",
-        label: "Previous field",
-        run: () => focusNext(props.stops, true),
-      },
-    ]);
+    registerKey(
+      [
+        { ...here, keys: "Tab", label: "Next field", run: () => focusNext(props.stops, false) },
+        {
+          ...here,
+          keys: "shift+Tab",
+          label: "Previous field",
+          run: () => focusNext(props.stops, true),
+        },
+      ],
+      props.scope,
+    );
     // Enter and Space press the control Tab reached, where nothing of the layer's own took them.
     const press = () => (pressHeld(props.stops) ? undefined : false);
-    registerKey([
-      { fallback: true, keys: "Enter", label: "Press", run: press },
-      { fallback: true, keys: "space", label: "Press", run: press },
-    ]);
+    registerKey(
+      [
+        { fallback: true, keys: "Enter", label: "Press", run: press },
+        { fallback: true, keys: "space", label: "Press", run: press },
+      ],
+      props.scope,
+    );
   }
   // Once what it holds is there, the focus goes to its first stop.
   effect(() => untracked(() => focusFirst(props.stops)));
@@ -126,6 +141,10 @@ export function Float(props: FloatProps) {
   const there = presence(open, () => ({ y: props.place().rise }));
   const stops: Stops = [];
   const takesKeys = props.keys;
+  // Made here, in the float's own body, and given explicitly: see `InScope`.
+  const layer = takesKeys
+    ? (props.scope ?? keyScope({ kind: "layer", name: props.name, on: open }))
+    : undefined;
   if (takesKeys) {
     let giveBack: (() => void) | null = null;
     const change = (now: boolean) => {
@@ -175,19 +194,6 @@ export function Float(props: FloatProps) {
       {props.children}
     </Surface>
   );
-  // Whether it takes the keys, and whether it has a scrim, are fixed for as long as it is drawn.
-  const held = () => (
-    <StopsContext.Provider value={stops}>
-      {takesKeys ? (
-        <KeyScope kind="layer" name={props.name} on={open}>
-          <LayerKeys onClose={close} stops={stops} trap={props.trap} />
-          {box()}
-        </KeyScope>
-      ) : (
-        box()
-      )}
-    </StopsContext.Provider>
-  );
   const floating = () =>
     props.scrim ? (
       <Layer onCancel={cancel} style={[WHOLE, props.place().window]}>
@@ -196,7 +202,7 @@ export function Float(props: FloatProps) {
           onPress={close}
           style={{ ...WHOLE, backgroundColor: tokens.backdrop.dim, opacity: there.style.opacity }}
         />
-        <View style={[props.place().box, there.style]}>{held()}</View>
+        <View style={[props.place().box, there.style]}>{box()}</View>
       </Layer>
     ) : (
       <Layer
@@ -213,8 +219,26 @@ export function Float(props: FloatProps) {
           there.style,
         ]}
       >
-        {held()}
+        {box()}
       </Layer>
     );
-  return <If when={there.shown()}>{floating()}</If>;
+  // Its key scope is made in its body and given explicitly, never by a provider inside the layer:
+  // in a browser, Native Shell runs a component under the owner where its element was written, so
+  // what a layer holds saw the page's scope; a menu's rows declared Space there, the page's leader
+  // clashed, and the menu drew nothing. Content its caller writes takes the scope its caller made
+  // (`scope`). Whether it takes the keys is fixed for as long as it is drawn.
+  return (
+    <If when={there.shown()}>
+      <StopsContext.Provider value={stops}>
+        {layer === undefined ? (
+          floating()
+        ) : (
+          <InScope scope={layer}>
+            <LayerKeys onClose={close} scope={layer} stops={stops} trap={props.trap} />
+            {floating()}
+          </InScope>
+        )}
+      </StopsContext.Provider>
+    </If>
+  );
 }

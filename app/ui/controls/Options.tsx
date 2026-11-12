@@ -8,6 +8,7 @@ import { type IconName, Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { Text } from "./Text";
 import { registerKey } from "../keys/registry";
+import type { Scope } from "../keys/store";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
 
@@ -37,6 +38,11 @@ export type Row = {
 };
 
 export type OptionsProps = {
+  /**
+   * The layer whose keys these are, the popover's or the sheet's that holds them: in a browser a
+   * layer's content is made where it was written, outside the layer, so its scope is given.
+   */
+  scope?: Scope;
   /** The row the keys start on: the picked one, else the first that can be picked. */
   start?: number;
   onPick: (at: number) => void;
@@ -99,7 +105,8 @@ function OptionRow(props: { at: number; held: boolean; onPick: () => void; row: 
           )}
         </If>
         <View style={{ flexGrow: 1, minWidth: 16 }} />
-        <If when={props.row.keys}>{(keys) => <Kbd keys={keys()} />}</If>
+        {/* A phone has no keys to hint, and a row's keys ran past its screen's edge. */}
+        <If when={isNarrow() ? undefined : props.row.keys}>{(keys) => <Kbd keys={keys()} />}</If>
         <If when={props.row.picked === true}>
           <Icon colour={tokens.role.action} name="check" />
         </If>
@@ -133,14 +140,17 @@ export function Options(props: OptionsProps): JSX.Element {
     props.onPick(at);
   };
   const near = { repeat: true } as const;
-  registerKey([
-    { ...near, hint: "j k", hintLabel: "move", keys: "j", label: "Next", run: () => move(1) },
-    { ...near, keys: "k", label: "Previous", run: () => move(-1) },
-    { ...near, keys: "ArrowDown", label: "Next", run: () => move(1) },
-    { ...near, keys: "ArrowUp", label: "Previous", run: () => move(-1) },
-    { hint: "↵", hintLabel: "pick", keys: "Enter", label: "Pick", run: pick },
-    { keys: "space", label: "Pick", run: pick },
-  ]);
+  registerKey(
+    [
+      { ...near, hint: "j k", hintLabel: "move", keys: "j", label: "Next", run: () => move(1) },
+      { ...near, keys: "k", label: "Previous", run: () => move(-1) },
+      { ...near, keys: "ArrowDown", label: "Next", run: () => move(1) },
+      { ...near, keys: "ArrowUp", label: "Previous", run: () => move(-1) },
+      { hint: "↵", hintLabel: "pick", keys: "Enter", label: "Pick", run: pick },
+      { keys: "space", label: "Pick", run: pick },
+    ],
+    props.scope,
+  );
   return (
     <View role="menu" style={{ marginHorizontal: -ROW_PADDING / 2 }} testID={props.testID}>
       <Each key="index" of={props.rows}>
