@@ -237,16 +237,19 @@ export function createKeyStore() {
     /**
      * The status line's hints, each once: a held selection's first, then the page's, then the
      * shell's, after the leader's, the key map's, and the folds'. A selection's keys are hinted
-     * only while it holds, as a round's letters while a question is shown.
+     * only while it holds, as a round's letters while a question is shown. `inField`: a text
+     * field has the focus.
      */
-    hints(): Array<StatusHint> {
+    hints(inField = false): Array<StatusHint> {
       const seen = new Set<string>();
       const found = active().flatMap((key) => {
         const { spec } = key;
         const label = spec.hintLabel ?? spec.label;
         const id = `${spec.hint} ${label}`;
-        // A guarded key is hinted only where its guard holds: on the row it acts on.
-        if (spec.hint === undefined || !allowed(key) || seen.has(id)) {
+        // A guarded key is hinted only where its guard holds: on the row it acts on; in a field
+        // with the focus, only a key the field lets through.
+        const heard = !inField || spec.inField === true;
+        if (spec.hint === undefined || !heard || !allowed(key) || seen.has(id)) {
           return [];
         }
         seen.add(id);

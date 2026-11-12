@@ -1,11 +1,11 @@
 // The page of the text field's tests: a note whose unsaved text the device keeps, and whether it
 // has the focus, a dialog with a field of its own, and a composer with one image attached, which
-// `detach` takes away. The host's `vim` turns Vim's keys on.
+// `detach` takes away, and the status line's hints. The host's `vim` turns Vim's keys on.
 import { host, mount, signal, Text, View } from "nsh";
 import { vimKeys } from "uraeda/native";
 import { device } from "../../../store/device";
 import { KeysHost } from "../../keys/KeysHost";
-import { KeyScope } from "../../keys/registry";
+import { keyHints, KeyScope, registerKey } from "../../keys/registry";
 import { Dialog } from "../../surfaces";
 import { Composer } from "../Composer";
 import { setVimMode, TextField, vimStatus } from "../TextField";
@@ -22,6 +22,8 @@ function Page() {
   const message = signal("");
   const attached = signal(1);
   const sent = signal(0);
+  // A page's key, which a field with the focus never hears: the status line hints it outside one.
+  registerKey({ hint: "j", hintLabel: "move", keys: "j", label: "Move", run: () => undefined });
   return (
     <View style={{ flex: 1, gap: 8, padding: 16 }}>
       <Text>{note.dirty() ? "Unsaved changes" : "All saved"}</Text>
@@ -30,6 +32,9 @@ function Page() {
       <Text>{`Note: ${note.text()}`}</Text>
       <Text>{`Taken by Vim: ${taken()}`}</Text>
       <Text>{typing() ? "Typing in the note" : "Not typing"}</Text>
+      <Text>{`Hints: ${keyHints()
+        .map((hint) => hint.label)
+        .join(", ")}`}</Text>
       <View onPress={() => taken.set(vimKeys().keys)} testID="count">
         <Text>Count</Text>
       </View>

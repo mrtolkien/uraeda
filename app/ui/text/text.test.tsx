@@ -100,3 +100,13 @@ test("a composer sends what is attached without words, and refuses nothing at al
   await app.keyboard.press("enter");
   expect(app.texts()).toContain("Sent: 2");
 });
+
+test("the status line hints only the keys a field hears while it has the focus", async () => {
+  const app = await page("off");
+  expect(app.texts()).toContain("Hints: keys, move");
+  await app.type("id:note", "A ");
+  // `j` and `?` type in the field: the page's keys are not hinted while it has the focus.
+  expect(app.texts()).toContain("Hints: ");
+  await app.keyboard.press("escape");
+  expect(app.texts()).toContain("Hints: keys, move");
+});

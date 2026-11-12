@@ -7,6 +7,7 @@ import { ExtensionPlace } from "../../extensions/ExtensionPlace";
 import { connection, extensionHost, record } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import { Icon, Text } from "../../ui/controls";
+import { editing } from "../../ui/keys";
 import type { StatusSlots } from "../../ui/layout";
 import { modeTone, vimStatus } from "../../ui/text";
 import { tokens } from "../../ui/tokens";
@@ -101,8 +102,11 @@ export function Branch(props: { repo?: string }) {
   );
 }
 
-/** The editing mode, from the field with the focus: none outside a field, which is "NAV". */
+/**
+ * The editing mode, from the field with the focus: Vim's, else "INSERT" in a field, as what is
+ * typed goes in it; none outside a field, which is "NAV".
+ */
 export function modeSlot(): StatusSlots["mode"] {
-  const mode = vimStatus().mode;
+  const mode = vimStatus().mode || (editing() ? "INSERT" : "");
   return mode === "" ? undefined : { colour: modeTone(mode), label: mode };
 }

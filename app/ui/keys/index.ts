@@ -5,6 +5,7 @@ export { KeyPicker, type KeyPickerProps, type PickerItem } from "./KeyPicker";
 export { KeysHost } from "./KeysHost";
 export {
   type Declared,
+  editing,
   endKeys,
   keepSpace,
   keyHints,

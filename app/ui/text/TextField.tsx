@@ -25,7 +25,7 @@ import {
 } from "nsh";
 import { type CaretTrail, TextEditor, type VimStatus } from "uraeda/native";
 import { Under } from "../controls";
-import { keysOn, pressKeys } from "../keys/registry";
+import { fieldFocused, keysOn, pressKeys } from "../keys/registry";
 import { strokeOf } from "../keys/token";
 import { focusAsked, focusStop, Well } from "../surfaces";
 import { interaction } from "../timing";
@@ -181,8 +181,12 @@ export function TextField(props: TextFieldProps) {
   // A field that goes while the status line shows its mode, a picker's filter closed by its Enter,
   // takes its mode away with it: no INSERT stays on a page with no field.
   let reported: VimStatus | null = null;
+  // Who this field is to the key registry, which hints only its keys while it has the focus; a
+  // field taken away with the focus gives it back.
+  const token = {};
   cleanup(() => {
     if (reported !== null && untracked(vimStatus) === reported) vimStatus.set(NO_FIELD);
+    fieldFocused(token, false);
   });
   const jump = signal<CaretTrail | null>(null);
   const vim = () => vimMode() && props.readOnly !== true;
@@ -290,6 +294,7 @@ export function TextField(props: TextFieldProps) {
             oneLine={oneLine()}
             onBlur={() => {
               stop.onBlur();
+              fieldFocused(token, false);
               status.set(NO_FIELD);
               vimStatus.set(NO_FIELD);
               props.onBlur?.();
@@ -301,6 +306,7 @@ export function TextField(props: TextFieldProps) {
             }}
             onFocus={() => {
               stop.onFocus();
+              fieldFocused(token, true);
               props.onFocus?.();
             }}
             onKey={({ key }) => heard(key)}

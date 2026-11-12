@@ -9,7 +9,7 @@
 // the focus still gets them; and, while a sequence waits, every key that types, bound over them
 // all. A text field with the focus gets its keys first: only a binding that asks (`inField`) is
 // heard there.
-import { cleanup, computed, context, effect, type JSX, keymap, untracked } from "nsh";
+import { cleanup, computed, context, effect, type JSX, keymap, signal, untracked } from "nsh";
 import { interaction } from "../timing";
 import { createLeader } from "./leader";
 import type { Step } from "./sequence";
@@ -93,8 +93,23 @@ export function keepSpace(kept: () => boolean) {
   cleanup(store.keepSpace(kept));
 }
 
-/** The status line's hints of the keys that work now, read as a signal. */
-export const keyHints = (): ReadonlyArray<StatusHint> => store.hints();
+/** The text field that has the focus, by a token of its own: none while the page has the keys. */
+const focusedField = signal<object | null>(null);
+
+/** A text field says it took the focus, or lost it: a field taking it from another is in time. */
+export function fieldFocused(field: object, focused: boolean) {
+  if (focused) focusedField.set(field);
+  else if (untracked(focusedField) === field) focusedField.set(null);
+}
+
+/** Whether a text field has the focus, read as a signal: its keys are its own then. */
+export const editing = () => focusedField() !== null;
+
+/**
+ * The status line's hints of the keys that work now, read as a signal: in a field with the focus,
+ * only the keys it lets through (`inField`), as `j` there types.
+ */
+export const keyHints = (): ReadonlyArray<StatusHint> => store.hints(editing());
 
 /** Every key whose scope is on, whatever the switch says, read as a signal: the key map's. */
 export const keysOn = (): ReadonlyArray<Declared> => store.on();
