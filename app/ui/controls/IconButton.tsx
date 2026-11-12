@@ -24,6 +24,8 @@ export type IconButtonProps = PressProps & {
   label: string;
   /** A toggle that is on: its icon in the accent, on a faint block. */
   selected?: boolean;
+  /** No tip now, while what it opened covers where the tip would be: a menu's list. */
+  tipOff?: boolean;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -68,7 +70,7 @@ export function IconButton(props: IconButtonProps) {
     });
   }
   return (
-    <Tooltip text={props.label}>
+    <Tooltip off={props.tipOff} text={props.label}>
       <Base
         accessibilityLabel={props.label}
         activeStyle={press.active(looks())}

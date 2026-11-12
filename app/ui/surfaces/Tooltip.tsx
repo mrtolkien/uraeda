@@ -20,6 +20,8 @@ const REST = 600;
 export type TooltipProps = {
   /** What the tip is about: the pointer resting on it shows the tip. */
   children?: JSX.Element;
+  /** No tip now: what it is about shows what it opened, as a menu's trigger its list. */
+  off?: boolean;
   /** The side of its trigger it goes on, the other one where only that has room: `top`. */
   placement?: "top" | "bottom" | "left" | "right";
   /** The style of the box around what it is about. */
@@ -54,7 +56,7 @@ export function Tooltip(props: TooltipProps) {
         anchor={trigger ?? null}
         keys={false}
         name={props.text}
-        open={open()}
+        open={open() && props.off !== true}
         place={() => ({ rise: tokens.motion.rise / 2 })}
         placement={props.placement ?? "top"}
         scrim={false}

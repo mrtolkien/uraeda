@@ -55,6 +55,7 @@ export function Menu(props: MenuProps) {
         selected={isOpen()}
         state={props.state}
         testID={props.testID}
+        tipOff={isOpen()}
       />
       <Popover
         anchor={anchor()}
