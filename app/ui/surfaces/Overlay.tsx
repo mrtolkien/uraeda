@@ -42,6 +42,11 @@ export type OverlayProps = {
   testID?: string;
   /** On a small plate on its top edge. */
   title?: string;
+  /**
+   * In the window's middle, its top stays where it opened, a fifth of the way down, as a command
+   * palette's: a picker whose list grows and shrinks as it is searched never jumps.
+   */
+  top?: boolean;
   /** Its width in the window's middle. A sheet spans the window. */
   width?: number;
 };
@@ -56,7 +61,10 @@ export function Overlay(props: OverlayProps) {
       ? {
           box: { maxHeight: "80%", maxWidth: "100%", width: props.width },
           rise: tokens.motion.rise,
-          window: { alignItems: "center", justifyContent: "center" },
+          window:
+            props.top === true
+              ? { alignItems: "center", justifyContent: "flex-start", paddingTop: "12%" }
+              : { alignItems: "center", justifyContent: "center" },
         }
       : { box: { bottom: tokens.status.height + GAP, right: 12 }, rise: tokens.motion.rise };
   };

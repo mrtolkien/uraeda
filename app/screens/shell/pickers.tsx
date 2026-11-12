@@ -2,7 +2,7 @@
 // changes (`Space f f`), the sessions (`Space f s`), both (`Space Space`), the themes (`Space u t`),
 // and a part's font (`Space u f <key>`). One is open at a time; Enter on a row goes there, or
 // picks it.
-import { colorScheme, signal } from "nsh";
+import { signal } from "nsh";
 import { device, navigate, record } from "../../store";
 import { KeyPicker, type PickerItem } from "../../ui/keys";
 import { chooseFont, chooseTheme } from "../settings/look";
@@ -61,7 +61,8 @@ function work(kind: "features" | "sessions" | "all", repo: string): Row[] {
     kind === "sessions"
       ? []
       : (record("Workspace", { repo })()?.features ?? []).map((feature) => ({
-          aside: feature.status.label,
+          // Two features may share a title: the day each started tells them apart.
+          aside: `${feature.status.label} · ${feature.folder.slice(0, 10)}`,
           go: () => navigate({ folder: feature.id, page: "feature" }),
           id: `feature ${feature.id}`,
           summary: feature.kind === "change" ? "Change" : "Feature",
@@ -86,7 +87,8 @@ const TITLES: Record<Exclude<PickerKind, object>, string> = {
   features: "Features and changes",
   repositories: "Switch repository",
   sessions: "Sessions",
-  themes: `Theme for ${colorScheme() === "light" ? "light" : "dark"} mode`,
+  // Each row says its mode, the one a pick sets the theme of.
+  themes: "Theme",
 };
 
 /** The picker open, if any. */

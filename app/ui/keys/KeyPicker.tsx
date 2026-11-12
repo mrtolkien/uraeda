@@ -179,6 +179,7 @@ export function KeyPicker<Item extends PickerItem>(props: KeyPickerProps<Item>) 
       open={props.open}
       testID="key-picker"
       title={props.title}
+      top
       width={920}
     >
       <Picking picker={props} />
