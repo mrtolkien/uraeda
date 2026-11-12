@@ -47,8 +47,18 @@ if [ "$slots" -gt 0 ] && [ -z "${URAEDA_SLOT:-}" ]; then
   done
 fi
 
+# The command runs without the slot's lock: this script holds it until the command ends. A
+# process the command left running, a test's child that outlived its test, then never holds a
+# slot, which every later heavy run of the machine waited on.
+run() {
+  if [ -n "${held:-}" ]; then "$@" {held}>&-; else "$@"; fi
+}
+
 if [ -n "${URAEDA_ISOLATED:-}" ]; then
-  exec "$@"
+  [ -n "${held:-}" ] || exec "$@"
+  status=0
+  run "$@" || status=$?
+  exit "$status"
 fi
 
 parent=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
@@ -70,7 +80,7 @@ state() {
 state >"$run/before"
 
 status=0
-env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR \
+run env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR \
   GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 URAEDA_ISOLATED=1 \
   TMPDIR="$run/tmp" TMP="$run/tmp" TEMP="$run/tmp" \
   XDG_DATA_HOME="$run/data" XDG_CONFIG_HOME="$run/config" \
