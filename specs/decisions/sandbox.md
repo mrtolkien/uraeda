@@ -21,8 +21,8 @@ where pages are browsed together, as a user does.
   file. Checked by a test.
 - The sandbox's state MUST survive its restarts, until the human asks for a reset. Checked by a
   test.
-- The sandbox's sample projects MUST NOT reach the package, and its command MUST stay hidden there:
-  it runs from a checkout only.
+- The sandbox's sample projects MUST NOT reach the package, where its command is hidden and runs
+  from a checkout only.
 - Mockups and variants SHOULD stay gallery pages, as [Preview](preview.md) says.
 
 ## Why
