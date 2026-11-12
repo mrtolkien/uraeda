@@ -1,13 +1,15 @@
 // The settings' index: the search across every setting, then the categories, each with what it
-// holds. While the search holds text, it lists the settings found, by category, and Enter on one
-// opens its category. The search's text is kept in the visit, so Back returns to it.
+// holds. While the search holds text, it lists the settings found, by name first, and Enter on one
+// opens its category, on its row. The search's text is kept in the visit, so Back returns to it.
 import { View } from "nsh";
 import { CATEGORIES, type Found, search, type Words } from "./categories";
+import { settingsCategory } from "./panes";
 import { navigate, record, route } from "../../store";
 import { Icon, Kbd, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
-import { usePane } from "../../ui/layout";
+import { focusPane, usePane } from "../../ui/layout";
 import { createCursor, Empty, List } from "../../ui/lists";
+import { landOn } from "../../ui/lists/FieldRow";
 import { TextField, type TextFieldRef } from "../../ui/text";
 
 /** The extensions as the search reads them: their title, description, and settings' names. */
@@ -65,10 +67,16 @@ export function Index() {
       ? CATEGORIES.map((one) => ({ id: one.id }))
       : found().map((_, at) => ({ id: `${at}` }));
   const cursor = createCursor(rows);
+  // A setting found opens its category with the cursor on its row, which has the keys: the Enter
+  // that opened it never changes the setting, a second one does.
   const open = (id: string) => {
-    const hit = found()[Number(id)];
-    const category = text().trim() === "" ? id : hit?.category.id;
-    if (category !== undefined) navigate({ category, page: "settings" });
+    const searching = text().trim() !== "";
+    const hit = searching ? found()[Number(id)] : undefined;
+    if (searching && hit === undefined) return;
+    const category = hit === undefined ? id : hit.category.id;
+    if (hit !== undefined) landOn(hit.words.label);
+    navigate({ category, page: "settings" });
+    focusPane(settingsCategory({ category }));
   };
   registerKey({
     hint: "/",
@@ -118,7 +126,7 @@ export function Index() {
       <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
         <Kbd keys="/" />
         <Text size="under" tone="faint">
-          searches, Enter opens the first found
+          searches, Enter goes to the first found
         </Text>
       </View>
     </View>

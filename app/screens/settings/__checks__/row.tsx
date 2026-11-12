@@ -1,7 +1,8 @@
 // What `settings.test.tsx` opens: a category's rows in a pane, as the settings draw them, one a
-// switch whose server refuses every change after half a second, with the way out.
+// switch whose server refuses every change after half a second, with the way out, and what a
+// search's result does to land on it.
 import { mount, signal, Text, View } from "nsh";
-import { FieldRow, FieldRows } from "../../../ui/lists/FieldRow";
+import { FieldRow, FieldRows, landOn } from "../../../ui/lists/FieldRow";
 import { sent, Switch } from "../../../ui/controls";
 import { KeysHost } from "../../../ui/keys/KeysHost";
 import { KeyScope } from "../../../ui/keys/registry";
@@ -38,6 +39,7 @@ function Rows() {
         />
       </FieldRows>
       <Text>{`Vim: ${vim.value() ? "on" : "off"}`}</Text>
+      <Text onPress={() => landOn("Vim mode")}>Found Vim mode</Text>
     </View>
   );
 }

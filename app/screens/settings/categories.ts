@@ -71,7 +71,7 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     label: "Keyboard",
     settings: [
       {
-        help: "The leader key, the g sequences, and the letter keys of every page. Arrow keys, Enter, Escape, and Ctrl+K keep working when this is off.",
+        help: "The leader key, the g sequences, and the letter keys of every page. Off, they all stop, and only the arrow keys, Enter, Escape, Tab, and Ctrl+K, which opens the leader's menu, still work.",
         label: "Single-key shortcuts",
         terms: ["leader", "space"],
       },
@@ -196,16 +196,22 @@ export function wordsOf(category: CategoryId, label: string): Words {
 export type Found = { category: Category; words: Words };
 
 /**
- * The settings whose name, help, or other names hold `text`, in any case, in the categories'
- * order; `extra` are the extensions' words, which the record gives.
+ * The settings whose name, help, or other names hold `text`, in any case: those whose name holds
+ * it first, then their other names, then their help, each in the categories' order; `extra` are
+ * the extensions' words, which the record gives.
  */
 export function search(text: string, extra: ReadonlyArray<Words>): ReadonlyArray<Found> {
   const needle = text.trim().toLowerCase();
   if (needle === "") return [];
-  const holds = (words: Words) =>
-    [words.label, words.help, ...(words.terms ?? [])].some((one) =>
-      one.toLowerCase().includes(needle),
-    );
+  const has = (one: string) => one.toLowerCase().includes(needle);
+  /** How far from its name a setting holds the text: 0 its name, 1 another, 2 its help. */
+  const rank = ({ words }: Found) => (has(words.label) ? 0 : (words.terms ?? []).some(has) ? 1 : 2);
+  const holds = (words: Words) => [words.label, words.help, ...(words.terms ?? [])].some(has);
+  return found(extra, holds, needle).toSorted((a, b) => rank(a) - rank(b));
+}
+
+/** What the search holds, in the categories' order, with a category found by its own name. */
+function found(extra: ReadonlyArray<Words>, holds: (words: Words) => boolean, needle: string) {
   return CATEGORIES.flatMap((category) => {
     const own = category.id === "extensions" ? extra : category.settings;
     const settings = own.filter(holds).map((words) => ({ category, words }));

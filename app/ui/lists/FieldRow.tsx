@@ -8,7 +8,7 @@
 // press on its control does. A control that goes to the server takes its value from `sent`
 // (`../controls/sent.ts`): it moves at once, its changes go in order, and a refusal puts it back
 // and shows here, under it.
-import { context, type JSX, View } from "nsh";
+import { context, effect, type JSX, signal, untracked, View } from "nsh";
 import { createCursor, type Cursor } from "./cursor";
 import { listKeys } from "./keys";
 import { Row } from "./Row";
@@ -40,6 +40,15 @@ export type RowSpec = { id: string; act?: () => void };
 
 const Rows = context<Cursor | null>(null);
 
+/** The row a search asked to land on, by its name, until a form shows it. */
+const wanted = signal<string | null>(null);
+
+/**
+ * Puts the form's cursor on the row named `label` as it shows, where a search found it: Enter on a
+ * search's result goes to its row, and only a second, deliberate Enter changes it.
+ */
+export const landOn = (label: string) => wanted.set(label);
+
 /**
  * A form's rows: their cursor, kept in the visit, and their keys in the pane's scope. `rows`
  * are read as they change, an extension coming or going.
@@ -69,6 +78,14 @@ export function FieldRows(props: { rows: () => ReadonlyArray<RowSpec>; children?
 export function FieldRow(props: FieldRowProps) {
   const cursor = Rows();
   const pane = usePane();
+  effect(() => {
+    if (cursor !== null && wanted() === props.label) {
+      untracked(() => {
+        wanted.set(null);
+        cursor.set(props.id, { reveal: true });
+      });
+    }
+  });
   const wide = () => pane.width() !== "narrow";
   // Wide, the words keep beside their icon; narrow, the icon and the name are a head line, and
   // what wraps takes the row's whole width under it.
