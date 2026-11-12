@@ -2414,10 +2414,11 @@ right sidebar)". This task builds the model and the frame that draws it. Task 66
       20,000 messages streaming, the same scrolling by itself, and a glass panel over it.
 - [x] **Step 2: Write the two tools**, from the spike's `tools/` and its self-scrolling switch. They
       never open a window on the human's display.
-- [ ] **Step 3: Run `just frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
+- [x] **Step 3: Run `just frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
       percentile. Record the numbers in the commit's body. In software, `streaming` passes (p99 at
       most 6.03 ms); `scrolling` and `glass` do not (at most 10.04 and 11.93 ms), ruling R239: a
-      GPU's frames are task 53's. Left unchecked until task 53 measures them on a GPU.
+      GPU's frames are task 53's. Task 53 measured them on the GPU, on an optimised build, quiet:
+      p99 at most 1.59, 3.28, and 3.74 ms, 120 frames a second (ruling R416).
 - [x] **Step 4: Review every picture yourself**, against the design language and its mockup, and fix
       what drifts. Then ask a second reviewer, with no part in building the library, to compare the
       pictures with the design language, and fix what it finds.
@@ -3229,25 +3230,34 @@ can become a full pane, as in a tiling window manager.
 
 **Files:**
 
-- Create: `app/tools/navigation.ts`
-- Modify: `packages/benchmarks/` or its successor, `just frames` (task 35: `scripts/frames.sh` and
-  `app/gallery/frames.test.tsx`)
+- Create, as built: `app/ui/timing.ts` (the development build's timing and its warning),
+  `app/tools/navigation.test.tsx` with its page `app/tools/__checks__/Navigation.tsx` (a test file
+  the recipe runs, which skips itself without a display, in place of `app/tools/navigation.ts`),
+  `scripts/gpu-display.sh` (`hidden-display --gpu`)
+- Modify: `just frames` (`scripts/frames.sh`), `flake.nix`, the `justfile`, `scripts/nsh.sh`,
+  `scripts/sandboxed.sh`, the key registry, `navigate`, `TextField`, the store's connection,
+  `KeysHost`, `Document`; `CONTRIBUTING.md`, `AGENTS.md`
 
 **Interfaces:**
 
-- Produces: `just bench-navigation` (the time from a key to the next page drawn, for every page and
-  action the performance decision names) and `just frames <scene>`; a development build's warning
-  when an interaction passes 100 ms.
+- Produces: `just bench-navigation [software]` (the time from a key to the frame that draws its
+  result with its records, for every page and action the performance decision names, as a table) and
+  `just frames <scene> [software]`, both on an optimised build in `target/optimised/` and on the
+  GPU's hidden display (`hidden-display --gpu`, rulings R411 and R412); a development build's
+  warning when an interaction passes 100 ms (`interaction`, `onTimed`, `settledWhen` in
+  `app/ui/timing.ts`, ruling R415).
 
-- [ ] **Step 1: Write the navigation benchmark** over the sandbox's projects, as the performance
+- [x] **Step 1: Write the navigation benchmark** over the sandbox's projects, as the performance
       decision asks.
-- [ ] **Step 2: Run both benchmarks.** Expected: navigation within 100 ms, a reload within 1 second,
-      frames at most 8.3 ms at the 99th percentile.
-- [ ] **Step 3: Fix what misses.** The usual causes, from the spikes: a list bound without pacing, a
+- [x] **Step 2: Run both benchmarks.** Expected: navigation within 100 ms, a reload within 1 second,
+      frames at most 8.3 ms at the 99th percentile. Frames met on the GPU; navigation missed by a
+      third to a half everywhere, the whole app made again at each navigation (ruling R413).
+- [x] **Step 3: Fix what misses.** The usual causes, from the spikes: a list bound without pacing, a
       long text drawn as one block, a record sent whole where a change would do, work done in TSX
-      that belongs in Rust.
-- [ ] **Step 4: Run them again, and record the numbers** in the commit's body.
-- [ ] **Step 5: Commit**: `perf(nsh-migration): meet the navigation and frame targets`.
+      that belongs in Rust. Fixed: the keys' host's children (R413), a paragraph's views in a
+      transcript's rows (R414). Left: a page's first visit and the chat of 20,000 messages (R416).
+- [x] **Step 4: Run them again, and record the numbers** in the commit's body.
+- [x] **Step 5: Commit**: `perf(nsh-migration): meet the navigation and frame targets`.
 
 ## Task 54: Packaging and release
 

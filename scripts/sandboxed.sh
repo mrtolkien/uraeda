@@ -58,7 +58,9 @@ address_of() {
   echo "$address"
 }
 
-start sandbox
+# `URAEDA_SANDBOX_ARGS`: more flags of the first one's, `--long-chat` for the navigation benchmark.
+# shellcheck disable=SC2086
+start sandbox ${URAEDA_SANDBOX_ARGS:-}
 start signed --sign-in
 address=$(address_of sandbox "${servers[0]}")
 signed=$(address_of signed "${servers[1]}")

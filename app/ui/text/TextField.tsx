@@ -13,12 +13,21 @@
 //   field it is `onEnter`, or its owner's Enter, as a picker's.
 // - The keys its owner declares `inField` in the key registry reach the owner before the editor:
 //   a dialog's Tab, a picker's arrows.
-import { type Accessor, computed, signal, type StyleProp, View, type ViewStyle } from "nsh";
+import {
+  type Accessor,
+  computed,
+  signal,
+  type StyleProp,
+  untracked,
+  View,
+  type ViewStyle,
+} from "nsh";
 import { type CaretTrail, TextEditor, type VimStatus } from "uraeda/native";
 import { Under } from "../controls";
 import { keysOn, pressKeys } from "../keys/registry";
 import { strokeOf } from "../keys/token";
 import { focusStop, Well } from "../surfaces";
+import { interaction } from "../timing";
 import { alpha, tokens } from "../tokens";
 import { Trail, trails } from "./Trail";
 
@@ -244,7 +253,11 @@ export function TextField(props: TextFieldProps) {
               vimStatus.set(NO_FIELD);
               props.onBlur?.();
             }}
-            onChange={({ value }) => props.onChange?.(value)}
+            onChange={({ value }) => {
+              // A key typed, not the text set as the field is made or given another value.
+              if (untracked(stop.focused)) interaction(`typing in ${props.label}`, { joins: true });
+              props.onChange?.(value);
+            }}
             onFocus={() => {
               stop.onFocus();
               props.onFocus?.();

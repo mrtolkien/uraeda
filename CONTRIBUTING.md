@@ -61,6 +61,25 @@ system's loader and libraries. It puts the launcher, the desktop entry, and the 
 `nsh package` is not used: its program is NSH's runner, without the app's host, which starts the
 server and pairs the device. It prints the libraries the app links and the newest glibc it needs.
 
+### Benchmarks
+
+The [performance decision](specs/decisions/performance.md)'s targets are measured on demand, never
+in a check: a timing under other builds' load proves nothing, and fails for no reason.
+
+```sh
+nix develop -c just bench-navigation   # a key to its page drawn with its data, every page and action
+nix develop -c just frames scrolling   # a scene's frames: streaming, scrolling, glass, or reading
+nix develop -c just frames glass software   # the same on Xvfb, which paints in software
+```
+
+Both build every crate optimised, in `target/optimised/`, since a development build's engine and
+JavaScript interpreter run several times slower than a release's. Both draw on the machine's GPU, on
+a display no screen shows (`hidden-display --gpu`: a headless Weston with its GL renderer, at 120
+Hz), which needs the GL driver where Nix's programs find it, `/run/opengl-driver`. Run each once, on
+a quiet machine, and say the machine's load with the numbers. A development build of the app also
+warns in its console when an interaction takes more than 100 ms to draw
+([`app/ui/timing.ts`](app/ui/timing.ts)).
+
 To upgrade NSH, change its version and hash in [`flake.nix`](flake.nix), the `nsh-*` crates in
 `Cargo.toml`, `minRuntime` in [`app/nsh.json`](app/nsh.json), and the version and commit in
 [`AGENTS.md`](AGENTS.md#native-shell-nsh), in one commit.

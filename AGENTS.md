@@ -143,7 +143,9 @@ Running it here:
   `hidden-display vp run app:dev`, or `hidden-display node scripts/nsh.ts test --target linux` for
   tests that draw in a GTK window and take pictures with `app.screenshot(path)`. It is an X display
   of 1400 by 800 that no screen shows, with a session bus of its own, so a notification sent there
-  reaches no desktop, and shaders draw on it.
+  reaches no desktop, and shaders draw on it. It paints in software: a frame's time there is not a
+  GPU's. `hidden-display --gpu <command>` draws on the machine's GPU instead, on no screen either: a
+  headless Weston with its GL renderer, at 120 Hz, as `just frames` and `just bench-navigation` use.
 - **`crates/app/tests/outside.rs` guards what the migration assumes of NSH on GTK**: signed
   packages, a page's errors, web views, diagrams, notifications, and the bundled fonts being the
   ones drawn. Each test starts a hidden display of its own, so

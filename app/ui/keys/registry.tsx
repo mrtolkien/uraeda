@@ -10,6 +10,7 @@
 // all. A text field with the focus gets its keys first: only a binding that asks (`inField`) is
 // heard there.
 import { cleanup, computed, context, effect, type JSX, keymap, untracked } from "nsh";
+import { interaction } from "../timing";
 import { createLeader } from "./leader";
 import type { Step } from "./sequence";
 import {
@@ -108,6 +109,7 @@ export const endKeys = () => leader.end();
 
 /** A key heard: what pends takes it first, else the bindings of the key run. */
 function heard(token: string) {
+  interaction(token);
   const { consumed, ran } = leader.press(token);
   if (ran !== null) {
     store.run(ran, store.on());

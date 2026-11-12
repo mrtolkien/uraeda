@@ -5,6 +5,7 @@
 import { type Accessor, batch, signal } from "nsh";
 import { parseRoute, pathOf, type Route } from "./routes";
 import type { Json, Layout } from "../ui/layout/layout";
+import { interaction } from "../ui/timing";
 
 /**
  * What a visit keeps for its page, so Back draws it as it was left. A page that keeps something
@@ -214,6 +215,7 @@ function open(to: Route, kept: Kept) {
  */
 export function navigate(to: Route, kept: Kept = {}) {
   const next = here(to);
+  interaction(`open ${pathOf(next)}`);
   const asking = staysOnPage(current.route, next) ? undefined : guard?.();
   if (!asking) {
     open(next, kept);

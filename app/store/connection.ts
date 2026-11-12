@@ -119,6 +119,20 @@ export class Connection {
     return this.subs.size;
   }
 
+  /**
+   * How many records something reads now that wait for the server's first value: none once the
+   * page shown has its data. The development build's timing of an interaction reads it.
+   */
+  waiting(): number {
+    let count = 0;
+    for (const entry of this.entries.values()) {
+      if (entry.refs > 0 && entry.held.seq === undefined && untracked(entry.error) === undefined) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
   /** Tries again now, while offline, rather than at the end of the wait. */
   reconnect() {
     if (this.closed || this.statusSignal() !== "offline") return;

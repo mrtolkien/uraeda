@@ -14,6 +14,10 @@ set positional-arguments := true
 isolated := "scripts/isolated.sh"
 # The same, in one of the machine's two slots for heavy runs, shared by every checkout.
 heavy := "scripts/isolated.sh --slots 2"
+# The benchmarks' build: every crate optimised, Native Shell's engine and its JavaScript's
+# interpreter with them, as a release's, where a development build's run several times slower.
+# It keeps a target folder of its own, so the checks' builds stay as they are.
+optimised := "URAEDA_TARGET=\"$PWD/target/optimised\" CARGO_TARGET_DIR=\"$PWD/target/optimised\" CARGO_PROFILE_DEV_OPT_LEVEL=3 CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=false CARGO_PROFILE_DEV_OVERFLOW_CHECKS=false"
 nsh := "scripts/nsh.sh"
 
 # List the recipes.
@@ -139,13 +143,24 @@ gallery-shots filter="":
 # The scenes: `streaming`, a session of 20,000 messages with a reply growing; `scrolling`, the same
 # scrolling by itself; `glass`, the same under a bar of glass. Prints Native Shell's `nsh::perf`
 # line of each second, the machine's load before and after, then the median, the 95th and 99th
-# percentiles, and the worst frame. The hidden display draws in software: run it once, quiet.
+# percentiles, and the worst frame. It draws on the GPU's hidden display (`hidden-display --gpu`),
+# at 120 Hz; `just frames <scene> software` on Xvfb's, which paints in software at 60 Hz. Run it
+# once, on a quiet machine: it is a benchmark, never part of a check.
 # What a frame of a scene of the gallery costs, on the hidden display: `just frames glass`.
-frames scene:
+frames scene on="gpu":
     @echo "load before: $(cut -d' ' -f1-3 /proc/loadavg)"
-    {{ isolated }} hidden-display {{ nsh }} test gallery/frames.test.tsx --target linux --fps --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}.log
+    {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} {{ nsh }} test gallery/frames.test.tsx --target linux --fps --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}-{{ on }}.log
     @echo "load after: $(cut -d' ' -f1-3 /proc/loadavg)"
-    @scripts/frames.sh < target/frames-{{ scene }}.log
+    @FRAMES_LOG=target/frames-{{ scene }}-{{ on }}.log scripts/frames.sh < target/frames-{{ scene }}-{{ on }}.log
+
+# The navigation benchmark: the time from a key to the frame that draws its result with its records,
+# for every page and action the performance decision names, over a fresh sandbox with its chat of
+# 20,000 messages, printed as a table, against 100 ms and a reload's 1 s. On the GPU's hidden
+# display, or Xvfb's with `software`. The app times itself in a development build, which warns past
+# 100 ms (`app/ui/timing.ts`). Run it once, on a quiet machine: it is never part of a check.
+bench-navigation on="gpu":
+    URAEDA_SANDBOX_ARGS=--long-chat {{ optimised }} {{ isolated }} hidden-display {{ if on == "gpu" { "--gpu" } else { "" } }} scripts/sandboxed.sh {{ nsh }} test tools/navigation.test.tsx --target linux 2>&1 | tee target/bench-navigation-{{ on }}.log
+    @sed -n '/^navigation:/,/^[^|n]/p' target/bench-navigation-{{ on }}.log | sed 's/\x1b\[[0-9;]*m//g'
 
 # The server over sample projects and a fake agent, without sign-in, at http://127.0.0.1:4420, its
 # state in `.sandbox-next/` until `just sandbox --reset`: `ura sandbox`'s flags, `--port 0`,

@@ -7906,3 +7906,111 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the app's one way of saying what just happened away from the focus.
 - **Where**: `app/ui/announce.ts`, `app/ui/surfaces/Toast.tsx`,
   `app/screens/session/Transcript.tsx`, `words.ts`.
+
+## R411: The frames of record are drawn on the GPU, on a display no screen shows
+
+- **Decision**: `hidden-display --gpu <command>` runs the command on a headless Weston 16 (from the
+  pinned nixpkgs, in the dev shell) with its GL renderer, which draws on the machine's GPU through
+  its render node, 1400 by 800 at 120 Hz, in its kiosk shell; the command gets its Wayland socket by
+  its full path, `GDK_BACKEND=wayland`, and no X display, so a failure never falls back to the
+  person's screen ([`gpu-display.sh`](/scripts/gpu-display.sh)). `just frames` and
+  `just bench-navigation` draw there; `just frames <scene> software` keeps Xvfb's. Here it draws on
+  an AMD Radeon RX 6800 XT (radeonsi, Mesa 26.2.4 from `/run/opengl-driver`), and GTK's GL renderer
+  draws the scene as Xvfb's does (`target/shots/gallery/frames-*-end.png`).
+- **Tried first**: Xvfb, the hidden display, has no GPU: its GL is Mesa's llvmpipe, so every frame
+  measured before this task was painted in software (R131, R175, R239, R340). Weston's headless
+  backend with `--renderer=gl` started at once on the render node, `/dev/dri/renderD128`, which any
+  user may open, with the driver Nix's programs find in `/run/opengl-driver` on this machine.
+- **Seen and left**: GTK logs `eglCreateImageKHR ... plane attribute(s) missing` about once a frame
+  on that display (not Weston: its output goes to its own log). The frames draw right; it is GTK
+  failing to import a buffer it then does not use, and its cost is inside the frames measured.
+- **Also**: `frames.sh` reads every `nsh::perf` line once a second has more than 90 frames, where a
+  window of 120 frames is a second, and prints the engine's side, which the main thread's frames do
+  not show: frames drawn of the refresh rate, the share over a refresh, and a commit's JavaScript
+  and core at the worst second's 95th percentile.
+- **If wrong**: a machine without `/run/opengl-driver` fails `--gpu` naming Weston's log; its frames
+  are `software`'s, and say so.
+- **Where**: `flake.nix`, `scripts/gpu-display.sh`, `scripts/frames.sh`, the `justfile`.
+
+## R412: The benchmarks build every crate optimised
+
+- **Decision**: `just frames` and `just bench-navigation` build with `opt-level = 3` and no debug
+  assertions, in a target folder of their own, `target/optimised/` (`URAEDA_TARGET`, which
+  `scripts/nsh.sh` now reads, and `CARGO_TARGET_DIR`), so the checks' builds are not rebuilt.
+- **Rationale**: the development host builds Native Shell's engine and its JavaScript interpreter at
+  `opt-level = 0`. Measured on the same keys, the development build's navigations took 110 to 250 ms
+  to their first frame where the optimised one took 45 to 100 ms: the decision's targets are for a
+  release build. The app's TSX stays the development bundle, which only names `NODE_ENV` otherwise,
+  so the development build's timing still runs.
+- **Where**: the `justfile`'s `optimised`, `scripts/nsh.sh`.
+
+## R413: The keys' host made the whole app again as the leader's menu came and went
+
+- **Decision**: `KeysHost` takes its children once, in its body, and returns them beside the
+  leader's menu and the key map. It returned `{props.children}` among them, an expression that makes
+  the children again whenever what it reads changes: that was the whole app, the frame and every
+  pane, made again at each navigation and each time the leader's menu showed or closed.
+- **Measured**: over one run of the navigation benchmark, `Frame` was made 126 times; after, once.
+  `g p` mounted 4,506, 2,771, and 2,111 items in three batches; after, 1,601 in one. On the
+  optimised build, quiet, the medians fell by a third to a half: `g p` 74 to 40 ms, `g i` 65 to 32,
+  `g h` 80 to 55, a feature 70 to 40, the themes' dialog 98 to 34 and its closing 97 to 32 ms.
+  Escape on Home with the menu open also threw `cannot read property 'path' of null` in a debug
+  trace before; it no longer does.
+- **No test**: three check pages under `KeysHost`, with a branch that goes, a keyed list, and the
+  leader's menu opened and closed, each made their page once without the fix too: what re-ran the
+  expression in the app is not reproduced by a small page. The benchmark's trace shows it: a frame
+  made more than once is `── … : N items` in the thousands for a key that changes one pane.
+- **If wrong**: another component that returns `{props.children}` beside siblings that change may do
+  the same: a trace (`nsh test --trace`) of a key shows it as a batch that makes the frame.
+- **Where**: `app/ui/keys/KeysHost.tsx`.
+
+## R414: A message of one plain paragraph is one text
+
+- **Decision**: `Document` draws a tree of one paragraph of words and marks, at its left edge, with
+  nothing of the screen's on it, as its one `Text`, without the measure's, the blocks', and the
+  block's views: most of a transcript's rows.
+- **Measured**: `just frames scrolling`, the machine quiet (load under 1): on the GPU, p99 4.15 to
+  3.28 ms, the median 2.67 to 2.03 ms; in software, p99 7.78 to 7.16 ms. R340's next step, kept.
+- **Where**: `app/ui/document/Document.tsx`.
+
+## R415: A development build times every key and navigation, and warns past 100 ms
+
+- **Decision**: [`app/ui/timing.ts`](/app/ui/timing.ts) times an interaction from a key the registry
+  heard (`heard`, so a key pressed from a menu's row too), a `navigate`, or a key typed in a focused
+  field, to the second frame after the first at which no record the app reads waits for the server's
+  first value (the store's `Connection.waiting`, with the line live). The first frame's callback
+  runs before that frame is painted, so the second's comes after it: the time may overstate by a
+  frame, never understate. A development build warns in the console past 100 ms, with what was
+  pressed or opened and how long it took; a release build (`NODE_ENV` `production`) times nothing.
+  The benchmark listens (`onTimed`).
+- **Rationale**: one place, as the decision asks; timed by the app itself, since a test on a display
+  waits 100 ms of quiet after each step and reads no post of the app's.
+- **Where**: `app/ui/timing.ts`, `app/ui/keys/registry.tsx`, `app/store/history.ts`,
+  `app/ui/text/TextField.tsx`, `app/store/connection.ts`, `app/store/index.ts`.
+
+## R416: The targets, as measured on the GPU and an optimised build
+
+- **Decision**: the numbers of record are `just bench-navigation` and `just frames`, on the GPU's
+  hidden display (R411) and the optimised build (R412), the machine quiet (load under 2), once each,
+  in the task's commit.
+  - **Frames: met.** Every scene's p99 is under 8.3 ms with 120 frames of 120 drawn: `streaming`
+    1.59 ms, `scrolling` 3.28, `glass` 3.74, `reading` 6.22 (frames 104 of 120: the scene's own
+    pace). In software, optimised, `scrolling` is 7.16 ms at p99, also under the budget: R239's and
+    R340's 10 to 12.5 ms were the development build's. Under other agents' load (15 to 40) the same
+    scenes read 13 to 34 ms: a timing is a quiet machine's or it is nothing.
+  - **Navigation and actions, warm: met.** Every place, page, and action the benchmark presses draws
+    within 100 ms once visited in the run (medians 8 to 87 ms, worst 26 to 59 ms but the long chat's
+    87), and the reload in 464 ms, under its 1 s.
+  - **Not met: a page's first visit, and the chat of 20,000 messages.** Decisions 152 ms, Git 118, a
+    feature 120, a session 104, the long chat 299 ms cold and 87 ms warm. The time is the first
+    frame's: the engine's JavaScript making the page (10 to 30 ms), GTK applying its batch (up to 13
+    ms), and its first paint of what it never drew (up to 40 ms), plus the records' first answer.
+    What would meet them: the decision's read-ahead (the selected row's page read before Enter, so
+    its records and the server's reads are warm), fewer views per card in the lists, and for the
+    long chat a first page of its rows near its end, the rest as it scrolls.
+  - **Not measured: a setting flipped by the keys.** On the settings page the keys of the
+    benchmark's step reach no binding; `settings.test.tsx` checks that the switch moves on Enter.
+- **Also**: one run of `just app-test` aborted inside QuickJS's collector
+  (`gc_decref_child: Assertion JS_REF_COUNT(p) > 0`) after the gallery's scenes, under load 7; the
+  rerun passed, 152 of 152, and the scenes' tests pass alone with and without R414.
+- **Where**: `app/tools/navigation.test.tsx`, `app/gallery/frames.test.tsx`, the `justfile`.

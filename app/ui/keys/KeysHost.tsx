@@ -34,9 +34,13 @@ export function KeysHost(props: { children?: JSX.Element; place?: unknown }) {
     { icon: "keyboard", keys: "space ?", label, run: open },
   ]);
 
+  // The app, made once: `{props.children}` is an expression that makes them again whenever a
+  // value they read as they are made changes, a branch shown or a list's rows, and here that was
+  // the whole app, every page and the frame, at each message of the server (ruling R413).
+  const children = props.children;
   return (
     <>
-      {props.children}
+      {children}
       <LeaderMenuHost />
       <KeyMap onClose={() => isOpen.set(false)} open={isOpen()} sections={sections()} />
     </>

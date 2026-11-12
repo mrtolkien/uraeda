@@ -2,6 +2,7 @@
 // here only; `app/store/README.md` says how to read a record, a list, and a growing text, and how
 // to call an action and show its refusal.
 import type { ExtensionHost } from "../extensions/host";
+import { settledWhen } from "../ui/timing";
 import { run } from "./actions";
 import { type ConnectOptions, Connection } from "./connection";
 import { offline } from "./errors";
@@ -42,8 +43,10 @@ let current: Connection | undefined;
  */
 export function connect(options: ConnectOptions): Connection {
   current?.close();
-  current = new Connection(options, setServerZone);
-  return current;
+  const made = new Connection(options, setServerZone);
+  current = made;
+  settledWhen(() => made.status() === "live" && made.waiting() === 0);
+  return made;
 }
 
 /** The app's connection, once `connect` made one. */

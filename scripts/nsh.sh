@@ -32,5 +32,7 @@ esac
 
 cd "$root/app"
 # The target folder is absolute: `nsh` runs Cargo from the crates' folders too. Its locks and
-# downloads stay out of the machine's cache folder.
-CARGO_TARGET_DIR="$root/target" NSH_CACHE="$root/target/nsh" exec nsh "${args[@]}"
+# downloads stay out of the machine's cache folder. `URAEDA_TARGET` names another, as the
+# benchmarks' optimised build has one of its own.
+target=${URAEDA_TARGET:-$root/target}
+CARGO_TARGET_DIR="$target" NSH_CACHE="$target/nsh" exec nsh "${args[@]}"

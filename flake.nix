@@ -87,9 +87,22 @@
       # at once, as the checks of `crates/app/tests/outside.rs` do. What runs there is never a
       # person's use of the app, so it runs through `scripts/isolated.sh`: data, configuration,
       # cache, and state folders of its own, and a check that it wrote nothing in the person's.
+      #
+      # Xvfb draws in software. `hidden-display --gpu <command>` draws on the machine's GPU instead,
+      # still on no screen: a headless Weston with its GL renderer, 1400 by 800 at 120 Hz, which
+      # the command reaches as a Wayland display with no X display beside it, so a failure never
+      # falls back to the person's. It needs the machine's GL driver where Nix's programs find it,
+      # `/run/opengl-driver`, and a render node, `/dev/dri/renderD*`; without them Weston does not
+      # start, and the run fails, naming its log.
       hiddenDisplayFor =
         pkgs:
         pkgs.writeShellScriptBin "hidden-display" ''
+          if [ "''${1:-}" = "--gpu" ]; then
+            shift
+            exec ${pkgs.bash}/bin/bash ${./scripts/isolated.sh} env -u DISPLAY GDK_BACKEND=wayland \
+              ${pkgs.dbus}/bin/dbus-run-session --config-file=${hiddenBusFor pkgs} -- \
+              ${pkgs.bash}/bin/bash ${./scripts/gpu-display.sh} ${pkgs.weston}/bin/weston "$@"
+          fi
           exec ${pkgs.bash}/bin/bash ${./scripts/isolated.sh} env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
             ${pkgs.dbus}/bin/dbus-run-session --config-file=${hiddenBusFor pkgs} -- \
             ${pkgs.xvfb-run}/bin/xvfb-run -d -s "-screen 0 1400x800x24 -nolisten tcp" "$@"
