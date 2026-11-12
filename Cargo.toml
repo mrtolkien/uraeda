@@ -35,7 +35,7 @@ gif = "0.14.2"
 # The lines' diff of a patch, without git: the crate gix compares blobs with, which the lockfile
 # holds already.
 gix-imara-diff = "0.3.1"
-gix = { version = "0.89", default-features = false, features = ["sha1", "revision", "status"] }
+gix = { version = "0.90", default-features = false, features = ["sha1", "revision", "status"] }
 http-body-util = "0.1"
 # axum's own HTTP, named for the one request a second start sends the first.
 hyper = { version = "1", features = ["client", "http1"] }
