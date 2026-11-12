@@ -16,6 +16,8 @@ mod cdp;
 mod extensions;
 #[path = "browser/frames.rs"]
 mod frames;
+#[path = "browser/phone.rs"]
+mod phone;
 #[path = "browser/pictures.rs"]
 mod pictures;
 #[path = "browser/protocol.rs"]

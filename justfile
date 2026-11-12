@@ -122,6 +122,16 @@ web-test *args:
     mkdir -p target/shots/web
     URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/web" {{ isolated }} cargo nextest run -p uraeda-server -E 'binary(browser)' --run-ignored only --no-capture "$@"
 
+# The phone in a browser, for the eye: every page and the states a phone meets (sheets, menus, the
+# keyboard up, a toast, a long transcript, a diff), at 390 by 844 with touch, an iPhone's safe area,
+# and its keyboard, in both themes, in `target/shots/phone/`, with `report.txt`: what is pressed and
+# under 44 points, text cut at the edge, a page that scrolls sideways, text under 12 points
+# (`crates/server/tests/browser/phone.rs`). `just web-shots spec` takes only the pictures whose name
+# holds `spec`. After `just web-build`. A tool, never a check.
+web-shots word="":
+    rm -rf target/shots/phone && mkdir -p target/shots/phone
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/phone" URAEDA_PHONE_SHOTS=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact phone::phone_pictures
+
 # A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
 # fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
 # `pairing`, `refused`, `stopped`, `starting`, or `states` for all four. Each in both themes, 1400
