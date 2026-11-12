@@ -10591,3 +10591,44 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   killed process, so no stale lock is left to remove.
 - **Where**: `crates/server/src/start.rs`, `crates/server/src/status.rs`,
   `crates/server/tests/one_server.rs`.
+
+## R530: Rust 1.100, and the crates that needed moving
+
+- **Decision**: the toolchain is Rust 1.100.0 (released 2026-11-12, the newest stable), and the
+  workspace's `rust-version` is 1.100, one number everywhere (`rust-toolchain.toml`, `Cargo.toml`,
+  `AGENTS.md`); `rust-overlay` moved alone in `flake.lock`, nixpkgs stays. Its new lints found two
+  `chunks_exact` of a constant size, now `as_chunks`, and a `homepage` equal to `repository`, now
+  gone. The lockfile takes every semver-compatible update (78 crates). Majors taken: rusqlite 0.42
+  (SQLite 3.54.1, for CVE-2026-119375, RUSTSEC-2026-0459), gix 0.90 (GHSA-q54r-jf2p-rfr2), oxc 0.153
+  (the one NSH's rolldown holds: the build compiled two oxcs, and the pin's reason, "0.153 needs
+  Rust 1.97", had stopped holding), and toml_edit 0.25 (already built for proc-macro-crate: the
+  core's 0.23 was a second copy). rustix 1.1.6, in the lockfile's update, fixes RUSTSEC-2026-0486.
+- **Held, and why**: the `nsh-*` crates at 0.5.0, and the rolldown crates at 1.2.13, with NSH; usvg
+  0.46 and two-face 0.4.5, the versions NSH draws and highlights with; clap_complete exact, its
+  `unstable-dynamic` being exempt from semver; sha2 0.10, tokio-tungstenite 0.28, and serde-saphyr
+  1.3, which NSH's crates or rust-i18n hold anyway: moving ours would add or keep a copy and change
+  code for nothing.
+- **Left old**: merman 0.10 (released 2026-11-12) is a port: its engine and theme API changed, it no
+  longer finds fonts implicitly, it pulls in new crates, and every diagram's picture may move; oxc
+  0.158, which would bring the second oxc back. Advisories left under NSH and its renderers, no
+  version of ours can move: rsa 0.10.0-rc.19 (RUSTSEC-2023-0071, held by quickjs-jit-stdlib, whose
+  `sha2` feature 0.10.0 dropped), bincode 1 (unmaintained, syntect's), rustybuzz and ttf-parser
+  (unmaintained, usvg's and merman's). Not asked, and left: nixpkgs (2026-10-09) and the GitHub
+  Actions (`checkout@v6`, `upload-artifact@v7`, `download-artifact@v8`, `install-nix-action@v31`,
+  `rust-cache@v2`).
+- **Rationale**: the human asked for Rust 1.100 and the crates that need updating: an advisory, a
+  yanked version (none, by the local index), the lockfile, then a major only where it is small and
+  removes a risk or a copy.
+- **If wrong**: a crate's major is one commit of its own, and reverts alone.
+- **Seen on the way**: after a new toolchain, `crates/app/tests/host.rs` builds `ura` in
+  `target/host-tests/` inside its first test, cold, which took 86 s on the loaded machine: seven
+  `host::` tests passed the 120 s limit, then passed once `ura` was built. The server's restart
+  tests (`a_cut_run_asks_when_its_continue_is_off`,
+  `a_session_survives_a_server_restart_and_continues_when_the_decision_says_so`) failed once each
+  under load with `Held("another Uraeda server is starting ...")`, the data folder's lock of R529
+  not yet free at the restart, and passed alone; `review.test.tsx`'s "a removed comment comes back
+  with undo" failed three runs while other agents built, with the old crates too, and passed on the
+  fourth. The store's refused-connection test was broken by `2dcf31da` and is fixed.
+- **Where**: `rust-toolchain.toml`, `flake.lock`, `Cargo.toml`, `Cargo.lock`, `AGENTS.md`,
+  `crates/vim/src/object.rs`, `crates/app/tests/outside/stage.rs`,
+  `crates/core/src/settings/runs_write.rs`, `app/store/store.test.ts`.
