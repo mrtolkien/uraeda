@@ -13,7 +13,8 @@ import { paged, rowsIn } from "./contributions";
 import { declared, declaredBy } from "./declared";
 import { extensionHost } from "../store";
 import type { ExtensionRow } from "../store/protocol";
-import { Banner } from "../ui/controls";
+import { Banner, Icon, Text } from "../ui/controls";
+import { tokens } from "../ui/tokens";
 import { Empty } from "../ui/lists";
 import { pickedFonts, shownTheme } from "../ui/theme";
 import {
@@ -99,6 +100,8 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
   });
   // Followed: this machine's server started again on another port moves the connection there.
   const server = () => props.host.server();
+  /** Whether the part is an item of the status line. */
+  const inLine = () => props.part?.kind === "statusItem";
   const words = () => {
     const shown = problem();
     return shown && problemWords(props.extension().title || name(), shown);
@@ -120,7 +123,19 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
   };
   return (
     <View style={{ flex: 1 }}>
-      <If when={words()}>
+      {/* An item of the status line has one line of 160 points: its state's title alone, cut. */}
+      <If when={inLine() && (Boolean(words()) || (!ready() && !problem()))}>
+        <View style={{ alignItems: "center", flexDirection: "row", gap: 6, height: "100%" }}>
+          <Icon
+            colour={words() ? tokens.role.caution : tokens.role.inkQuiet}
+            name={words() ? "circle-alert" : "refresh-cw"}
+          />
+          <Text lines={1} tone="quiet">
+            {(words() || undefined)?.title ?? `Loading ${props.extension().title || name()}`}
+          </Text>
+        </View>
+      </If>
+      <If when={inLine() ? undefined : words() || undefined}>
         {(said) => (
           <If
             when={said().gone}
@@ -134,7 +149,7 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
           </If>
         )}
       </If>
-      <If when={!ready() && !problem()}>
+      <If when={!inLine() && !ready() && !problem()}>
         <Empty icon="refresh-cw" title={`Loading ${props.extension().title || name()}`} />
       </If>
       <ExtensionView

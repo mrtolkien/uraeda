@@ -171,7 +171,7 @@ export function Appearance() {
         }
       />
       <FieldRow
-        {...wordsOf("appearance", "Desktop notifications")}
+        {...wordsOf("appearance", "Notifications")}
         control={
           <Switch
             label={onOff(desktopNotifications())}

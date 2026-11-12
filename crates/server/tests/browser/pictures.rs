@@ -24,11 +24,7 @@ const PAGES: [(&str, &str, &str); 5] = [
         "/r/sample/f/2026-10-20-sidebar-resize/mockups/handle.html",
         "handle.html",
     ),
-    (
-        "settings",
-        "/r/sample/settings/appearance",
-        "Desktop notifications",
-    ),
+    ("settings", "/r/sample/settings/appearance", "Notifications"),
 ];
 
 /// Scrolls the spec's reader down to its diagram, and waits for its picture.

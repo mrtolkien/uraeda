@@ -40,7 +40,7 @@ export function SignIn(props: {
   };
 
   const intro =
-    "“ura serve” showed the access key once, at its first start. A password manager fills it here.";
+    "Run “ura key” on the machine the server runs on: it shows the access key, once. A password manager fills it here.";
 
   return (
     <Lone

@@ -51,9 +51,9 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         terms: ["colour", "color", "custom", "file"],
       },
       {
-        help: "While the app's window is in the background, the desktop tells you when questions, a review, a pull request, or a blocked agent wait; a click opens it. In the app, a toast tells you either way.",
-        label: "Desktop notifications",
-        terms: ["notify", "alert", "needs you"],
+        help: "While the app is in the background, its window or its browser tab, the desktop or the browser tells you when questions, a review, a pull request, or a blocked agent wait; a click opens it. In the app, a toast tells you either way.",
+        label: "Notifications",
+        terms: ["notify", "alert", "needs you", "desktop", "browser"],
       },
     ],
   },
