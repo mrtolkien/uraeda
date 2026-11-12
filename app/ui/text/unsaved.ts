@@ -183,9 +183,10 @@ export type UnsavedText = {
   /**
    * Saves the text as it is now through `run`, which rejects with the server's words. The field
    * stays as it is, and can be typed in: once saved, what was typed since stays unsaved, over the
-   * text saved. Saves go one after the other, and the same text asked twice is one save.
+   * text saved. Saves go one after the other, and the same text asked twice is one save, unless
+   * `kind` tells them apart: a save over a file changed on disk never joins an ordinary one.
    */
-  save: <T>(run: (text: string) => Promise<T>) => Promise<Submitted<T>>;
+  save: <T>(run: (text: string) => Promise<T>, kind?: string) => Promise<Submitted<T>>;
   /**
    * Sends the text as it is now through `run`, with what `held` holds: both leave at once, and the
    * field is free for the next. Refused, they come back, before what was typed and added since.
@@ -234,7 +235,12 @@ export function unsavedText(
   });
   const saves = signal(0);
   let chain: Promise<unknown> = Promise.resolve();
-  const queued: Array<{ done: Promise<Submitted<unknown>>; key: string; text: string }> = [];
+  const queued: Array<{
+    done: Promise<Submitted<unknown>>;
+    key: string;
+    kind: string;
+    text: string;
+  }> = [];
 
   const entry = () => readUnsaved(keyNow());
   /** The saved text, as far as the field knows: what its last save wrote, else the record's. */
@@ -265,10 +271,12 @@ export function unsavedText(
     },
     entry,
     pending: () => saves() > 0 || entry()?.sent !== undefined,
-    save<T>(run: (text: string) => Promise<T>) {
+    save<T>(run: (text: string) => Promise<T>, kind = "") {
       const at = untracked(keyNow);
       const snapshot = untracked(text);
-      const same = queued.find((one) => one.key === at && one.text === snapshot);
+      const same = queued.find(
+        (one) => one.key === at && one.kind === kind && one.text === snapshot,
+      );
       if (same !== undefined) return same.done as Promise<Submitted<T>>;
       saves.update((count) => count + 1);
       const done = chain.then(async (): Promise<Submitted<T>> => {
@@ -298,7 +306,7 @@ export function unsavedText(
           saves.update((count) => count - 1);
         }
       });
-      queued.push({ done, key: at, text: snapshot });
+      queued.push({ done, key: at, kind, text: snapshot });
       chain = done;
       return done;
     },

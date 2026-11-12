@@ -17,6 +17,11 @@ export type SaveState =
 export type Saving = {
   /** Saves the field's text as it is now: says whether it was saved. */
   save: () => Promise<boolean>;
+  /**
+   * Saves the field's text as it is now through `send` in place of the field's own, for this
+   * save alone: `kind` names how, so it never joins a save of the same text made the usual way.
+   */
+  saveAs: (kind: string, send: (text: string) => Promise<void>) => Promise<boolean>;
   state: Accessor<SaveState>;
   /** Why the last save was refused, for the field's `refusal`: `null` once one passes. */
   refusal: Accessor<string | null>;
@@ -32,17 +37,19 @@ export function saving(
   send: (text: string) => Promise<void>,
 ): Saving {
   const state = signal<SaveState>({ kind: "idle" });
+  async function saveThrough(kind: string, through: (text: string) => Promise<void>) {
+    state.set({ kind: "saving" });
+    const done = await field.save(through, kind);
+    state.set(done.ok ? { kind: "saved" } : { kind: "refused", why: done.why ?? "" });
+    return done.ok;
+  }
   return {
     refusal: () => {
       const now = state();
       return now.kind === "refused" ? now.why : null;
     },
-    async save() {
-      state.set({ kind: "saving" });
-      const done = await field.save(send);
-      state.set(done.ok ? { kind: "saved" } : { kind: "refused", why: done.why ?? "" });
-      return done.ok;
-    },
+    save: () => saveThrough("", send),
+    saveAs: saveThrough,
     state,
   };
 }

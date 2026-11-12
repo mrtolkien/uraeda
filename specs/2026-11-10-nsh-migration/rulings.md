@@ -10075,3 +10075,15 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/ui/keys/{KeyPicker,registry}.tsx`, `app/ui/lists/{List.tsx,keys.ts}`,
   `app/screens/new/StartDialog.tsx`, `app/screens/git/Sync.tsx`; the browser test
   `a_confirmation_opens_and_confirms_by_its_key`.
+
+## T81.2: "Save over" is a kind of one save, never a flag
+
+- **Decision**: `saveOver` set a flag the next run of the save consumed. A save over the same text
+  as one already on its way joined that save (the de-duplication of `unsavedText.save`), and the
+  flag stayed set for the next ordinary save, which then skipped the "changed on disk" check; one
+  pressed while an earlier text waited gave its pass to that text. Now the save over is its own
+  `send` (`Saving.saveAs("over", …)`), and `unsavedText.save` takes a `kind`: the same text asked
+  twice is one save only within one kind.
+- **Rationale**: the choice belongs to the text the human saw when they chose; nothing outlives it.
+- **Where**: `app/screens/editor/edited.ts`, `app/ui/text/{SaveStatus.tsx,unsaved.ts}`; the test
+  `app/screens/editor/edited.test.ts`, both failure scenarios of the finding.

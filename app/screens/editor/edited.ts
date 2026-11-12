@@ -44,25 +44,23 @@ export function editedFile(of: {
     const typed = text.entry();
     return typed !== undefined && text.dirty() && typed.base !== disk().text;
   };
-  // `over`: the human chose to save over the file as it is now, after it changed.
-  let over = false;
-  const saves = saving(text, async (value) => {
+  // A save of one text: `over`, the human chose to save it over the file as it is now, after it
+  // changed. It is that text's alone, never a state a later save inherits.
+  const sendOf = (over: boolean) => async (value: string) => {
     const from = untracked(disk);
     if (!over && untracked(changed)) {
       throw new Error(`${of.name()} changed on disk: see what changed, then take a version.`);
     }
-    over = false;
     const answer = await of.send(value, from.hash);
     tracked.saved(from.hash, { hash: answer.hash, text: value });
-  });
+  };
+  const saves = saving(text, sendOf(false));
+  const over = sendOf(true);
   return {
     changed,
     disk,
     save: saves.save,
-    saveOver: () => {
-      over = true;
-      return saves.save();
-    },
+    saveOver: () => saves.saveAs("over", over),
     saves,
     takeFile: text.discard,
     text,
