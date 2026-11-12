@@ -13,15 +13,20 @@ import { constitutionPane, decisionPane } from "./Reader";
 /** The repository of the page shown: every route of a repository's pages names one. */
 const repoOf = (shown: { repo?: string }) => shown.repo ?? route().repo ?? "";
 
-// `/decisions` reads the constitution beside the list, as `/decisions/constitution` does. On a
-// phone the list is what the page is for: it comes first, and the constitution is its next pane.
+// `/decisions` reads the constitution beside the list, as `/decisions/constitution` does, with the
+// focus on the list: `g d` comes to pick a decision, and the list's `j`, `Enter`, and `/` work at
+// once, as Git's changes do beside their diff. On a phone the list is what the page is for: it
+// comes first, and the constitution is its next pane.
 definePlace("decisions", (shown) =>
   isNarrow()
     ? [
         { pane: listPane({ repo: repoOf(shown) }), stack: "main" },
         { pane: constitutionPane({ repo: repoOf(shown) }), stack: "side" },
       ]
-    : [constitutionPane({ repo: repoOf(shown) }), listPane({ repo: repoOf(shown) })],
+    : [
+        constitutionPane({ repo: repoOf(shown) }),
+        { focus: true, pane: listPane({ repo: repoOf(shown) }), stack: "side" },
+      ],
 );
 definePlace("constitution", (shown) => [
   constitutionPane({ repo: repoOf(shown) }),
