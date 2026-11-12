@@ -38,10 +38,11 @@ pub(super) enum News {
 }
 
 /// A record's whole value as of one change, as every subscriber that needs it is sent it: its JSON
-/// is written, and compressed when long, once for all of them.
+/// is written, and compressed when long, once for all of them. The value is the record's own,
+/// shared, not a copy: a large record is held once beside its written part.
 pub(super) struct Whole {
     pub seq: u64,
-    pub value: Value,
+    pub value: Arc<Value>,
     part: OnceLock<Part>,
 }
 
@@ -49,7 +50,7 @@ impl Whole {
     /// The value as it is sent, written the first time it is asked for. Compressing a long value
     /// takes milliseconds: a connection asks for it on a blocking thread (`Connection::next_frame`).
     pub(super) fn part(&self) -> &Part {
-        self.part.get_or_init(|| Part::of(&self.value))
+        self.part.get_or_init(|| Part::of(self.value.as_ref()))
     }
 
     /// Whether the value was written already.
@@ -79,18 +80,30 @@ enum Fit {
 impl Append {
     /// Grows the text at its path, unless the value already holds the new text or has another.
     fn onto(&self, value: &mut Value) -> Fit {
+        match self.fit(value) {
+            Fit::Grew => self.grow(value),
+            other => other,
+        }
+    }
+
+    /// What the append would do to the value, which it leaves as it is: `Grew` where it would grow.
+    fn fit(&self, value: &Value) -> Fit {
         let Some(Value::String(held)) = get(value, &self.path) else {
             return Fit::Apart;
         };
         if held.len() == self.at {
-            return match apply(value, &[self.op()]) {
-                Ok(()) => Fit::Grew,
-                Err(_) => Fit::Apart,
-            };
+            return Fit::Grew;
         }
         match held.get(self.at..) {
             Some(rest) if rest.starts_with(&self.text) => Fit::Held,
             _ => Fit::Apart,
+        }
+    }
+
+    fn grow(&self, value: &mut Value) -> Fit {
+        match apply(value, &[self.op()]) {
+            Ok(()) => Fit::Grew,
+            Err(_) => Fit::Apart,
         }
     }
 
@@ -123,7 +136,7 @@ pub(super) struct Topic {
 
 struct State {
     /// The value, with every operation of `log` and `pending` applied: none before the first read.
-    value: Option<Value>,
+    value: Option<Arc<Value>>,
     /// The value as the subscribers that need it whole are sent it, until it changes.
     whole: Option<Arc<Whole>>,
     /// The number of the last change sent.
@@ -240,15 +253,21 @@ impl Topic {
     /// text, or cannot take it, and then only a read tells.
     pub(super) fn append(self: &Arc<Self>, append: Append) {
         let mut state = self.lock();
-        let fit = match state.value.as_mut() {
-            Some(value) => append.onto(value),
+        let State { value, whole, .. } = &mut *state;
+        let fit = match value {
+            Some(value) => match append.fit(value) {
+                // The whole value as sent goes first: the value then grows in place, and is
+                // copied only while a subscriber's send still holds it.
+                Fit::Grew => {
+                    *whole = None;
+                    append.grow(Arc::make_mut(value))
+                }
+                other => other,
+            },
             None => Fit::Apart,
         };
         match fit {
-            Fit::Grew => {
-                state.whole = None;
-                state.grew(append);
-            }
+            Fit::Grew => state.grew(append),
             Fit::Held => {}
             Fit::Apart => state.said += 1,
         }
@@ -358,7 +377,7 @@ impl State {
                 let whole = self.whole.get_or_insert_with(|| {
                     Arc::new(Whole {
                         seq,
-                        value: value.clone(),
+                        value: Arc::clone(value),
                         part: OnceLock::new(),
                     })
                 });
@@ -411,7 +430,7 @@ impl State {
         if !self.pending.is_empty() || self.value.is_none() {
             self.whole = None;
         }
-        self.value = Some(value);
+        self.value = Some(Arc::new(value));
         self.read = self.began;
         self.next_at = Instant::now() + PACE;
         if !self.send() {

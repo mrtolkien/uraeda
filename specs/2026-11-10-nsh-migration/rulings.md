@@ -10164,3 +10164,16 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   Left to the human: a page that ran keeps its engine after its pane closed until NSH deletes the
   element; stopping it as its view leaves the window would reload a pane each time it moves.
 - **Where**: `crates/app/tests/extensions.rs`, `crates/app/src/extension_view.rs`.
+
+## T82.3: A record's whole value shares the record's own, not a copy
+
+- **Decision**: a topic holds its value as `Arc<Value>`, and `Whole` takes that `Arc`: a large record
+  is held once, beside the part written for the socket, where it was held twice before. An append
+  grows the value in place with `Arc::make_mut`, after the topic's `Whole` was dropped, so it copies
+  only while a subscriber's send still holds the value before.
+- **Alternatives considered**: a `Whole` of only `seq` and its `Part`, built from a borrowed value,
+  as the review proposed. Rejected: the part is written, and compressed, on a blocking thread the
+  first time a connection sends it, and writing it in the topic's lock would hold every subscriber
+  of the record for the milliseconds a large one takes; and a connection that sends JSON messages
+  reads the value itself.
+- **Where**: `crates/server/src/live/topic.rs`, `subscription.rs`.

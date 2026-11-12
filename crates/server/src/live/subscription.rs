@@ -86,7 +86,7 @@ impl Out {
             Out::Whole { id, whole } => ServerMessage::Data {
                 id,
                 seq: whole.seq,
-                value: whole.value.clone(),
+                value: whole.value.as_ref().clone(),
             },
         }
     }
