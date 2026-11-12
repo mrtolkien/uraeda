@@ -108,6 +108,9 @@ export const spaceIsKept = () => store.keepsSpace();
  */
 export const singleKeys = store.singleKeys;
 
+/** Whether a layer is open over the page, a dialog, a picker, a menu: read as a signal. */
+export const layerOpen = () => store.layer() !== null;
+
 /** The sequence that waits for its next key, read as a signal: `null` for none. */
 export const pendingKeys = (): Step | null => leader.step();
 

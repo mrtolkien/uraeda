@@ -10222,3 +10222,23 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   shell evaluated it, 10 s, and the first in a worktree also seeded its `target/`, three minutes in
   a run: now 0.3 s once the folders are kept.
 - **Where**: `.githooks/pre-commit`, `CONTRIBUTING.md`, `AGENTS.md`.
+
+## T83.1: A breathing button rests while a layer is open over it
+
+- **Decision**: a main button that breathes, the feature page's Next, stops breathing while a
+  layer is open (`layerOpen()` of the key registry, read by `Button`). Found walking "from a thought
+  to a running feature" (`just walk-to-feature`): `n` on a feature opened the continue dialog, and
+  from that frame on the app drew nothing more and heard no key, neither the map's `l` nor Escape;
+  a key pressed later still reached the server, as the run that started in a later step showed.
+  The walk of task 52 met it too: its pictures of step 03 after the continue are one frame.
+  Bisected on the sandbox's `snooze-times`: the dialog with only a line of text, or the run map
+  replaced by a stub, works; the map's tiles alone or its detail alone hang; with the Next button
+  not breathing, the whole dialog works, keys, Escape, and Enter's continue. The lamp's breath
+  redraws the frame under the dialog's glass on each step of its animation, and a dialog of the run
+  map's size, sampling it, took every frame: on the hidden display, in software and on the GPU.
+- **Rationale**: under a dialog the lamp cannot be seen breathing anyway; the fix is in the one
+  component that breathes, so no screen has to know. The start dialog, over the proposal's page,
+  has no lamp under it, which is why it never hung.
+- **If wrong**: the stall is in NSH's glass, and a lamp breathing under a smaller layer, a picker,
+  is fine: then `layerOpen()` narrows to dialogs, or the glass samples a still frame.
+- **Where**: `app/ui/controls/Button.tsx`, `app/ui/keys/registry.tsx`.
