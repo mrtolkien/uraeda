@@ -2,7 +2,8 @@
 // server says what happened, these only put it in words.
 import type { Item, SubSession, Subagent, Turn } from "../../../store/protocol";
 import type { IconName } from "../../../ui/controls";
-import type { CardState } from "../../../ui/lists";
+import { serverTime } from "../../../store/time";
+import type { CardState, CardTime } from "../../../ui/lists";
 import { stepOfTurn } from "../../runs/history";
 import { STEP_LOOKS } from "../../runs/options";
 import { lineWords, type LineWords, took } from "../words";
@@ -57,6 +58,23 @@ export function tokenWords(count: number): string {
  */
 export const ranFor = (started: number, ended: number | null, now: () => number) =>
   took(Math.max(0, (ended ?? now()) - started));
+
+/**
+ * When a run ran, as every card of a run says it: when it started, in the server's zone, and how
+ * long it has gone on, "14:02 · 12 min", or when it ended, "14:02 → 14:20 · 18 min". Nothing for
+ * a turn not read yet, or queued.
+ */
+export function runTime(
+  turn: Pick<Turn, "endedAt" | "startedAt"> | null | undefined,
+  now: () => number,
+): CardTime | undefined {
+  if (turn === null || turn === undefined || turn.startedAt === null) return undefined;
+  return {
+    ended: turn.endedAt === null ? undefined : serverTime(turn.endedAt),
+    started: serverTime(turn.startedAt),
+    took: ranFor(turn.startedAt, turn.endedAt, now),
+  };
+}
 
 /** The sub-sessions in the order they started, the first first, as things that happen are read. */
 export const inStartOrder = (subs: ReadonlyArray<SubSession>): Array<SubSession> =>

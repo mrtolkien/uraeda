@@ -112,8 +112,12 @@ const NOW_SHOWN = 5;
 /** The first entries of Now that do not run: what comes next. Running ones are In progress. */
 export function NowWidget(props: { repo: string }) {
   const priorities = record("Priorities", { repo: props.repo });
+  const now = () =>
+    priorities()?.sections.find((section) => section.section === "now")?.proposals ?? [];
+  // Started ones are Needs you's or In progress's: an empty pane says so, never "Nothing in Now".
+  const started = () => now().filter((proposal) => proposal.running !== null).length;
   const cards = () =>
-    (priorities()?.sections.find((section) => section.section === "now")?.proposals ?? [])
+    now()
       .filter((proposal) => proposal.running === null)
       .slice(0, NOW_SHOWN)
       .map((proposal) => ({
@@ -130,8 +134,12 @@ export function NowWidget(props: { repo: string }) {
         empty={
           <Nothing
             action={{ icon: "list", label: "Open the priorities", run: openPriorities }}
-            title="Nothing in Now"
-            words="A proposal moved to Now on the priorities shows here."
+            title={started() === 0 ? "Nothing in Now" : "Nothing in Now waits to start"}
+            words={
+              started() === 0
+                ? "A proposal moved to Now on the priorities shows here."
+                : `Its ${started() === 1 ? "started one is" : `${started()} started ones are`} in Needs you or In progress.`
+            }
           />
         }
       />

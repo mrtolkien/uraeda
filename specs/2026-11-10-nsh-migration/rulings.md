@@ -10415,7 +10415,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/lists/follow.ts`, `app/ui/lists/VirtualList.tsx`, `app/ui/lists/cursor.ts`
   (`to` reveals the row it is on), `app/screens/session/Transcript.tsx`; the tests
   `app/ui/lists/follow.test.ts` and `lists.test.tsx`; the tool `app/tools/follow.test.tsx`.
-## T190.1: A feature of Now that no run follows, at an agent's step, waits for the human's Continue
+
+## R520: A feature of Now that no run follows, at an agent's step, waits for the human's Continue
 
 - **Decision**: the feature status reads `needs-you`, reason `continue`, "Waits for your Continue",
   for an idle feature whose proposal is in **Now**, with a branch, at a step an agent runs (not
@@ -10441,3 +10442,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/runner/reads.rs`, `records/workspace/status.rs`, `needs_you.rs`,
   `crates/protocol/src/shared/feature.rs`, `workspace/needs_you.rs`, `app/screens/home/core.tsx`,
   `app/screens/priorities/Section.tsx`, `app/screens/shell/Notifications.tsx`.
+
+## R521: Home's In progress keeps the features the priorities hold, or that an agent works on
+
+- **Decision**: a feature in flight that no agent works on is in Home's In progress only while a
+  line of the priorities links it, and its card says where that line is, "In Next", "In Later",
+  "Blocked", in place of "Idle". A dropped feature, whose line the drop removed and whose branch
+  stays, and one never listed, leave Home; the sidebar's Features and its page keep them. A run's
+  card, on Home and a working one in the sessions' list, gives its run's time, from the run's turn,
+  as the sub-agents' cards say it, "02:28 · 12 min" (`runTime`), never the session's start, which
+  "Working · 02:28" read as a duration, and which may be days before the run.
+- **Rationale**: the priorities dropped a feature while Home still listed it in progress; idle cards
+  said "Idle" with no cause (rule 8), crowding what works.
+- **Where**: `app/screens/home/core.tsx`, `app/screens/session/SessionsPage.tsx`,
+  `app/screens/session/panels/words.ts`.

@@ -11,7 +11,9 @@ import { registerKey } from "../../ui/keys";
 import { type PaneRef, usePane } from "../../ui/layout";
 import { Card, createCursor, Empty, VirtualList } from "../../ui/lists";
 import { TextField, type TextFieldRef } from "../../ui/text";
+import { runTime } from "./panels/words";
 import { rowState, runsOnWords, statusTone } from "./words";
+import { ticking } from "../feature/read";
 
 const open = (id: string) => navigate({ id, page: "session-id" });
 
@@ -155,6 +157,11 @@ function SessionCard(props: {
 }) {
   const session = () => record("Session", { id: props.row.id, repo: props.repo })();
   const working = () => props.row.status === "working";
+  const now = ticking(30_000);
+  const turn = () => {
+    const id = session()?.turns.at(-1);
+    return id === undefined ? undefined : record("Turn", { id, repo: props.repo })();
+  };
   return (
     <View style={{ paddingBottom: 6, paddingHorizontal: 12 }}>
       <Card
@@ -171,7 +178,10 @@ function SessionCard(props: {
           tone: props.row.archived ? "quiet" : statusTone(props.row.status),
         }}
         testID={`session-${props.row.id}`}
-        time={timeOf(props.row, working())}
+        time={
+          // At work, its run's time, "14:02 · 12 min", as Home says it: not the session's start.
+          (working() ? runTime(turn(), now) : undefined) ?? timeOf(props.row, working())
+        }
         title={props.row.title}
         who={(() => {
           const shown = session();
