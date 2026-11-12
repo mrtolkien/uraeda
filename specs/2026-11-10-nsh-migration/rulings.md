@@ -8340,7 +8340,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   Shell.
 - **Where**: `crates/cli/tests/serve.rs`.
 
-## T88.1: The look-ahead waits on the runtime's timer, and the stop already ended it
+## R427: The look-ahead waits on the runtime's timer, and the stop already ended it
 
 - **Decision**: the look-ahead (`preview/ahead.rs`) is one async task: it waits for a preview and
   for each story's compile on tokio's timer, and is dropped as the server stops, or with its
@@ -8379,7 +8379,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a warm-up that must go on past a stop does not exist: the next start warms again.
 - **Where**: `crates/server/src/preview/ahead.rs`; `crates/server/tests/preview.rs`.
 
-## T88.2: The app owns one server at a time, and waits for it outside its lock
+## R428: The app owns one server at a time, and waits for it outside its lock
 
 - **Decision**: `Local` (`crates/app/src/server_start.rs`) holds the server the app started under a
   lock taken only to read or to swap its handle. A start's wait for an answer, and a stop's wait for
@@ -8406,7 +8406,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/src/server_start.rs`; `crates/app/tests/host/stand_in.rs`, with the
   stand-in of `ura`, `crates/app/tests/host/ura-stand-in`.
 
-## T88.3: The pick script goes after the head's tag, never before the doctype
+## R429: The pick script goes after the head's tag, never before the doctype
 
 - **Decision**: a mockup's page asked for picking takes the pick script right after its `<head ...>`
   tag, else before its `<body`, else after its `<html ...>` tag, else after its doctype, and at its
@@ -8425,7 +8425,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_mockup_page_asked_for_picking_carries_the_pick_script` (`crates/server/tests/files.rs`), whose
   page now takes the script first in its head.
 
-## T88.4: Only a page shown again wakes a preview that stopped, once a minute
+## R430: Only a page shown again wakes a preview that stopped, once a minute
 
 - **Decision**: the proxy wakes a preview that runs no more (R343) only for a request that shows its
   page to somebody: a `GET` that navigates, `Sec-Fetch-Mode: navigate`, not made ahead of a visit
@@ -8453,7 +8453,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/preview/{proxy,mod,checkout}.rs`; `only_a_navigation_shows_a_page`
   and `a_stale_frame_starts_no_preview`.
 
-## T88.5: The host's channel, the device's token, and the pairing key hold; the app's server log holds the access key
+## R431: The host's channel, the device's token, and the pairing key hold; the app's server log holds the access key
 
 - **Decision**: three guarantees of the host were checked against the code, hold, and are now each
   guarded by a test; nothing of the host changed. One thing found beside them is left to the human.
@@ -8487,3 +8487,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/tests/extensions.rs`, `fixtures/extensions/counter/page.tsx`,
   `crates/server/tests/sign_in.rs`; for what is left, `crates/app/src/server_start.rs` (`start`,
   `failed`) and `crates/server/src/run.rs`.
+
+## R432: The test of a page fetched after its place closed waits for the place to close
+
+- **Decision**: `a_page_fetched_after_its_place_closed_never_runs`
+  (`crates/app/tests/extensions.rs`) opens the page's gate only once the place's view has left the
+  window, which it sees as one widget fewer in the window. Nothing of the app changed.
+- **Rationale**: the test failed in two of three runs of the four crates' validation, 3 engines for
+  2, at a load of 17 to 24, and passed alone, within its crate's 53 tests, and in the third run: the
+  failure R346 saw once. It told the app to close the place and opened the gate at once, without
+  waiting for the app to get to it: on a loaded machine the page came while its view was still in
+  the window, and ran there, as R261 says it should. What the test guards, a page that comes after
+  its place closed, was then not what it ran. This is read from the code, not seen a second time:
+  the brief forbids running a test in a loop to reproduce a failure of timing.
+- **If wrong**: the test fails again under load with the wait in it: the page then runs in a view
+  that left its window, which is R261's own fault to look for.
+- **Where**: `crates/app/tests/extensions.rs`.

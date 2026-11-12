@@ -882,7 +882,7 @@ async fn woke(server: &TestServer, path: &str, metadata: &[(&str, &str)]) -> boo
     answer.header("retry-after").is_some()
 }
 
-// Only a page shown again starts a preview that stopped (ruling T88.4). A frame left open asks
+// Only a page shown again starts a preview that stopped (ruling R430). A frame left open asks
 // on by itself, for a script, a ping of its hot reload, a page fetched ahead: answered as a
 // view, each started the preview the idle sweep had just stopped, all night. And a preview that
 // goes again right after it was woken is not started in a loop, nor one whose repository left.

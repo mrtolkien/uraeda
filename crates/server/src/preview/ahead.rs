@@ -12,7 +12,7 @@
 //! - **It ends with the server**: the queue is one task, which waits on the runtime's timer and
 //!   is dropped as the server stops, or with its runtime. Only a folder's reads run on a blocking
 //!   thread, each for as long as its files and one `git` take: a wait there would be one the
-//!   runtime waits for as it is dropped (ruling T88.1).
+//!   runtime waits for as it is dropped (ruling R427).
 
 use std::time::Duration;
 

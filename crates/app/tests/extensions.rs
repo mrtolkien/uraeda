@@ -32,6 +32,7 @@ use std::fs;
 use std::sync::mpsc::Receiver;
 
 use display::on_hidden_display;
+use nsh_platform_linux::gtk4::{self as gtk, prelude::*};
 use nsh_platform_linux::{AppOptions, AssetBase, Bundle};
 use pages::{Signer, fixture};
 use serde_json::{Value, json};
@@ -164,6 +165,17 @@ fn saved_counter(folder: &std::path::Path) {
 /// Whether `call` is the store's call of the counter's action `action`.
 fn act(action: &'static str) -> impl Fn(&Value) -> bool {
     move |call: &Value| call["name"] == "extensions.act" && call["input"]["name"] == action
+}
+
+/// How many widgets `widget` holds, itself included: a place's view is one of the window's.
+fn widgets(widget: &gtk::Widget) -> usize {
+    let mut count = 1;
+    let mut child = widget.first_child();
+    while let Some(next) = child {
+        count += widgets(&next);
+        child = next.next_sibling();
+    }
+    count
 }
 
 /// How many pages' engines run in this process: NSH names each engine's thread.
@@ -333,7 +345,13 @@ fn a_page_fetched_after_its_place_closed_never_runs() {
             (served.waiting() == 1).then_some(())
         });
         let before = engines();
+        let shown = widgets(app.stage.window.upcast_ref());
         app.show(&[]);
+        // The page comes once its place has left the window, and not before: the app closes
+        // the place when it gets to it, which a loaded machine makes later than the page.
+        wait_for("the place closes", 30, || {
+            (widgets(app.stage.window.upcast_ref()) < shown).then_some(())
+        });
         gate.send(()).expect("the gate opens");
         wait_for("the page is sent", 30, || {
             (served.waiting() == 0).then_some(())
