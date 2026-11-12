@@ -113,6 +113,7 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
     <>
       <Button
         icon="trash-2"
+        keys="D"
         label={`Drop the ${what}…`}
         onPress={() => asking.set(true)}
         pending={pending()}
@@ -122,6 +123,7 @@ export function Drop(props: { args: FeatureArgs; feature: Feature }) {
       <Confirm
         icon="trash-2"
         keep="Keep it"
+        keys="D"
         label={`Drop ${props.feature.label ?? props.feature.title}`}
         loses
         onClose={() => asking.set(false)}

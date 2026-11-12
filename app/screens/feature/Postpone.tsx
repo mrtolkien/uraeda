@@ -42,6 +42,7 @@ export function Postpone(props: { args: FeatureArgs; feature: Feature }) {
         <>
           <Button
             icon="calendar-clock"
+            keys="P"
             label={`Postpone the ${what}…`}
             onPress={() => asking.set(true)}
             testID="postpone"

@@ -41,3 +41,18 @@ test("every pane of the feature page draws, and the keys reach each", async () =
   await app.keyboard.press("l");
   await says(app, "Pull request");
 });
+
+test("postpone and drop are reached by their keys, each asking first", async () => {
+  const app = await open("../../App.tsx", { height: 800, network: "live", width: 1400 });
+  await app.waitFor("text:Redesign clarifications", { timeout: 30_000 });
+  await app.press("text:Redesign clarifications >> nth=0");
+  await says(app, "Postpone the feature…");
+  await app.keyboard.press("shift+p");
+  await says(app, "Postpone the feature?");
+  await app.keyboard.press("Escape");
+  await app.keyboard.press("shift+d");
+  await says(app, "Drop the feature?");
+  await app.keyboard.press("Escape");
+  await app.waitUntil(() => !app.texts().includes("Drop the feature?"), { timeout: 5_000 });
+  await says(app, "Postpone the feature…");
+});
