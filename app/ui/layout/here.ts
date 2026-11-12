@@ -25,6 +25,23 @@ export type Revealer = (view: ViewRef) => void;
 
 export const RevealContext = context<Revealer | null>(null);
 
+/** A view's or a scroller's box, as `measure()` gives it. */
+type Measured = { pagePosition: { y: number }; bounds: { size: { height: number } } };
+
+/**
+ * How far a scroller scrolls to show `it` whole, with a line's room, or its top when it is taller
+ * than the scroller: the least move, `0` when it shows already. Every revealer scrolls by it.
+ */
+export function revealBy(it: Measured, box: Measured): number {
+  const room = 24;
+  const top = it.pagePosition.y - box.pagePosition.y;
+  const bottom = top + it.bounds.size.height;
+  const height = box.bounds.size.height;
+  if (top < room || it.bounds.size.height > height - 2 * room) return top - room;
+  if (bottom > height - room) return bottom - (height - room);
+  return 0;
+}
+
 /**
  * A form typed in on a phone shows whole as the keyboard rises, its field and the button that
  * saves it: a browser scrolls only the caret into view, and the keyboard covered the button. Its

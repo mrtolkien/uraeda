@@ -9,6 +9,7 @@ import { cleanup, type JSX, signal, untracked, View } from "nsh";
 import type { Choice, FileView, QuestionItem } from "../../store/protocol";
 import { Button, Heading, Kbd, Refusal, sent, Text } from "../../ui/controls";
 import { Document, type DocumentHands, Phrase } from "../../ui/document";
+import { wholeOverKeyboard } from "../../ui/layout";
 import { TextField, type TextFieldRef, unsavedText } from "../../ui/text";
 import { isNarrow } from "../../ui/width";
 import { tokens } from "../../ui/tokens";
@@ -117,6 +118,7 @@ export function Question(props: QuestionProps) {
     return undefined;
   };
   props.hands.ask = ask;
+  const whole = wholeOverKeyboard();
 
   return (
     <View style={{ gap: 14, maxWidth: tokens.type.measure * tokens.type.prose }}>
@@ -190,31 +192,37 @@ export function Question(props: QuestionProps) {
           </View>
         </If>
       </View>
-      <TextField
-        hint={
-          comment.dirty()
-            ? "Kept on this device, and saved as you pause"
-            : q().options.length === 0
-              ? "The answer, in your words"
-              : "Optional: what the agent should know beyond the letter"
-        }
-        label={q().options.length === 0 ? "Answer" : "Comment"}
-        onBlur={saveComment}
-        onChange={(value) => {
-          comment.change(value);
-          if (timer !== undefined) clearTimeout(timer);
-          timer = setTimeout(saveComment, PAUSE);
-        }}
-        onSave={saveComment}
-        placeholder={q().options.length === 0 ? "Your answer" : "A comment for the agent, if any"}
-        ref={(made) => {
-          field = made;
-        }}
-        refusal={commentRefusal()}
-        rows={{ max: 12, min: 2 }}
-        testID="round-comment"
-        value={comment.text()}
-      />
+      <View ref={whole.ref}>
+        <TextField
+          hint={
+            comment.dirty()
+              ? "Kept on this device, and saved as you pause"
+              : q().options.length === 0
+                ? "The answer, in your words"
+                : "Optional: what the agent should know beyond the letter"
+          }
+          label={q().options.length === 0 ? "Answer" : "Comment"}
+          onBlur={() => {
+            whole.typing(false);
+            saveComment();
+          }}
+          onFocus={() => whole.typing(true)}
+          onChange={(value) => {
+            comment.change(value);
+            if (timer !== undefined) clearTimeout(timer);
+            timer = setTimeout(saveComment, PAUSE);
+          }}
+          onSave={saveComment}
+          placeholder={q().options.length === 0 ? "Your answer" : "A comment for the agent, if any"}
+          ref={(made) => {
+            field = made;
+          }}
+          refusal={commentRefusal()}
+          rows={{ max: 12, min: 2 }}
+          testID="round-comment"
+          value={comment.text()}
+        />
+      </View>
     </View>
   );
 }

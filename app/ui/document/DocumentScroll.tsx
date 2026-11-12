@@ -7,6 +7,9 @@
 // Its keys read as a page's: `j` `k` and the arrows scroll by a few lines, `mod+d` `mod+u` by
 // half a screen, `g g` `G` and `Home` `End` to its ends. `k` at the top does nothing, so the
 // frame's `k` reaches the pane's tabs.
+//
+// It is the scroller a block's own view reveals itself in (`RevealContext`): a review's comment
+// typed under its block shows whole above a phone's keyboard.
 import {
   computed,
   type JSX,
@@ -15,11 +18,13 @@ import {
   signal,
   untracked,
   View,
+  type ViewRef,
   type ViewToken,
 } from "nsh";
 import type { Block, Document as Tree } from "../../store/protocol";
 import { type KeySpec, registerKey } from "../keys/registry";
 import { BlockView, read } from "./Blocks";
+import { RevealContext, revealBy } from "../layout/here";
 import { DocumentContext, type DocumentHands } from "./context";
 import { shared } from "./Document";
 import { BLOCK_GAP, measure } from "./look";
@@ -153,6 +158,17 @@ export function DocumentScroll(props: DocumentScrollProps) {
     registerKey(keys);
   }
 
+  // A view inside asks to be seen whole: the list scrolls the least that shows it.
+  let frame: ViewRef | undefined;
+  const reveal = async (view: ViewRef) => {
+    const [it, box] = await Promise.all([view.measure(), frame?.measure()]);
+    if (it == null || box == null) return;
+    const by = revealBy(it, box);
+    if (Math.abs(by) < 1) return;
+    at.offset = Math.max(0, at.offset + by);
+    list?.scrollToOffset({ animated: true, offset: at.offset });
+  };
+
   // The header and the footer keep the prose's measure, where the prose starts.
   const column = (children: JSX.Element | undefined, room: "top" | "bottom") => (
     <View
@@ -169,52 +185,56 @@ export function DocumentScroll(props: DocumentScrollProps) {
 
   return (
     <DocumentContext.Provider value={hands}>
-      <List
-        contentOffset={props.offset === undefined ? undefined : { x: 0, y: props.offset }}
-        each={items()}
-        estimatedItemSize={tokens.type.proseLine * 3}
-        footer={column(props.footer, "bottom")}
-        header={column(props.header, "top")}
-        onLayout={(event) => {
-          width.set(event.bounds.size.width);
-          at.height = event.bounds.size.height;
-        }}
-        onScroll={(event) => {
-          at.offset = event.offset.y;
-          at.height = event.size.height;
-          at.total = event.contentSize.height;
-        }}
-        onScrollEnd={(event) => props.onOffset?.(event.offset.y)}
-        onViewableItemsChange={({ viewableItems }: { viewableItems: ViewToken<Item>[] }) => {
-          const first = viewableItems.reduce<ViewToken<Item> | undefined>(
-            (top, token) => (top === undefined || token.index < top.index ? token : top),
-            undefined,
-          );
-          if (first !== undefined) props.onPlace?.(Number(first.item.id));
-        }}
-        ref={(node: ListRef) => {
-          list = node;
-          props.ref?.({
-            scrollTo: (offset, animated = false) => node.scrollToOffset({ animated, offset }),
-            toAnchor,
-            toBlock,
-          });
-        }}
-        style={{ flex: 1 }}
-        testID={props.testID}
-        viewabilityConfig={{ itemVisibleThreshold: 0.5 }}
-      >
-        {(item, index) => (
-          <View style={{ paddingLeft: hands.inset() }}>
-            {/* A cell is reused for another block: keyed by the block, it is made again. */}
-            <Each of={[tree().tree.blocks[Number(item().id)]].filter((b) => b !== undefined)}>
-              {(block: () => Block) => (
-                <BlockView block={block()} first={index() === 0} read={tree()} />
-              )}
-            </Each>
-          </View>
-        )}
-      </List>
+      <RevealContext.Provider value={(view) => void reveal(view)}>
+        <View ref={(made: ViewRef) => (frame = made)} style={{ flex: 1 }}>
+          <List
+            contentOffset={props.offset === undefined ? undefined : { x: 0, y: props.offset }}
+            each={items()}
+            estimatedItemSize={tokens.type.proseLine * 3}
+            footer={column(props.footer, "bottom")}
+            header={column(props.header, "top")}
+            onLayout={(event) => {
+              width.set(event.bounds.size.width);
+              at.height = event.bounds.size.height;
+            }}
+            onScroll={(event) => {
+              at.offset = event.offset.y;
+              at.height = event.size.height;
+              at.total = event.contentSize.height;
+            }}
+            onScrollEnd={(event) => props.onOffset?.(event.offset.y)}
+            onViewableItemsChange={({ viewableItems }: { viewableItems: ViewToken<Item>[] }) => {
+              const first = viewableItems.reduce<ViewToken<Item> | undefined>(
+                (top, token) => (top === undefined || token.index < top.index ? token : top),
+                undefined,
+              );
+              if (first !== undefined) props.onPlace?.(Number(first.item.id));
+            }}
+            ref={(node: ListRef) => {
+              list = node;
+              props.ref?.({
+                scrollTo: (offset, animated = false) => node.scrollToOffset({ animated, offset }),
+                toAnchor,
+                toBlock,
+              });
+            }}
+            style={{ flex: 1 }}
+            testID={props.testID}
+            viewabilityConfig={{ itemVisibleThreshold: 0.5 }}
+          >
+            {(item, index) => (
+              <View style={{ paddingLeft: hands.inset() }}>
+                {/* A cell is reused for another block: keyed by the block, it is made again. */}
+                <Each of={[tree().tree.blocks[Number(item().id)]].filter((b) => b !== undefined)}>
+                  {(block: () => Block) => (
+                    <BlockView block={block()} first={index() === 0} read={tree()} />
+                  )}
+                </Each>
+              </View>
+            )}
+          </List>
+        </View>
+      </RevealContext.Provider>
     </DocumentContext.Provider>
   );
 }
