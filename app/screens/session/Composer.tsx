@@ -263,15 +263,19 @@ export function SessionComposer(props: SessionComposerProps) {
             }}
             refusal={refusal()}
             testID="composer"
+            tools={
+              <IconButton
+                disabled={blocked() !== undefined}
+                icon="paperclip"
+                label="Attach images"
+                onPress={() =>
+                  void pickImages().then((picked) => attach(props.repo, key(), picked))
+                }
+              />
+            }
             value={value()}
           />
         </View>
-        <IconButton
-          disabled={blocked() !== undefined}
-          icon="paperclip"
-          label="Attach images"
-          onPress={() => void pickImages().then((picked) => attach(props.repo, key(), picked))}
-        />
       </View>
       <If when={working() || waits()}>
         <View style={{ alignItems: "flex-start" }}>

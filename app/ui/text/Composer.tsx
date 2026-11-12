@@ -27,6 +27,8 @@ export type ComposerProps = {
   queued?: string;
   ref?: (field: TextFieldRef) => void;
   refusal?: string | null;
+  /** Icon buttons beside Send, on its row: a paperclip. */
+  tools?: JSX.Element;
   /** The rows it grows to before its text scrolls: 12 unless given. */
   rows?: number;
   /** The key that sends: `enter` in a session, `mod+enter` where Enter must stay a line. */
@@ -80,6 +82,7 @@ export function Composer(props: ComposerProps) {
           style={{ flexBasis: 0, flexGrow: 1, minWidth: 0 }}
           value={props.value}
         />
+        {props.tools}
         <IconButton disabled={!sendable()} icon="arrow-up" label="Send" onPress={send} />
       </View>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
