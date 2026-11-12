@@ -118,6 +118,12 @@ export function VirtualList(props: VirtualListProps) {
     if (index === -1 || list === undefined || (index >= shown.first && index <= shown.last)) {
       return;
     }
+    // The last row is the list's end: an index's offset is estimated for rows not drawn yet, and
+    // `G` on a chat of 20,000 messages came to rest forty short of it, "Jump to the latest" shown.
+    if (index === rows.length - 1) {
+      list.scrollToEnd({ animated: true });
+      return;
+    }
     list.scrollToIndex({ animated: true, index, viewPosition: index < shown.first ? 0 : 1 });
   };
   effect(() => {
