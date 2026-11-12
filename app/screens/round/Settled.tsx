@@ -4,7 +4,7 @@
 // kept on the device until then; a round of the default branch reads them only. By keys, `J` and
 // `K` move a cursor from point to point, and the point at the cursor takes `Enter` to comment and
 // `s` to ask the agent, its keys shown on its buttons.
-import { signal, untracked, View } from "nsh";
+import { signal, untracked, View, type ViewRef } from "nsh";
 import type {
   Block,
   Document as Tree,
@@ -15,6 +15,7 @@ import type {
 } from "../../store/protocol";
 import { Button, Refusal, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
+import { RevealContext } from "../../ui/layout/here";
 import { Bar } from "../../ui/lists";
 import { TextField, unsavedText } from "../../ui/text";
 import { type Ask, quoted } from "../session";
@@ -99,8 +100,13 @@ function Comment(props: {
       refusal.set(`Not saved: ${done.why} Your text stays on this device.`);
     }
   };
+  // It opens whole in view, its buttons too, never under the status line at the pane's foot.
+  const reveal = RevealContext();
+  const shown = (view: ViewRef) => {
+    if (reveal !== null) queueMicrotask(() => reveal(view));
+  };
   return (
-    <View style={{ gap: 6, paddingTop: 6 }}>
+    <View ref={shown} style={{ gap: 6, paddingTop: 6 }}>
       <TextField
         autoFocus
         label={`Your comment on “${props.subject}”`}
