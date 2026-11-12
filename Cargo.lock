@@ -8821,15 +8821,6 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.7.5+spec-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92e1cfed4a3038bc5a127e35a2d360f145e1f4b971b551a2ba5fd7aedf7e1347"
-dependencies = [
- "serde_core",
-]
-
-[[package]]
-name = "toml_datetime"
 version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "173f25c883cd2176a2d8212155638c0a60d484a9d84546d270866f40f56b6e49"
@@ -8853,28 +8844,16 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.23.10+spec-1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84c8b9f757e028cee9fa244aea147aab2a9ec09d5325a9b01e0a49730c2b5269"
-dependencies = [
- "indexmap",
- "serde_core",
- "serde_spanned 1.1.3",
- "toml_datetime 0.7.5+spec-1.1.0",
- "toml_parser",
- "toml_writer",
- "winnow 0.7.15",
-]
-
-[[package]]
-name = "toml_edit"
 version = "0.25.19+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd43688c4858d7264ae1cf9a9f874a67c3feb74a883b1cd7bebd6a4ea8307218"
 dependencies = [
  "indexmap",
+ "serde_core",
+ "serde_spanned 1.1.3",
  "toml_datetime 1.1.3+spec-1.1.0",
  "toml_parser",
+ "toml_writer",
  "winnow 1.0.5",
 ]
 
@@ -9260,7 +9239,7 @@ dependencies = [
  "syntect",
  "tempfile",
  "tokio",
- "toml_edit 0.23.10+spec-1.0.0",
+ "toml_edit 0.25.19+spec-1.1.0",
  "two-face",
  "uraeda-core",
  "uraeda-protocol",
@@ -9320,7 +9299,7 @@ dependencies = [
  "sha2 0.10.9",
  "tempfile",
  "thiserror 2.0.21",
- "toml_edit 0.23.10+spec-1.0.0",
+ "toml_edit 0.25.19+spec-1.1.0",
  "uraeda-text",
 ]
 
@@ -9384,7 +9363,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "tokio-tungstenite 0.28.0",
- "toml_edit 0.23.10+spec-1.0.0",
+ "toml_edit 0.25.19+spec-1.1.0",
  "ts-rs",
  "uraeda-app",
  "uraeda-compile",
@@ -9409,7 +9388,7 @@ name = "uraeda-vim"
 version = "1.4.0"
 dependencies = [
  "serde",
- "toml_edit 0.23.10+spec-1.0.0",
+ "toml_edit 0.25.19+spec-1.1.0",
  "unicode-segmentation",
  "unicode-width",
 ]
@@ -9418,7 +9397,7 @@ dependencies = [
 name = "uraeda-xtask"
 version = "1.4.0"
 dependencies = [
- "toml_edit 0.23.10+spec-1.0.0",
+ "toml_edit 0.25.19+spec-1.1.0",
 ]
 
 [[package]]
