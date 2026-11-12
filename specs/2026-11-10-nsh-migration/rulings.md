@@ -8661,3 +8661,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `editor/Changed.tsx`, `shell/Undo.tsx`, `triage/TriageBanner.tsx`;
   `app/screens/shell/deliberate.test.tsx`; `specs/ui/keyboard.md`, "A key that cannot be taken
   back"; `specs/ui/components.md`.
+
+## T89.7: A round's queue reads its file through the pane that draws it, and goes once spent
+
+- **Decision**: `savesOf` rebinds the queue's reader at each call, to the file of the pane that
+  draws the round now, and counts the panes that hold it. The queue leaves the map once no pane
+  holds it, no save is on its way, and either the round is settled or gone (its file is not
+  `awaiting-human`, or is not read), or the record shows everything the queue wrote: checked as a
+  pane goes, and as the queue's last save ends. No save is lost: a queue with a save on its way, or
+  holding an answer the record does not show yet, stays.
+- **Rationale**: both reviewers, confirmed: `savesOf` returned the cached queue without its `file`
+  argument, so a round opened again after its first subscription ended kept reading the first pane's
+  record, and its next save named an answer and a hash the file no longer had; `saves.test.ts`
+  failed with `previous: "A", base: "after-1"` where the file read `"B"` and `"elsewhere"`. And the
+  map was never cleared, so the next round of the same name, as every inbox triage is, started with
+  the last one's written answers and hash.
+- **Where**: `app/screens/round/saves.ts`, `saves.test.ts`.

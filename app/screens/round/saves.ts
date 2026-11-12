@@ -2,9 +2,13 @@
 // comments, and its submit. A round is a feature's, `<folder>/clarifications-NN.md`, or one of the
 // default branch, the inbox's triage or the decisions check, which take other actions and chain
 // the round's hash. Each save takes what the one before it wrote, not what the record said when
-// the human acted: the record catches up a moment later. One queue per round, kept for the run of
-// the app, out of any pane: a pane moved or a tab hidden loses no save on its way.
-import { type Accessor, signal, untracked } from "nsh";
+// the human acted: the record catches up a moment later. One queue per round, out of any pane: a
+// pane moved or a tab hidden loses no save on its way. The queue reads the round's file through
+// the pane that draws it now, so a round opened again saves over what it shows; and it goes once
+// no pane draws the round, no save is on its way, and the round is settled or gone, or the record
+// shows everything it wrote: the next round of the same name, as each inbox triage, starts from
+// its own file.
+import { type Accessor, cleanup, signal, untracked } from "nsh";
 import { call } from "../../store";
 import type { FileView, QuestionItem, SettledComment, WriteName } from "../../store/protocol";
 import { readUnsaved, settleUnsaved, unsavedKey } from "../../ui/text";
@@ -76,23 +80,50 @@ export type Saves = {
   read: (file: FileView) => void;
 };
 
-const all = new Map<string, Saves>();
+/** How a round's file is read: by the pane that draws the round. */
+type Reader = () => FileView | null | undefined;
 
-/** The one queue of a round, made as it is first asked for. */
-export function savesOf(args: RoundArgs, file: () => FileView | null | undefined): Saves {
+/** A round's queue, and what keeps it: the panes that draw the round, and the reader they gave. */
+type Queue = {
+  /** Reads the file through `file` from now on: the pane that draws the round now. */
+  bind: (file: Reader) => void;
+  /** How many panes draw the round. */
+  holders: number;
+  /** Whether nothing is left to keep it for: no save on its way, and nothing the next would need. */
+  spent: () => boolean;
+  saves: Saves;
+};
+
+const all = new Map<string, Queue>();
+
+/**
+ * The one queue of a round, made as it is first asked for, and read through `file` from now on.
+ * Called as the round's pane renders: the queue is held until the pane goes.
+ */
+export function savesOf(args: RoundArgs, file: Reader): Saves {
   const key = `${args.repo}\n${args.id}`;
-  const known = all.get(key);
-  if (known !== undefined) return known;
-  const made = createSaves(targetOf(args), args, file);
-  all.set(key, made);
-  return made;
+  /** Lets the queue go once nothing keeps it: a pane, a save on its way, or what it wrote. */
+  const release = () => {
+    const held = all.get(key);
+    if (held !== undefined && held.holders === 0 && held.spent()) all.delete(key);
+  };
+  let queue = all.get(key);
+  if (queue === undefined) {
+    queue = createSaves(targetOf(args), args, file, release);
+    all.set(key, queue);
+  }
+  const held = queue;
+  held.bind(file);
+  held.holders += 1;
+  cleanup(() => {
+    held.holders -= 1;
+    release();
+  });
+  return held.saves;
 }
 
-function createSaves(
-  target: Target,
-  args: RoundArgs,
-  file: () => FileView | null | undefined,
-): Saves {
+function createSaves(target: Target, args: RoundArgs, first: Reader, onIdle: () => void): Queue {
+  let file = first;
   const pending = signal(0);
   let chain: Promise<unknown> = Promise.resolve();
   // What the saves wrote, which the next ones take until the record shows it: each question's
@@ -118,7 +149,10 @@ function createSaves(
 
   const queue = <T>(run: () => Promise<T>): Promise<T> => {
     pending.update((count) => count + 1);
-    const done = chain.then(run).finally(() => pending.update((count) => count - 1));
+    const done = chain.then(run).finally(() => {
+      pending.update((count) => count - 1);
+      if (untracked(pending) === 0) onIdle();
+    });
     chain = done.catch(() => undefined);
     return done.catch((error: unknown) => {
       forget();
@@ -183,7 +217,7 @@ function createSaves(
     return done;
   };
 
-  return {
+  const saves: Saves = {
     answer,
     notes: (text) =>
       queue(async () => {
@@ -265,6 +299,21 @@ function createSaves(
           });
         }
       });
+    },
+  };
+  return {
+    bind: (reader) => {
+      file = reader;
+    },
+    holders: 0,
+    saves,
+    spent() {
+      if (untracked(pending) > 0) return false;
+      // A round settled, or gone, takes no more saves: what the queue wrote is of no use.
+      const read = now();
+      if (read === undefined || read.status !== "awaiting-human") return true;
+      // A round still waiting keeps what the record does not show yet, for its next save.
+      return written.size === 0 && notesWritten === undefined && hash === undefined;
     },
   };
 }
