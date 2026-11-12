@@ -226,7 +226,7 @@ function Rename(props: { repo: string; session: Session }) {
         <NameDialog
           blank="A session needs a name."
           icon="pencil"
-          initial={props.session.title}
+          initial={props.session.name ?? props.session.title}
           label="Name"
           onClose={() => asking.set(false)}
           onSave={async (title) => {

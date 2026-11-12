@@ -32,11 +32,13 @@ fn read(shared: &Shared, args: SessionArgs) -> Result<Option<Session>, Fault> {
     own.map(|row| record(&runner, &row)).transpose()
 }
 
-/// What a session shows as: a chat's own title, or its feature's.
+/// What a session shows as: the name the human gave it, else a chat's own title, or its
+/// feature's. A feature's session has a title only once renamed.
 pub(super) fn title_of(row: &runner::Session, feature: Option<&FeatureView>) -> String {
-    match &row.folder {
-        None => row.title.clone().unwrap_or_else(|| NEW_SESSION.to_owned()),
-        Some(folder) => {
+    match (&row.title, &row.folder) {
+        (Some(title), _) => title.clone(),
+        (None, None) => NEW_SESSION.to_owned(),
+        (None, Some(folder)) => {
             let title = feature.map(|feature| feature.title.clone());
             title
                 .filter(|title| !title.is_empty())

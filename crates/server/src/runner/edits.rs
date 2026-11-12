@@ -158,6 +158,8 @@ impl Runner {
         self.store()
             .edit_session(&row.id, |row| row.title = Some(title))?;
         self.publish(&Change::of(row, None, None));
+        // The jobs' history names each run's session by its title too.
+        crate::jobs::announce(&self.shared);
         Ok(())
     }
 

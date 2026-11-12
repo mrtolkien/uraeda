@@ -251,3 +251,34 @@ async fn a_session_is_renamed_seen_dismissed_archived_and_found() {
     assert_eq!(list["rows"][0]["archived"], true);
     stage.server.stop().await;
 }
+
+// The break it catches: a feature's session renamed, its name shown in its page's head, while
+// the sessions' list, a tab, and Home kept the feature's title, so the rename seemed lost.
+#[tokio::test]
+async fn a_features_renamed_session_is_listed_by_its_new_name() {
+    let stage = stage().await;
+    stage
+        .fake
+        .script(script(json!([{ "type": "text", "text": "Here." }])));
+    let sent = json!({ "folder": super::AGENT, "text": "Where are we?" });
+    let sent = stage.done("session.send", sent).await;
+    let session = sent["session"].as_str().expect("a session").to_owned();
+    stage.turn_in(sent["turn"].as_str().unwrap(), "done").await;
+    let title = |list: &Value| {
+        let rows = list["rows"].as_array().expect("rows");
+        let row = rows.iter().find(|row| row["id"] == session.as_str());
+        row.expect("the session's row")["title"].clone()
+    };
+    let list = read(&stage.server, "SessionList", json!({ "repo": REPO })).await;
+    assert_eq!(title(&list), "CLI TUIs");
+
+    let rename = json!({ "session": session, "title": "The TUI's keys" });
+    stage.done("session.rename", rename).await;
+
+    let list = read(&stage.server, "SessionList", json!({ "repo": REPO })).await;
+    assert_eq!(title(&list), "The TUI's keys");
+    assert_eq!(
+        stage.read("Session", &session).await["title"],
+        "The TUI's keys"
+    );
+}
