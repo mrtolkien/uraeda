@@ -2,7 +2,7 @@
 // needs. A changed file's diff, with Stage or Unstage; a commit's message and every file's change,
 // one under the other; a conflicted text file in the editor, saved with `Ctrl+Enter` once its
 // markers are gone, or a side taken whole. Each state says what it is, and why there is nothing.
-import { computed, signal, View } from "nsh";
+import { cleanup, computed, signal, untracked, View } from "nsh";
 import { gitPage } from "./Sync";
 import { discardWords, isListed } from "./Changes";
 import { type Picked, picked } from "./picked";
@@ -64,6 +64,13 @@ function DiffBody(props: { diff: GitDiff; onWhole: () => void; wrap: boolean }) 
   );
 }
 
+/**
+ * The Stage of the file the pane shows, which its `s` runs: one binding for the pane, filled by
+ * each file's view. A file's view is made before the one it replaces goes, so a binding of each
+ * would hold the key twice for a moment, which the registry refuses.
+ */
+const staging = signal<{ run: () => boolean } | null>(null);
+
 /** A changed file of a checkout: its path, counts, Stage or Unstage, and its diff. */
 function FileDiff(props: { folder: string | null; path: string; repo: string; width: WidthClass }) {
   const pane = usePane();
@@ -103,17 +110,18 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
       { folder: props.folder, path: props.path, repo: props.repo },
       `Discarding ${props.path}`,
     );
-  // Its Stage under the same key as the Changes' row: the file read is the one staged.
-  registerKey({
-    hint: "s",
-    hintLabel: "stage",
-    keys: "s",
-    label: "Stage or unstage the file",
+  // Its Stage under the same key as the Changes' row: the file read is the one staged. The pane
+  // holds the key; the file shown fills it.
+  const mine = {
     run: () => {
       if (file() === undefined || pageHeld(page(), props.folder)) return false;
       stage();
-      return undefined;
+      return true;
     },
+  };
+  staging.set(mine);
+  cleanup(() => {
+    if (untracked(staging) === mine) staging.set(null);
   });
   return (
     <View style={{ flex: 1, gap: 10 }}>
@@ -327,6 +335,14 @@ function Shown(props: { picked: Picked; repo: string; width: WidthClass }) {
 }
 
 export function Detail(props: { repo: string; width: WidthClass }) {
+  registerKey({
+    hint: "s",
+    hintLabel: "stage",
+    keys: "s",
+    label: "Stage or unstage the file",
+    run: () => (untracked(staging)?.run() === true ? undefined : false),
+    when: () => staging() !== null,
+  });
   // Keyed by what is shown, so a file's view is made anew for another file.
   const shown = computed(() => picked(), {
     equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),

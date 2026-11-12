@@ -4,6 +4,27 @@
 // what is staged, and nothing else.
 import { expect, open, test } from "nsh/test";
 
+test("the Diff goes from one file to another, its Stage key with it", async () => {
+  const app = await open("./__checks__/Git.tsx", {
+    height: 800,
+    network: "live",
+    platform: "linux",
+    width: 1400,
+  });
+  const shows = () => app.texts().join(" ");
+  await app.waitUntil(() => shows().includes("standup.md") && shows().includes("README.md"), {
+    timeout: 30_000,
+  });
+  // Each file's view held `s` for a moment as the next was made: the page threw.
+  await app.press("id:git-changes >> text:standup.md");
+  await app.waitUntil(() => shows().includes("notes/standup.md"), {
+    timeout: 10_000,
+  });
+  await app.press("id:git-changes >> text:README.md");
+  await app.waitUntil(() => shows().includes("specs/README.md"), { timeout: 10_000 });
+  expect(shows()).not.toContain("A key means two things");
+});
+
 test("a commit holds exactly the staged files", async () => {
   const app = await open("./__checks__/Git.tsx", {
     height: 800,
