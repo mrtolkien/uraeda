@@ -90,6 +90,7 @@ function Ask(props: StartDialogProps) {
                 refusal.set(null);
               }}
               onEnter={() => void start()}
+              onSave={() => void start()}
               placeholder={proposed() === undefined ? "Proposing a name…" : undefined}
               refusal={refusal()}
               testID="start-slug"
@@ -142,6 +143,8 @@ function Ask(props: StartDialogProps) {
         <Button
           disabled={slug().trim() === ""}
           icon="play"
+          // From the map too, where Enter picks: the guide's Ctrl+Enter sends what the layer holds.
+          keys="mod+Enter"
           label={props.kind === "change" ? "Start the change" : "Start the feature"}
           onPress={() => void start()}
           pending={pending()}
