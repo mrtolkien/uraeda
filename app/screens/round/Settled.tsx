@@ -62,9 +62,18 @@ export function settledCursor(args: RoundArgs, points: () => ReadonlyArray<numbe
     cursors.update((all) => ({ ...all, [args.id]: next ?? null }));
     return undefined;
   };
+  // A round of the default branch takes no comment on its points: nothing to move to.
+  const when = () => targetOf(args).kind === "feature";
   registerKey([
-    { hint: "J K", hintLabel: "point", keys: "J", label: "Next settled point", run: () => move(1) },
-    { keys: "K", label: "Previous settled point", run: () => move(-1) },
+    {
+      hint: "J K",
+      hintLabel: "point",
+      keys: "J",
+      label: "Next settled point",
+      run: () => move(1),
+      when,
+    },
+    { keys: "K", label: "Previous settled point", run: () => move(-1), when },
   ]);
 }
 
