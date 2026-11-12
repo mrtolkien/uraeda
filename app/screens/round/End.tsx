@@ -3,13 +3,15 @@
 // says what it commits and what follows, and is pressed, never typed: Enter in the notes is a new
 // line. Pressed while a question has no answer, it says which, and goes to the first one left: the
 // workflow goes on only once every question is answered. It saves the notes first, and submits
-// nothing while they are not saved: a round never goes without its notes.
+// nothing while they are not saved: a round never goes without its notes. By keys, `i` writes the
+// notes, and `c` asks first, in the shared confirmation, saying what it commits (rule 2).
 import { cleanup, signal, untracked, View } from "nsh";
 import { record } from "../../store";
 import type { FileView, QuestionItem, RoundItems } from "../../store/protocol";
-import { Button, Heading, Refusal, Text } from "../../ui/controls";
+import { Button, Confirm, Heading, Refusal, Text } from "../../ui/controls";
 import { Document, type DocumentHands } from "../../ui/document";
-import { readUnsaved, TextField, unsavedText } from "../../ui/text";
+import { registerKey } from "../../ui/keys";
+import { readUnsaved, TextField, type TextFieldRef, unsavedText } from "../../ui/text";
 import { answered, askedOf, type Position } from "./position";
 import { fieldKey, type RoundArgs, type Saves, type Target, targetOf } from "./saves";
 import { settledMark } from "./Settled";
@@ -64,6 +66,8 @@ export function End(props: EndProps) {
   const feature =
     target.kind === "feature" ? record("Feature", { id: target.folder, repo: target.repo }) : null;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let notesField: TextFieldRef | undefined;
+  const asking = signal(false);
 
   /** Saves the notes as they are now: says whether the file holds them. */
   const saveNotes = async (): Promise<boolean> => {
@@ -112,6 +116,22 @@ export function End(props: EndProps) {
   };
 
   const count = () => questions(asked().length).replace(/questions?/, "answers");
+  const resumes = () => target.kind === "feature" && props.file().resumable;
+  const act = () =>
+    resumes()
+      ? "Commit and continue implementing"
+      : `${target.kind === "feature" ? "Commit" : "Submit"} ${count()}`;
+  registerKey([
+    { hint: "i", hintLabel: "notes", keys: "i", label: "Write the notes", run: () => notesField?.focus() },
+    {
+      hint: "c",
+      hintLabel: "commit",
+      keys: "c",
+      label: "Commit the answers, after a confirmation",
+      // A question left has nothing to confirm: the submit says which, and goes to it.
+      run: () => (blank().length > 0 ? void submit(false) : asking.set(true)),
+    },
+  ]);
   return (
     <View style={{ gap: 16 }}>
       <If when={others().length > 0}>
@@ -146,6 +166,9 @@ export function End(props: EndProps) {
         }}
         onSave={() => void saveNotes()}
         placeholder="Anything else the agent should know, for the whole round"
+        ref={(made) => {
+          notesField = made;
+        }}
         refusal={notesRefusal()}
         rows={{ max: 10, min: 3 }}
         testID="round-notes"
@@ -203,6 +226,17 @@ export function End(props: EndProps) {
           </If>
         </View>
         <If when={refusal()}>{(words) => <Refusal testID="round-refusal" words={words()} />}</If>
+        <Confirm
+          icon={resumes() ? "play" : "check"}
+          keys="c"
+          label={act()}
+          onClose={() => asking.set(false)}
+          onConfirm={() => void submit(resumes())}
+          open={asking()}
+          testID="round-confirm"
+          title={`${act()}?`}
+          words={said(target, props.file())}
+        />
       </View>
     </View>
   );

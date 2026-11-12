@@ -88,6 +88,29 @@ test("Shift and a letter adds it to the answer, and stays on the question", asyn
   expect(calls(app).at(-1)?.letters).toContain("A");
 }, 90_000);
 
+test("c at the end asks first, naming what it commits, and commits nothing by itself", async () => {
+  const app = await page("Q1.B", true);
+  await app.waitUntil(() => words(app).includes("What does editing one occurrence change?"), {
+    timeout: 30_000,
+  });
+  for (const key of ["a", "a"]) {
+    await app.keyboard.press(key);
+    await app.wait(300);
+  }
+  await app.type("id:round-comment", "Never, for now.");
+  await app.keyboard.press("escape");
+  await app.keyboard.press("n");
+  await app.waitUntil(() => words(app).includes("Every question has its answer"), {
+    timeout: 10_000,
+  });
+  await app.keyboard.press("c");
+  await app.waitUntil(() => words(app).includes("Commit 4 answers?"), { timeout: 10_000 });
+  expect(words(app)).toContain("on the feature's branch");
+  await app.keyboard.press("escape");
+  await app.wait(500);
+  expect(calls(app).some((call) => call.action === "answers.submit")).toBe(false);
+}, 90_000);
+
 test("b answers B and goes on, and is not also Back", async () => {
   const app = await page("Q2", true);
   await app.waitUntil(() => words(app).includes("How should the app store due dates?"), {
