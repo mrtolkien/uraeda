@@ -77,7 +77,7 @@ function CommitBox(props: {
           staged() === 0
             ? isNarrow()
               ? "Nothing is staged: tap a file's box to stage it."
-              : "Nothing is staged: s stages the file under the cursor, a every file."
+              : "Nothing is staged: press a file's box, or s on the file at the cursor, a for all."
             : isNarrow()
               ? "Left blank, the commit takes the message shown."
               : "Ctrl+Enter commits. Left blank, it takes the message shown."
