@@ -10575,3 +10575,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   which is the human's. A tablet, the `pad` idiom, keeps the width's classes.
 - **If wrong**: drop `phoneBrowser` from `widthClass`, and give the semi-wide frame touch sizes.
 - **Where**: `app/ui/width.ts`.
+
+## T197.1: One data folder, one server, by a lock
+
+- **Decision**: a start takes an advisory lock on `run/server.lock` in the data folder (std's
+  `File::try_lock`, no new dependency) before it reads the status file or opens a store, and the
+  server holds it until it has stopped and removed its status file; the process's end lets it go.
+  A start that finds the lock held hands its folder to the server the status file names, as before,
+  and otherwise is refused, `NotStarted::Held`, saying which server holds the folder, or that one is
+  starting, and how to go on. A start that holds the lock reads no status: whatever file is there, a
+  killed server left.
+- **Rationale**: the status file was the only guard, and it is written after the port is taken:
+  two starts on different ports, or `--port 0`, could both pass it, and both open the stores, the
+  second marking the first's turns stopped. A lock taken first closes that window; the OS lets it go
+  with a killed process, so no stale lock is left to remove.
+- **Where**: `crates/server/src/start.rs`, `crates/server/src/status.rs`,
+  `crates/server/tests/one_server.rs`.

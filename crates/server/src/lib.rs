@@ -130,6 +130,8 @@ pub struct Options {
 /// A running server.
 pub struct Server {
     shared: Shared,
+    /// The data folder's lock, let go once the server has stopped.
+    lock: std::fs::File,
     routes: Vec<&'static str>,
     serving: Option<JoinHandle<()>>,
 }
@@ -179,5 +181,6 @@ impl Server {
             serving.abort();
         }
         status::remove(self.shared.data_dir());
+        drop(self.lock);
     }
 }

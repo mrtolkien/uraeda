@@ -19,6 +19,7 @@ mod git;
 mod jobs;
 mod live;
 mod mcp;
+mod one_server;
 mod parity;
 mod preview;
 mod pulls;

@@ -65,7 +65,9 @@ app.
 - It reads secrets from the `.env` of your config folder only, never from a project or the folder it
   runs in, and gives them to the agents it runs.
 - Run in a repository, it adds that repository to its list. A second `ura serve` on the same data
-  folder starts nothing: it hands its folder to the first, prints its address, and exits.
+  folder starts nothing, whatever its port: it hands its folder to the first, prints its address,
+  and exits. When the first does not answer, it says which server holds the data folder, and exits
+  with an error.
 - Ctrl-C, or closing its terminal, stops it, and everything it runs.
 - Its first start in a terminal prints an access key, once: keep it in a password manager. A browser
   signs in with it. A start whose output goes to a file or another program, as a service's or the

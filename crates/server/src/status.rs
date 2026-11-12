@@ -3,7 +3,7 @@
 //! find the running server there, and prove with the token that they are the host's own: only the
 //! data folder's user can read it.
 
-use std::fs::{self, DirBuilder, OpenOptions};
+use std::fs::{self, DirBuilder, File, OpenOptions, TryLockError};
 use std::io::{self, Write as _};
 use std::os::unix::fs::{DirBuilderExt as _, OpenOptionsExt as _};
 use std::path::{Path, PathBuf};
@@ -25,6 +25,35 @@ pub struct Status {
     /// The host token: what a request of the host's own `ura` or app carries, as
     /// `Authorization: Bearer <token>`.
     pub token: String,
+}
+
+/// The lock file, in the data folder's `run/`: the server that runs on the folder holds an
+/// advisory lock on it, from before it reads the status file until it stops, or its process ends.
+pub const LOCK: &str = "server.lock";
+
+/// The data folder's lock, when no other process holds it: `None` when one does. Held as long as
+/// the file returned is open.
+///
+/// # Errors
+///
+/// When the data folder cannot take the file, or the lock cannot be asked for.
+pub fn lock(data_dir: &Path) -> io::Result<Option<File>> {
+    let path = data_dir.join("run").join(LOCK);
+    DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(path.parent().expect("a file of run/"))?;
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .open(&path)?;
+    match file.try_lock() {
+        Ok(()) => Ok(Some(file)),
+        Err(TryLockError::WouldBlock) => Ok(None),
+        Err(TryLockError::Error(error)) => Err(error),
+    }
 }
 
 /// The status file of a data folder.

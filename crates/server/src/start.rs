@@ -1,6 +1,7 @@
-//! A start: the port taken, or handed over to the server already running; the status file; then
+//! A start: the data folder's lock, the port taken, or handed over to the server already running; the status file; then
 //! each domain, in order.
 
+use std::fs::File;
 use std::io::ErrorKind;
 use std::net::Ipv4Addr;
 use std::path::Path;
@@ -21,6 +22,9 @@ pub enum NotStarted {
     /// The data folder's server already runs, and refused the start's folder.
     #[error("{0}")]
     Refused(String),
+    /// Another server holds the data folder, and did not take the start's folder.
+    #[error("{0}")]
+    Held(String),
     /// The port is not free, and not this data folder's server's.
     #[error("port {port} is used by {by}")]
     PortTaken { port: u16, by: Holder },
@@ -43,6 +47,9 @@ pub enum Holder {
 /// Starts a server, or hands over to the one running.
 pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     let failed = |error: std::io::Error| NotStarted::Failed(error.to_string());
+    // The data folder's lock before its status and its stores: two starts on one folder, whatever
+    // their ports, never both open its stores.
+    let lock = hold(&options).await?;
     let (asked, asked_by) = crate::port::asked_port(&options).map_err(NotStarted::Failed)?;
     let listener = listen(&options, asked).await?;
     let port = listener.local_addr().map_err(failed)?.port();
@@ -77,6 +84,7 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     });
     let mut server = Server {
         shared: shared.clone(),
+        lock,
         routes: Vec::new(),
         serving: None,
     };
@@ -98,21 +106,43 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     Ok(server)
 }
 
-/// Takes the port asked for, on the loopback interface only. Before that, a server its status file names is
-/// asked to take the folder: one data folder has one server, whatever port this start asks for.
-async fn listen(options: &Options, port: u16) -> Result<TcpListener, NotStarted> {
-    let folder = options.folder.as_deref();
-    if let Some(running) = status::read(&options.data_dir) {
-        let handed = hand_over(running.port, Some(&running.token), folder).await;
-        // A status file whose server does not answer to its token is one a killed server left.
-        if let Some(over) = handed_over(running.port, handed) {
-            return Err(over);
-        }
+/// The data folder's lock. When another server holds it, the start's folder goes to that server
+/// when its status file names it and it answers: one data folder has one server, whatever port this
+/// start asks for.
+async fn hold(options: &Options) -> Result<File, NotStarted> {
+    let data_dir = &options.data_dir;
+    let lock = status::lock(data_dir).map_err(|error| {
+        let path = data_dir.join("run").join(status::LOCK);
+        NotStarted::Failed(format!("cannot lock {}: {error}", path.display()))
+    })?;
+    if let Some(lock) = lock {
+        return Ok(lock);
     }
+    let Some(running) = status::read(data_dir) else {
+        return Err(NotStarted::Held(format!(
+            "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
+            data_dir.display()
+        )));
+    };
+    let folder = options.folder.as_deref();
+    let handed = hand_over(running.port, Some(&running.token), folder).await;
+    Err(handed_over(running.port, handed).unwrap_or_else(|| {
+        NotStarted::Held(format!(
+            "the data folder {} is held by the Uraeda server at http://127.0.0.1:{} (process {}), \
+             which did not answer: stop it, or pass another --data-dir",
+            data_dir.display(),
+            running.port,
+            running.pid
+        ))
+    }))
+}
+
+/// Takes the port asked for, on the loopback interface only.
+async fn listen(options: &Options, port: u16) -> Result<TcpListener, NotStarted> {
     match TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
         Ok(listener) => Ok(listener),
         Err(error) if error.kind() == ErrorKind::AddrInUse => {
-            Err(taken(options, port, folder).await)
+            Err(taken(port, options.folder.as_deref()).await)
         }
         Err(error) => Err(NotStarted::Failed(format!(
             "cannot listen on port {port}: {error}"
@@ -120,13 +150,10 @@ async fn listen(options: &Options, port: u16) -> Result<TcpListener, NotStarted>
     }
 }
 
-/// Why the port is taken: by this data folder's server, which took it since its status file was
-/// read, by another Uraeda, or by another program.
-async fn taken(options: &Options, port: u16, folder: Option<&Path>) -> NotStarted {
-    let token = status::read(&options.data_dir)
-        .filter(|running| running.port == port)
-        .map(|running| running.token);
-    let handed = hand_over(port, token.as_deref(), folder).await;
+/// Why the port is taken: by another Uraeda, or by another program. This data folder's server
+/// is not on it: the start holds the folder's lock.
+async fn taken(port: u16, folder: Option<&Path>) -> NotStarted {
+    let handed = hand_over(port, None, folder).await;
     let by = match handed {
         HandOff::Unauthorized => Holder::Uraeda,
         _ => Holder::Other,
