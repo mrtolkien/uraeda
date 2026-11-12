@@ -10344,7 +10344,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   boxes of a missing glyph, in every spec the human reads. An emoji font would add megabytes to the
   package, and draw the marks in a second family of pictures beside the app's icons.
 - **Where**: `app/ui/document/Spans.tsx`; the gallery's spec shows them.
-## T189.1: Following a transcript's end is the reader's state, held by Native Shell at every layout
+
+## R519: Following a transcript's end is the reader's state, held by Native Shell at every layout
 
 - **Decision**: whether a `<VirtualList follow>` follows its end is a state only the reader turns
   off (`app/ui/lists/follow.ts`), never one read from where the list is.

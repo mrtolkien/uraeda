@@ -248,6 +248,17 @@ walk-session filter="":
     find target/shots/polish-5 -name '{{ filter }}*.png' -delete
     URAEDA_SANDBOX_ARGS=--long-chat {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/session.test.tsx --target linux --filter "{{ filter }}"
 
+# Whether a session's transcript follows a reply at length on GTK, as the owner meets it: the steps
+# of `app/tools/follow.test.tsx` on a fresh sandbox, watched, left by keys, `G`, left by a scroll,
+# "Jump to the latest", each counting the looks that found "Jump to the latest" (`follow:` lines),
+# with pictures in `target/shots/polish-9/`. A tool, never a check: without a display, `nsh test`
+# skips it.
+follow-check filter="":
+    mkdir -p target/shots/polish-9
+    {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/follow.test.tsx --target linux --filter "{{ filter }}"
+
+# A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
+# `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
 # The thinking work, as the owner at the desk does it on the sandbox: a round answered, a spec
 # reviewed, a plan read, the decisions and their check, the inbox's triage, by keys only: the steps
 # of `app/tools/think.test.tsx`, each a numbered picture in `target/shots/polish-4/`. A tool to run

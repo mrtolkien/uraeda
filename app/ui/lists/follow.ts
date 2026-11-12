@@ -1,5 +1,5 @@
 // Whether a list follows its end, a transcript's way: a state the reader holds, never one read
-// from where the list happens to be (ruling T189.1).
+// from where the list happens to be (ruling R519).
 //
 // - **On** as the list opens at its end, by `G` and "Jump to the latest" (`toEnd`), and as the
 //   reader scrolls back to the end.

@@ -1,5 +1,5 @@
 // Run by `nsh test`, without a display: when a list stops following its end, on the scroll events
-// GTK sent while a long reply streamed into a session's transcript (ruling T189.1). Only a real
+// GTK sent while a long reply streamed into a session's transcript (ruling R519). Only a real
 // platform sends them, so the rules are fed those events here, numbers as measured.
 import { expect, test } from "nsh/test";
 import { createFollow } from "./follow";
