@@ -63,7 +63,7 @@
 
       // The page's way to the app. Native Shell 0.5.0's browser runtime sends a page's `host.post`
       // and `host.call` to an engine channel nothing answers in a browser, never to the player's
-      // `host`: the page's entry takes this one instead (`page_entry`, ruling T58.2).
+      // `host`: the page's entry takes this one instead (`page_entry`, ruling R466).
       const channel = {
         call: (name, data) =>
           new Promise((resolve, reject) => {

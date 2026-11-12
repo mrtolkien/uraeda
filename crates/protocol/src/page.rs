@@ -26,7 +26,7 @@ pub const PAGE_HOST: [&str; 8] = [
 /// browser runtime sends `host.post` and `host.call` to an engine channel nothing answers there,
 /// never to the frame's player's `host`, so the entry points them at the frame's before any of
 /// the page's code runs: every module importing `host` gets the same object. The Linux host has
-/// no such window, and keeps its channel. Ruling T58.2 holds the upstream report.
+/// no such window, and keeps its channel. Ruling R466 holds the upstream report.
 const BROWSER: &str = "const frame = (globalThis as { uraedaHost?: typeof host }).uraedaHost\n  \
     ?? (globalThis.parent as { uraedaHost?: typeof host } | undefined)?.uraedaHost;\n\
     if (frame) {\n  \

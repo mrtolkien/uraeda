@@ -9180,7 +9180,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   group as it ends, and touches nothing this task changed.
 - **Where**: `crates/server/tests/preview.rs`.
 
-## T58.1: A page in a browser runs in a frame at its extension's own host, which Chromium runs in a process of its own
+## R465: A page in a browser runs in a frame at its extension's own host, which Chromium runs in a process of its own
 
 - **Decision**: in a browser, `uraeda.extension` is `ExtensionFrame`
   (`app/extensions/host.web.tsx`), which `ExtensionPlace` draws where `platform.os` is `web`, with
@@ -9227,7 +9227,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/extensions/{host.web.tsx,ExtensionPlace.tsx}`, `app/web/frame.html`,
   `scripts/web-build.sh`, `crates/server/tests/browser/extensions.rs`.
 
-## T58.2: Native Shell 0.5.0's browser runtime never reaches the player's `host`: the page's entry takes its frame's channel
+## R466: Native Shell 0.5.0's browser runtime never reaches the player's `host`: the page's entry takes its frame's channel
 
 - **Decision**: in the frame, `window.uraedaHost` is the frame's channel to the app, and the build's
   entry, `page_entry`, sets `host.post` and `host.call` to it before any of the page's code runs,
@@ -9256,7 +9256,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/protocol/src/page.rs` and `uraedaHost` from `app/web/frame.html` when the pin moves.
 - **Where**: `crates/protocol/src/page.rs`, `app/web/frame.html`.
 
-## T58.3: One rule verifies a page, and one state machine watches it, on Linux and in a browser
+## R467: One rule verifies a page, and one state machine watches it, on Linux and in a browser
 
 - **Decision**: the package's verification moved from `extension_view/fetch.rs` to
   `crates/app/src/page_trust.rs`, which both use: the Linux view in Rust, the browser through
@@ -9274,7 +9274,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/src/{page_trust.rs,page_watch.rs,extension_view/*}`,
   `app/extensions/host.web.tsx`.
 
-## T58.4: What the server opens for a page's frame, and nothing more
+## R468: What the server opens for a page's frame, and nothing more
 
 - **Decision**:
   - The guard (`guard.rs`) takes `<extension>.localhost:<port>` as a host for reads alone, never an
@@ -9293,7 +9293,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/{guard.rs,http.rs,http/web.rs,http/web/policy.rs}`,
   `crates/server/tests/skeleton.rs`.
 
-## T58.5: The browser's extension tests run in the Rust harness, over a server part of the counter and a forger
+## R469: The browser's extension tests run in the Rust harness, over a server part of the counter and a forger
 
 - **Decision**: the four tests of task 34 are `crates/server/tests/browser/extensions.rs`, run by
   `just web-test`, not `app/web/extensions.test.ts`: `nsh test --target web` runs on Native Shell's

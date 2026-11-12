@@ -78,6 +78,22 @@ impl Opened {
         }
     }
 
+    /// Waits until the place shows the frame of the extension `name`'s page.
+    async fn runs(&mut self, name: &str) {
+        let asked = format!(
+            "[...document.querySelectorAll('iframe')].some((frame) => frame.src.startsWith({}))",
+            serde_json::json!(format!("http://{name}.localhost:"))
+        );
+        let started = Instant::now();
+        while self.browser.evaluate(&asked).await != true {
+            assert!(
+                started.elapsed() < Duration::from_secs(30),
+                "the place never showed {name}'s frame"
+            );
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }
+
     /// The app answers keys: `g i` opens the inbox.
     async fn goes_on(&mut self) {
         self.browser.press("g").await;
@@ -153,6 +169,33 @@ async fn a_page_that_never_stops_is_cut_off_and_named() {
         .picture(&shots().join("extension-loops-dark-1400.png"))
         .await;
     app.goes_on().await;
+    drop(app.browser);
+    app.server.stop().await;
+}
+
+// An extension's place is an address like any other: it opens by it, a reload keeps it, and the
+// browser's Back returns to it. Its frame runs Native Shell's player too: it adds no entry of its
+// own to the tab's history, which Back would stop at.
+#[tokio::test]
+#[ignore = "needs the real web build and a browser: `just web-test` runs it"]
+async fn an_extensions_place_opens_by_its_address_reloads_and_back_returns() {
+    const PLACE: &str = "/r/sample/e/counter/counter";
+    let mut app = Opened::new().await;
+    app.open("/e/counter/counter").await;
+    app.browser.at(PLACE).await;
+    app.runs("counter").await;
+    let entries = app.browser.evaluate("history.length").await;
+
+    app.browser.reload().await;
+    app.browser.at(PLACE).await;
+    app.runs("counter").await;
+    assert_eq!(app.browser.evaluate("history.length").await, entries);
+
+    app.goes_on().await;
+    app.browser.at("/r/sample/inbox").await;
+    app.browser.evaluate("history.back()").await;
+    app.browser.at(PLACE).await;
+    app.runs("counter").await;
     drop(app.browser);
     app.server.stop().await;
 }
