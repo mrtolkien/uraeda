@@ -120,6 +120,8 @@ function Ask(props: ContinueDialogProps) {
         <Button
           first
           icon="play"
+          // Enter presses it, its focus; Ctrl+Enter too once the map's keys took Enter.
+          keys="mod+Enter"
           label={props.run.label}
           onPress={() => void start()}
           pending={pending()}

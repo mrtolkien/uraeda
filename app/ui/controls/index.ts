@@ -18,7 +18,7 @@ export { Menu, type MenuEntry, type MenuProps } from "./Menu";
 export { NumberInput, type NumberInputProps } from "./NumberInput";
 export { type Option } from "./Options";
 export { type Patched, patched } from "./patched";
-export { type PressProps, type PressState, pressable, ring } from "./press";
+export { type Pressable, type PressProps, type PressState, pressable, ring } from "./press";
 export { Progress, type ProgressProps } from "./Progress";
 export { Radio, type RadioProps } from "./Radio";
 export { Segmented, type SegmentedProps } from "./Segmented";

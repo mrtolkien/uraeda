@@ -126,6 +126,7 @@ function Tile(props: {
     >
       <SelectableCard
         disabled={props.map.disabled}
+        follows
         icon={props.icon}
         onSelect={props.onSelect}
         selected={props.selected}
@@ -220,6 +221,9 @@ export function RunMap(props: RunMapProps) {
   const place = () => placeAt(rows(), cursor());
   const at = () => placeKey(place());
   const go = (key: string) => cursor.set(key);
+  // A map opens with no place picked, as a list does: its first key picks the first place, and
+  // until then Enter is the dialog's own, the Continue its focus is on, not a select's opener.
+  const picked = () => cursor() !== null;
   const change = (next: RunOptions) => {
     if (props.disabled !== true) props.onChange(next);
   };
@@ -274,13 +278,21 @@ export function RunMap(props: RunMapProps) {
         label,
         repeat: true,
         run: () => {
+          if (!picked()) {
+            go(at());
+            return undefined;
+          }
           const to = moved(rows(), at(), move, column());
           if (to === undefined) return false;
           go(to);
           return undefined;
         },
       })),
-      { keys: "Enter", label: "Pick, or flip", run: () => act(place()) },
+      {
+        keys: "Enter",
+        label: "Pick, or flip",
+        run: () => (picked() ? act(place()) : false),
+      },
       {
         keys: "e",
         label: "Pick the effort",
@@ -319,7 +331,7 @@ export function RunMap(props: RunMapProps) {
       go(placeKey(here));
       if (here.kind === "add" || here.kind === "depth") act(here);
     };
-    const selected = () => at() === placeKey(here);
+    const selected = () => picked() && at() === placeKey(here);
     switch (here.kind) {
       case "joint":
         return <Joint index={here.index} map={props} onSelect={select} selected={selected()} />;
