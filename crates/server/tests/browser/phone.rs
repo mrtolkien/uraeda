@@ -19,6 +19,8 @@ use shots::Shots;
 
 #[path = "phone_persona.rs"]
 mod persona;
+#[path = "phone_persona_errands.rs"]
+mod persona_errands;
 #[path = "phone_persona_glance.rs"]
 mod persona_glance;
 #[path = "phone_persona_sizes.rs"]
@@ -428,6 +430,16 @@ async fn phone_persona() {
         return;
     }
     println!("{}", persona::all().await);
+}
+
+#[tokio::test]
+#[ignore = "a tool: `just web-errands [word]` runs it"]
+async fn phone_errands() {
+    if std::env::var("URAEDA_PHONE_ERRANDS").is_err() {
+        println!("skipped: `just web-errands` walks the phone's errands");
+        return;
+    }
+    println!("{}", persona_errands::all().await);
 }
 
 #[tokio::test]

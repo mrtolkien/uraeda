@@ -76,6 +76,11 @@ pub async fn bring(browser: &mut Browser, selector: &str) -> bool {
             .unwrap_or(195.0);
         swipe(browser, (x, height / 2.0), (x, height / 2.0 - by)).await;
         tokio::time::sleep(Duration::from_millis(200)).await;
+        // At the page's end, or its top, it comes no nearer the middle: on the screen, it is there.
+        let now = browser.evaluate(&middle).await.as_f64();
+        if now.is_some_and(|now| (now - y).abs() < 1.0 && now > 0.0 && now < height - 96.0) {
+            return true;
+        }
     }
     false
 }
@@ -364,7 +369,13 @@ async fn note(phone: &Phone, browser: &mut Browser, shots: &mut Shots) {
     browser.types("Call the bank about the card").await;
     shots.take(browser, "06-02-note-typed").await;
     above_keyboard(browser, shots, ".nsh-field", "the note's field").await;
-    attach(browser, shots).await;
+    attach_to(
+        browser,
+        shots,
+        "Add images to the new note",
+        "06-03-picture-held",
+    )
+    .await;
     tap_selector(browser, ".nsh-field").await;
     browser.enter().await;
     keyboard(browser, 0).await;
@@ -373,8 +384,8 @@ async fn note(phone: &Phone, browser: &mut Browser, shots: &mut Shots) {
     shots.take(browser, "06-04-note-added").await;
 }
 
-/// A picture held for the new note, from the browser's file picker.
-async fn attach(browser: &mut Browser, shots: &mut Shots) {
+/// A picture held by the button `label` opens, from the browser's file picker, then `picture`.
+pub async fn attach_to(browser: &mut Browser, shots: &mut Shots, label: &str, picture: &str) {
     browser
         .command(
             "Page.setInterceptFileChooserDialog",
@@ -382,8 +393,8 @@ async fn attach(browser: &mut Browser, shots: &mut Shots) {
         )
         .await;
     browser.heard().await;
-    let tapped = tap_label(browser, "Add images to the new note").await;
-    missed(shots, tapped, "the inbox offers no Add images to tap");
+    let tapped = tap_label(browser, label).await;
+    missed(shots, tapped, &format!("no {label} to tap"));
     tokio::time::sleep(Duration::from_millis(800)).await;
     let opened = browser
         .heard()
@@ -392,15 +403,15 @@ async fn attach(browser: &mut Browser, shots: &mut Shots) {
         .find(|(method, _)| method == "Page.fileChooserOpened");
     match opened {
         Some((_, chooser)) => {
-            let picture = super::super::shots().join("06-picked.png");
-            browser.picture(&picture).await;
+            let picked = super::super::shots().join("06-picked.png");
+            browser.picture(&picked).await;
             let files = json!({
-                "files": [picture.to_string_lossy()],
+                "files": [picked.to_string_lossy()],
                 "backendNodeId": chooser["backendNodeId"],
             });
             browser.command("DOM.setFileInputFiles", files).await;
             tokio::time::sleep(Duration::from_millis(1500)).await;
-            shots.take(browser, "06-03-picture-held").await;
+            shots.take(browser, picture).await;
         }
         None => missed(shots, false, "the picker never opened a file chooser"),
     }

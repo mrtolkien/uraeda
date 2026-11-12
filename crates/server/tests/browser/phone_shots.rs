@@ -157,6 +157,11 @@ impl Shots {
         }
     }
 
+    /// The colour mode the pictures are taken in.
+    pub fn mode(&self) -> &str {
+        &self.mode
+    }
+
     /// Whether the picture `name` is asked for.
     pub fn wants(&self, name: &str) -> bool {
         self.word

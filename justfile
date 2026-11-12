@@ -141,7 +141,15 @@ web-shots word="":
 # round alone. After `just web-build`. A tool, never a check.
 web-walk word="":
     rm -rf target/shots/polish-6 && mkdir -p target/shots/polish-6
-    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/polish-6" URAEDA_PHONE_PERSONA=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test browser -- --ignored --nocapture --exact phone::phone_persona
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/polish-6" URAEDA_PHONE_PERSONA=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test tests -- --ignored --nocapture --exact browser::phone::phone_persona
+
+# The owner away from the desk, on the errands the walk above covers least: a feature waiting for
+# the Continue, a reply with a picture, the blocked chat, a note and its triage, a proposal, Git's
+# sync, Back, the connection dropped, the phone turned, in `target/shots/polish-18/`
+# (`crates/server/tests/browser/phone_persona_errands.rs`). After `just web-build`. A tool.
+web-errands word="":
+    rm -rf target/shots/polish-18 && mkdir -p target/shots/polish-18
+    URAEDA_WEB_BUILD="$PWD/target/web" URAEDA_SHOTS="$PWD/target/shots/polish-18" URAEDA_PHONE_ERRANDS=1 URAEDA_SHOTS_WORD="{{ word }}" {{ isolated }} cargo test -q -p uraeda-server --test tests -- --ignored --nocapture --exact browser::phone::phone_errands
 
 # A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
 # fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
