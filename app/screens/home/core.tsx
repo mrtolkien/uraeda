@@ -9,7 +9,7 @@ import { type HomeCard, Cards, Nothing } from "./Cards";
 import { ContinueAll } from "./ContinueAll";
 import { navigate, parseRoute, record } from "../../store";
 import type { NeedsYouRow, SessionRow, WorkspaceFeature } from "../../store/protocol";
-import { ticking } from "../feature/read";
+import { ticking } from "../../ui/clock";
 import { runTime } from "../session/panels/words";
 import type { IconName } from "../../ui/controls";
 import type { Tone } from "../../ui/tokens";

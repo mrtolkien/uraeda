@@ -132,3 +132,5 @@ export function pressable(props: PressProps, onPress: () => void = () => props.o
       isOff() ? undefined : { ...over(looks, looks.focus), ...ring() },
   };
 }
+
+export type Pressable = ReturnType<typeof pressable>;

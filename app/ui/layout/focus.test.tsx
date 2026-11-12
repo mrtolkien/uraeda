@@ -30,6 +30,7 @@ test("Tab goes through the focused pane's controls, and Enter presses the one it
   expect(said(app)).toBe("Said: save, reset, save");
   // Reset, the switch, Once, the field, then around to the pane's first, never to the side
   // stack's.
+  // oxlint-disable-next-line no-await-in-loop -- keys are pressed one after the other
   for (const _ of [1, 2, 3, 4]) await app.keyboard.press("tab");
   await andEnter(app, "tab");
   expect(said(app)).toBe("Said: save, reset, save, save");
@@ -50,6 +51,7 @@ test("Escape gives the keys back to the pane: Enter then opens the list's row", 
 
 test("a control pressed away leaves the pane's keys working", async () => {
   const app = await page();
+  // oxlint-disable-next-line no-await-in-loop -- keys are pressed one after the other
   for (const _ of [1, 2, 3, 4]) await app.keyboard.press("tab");
   await app.keyboard.press("enter");
   expect(said(app)).toBe("Said: once");

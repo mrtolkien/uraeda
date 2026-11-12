@@ -76,6 +76,7 @@ function ImageRow(props: {
   );
 }
 
+// oxlint-disable-next-line max-lines-per-function -- the note's saved text, its triage, and its actions share one state; the actions' row can be a component
 function Note(props: { category: string | null; inbox: Inbox; note: InboxNote; repo: string }) {
   const field = unsavedText(
     unsavedKey(props.repo, `specs/INBOX.md#${props.note.key}`),

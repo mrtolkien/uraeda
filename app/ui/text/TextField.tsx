@@ -170,6 +170,7 @@ function asking(node: TextFieldRef): TextFieldRef {
 /** The token of the key an owner hears in a field, by its keystroke. */
 const owner = (stroke: string) => ownerKeys().get(stroke);
 
+// oxlint-disable-next-line max-lines-per-function -- the editor, its focus stop, its Vim mode, and its keys share one scope; the keys can be a hook of their own
 export function TextField(props: TextFieldProps) {
   let editor: TextFieldRef | undefined;
   const stop = focusStop(() => (props.disabled === true ? undefined : editor), {

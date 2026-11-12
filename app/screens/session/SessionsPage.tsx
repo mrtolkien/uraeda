@@ -13,7 +13,7 @@ import { Card, createCursor, Empty, VirtualList } from "../../ui/lists";
 import { TextField, type TextFieldRef } from "../../ui/text";
 import { runTime } from "./panels/words";
 import { rowState, runsOnWords, statusTone } from "./words";
-import { ticking } from "../feature/read";
+import { ticking } from "../../ui/clock";
 
 const open = (id: string) => navigate({ id, page: "session-id" });
 
