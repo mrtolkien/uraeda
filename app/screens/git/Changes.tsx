@@ -73,6 +73,15 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
     untracked(() => cursor.set(first?.id ?? rows()[0]?.id));
   });
 
+  // A pull or a merge that stops on a conflict: the cursor goes to the first, what is left to do,
+  // and the diff beside it shows its editor.
+  let conflicted = untracked(() => rows().some((row) => row.id.startsWith("c:")));
+  effect(() => {
+    const first = rows().find((row) => row.id.startsWith("c:"));
+    if (first !== undefined && !conflicted) untracked(() => cursor.set(first.id, { reveal: true }));
+    conflicted = first !== undefined;
+  });
+
   const now = () => page() ?? undefined;
   // The refused writes made on this page, which the queue keeps until dismissed: a card says them
   // on every other page, and this page under its commit.
@@ -198,23 +207,30 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
       run: askDiscard,
       when: onFile,
     },
-    {
-      hint: "o",
-      hintLabel: "ours",
-      keys: "o",
-      label: "take ours for the conflict",
-      run: () => resolve("ours"),
-      when: () => onConflict() && stoppedSides() !== null,
-    },
-    {
-      hint: "t",
-      hintLabel: "theirs",
-      keys: "t",
-      label: "take theirs for the conflict",
-      run: () => resolve("theirs"),
-      when: () => onConflict() && stoppedSides() !== null,
-    },
   ]);
+  // A side whole, named as the conflict editor's buttons name it: "o origin/main", "t main".
+  effect(() => {
+    const sides = stoppedSides();
+    if (sides === null || sides === undefined) return;
+    registerKey([
+      {
+        hint: "o",
+        hintLabel: sides.ours,
+        keys: "o",
+        label: `take ${sides.ours} for the conflict`,
+        run: () => resolve("ours"),
+        when: onConflict,
+      },
+      {
+        hint: "t",
+        hintLabel: sides.theirs,
+        keys: "t",
+        label: `take ${sides.theirs} for the conflict`,
+        run: () => resolve("theirs"),
+        when: onConflict,
+      },
+    ]);
+  });
 
   return (
     <PaneScroll style={{ flex: 1 }}>
