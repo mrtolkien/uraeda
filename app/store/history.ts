@@ -5,6 +5,7 @@
 import { type Accessor, batch, signal } from "nsh";
 import { parseRoute, pathOf, type Route } from "./routes";
 import type { Json, Layout } from "../ui/layout/layout";
+import { bindVisits } from "../ui/surfaces/backCloses";
 import { interaction } from "../ui/timing";
 
 /**
@@ -293,3 +294,10 @@ export function positions(): {
     },
   };
 }
+
+// A sheet on a phone is a visit of its own, so Back closes it (`backCloses`).
+bindVisits({
+  back: () => void back(),
+  open: (label) => openOverlay(label),
+  shown: () => entry().kept.overlay,
+});
