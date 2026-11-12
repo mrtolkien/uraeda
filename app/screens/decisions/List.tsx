@@ -6,7 +6,7 @@ import { computed, effect, signal, untracked, View } from "nsh";
 import { entry, keep, navigate, positions, redirect, route } from "../../store";
 import type { Decision, Ledger } from "../../store/protocol";
 import { Banner, Button, iconNamed, Select, Spinner, Text } from "../../ui/controls";
-import { KeyPicker, type PickerItem } from "../../ui/keys";
+import { KeyPicker, type PickerItem, registerKey } from "../../ui/keys";
 import { definePane, focus, placeOf, sync, usePane } from "../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, VirtualList } from "../../ui/lists";
 import { isNarrow } from "../../ui/width";
@@ -199,6 +199,15 @@ function pickerItems(ledger: Ledger, sort: DecisionSort): Array<PickerItem> {
 /** Above the cards: Jump, and the order, on one row: in a narrow pane, Jump is its key and icon. */
 function Tools(props: { count: number; noCheck: boolean; onJump: () => void; repo: string }) {
   const pane = usePane();
+  // The order's own key, as Tab draws no focus on GTK: `o` opens its list.
+  let order: (() => void) | undefined;
+  registerKey({
+    hint: "o",
+    hintLabel: "order",
+    keys: "o",
+    label: "Change the order of the decisions",
+    run: () => order?.(),
+  });
   return (
     <View style={{ gap: 8, paddingBottom: 10 }}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
@@ -213,6 +222,9 @@ function Tools(props: { count: number; noCheck: boolean; onJump: () => void; rep
           icon="history"
           label="Order of the decisions"
           onChange={(next: DecisionSort) => chooseSort(next)}
+          opener={(open) => {
+            order = open;
+          }}
           options={SORTS}
           value={sortChosen()}
         />
