@@ -36,13 +36,34 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | The key again, `y`        | Confirm what loses something for good: Cancel has the focus, so `Enter` changes nothing                                | The shared confirmation               |
 | `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                            | Every field of several lines          |
 
-A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
-for its sessions, a review's `n` for its verdict, the inbox's `c` to move a note to a category and
-`p` to promote it, the priorities' `e` to expand a proposal into a file, `c` to clean a merged one,
-and `v` to switch between columns and a list. A composer's `m` opens its model picker, or its
-effort's in a running session, as `Space a` does, on the New page, a session's page, and a session
-in a review's column: none of them has a row to move. A round's banner, beside the inbox's notes,
-keeps `Space a` alone. A page never gives a base key another meaning while its own content uses it.
+A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `S` for
+a new session, a review's `n` for its verdict, the inbox's `c` to move a note to a category and `p`
+to promote it, a proposal's `w` to write it into a file, the feature page's `n` to clean a merged
+one, and the priorities' `v` to switch between columns and a list. A composer's `m` opens its model
+picker, or its effort's in a running session, as `Space a` does, on the New page, a session's page,
+and a session in a review's column: none of them has a row to move. A round's banner, beside the
+inbox's notes, keeps `Space a` alone. A page never gives a base key another meaning while its own
+content uses it.
+
+Every page's own keys, as the registry declares them. A key ending in "…" opens a dialog or a
+confirmation first.
+
+| Page                    | Its keys                                                                                                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home                    | `a` add a note, `C` continue all…                                                                                                                                                        |
+| Inbox                   | `a` add, `i` edit the note, `d` delete, `c` category…, `p` proposal…, `C` new category…, `R` rename the category…, `t` answer the triage                                                 |
+| Priorities, a proposal  | `a` add, `v` columns or list; a proposal's `e` edit its line…, `w` write it in a file, `f` `c` feature or change, `s` start…; a nested line's `o` add, `d` remove, `J` `K` move, `>` `<` |
+| A feature               | `n` the next step… (merged: clean…), `S` new session, `R` rename, `P` postpone…, `D` drop…, `m` the message, `f` the format notes, `j` `k` between the run map and the history           |
+| The run map, continuing | `Enter` pick, `e` effort, `a` add a reviewer, `d` remove, `Ctrl+Enter` continue                                                                                                          |
+| A round                 | `a`–`f` answer and go on, `Shift` and `a`–`f` add to the answer, `n` `p` move, `i` comment, `s` ask the agent; at its end `i` the notes, `J` `K` a settled point, `Ctrl+Enter` commit…   |
+| A review                | `i` comment, `J` `K` stretch, `s` ask the agent, `n` the verdict; on the verdict `i` the general comment, `a` approve…, `r` request changes…                                             |
+| Decisions               | `/` jump…, `o` their order, `r` run the check…                                                                                                                                           |
+| A session               | `i` write, `x` stop the agent, `m` model or effort, `R` rename, `a` allow and retry…, `A` allow the whole turn…, `c` make the chat a change…; the sessions' `/` search                   |
+| Git                     | `s` stage, `a` stage all, `d` discard…, `o` `t` take a side…, `c` the commit's message, `Ctrl+Enter` commit, `f` fetch, `p` pull, `P` push…, `M` merge…, `m` continue…, `A` abort…       |
+| A conflict, its editor  | `1` `2` `3` take a block, `n` the next conflict, `o` `t` take a side…, `Ctrl+Enter` save                                                                                                 |
+| Jobs                    | `a` add, `r` run now…, `p` pause or resume, `d` delete…, `e` effort                                                                                                                      |
+| A file's editor         | `i` or `Enter` edit, `Ctrl+Enter` save; changed on disk: `v` what changed, `F` the file's version…, `w` yours over it…                                                                   |
+| A preview               | `w` the next width, `f` full screen                                                                                                                                                      |
 
 ## A key that cannot be taken back
 
@@ -67,13 +88,14 @@ A single key is a slip away, so what one key does is sorted in three:
     its button is a red tube, never the lamp.
 
 The keys of the third kind: `C` on Home (continue all), `r` on Jobs (run now), `P` on Git (push),
-`m` and `A` on a stopped merge (continue, which commits it, and abort), `o` and `t` on a conflict (a
-side, whole), `d` on a changed file, a worktree, and a job (discard, remove, delete), `a` and `A` on
-a blocked action (allow, and retry), `n` on a merged feature (clean), `F` and `w` on a file changed
-under its editor, and `u` `U` over a change committed since. A key that opens a dialog with more to
-read or to pick, a start's, a continue's with its run map, a merge's branches, is already
-deliberate: its dialog's own button starts it. A new key of this kind follows the same rule: its
-label ends with "…", as its button's does.
+`Ctrl+Enter` at a round's end (commit the answers), `a` and `r` on a review's verdict (approve,
+request changes), `D` on a feature (drop), `m` and `A` on a stopped merge (continue, which commits
+it, and abort), `o` and `t` on a conflict (a side, whole), `d` on a changed file, a worktree, and a
+job (discard, remove, delete), `a` and `A` on a blocked action (allow, and retry), `n` on a merged
+feature (clean), `F` and `w` on a file changed under its editor, and `u` `U` over a change committed
+since. A key that opens a dialog with more to read or to pick, a start's, a continue's with its run
+map, a merge's branches, is already deliberate: its dialog's own button starts it. A new key of this
+kind follows the same rule: its label ends with "…", as its button's does.
 
 ## In a field
 
