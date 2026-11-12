@@ -143,7 +143,9 @@ export function Button(props: ButtonProps) {
       <If when={breathes()}>
         <Breath tone={toneOf(variant())} />
       </If>
-      <If when={props.keys}>
+      {/* Its key works with a keyboard attached, and is not shown on a phone: keys are no help
+          to a finger, and the chip took a button's room (the phone guide). */}
+      <If when={isNarrow() ? undefined : props.keys}>
         {(keys) => (
           <Kbd keys={keys()} onMain={isLamp(variant(), onGlass()) && props.disabled !== true} />
         )}
