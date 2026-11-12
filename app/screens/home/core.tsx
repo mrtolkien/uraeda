@@ -7,6 +7,7 @@
 // first.
 import { type HomeCard, Cards, Nothing } from "./Cards";
 import { ContinueAll } from "./ContinueAll";
+import { SetUp } from "./SetUp";
 import { navigate, parseRoute, record } from "../../store";
 import type { NeedsYouRow, SessionRow, WorkspaceFeature } from "../../store/protocol";
 import { ticking } from "../../ui/clock";
@@ -78,6 +79,7 @@ export function NeedsYou(props: { repo: string }) {
   };
   return (
     <>
+      <SetUp repo={props.repo} />
       <ContinueAll repo={props.repo} />
       <Cards
         cards={cards}
