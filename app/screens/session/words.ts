@@ -169,7 +169,7 @@ export function took(ms: number): string {
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
 
-/** A tool's name as a person reads it: an MCP server's tool without its server, `run_agent`. */
+/** A tool's name as a person reads it: an MCP server's tool without its server. */
 const toolName = (name: string) =>
   name.startsWith("mcp__") ? name.slice(name.lastIndexOf("__") + 2) : name;
 
@@ -179,11 +179,26 @@ export function lineWords(item: Item): LineWords | undefined {
     case "tool": {
       const failed = item.status === "failed";
       const name = toolName(item.name);
-      const words = item.target === null ? name : `${name} ${item.target}`;
+      // Uraeda's `run_agent` starts an implementer: said as a person would, as its panel says it.
+      const implementer = name === "run_agent";
+      const words = implementer
+        ? `Implementer of ${item.target ?? "a task"}`
+        : item.target === null
+          ? name
+          : `${name} ${item.target}`;
       return {
-        code: item.target !== null,
-        hue: failed ? "removed" : item.subagent !== null ? "subAgent" : "context",
-        icon: item.subagent !== null ? "bot" : (TOOL_ICONS[item.toolKind] ?? "wrench"),
+        code: item.target !== null && !implementer,
+        hue: failed
+          ? "removed"
+          : item.subagent !== null || implementer
+            ? "subAgent"
+            : "context",
+        icon:
+          item.subagent !== null
+            ? "bot"
+            : implementer
+              ? "users"
+              : (TOOL_ICONS[item.toolKind] ?? "wrench"),
         ink: failed ? "danger" : "quiet",
         meta:
           item.status === "in-progress"

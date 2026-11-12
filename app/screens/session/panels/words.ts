@@ -100,9 +100,6 @@ export function activityLine(
   if (item.kind !== "tool" || !startsSub(item)) return { ...line, nested, opens: false };
   return {
     ...line,
-    code: false,
-    hue: "subAgent",
-    icon: "users",
     nested,
     opens: sub !== undefined,
     sub:
@@ -111,7 +108,6 @@ export function activityLine(
         : [subState(sub.state).label, subRunsOn(sub), ranFor(sub.startedAt, sub.endedAt, now)].join(
             " · ",
           ),
-    words: `Implementer of ${item.target ?? "a task"}`,
   };
 }
 
