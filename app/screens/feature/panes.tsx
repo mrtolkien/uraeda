@@ -6,12 +6,13 @@
 import { definePane, definePlace } from "../../ui/layout";
 import { Decisions } from "./Decisions";
 import { Figures } from "./Figures";
-import { Overview } from "./Overview";
+import { nextStep, Overview } from "./Overview";
 import { featureOf, type FeatureArgs } from "./read";
 import { Sessions } from "./Sessions";
 import { Steps } from "./Steps";
 
 export const featureOverview = definePane<FeatureArgs>({
+  action: () => nextStep(),
   icon: "flag",
   kind: "feature-overview",
   mark: (args) => {

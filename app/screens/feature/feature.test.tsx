@@ -56,3 +56,13 @@ test("postpone and drop are reached by their keys, each asking first", async () 
   await app.waitUntil(() => !app.texts().includes("Drop the feature?"), { timeout: 5_000 });
   await says(app, "Postpone the feature…");
 });
+
+test("on a phone, the bottom bar ends with the feature's next step, which asks as Next's button does", async () => {
+  const app = await open("../../App.tsx", { height: 844, network: "live", width: 390 });
+  // Home's Needs you: the sandbox's feature of Now that waits for its Continue.
+  await app.waitFor("text:cli-tuis", { timeout: 30_000 });
+  await app.press("text:cli-tuis >> nth=0");
+  await says(app, "Continue, write the plan");
+  await app.press("id:bottom-bar-action");
+  await app.waitFor("id:continue-start", { timeout: 10_000 });
+});

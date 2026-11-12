@@ -10632,7 +10632,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `rust-toolchain.toml`, `flake.lock`, `Cargo.toml`, `Cargo.lock`, `AGENTS.md`,
   `crates/vim/src/object.rs`, `crates/app/tests/outside/stage.rs`,
   `crates/core/src/settings/runs_write.rs`, `app/store/store.test.ts`.
-## T200.1: On a phone, a sheet is a visit of its own, and every sheet is
+
+## R531: On a phone, a sheet is a visit of its own, and every sheet is
 
 - **Decision**: `Float`, what every dialog and sheet is, makes each opening of one with a scrim, on
   a narrow window, a visit of the history over its page (`backCloses`, through the history's

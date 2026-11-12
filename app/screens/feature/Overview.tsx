@@ -1,11 +1,11 @@
 // The feature page's subject: where the feature stands, in words with their cause, and the one
 // thing to do next, the page's main action, which breathes and takes `n`. Under it the message a
 // continue sends, what a merged feature left, and the check's notes.
-import { openUrl, signal, View } from "nsh";
+import { cleanup, effect, openUrl, signal, untracked, View } from "nsh";
 import { call, navigate, record } from "../../store";
 import type { Feature } from "../../store/protocol";
 import { Banner, Button, Confirm, Heading, Refusal, StatusDot, Text } from "../../ui/controls";
-import { PaneScroll, usePane } from "../../ui/layout";
+import { type PaneAction, PaneScroll, usePane } from "../../ui/layout";
 import { Collapsible } from "../../ui/lists";
 import { Pane, Well } from "../../ui/surfaces";
 import type { Tone } from "../../ui/tokens";
@@ -108,6 +108,18 @@ function proposalAt(feature: Feature): string | undefined {
   return gate ? `${feature.path}/${file}` : undefined;
 }
 
+/** The word of the phone's bottom bar's tile for each kind of next step: one, short. */
+const WORDS = { clean: "Clean", continue: "Continue", open: "Next", url: "Open" } as const;
+
+/** The next step of the feature shown, as its Next pane presses it: the phone's bottom bar's action. */
+const shownStep = signal<PaneAction | undefined>(undefined);
+
+/**
+ * The bottom bar's end on a phone: the step the Next pane's button takes, which a tap there takes
+ * too (the phone guide: "a feature's next step, which its Next pane's button also does").
+ */
+export const nextStep = () => shownStep();
+
 /** "Next": what comes next, why, and its one button, the view's main action, with `n`. */
 function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
   const pending = signal(false);
@@ -138,6 +150,17 @@ function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
     }
     pending.set(false);
   };
+  effect(() => {
+    const action = props.next.action;
+    const step: PaneAction | undefined =
+      action === undefined
+        ? undefined
+        : { icon: ICONS[action.kind], label: WORDS[action.kind], run: () => void press(action) };
+    untracked(() => shownStep.set(step));
+    cleanup(() => {
+      if (untracked(shownStep) === step) shownStep.set(undefined);
+    });
+  });
   return (
     <Pane height="raised" needs={props.next.waitsOn === "human"} title="Next">
       <View style={{ gap: 4 }}>
