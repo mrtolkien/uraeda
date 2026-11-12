@@ -24,6 +24,8 @@ export function SessionsPane(props: {
   session: string;
 }) {
   const pane = usePane();
+  // One clock for the page's cards, which only a working card reads: not a timer per card.
+  const now = ticking(30_000);
   const query = pane.remember("query", "");
   const kept = pane.remember<string | null>("at", props.session === "" ? null : props.session);
   // Held while the words searched stay the same: a new search reads its own record.
@@ -111,6 +113,7 @@ export function SessionsPane(props: {
                   {(row) => (
                     <SessionCard
                       name={nameOf(row().agent)}
+                      now={now}
                       onPress={() => {
                         cursor.set(row().id);
                         open(row().id);
@@ -150,6 +153,8 @@ function timeOf(row: SessionRow, working: boolean) {
 function SessionCard(props: {
   current: boolean;
   name: string | undefined;
+  /** The page's clock, which a working card's run time reads. */
+  now: () => number;
   onPress: () => void;
   repo: string;
   row: SessionRow;
@@ -157,7 +162,6 @@ function SessionCard(props: {
 }) {
   const session = () => record("Session", { id: props.row.id, repo: props.repo })();
   const working = () => props.row.status === "working";
-  const now = ticking(30_000);
   const turn = () => {
     const id = session()?.turns.at(-1);
     return id === undefined ? undefined : record("Turn", { id, repo: props.repo })();
@@ -180,7 +184,7 @@ function SessionCard(props: {
         testID={`session-${props.row.id}`}
         time={
           // At work, its run's time, "14:02 · 12 min", as Home says it: not the session's start.
-          (working() ? runTime(turn(), now) : undefined) ?? timeOf(props.row, working())
+          (working() ? runTime(turn(), props.now) : undefined) ?? timeOf(props.row, working())
         }
         title={props.row.title}
         who={(() => {
