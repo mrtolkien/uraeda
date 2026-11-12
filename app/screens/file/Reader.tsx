@@ -104,7 +104,7 @@ function Head(props: { args: FileArgs; file: FileView; onVerdict?: () => void })
           <Text tone="quiet">
             {isNarrow()
               ? "Tap a part to comment on it. Your verdict is under Verdict, at the bottom."
-              : "Press a part, or c on the one at the cursor, to comment on it, s to ask the agent about it beside; J and K move between parts. Your verdict is in the Review pane."}
+              : "Press a part, or i on the one at the cursor, to comment on it, s to ask the agent about it beside; J and K move between parts. Your verdict is in the Review pane."}
           </Text>
         </View>
       </If>
@@ -166,9 +166,10 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
   };
   registerKey([
     {
-      hint: "c",
+      // `i` writes, as in a round, a composer, and every field: `c` answers C in a round.
+      hint: "i",
       hintLabel: "comment",
-      keys: "c",
+      keys: "i",
       label: "Comment on the part at the cursor",
       run: () => {
         const at = review.cursor() ?? tops()[0]?.id;

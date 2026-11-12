@@ -204,10 +204,11 @@ export function SessionComposer(props: SessionComposerProps) {
   effect(() => {
     if (!working() && !waits()) return;
     registerKey({
-      hint: "S",
+      // Not `S`, a feature's New session, whose Sessions pane sits beside a session.
+      hint: "x",
       hintLabel: "stop",
       icon: "square",
-      keys: "S",
+      keys: "x",
       label: "Stop the agent",
       run: () => void stop(),
     });

@@ -20,7 +20,7 @@ test("a removed comment comes back with undo", async () => {
   const says = () => app.texts().join(" ").includes(words);
 
   // A comment on the part at the cursor, saved in the review.
-  await app.keyboard.press("c");
+  await app.keyboard.press("i");
   await app.waitFor("id:review-comment", { timeout: 10_000 });
   await app.type("id:review-comment", words);
   await app.press("id:file-reader >> label:Save the comment");

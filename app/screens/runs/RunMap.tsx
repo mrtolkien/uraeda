@@ -203,9 +203,8 @@ function Hints(props: { column: boolean }) {
       {props.column ? null : hint("j k", "steps and roles")}
       {hint("Enter", "pick or flip")}
       {hint("e", "effort")}
-      {hint("r", "back to what it follows")}
       {hint("a", "add a reviewer")}
-      {hint("d", "remove it")}
+      {hint("d", "remove it, or back to what it follows")}
     </View>
   );
 }
@@ -291,26 +290,24 @@ export function RunMap(props: RunMapProps) {
             : openEffort?.(),
       },
       {
-        keys: "r",
-        label: "Back to what it follows",
-        run: () => {
-          if (props.disabled === true || isLocked(place()) || !isSet(props.value, place()))
-            return false;
-          change(reset(props.value, place()));
-          return undefined;
-        },
-      },
-      {
         keys: "a",
         label: "Add a reviewer",
         run: () => (props.disabled === true ? false : addReviewer()),
       },
       {
+        // One key takes away what the cursor's place holds: a reviewer, or a step's own pick,
+        // which goes back to what it follows. `r` meant that here, and runs a job elsewhere.
         keys: "d",
-        label: "Remove the reviewer",
+        label: "Remove it: the reviewer, or the place's own pick",
         run: () => {
           const here = place();
-          return here.kind === "reviewer" && props.disabled !== true ? remove(here.index) : false;
+          if (props.disabled === true) return false;
+          if (here.kind === "reviewer" && reviewersOf(props.value, over()).length > 1) {
+            return remove(here.index);
+          }
+          if (isLocked(here) || !isSet(props.value, here)) return false;
+          change(reset(props.value, here));
+          return undefined;
         },
       },
     ],
