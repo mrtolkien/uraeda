@@ -47,13 +47,26 @@ function writes(refused: boolean): Of[] {
 /** The writes that landed a moment ago, by their id: "Committed" names them. */
 const landed = signal<ReadonlyArray<Of>>([]);
 
-/** The landed form of the first word of a write's label: "Starting the feature …" is started. */
+/**
+ * The landed form of the first word of a write's label: "Starting the feature …" is started. A
+ * write the app names, a note added or a proposal moved, lands as a commit; the Git page's own say
+ * what they did, as staging commits nothing.
+ */
 const DONE: Record<string, string> = {
+  Aborting: "Aborted",
+  Cleaning: "Cleaned",
+  Continuing: "Continued",
+  Discarding: "Discarded",
   Fetching: "Fetched",
   Merging: "Merged",
   Pulling: "Pulled",
   Pushing: "Pushed",
+  Removing: "Removed",
+  Resolving: "Resolved",
+  Saving: "Saved",
+  Staging: "Staged",
   Starting: "Started",
+  Unstaging: "Unstaged",
 };
 
 /** The word a landed write is said with: its label's first word, done. */
