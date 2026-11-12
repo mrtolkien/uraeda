@@ -1,6 +1,6 @@
 // Home's widgets: the inbox, whose note is added in one tap, first, then its latest notes; the
 // priorities now, what comes next; and the agents' usage, each account by name.
-import { computed, View } from "nsh";
+import { computed, effect, signal, untracked, View } from "nsh";
 import { Cards, Nothing } from "./Cards";
 import { type AgentUsage, usageByAgent, LOW } from "../shell/usage";
 import { remember } from "../shell/undo";
@@ -27,6 +27,12 @@ export function latestNotes(inbox: Inbox | null | undefined, count = 3): InboxNo
   return [...named(false).toReversed(), ...named(true).toReversed()].slice(0, count);
 }
 
+/** How many times `a` asked, from another pane of Home, for the inbox's field. */
+const noteAsked = signal(0);
+
+/** Asks the inbox's pane of Home to put the focus in its field, once it is drawn and focused. */
+export const askForNote = () => noteAsked.update((asked) => asked + 1);
+
 /** The inbox: its add field first, a note in one tap or `a`, then its latest three. */
 export function InboxWidget(props: { repo: string }) {
   const pane = usePane();
@@ -36,6 +42,14 @@ export function InboxWidget(props: { repo: string }) {
   const added = pane.remember<string | null>("added", null);
   let field: TextFieldRef | undefined;
   registerKey({ hint: "a", keys: "a", label: "add a note", run: () => field?.focus() });
+  // `a` on another pane of Home focuses this pane, then asks for the field.
+  let seen = untracked(noteAsked);
+  effect(() => {
+    const asked = noteAsked();
+    if (asked === seen) return;
+    seen = asked;
+    queueMicrotask(() => field?.focus());
+  });
   const add = async () => {
     const text = typed().trim();
     const hash = inbox()?.hash;
