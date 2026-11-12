@@ -240,6 +240,14 @@ walk-to-feature filter="":
     {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/to-feature.test.tsx --target linux --filter "{{ filter }}"
     @ls target/shots/to-feature
 
+# The walk of a session's flow, as the owner at the desk lives in it: talking to an agent, the
+# panes, Git, and a buffer, the steps of `app/tools/session.test.tsx`, by keys, each a numbered
+# picture in `target/shots/polish-5/`. A tool, never a check: `just walk-session 06` for one step.
+walk-session filter="":
+    mkdir -p target/shots/polish-5
+    find target/shots/polish-5 -name '{{ filter }}*.png' -delete
+    URAEDA_SANDBOX_ARGS=--long-chat {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test tools/session.test.tsx --target linux --filter "{{ filter }}"
+
 # A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
 # The thinking work, as the owner at the desk does it on the sandbox: a round answered, a spec
