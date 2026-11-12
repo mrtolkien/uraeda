@@ -199,6 +199,8 @@
             ++ lib.optionals stdenv.hostPlatform.isLinux [
               pkg-config
               clang
+              # `flock`, with which `scripts/isolated.sh` shares the machine's heavy slots.
+              util-linux
               (hiddenDisplayFor pkgs)
               # Real key presses and clicks on the hidden display, for the checks of
               # `crates/app/tests/outside.rs`.

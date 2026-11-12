@@ -30,6 +30,8 @@ fi
 # A run inside one that holds a slot already takes none: it would wait on itself.
 if [ "$slots" -gt 0 ] && [ -z "${URAEDA_SLOT:-}" ]; then
   export URAEDA_SLOT=1
+  # Without it, every slot looked taken, and the run waited forever.
+  command -v flock >/dev/null || { echo "[uraeda] flock is missing: run it in the dev shell" >&2; exit 1; }
   locks=${XDG_RUNTIME_DIR:-/tmp}/uraeda-heavy
   mkdir -p "$locks"
   said=false
