@@ -19,6 +19,7 @@ import { usePane } from "../../ui/layout";
 import { ThemeSample } from "../../ui/lists";
 import type { ThemeChoice } from "../../ui/theme";
 import { DEFAULT_THEMES, type Mode } from "../../ui/tokens";
+import { plural } from "../../ui/words";
 
 const ON_DEVICE = "Kept on this device: each device picks its own";
 
@@ -31,9 +32,6 @@ const MODES: ReadonlyArray<Option<ThemeChoice["mode"]>> = [
 /** The next mode, as `Space u m` cycles them. */
 const NEXT = { dark: "system", light: "dark", system: "light" } as const;
 
-/** A count and its noun: "1 problem", "2 colours". */
-const counted = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
-
 /** A file's line: its mode, the theme it extends, and how many problems it has. */
 function fileLine(file: ThemeFile): string {
   const parts = [file.mode ?? "no mode", file.extends === null ? null : `extends ${file.extends}`];
@@ -41,8 +39,8 @@ function fileLine(file: ThemeFile): string {
     .size;
   const others = file.problems.filter((one) => !one.isUnderFloor).length;
   const counts = [
-    others > 0 ? counted(others, "problem") : null,
-    floor > 0 ? `${counted(floor, "colour")} under the contrast floor` : null,
+    others > 0 ? plural(others, "problem") : null,
+    floor > 0 ? `${plural(floor, "colour")} under the contrast floor` : null,
   ];
   return [...parts, ...counts].filter((one) => one !== null).join(" · ");
 }

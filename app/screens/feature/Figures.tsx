@@ -7,7 +7,8 @@ import type { Feature, HistoryView } from "../../store/protocol";
 import { Heading, Link, Text } from "../../ui/controls";
 import { PaneScroll } from "../../ui/layout";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
-import { clock, day, duration, plural } from "./words";
+import { clock, day, duration } from "./words";
+import { plural } from "../../ui/words";
 
 /** One figure: its name, its value, and what it counts. */
 type Figure = { caption?: string; label: string; value: string };

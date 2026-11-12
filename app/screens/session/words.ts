@@ -3,6 +3,7 @@
 import type { Item, Session, SessionRow, StatusReason, Turn } from "../../store/protocol";
 import type { IconName, Ink } from "../../ui/controls";
 import type { Tone } from "../../ui/tokens";
+import { plural } from "../../ui/words";
 
 /**
  * Who runs the session, as its header says it: the agent, its account, the model and the effort
@@ -259,10 +260,8 @@ export function rowState(
 ) {
   const extra = [
     (reason === null ? undefined : REASON_WORDS[reason]) ?? "",
-    row.subagents > 0 ? `${row.subagents} sub-agent${row.subagents === 1 ? "" : "s"} at work` : "",
-    row.backgroundCommands > 0
-      ? `${row.backgroundCommands} background command${row.backgroundCommands === 1 ? "" : "s"}`
-      : "",
+    row.subagents > 0 ? `${plural(row.subagents, "sub-agent")} at work` : "",
+    row.backgroundCommands > 0 ? plural(row.backgroundCommands, "background command") : "",
   ].filter((part) => part !== "");
   return extra.length === 0 ? row.statusLabel : `${row.statusLabel} · ${extra.join(", ")}`;
 }

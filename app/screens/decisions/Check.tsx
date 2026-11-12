@@ -17,6 +17,7 @@ import { changeCounts, checkWords } from "./ledger";
 import { follow } from "./links";
 import { ErrandButton, useErrand } from "./Errand";
 import { Column, pastTitle, Reading, Title } from "./Reader";
+import { plural } from "../../ui/words";
 
 /** The id the record `WorkflowFile` reads the check by. */
 const CHECK_ID = "decisions-check";
@@ -31,7 +32,7 @@ const isAnswered = (question: QuestionItem) =>
 function progress(file: FileView): string {
   const asked = questionsOf(file).filter((question) => question.asked);
   const answered = asked.filter(isAnswered).length;
-  return `${answered} of ${asked.length} question${asked.length === 1 ? "" : "s"} answered`;
+  return `${answered} of ${plural(asked.length, "question")} answered`;
 }
 
 /** A question's answer, read-only, under its heading. */

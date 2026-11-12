@@ -16,6 +16,7 @@ import type { SessionArgs } from "../place";
 import { runsOnWords, turnWords } from "../words";
 import { Padded, WithSession } from "./read";
 import { inStartOrder, ranFor, roleWord, subRunsOn, subState, tokenWords, topLevel } from "./words";
+import { plural } from "../../../ui/words";
 
 /** An agent's own sub-agent, as the pane keeps it: ended once its turn no longer lists it. */
 type Own = {
@@ -219,7 +220,7 @@ function OwnCard(props: { now: () => number; own: Own; selected: boolean }) {
         took: ranFor(props.own.startedAt, props.own.endedAt, props.now),
       }}
       facts={[
-        { icon: "wrench", label: `${props.own.calls} call${props.own.calls === 1 ? "" : "s"}` },
+        { icon: "wrench", label: plural(props.own.calls, "call") },
         ...(props.own.doing === null || !working()
           ? []
           : [{ icon: "play" as const, label: `Now: ${props.own.doing}` }]),

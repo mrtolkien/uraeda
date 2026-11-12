@@ -17,6 +17,7 @@ import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
 import type { WidthClass } from "../../ui/width";
 import { ConflictEditor } from "../conflict";
+import { plural } from "../../ui/words";
 
 /** A binary side's size, in words. */
 const sizeWords = (bytes: number | null) =>
@@ -211,7 +212,7 @@ function CommitDiff(props: { id: string; repo: string; width: WidthClass }) {
             <Text size="under" tone="faint">
               {[
                 ago(shown().authored),
-                `${shown().files.length} ${shown().files.length === 1 ? "file" : "files"}`,
+                plural(shown().files.length, "file"),
                 row()?.mark === "pull"
                   ? "only on origin: pull to take it"
                   : row()?.mark === "push"

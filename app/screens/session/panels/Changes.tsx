@@ -14,11 +14,10 @@ import { usePane } from "../../../ui/layout";
 import { createCursor, Empty, Line, List } from "../../../ui/lists";
 import type { SessionArgs } from "../place";
 import { Padded, WithSession } from "./read";
+import { plural } from "../../../ui/words";
 
 /** A row of the list: a part's title, or a file of it. */
 type Row = { id: string; label: string; meta?: string; file?: string; head: boolean };
-
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 export function ChangesPane(props: { args: SessionArgs }) {
   return (

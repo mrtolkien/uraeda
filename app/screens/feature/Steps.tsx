@@ -16,7 +16,8 @@ import { FeatureMap } from "../runs/FeatureMap";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
-import { clock, duration, fileWord, plural, STAGES, stageOf } from "./words";
+import { clock, duration, fileWord, STAGES, stageOf } from "./words";
+import { plural } from "../../ui/words";
 
 /** A row of the list, as it draws: a stage, or a file under it, indented. */
 type Step = {

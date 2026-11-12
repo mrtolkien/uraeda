@@ -4,6 +4,7 @@
 import { device, record, type Route, serverDay } from "../../store";
 import type { Decision, DecisionChange, Ledger, PartChange } from "../../store/protocol";
 import type { Tone } from "../../ui/tokens";
+import { plural } from "../../ui/words";
 
 /** How the decisions are ordered, kept on the device. */
 export type DecisionSort = "changed-desc" | "changed-asc" | "title";
@@ -48,7 +49,7 @@ export const shortDate = (date: string, today: number = Date.now()): string =>
   serverDay(date, today);
 
 /** "1 rule", "3 rules". */
-export const ruleCount = (count: number) => `${count} rule${count === 1 ? "" : "s"}`;
+export const ruleCount = (count: number) => plural(count, "rule");
 
 /** A decision's status, in words with its cause, and its tone. */
 export function statusWords(decision: Decision): { label: string; tone: Tone; why: string } {
@@ -125,9 +126,7 @@ export function changeCounts(change: DecisionChange): Array<string> {
     ["changed", count("changed")],
     ["removed", count("removed")],
   ] as const;
-  const words = counted
-    .filter(([, n]) => n > 0)
-    .map(([kind, n]) => `${n} part${n === 1 ? "" : "s"} ${kind}`);
+  const words = counted.filter(([, n]) => n > 0).map(([kind, n]) => `${plural(n, "part")} ${kind}`);
   const fields = change.fields.map(
     (field) => `${field.name}: ${field.before ?? "none"} → ${field.after ?? "none"}`,
   );

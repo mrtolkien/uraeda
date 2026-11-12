@@ -7,12 +7,12 @@ import type { FileView, ReviewItems, SinceChange } from "../../store/protocol";
 import { Banner, Heading, type IconName } from "../../ui/controls";
 import { focusPane, PaneScroll, usePane } from "../../ui/layout";
 import { Card, createCursor, Empty, Line, List } from "../../ui/lists";
-import { plural } from "./facts";
 import { readerPane } from "./panes";
 import { jumpTo } from "./place";
 import { type FileArgs, shownOf, WithFile } from "./read";
 import { reviewable } from "../review/Marks";
 import { Given, Verdict } from "../review/Verdict";
+import { plural } from "../../ui/words";
 
 /** A review's verdict, in words. */
 const VERDICTS: Readonly<Record<string, string>> = {

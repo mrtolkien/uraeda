@@ -4,6 +4,7 @@
 import type { QuestionItem, Span } from "../../store/protocol";
 import { plain } from "../file/read";
 import { answered } from "./position";
+import { plural } from "../../ui/words";
 
 /** Words of a view's own, as a span among the file's. */
 export const lead = (text: string, strong = true): Span => ({
@@ -17,7 +18,7 @@ export const lead = (text: string, strong = true): Span => ({
 });
 
 /** "1 question", "3 questions". */
-export const questions = (count: number) => `${count} question${count === 1 ? "" : "s"}`;
+export const questions = (count: number) => plural(count, "question");
 
 /** "Q3", "Q3 and Q5", "Q1, Q3, and Q5". */
 export function idsWords(ids: ReadonlyArray<string>): string {

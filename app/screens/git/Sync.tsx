@@ -13,6 +13,7 @@ import { Dialog } from "../../ui/surfaces";
 import { Line, List, createCursor } from "../../ui/lists";
 import { ago } from "./when";
 import { isPending, refusalAt, write } from "./writes";
+import { plural } from "../../ui/words";
 
 /** The repository whose merge picker is open, drawn by its Changes pane. */
 const merging = signal<string | null>(null);
@@ -30,7 +31,7 @@ export const gitPage = (repo: string) => record("GitPage", { repo });
 const syncAt = (repo: string) => `${repo}/sync`;
 
 /** "1 commit", "3 commits". */
-const commits = (count: number) => `${count} ${count === 1 ? "commit" : "commits"}`;
+const commits = (count: number) => plural(count, "commit");
 
 /** Whether a pull or a merge stopped, which holds the others back until it goes on or aborts. */
 const stuck = (page: GitPage) => page.stopped !== null;
@@ -219,7 +220,7 @@ function Holds(props: { page: GitPage; repo: string }) {
                 />
               </View>
             }
-            title={`The ${stopped().kind} stopped: ${left() === 0 ? "every conflict is resolved." : `${left()} ${left() === 1 ? "file conflicts" : "files conflict"}.`}`}
+            title={`The ${stopped().kind} stopped: ${left() === 0 ? "every conflict is resolved." : `${plural(left(), "file conflicts", "files conflict")}.`}`}
             tone="needs"
           >
             {left() === 0

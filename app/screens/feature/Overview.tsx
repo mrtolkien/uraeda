@@ -14,7 +14,8 @@ import { Drop, DroppedNote, Problems, Rename } from "./Parts";
 import { Postpone } from "./Postpone";
 import { ContinueDialog } from "../runs/ContinueDialog";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
-import { day, endedWords, kindWord, plural, waitWords } from "./words";
+import { day, endedWords, kindWord, waitWords } from "./words";
+import { plural } from "../../ui/words";
 
 /** A status's tone, as its dot shows it. */
 export function toneOf(status: Feature["status"]["status"]): Tone {

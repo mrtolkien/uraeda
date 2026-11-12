@@ -27,10 +27,6 @@ export function duration(seconds: number): string {
   return hours % 24 === 0 ? `${days} d` : `${days} d ${hours % 24} h`;
 }
 
-/** "1 round", "2 rounds". */
-export const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count} ${count === 1 ? one : many}`;
-
 /** "Feature" or "Change". */
 export const kindWord = (feature: Pick<Feature, "kind">) =>
   feature.kind === "change" ? "Change" : "Feature";

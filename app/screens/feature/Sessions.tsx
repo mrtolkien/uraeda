@@ -11,7 +11,8 @@ import { Card, type CardFact, createCursor, Empty, listKeys } from "../../ui/lis
 import { sessionBeside } from "../session";
 import { toneOf } from "./Overview";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
-import { clock, duration, endedWords, plural, stepWord, waitWords, whoWords } from "./words";
+import { clock, duration, endedWords, stepWord, waitWords, whoWords } from "./words";
+import { plural } from "../../ui/words";
 
 /** The page of a new session of the feature, which its first message makes. */
 const newSession = (folder: string) => ({ folder, page: "session" as const, query: { new: "" } });

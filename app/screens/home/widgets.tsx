@@ -11,6 +11,7 @@ import { registerKey } from "../../ui/keys/registry";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 import { type TextFieldRef, TextField } from "../../ui/text";
+import { plural } from "../../ui/words";
 
 /** The words of spans, as one line. */
 const plain = (spans: ReadonlyArray<{ text: string }>) => spans.map((span) => span.text).join("");
@@ -96,9 +97,7 @@ export function InboxWidget(props: { repo: string }) {
         )}
       />
       <Link onPress={() => navigate({ page: "inbox" })}>
-        {count() === 0
-          ? "Open the inbox"
-          : `${count()} ${count() === 1 ? "note" : "notes"} to organize`}
+        {count() === 0 ? "Open the inbox" : `${plural(count(), "note")} to organize`}
       </Link>
     </View>
   );

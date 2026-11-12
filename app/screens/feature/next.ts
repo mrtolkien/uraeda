@@ -10,7 +10,8 @@ import type {
   StatusReason,
   Trigger,
 } from "../../store/protocol";
-import { agentDoes, clock, day, plural, stepWord } from "./words";
+import { agentDoes, clock, day, stepWord } from "./words";
+import { plural } from "../../ui/words";
 
 /** The one action of "Next". */
 export type NextAction =

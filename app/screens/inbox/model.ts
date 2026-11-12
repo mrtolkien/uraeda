@@ -2,6 +2,7 @@
 // category first, every category of `INBOX.md` in the file's order, an empty one too, and last the
 // row that adds a category. Pure: the panes read it from the `Inbox` record.
 import type { Inbox, InboxNote, Span } from "../../store/protocol";
+import { plural } from "../../ui/words";
 
 export type InboxRow =
   | {
@@ -92,9 +93,6 @@ export function quoted(text: string, most = 60): string {
   const one = text.replace(/\s+/g, " ").trim();
   return `“${one.length > most ? `${one.slice(0, most - 1).trimEnd()}…` : one}”`;
 }
-
-/** "1 image", "3 images". */
-export const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 /** The quiet facts after a note's text: who wrote it, what it is about, its images. */
 export function marksOf(note: InboxNote): string | undefined {

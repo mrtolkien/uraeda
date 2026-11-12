@@ -3,10 +3,7 @@
 // Pure: the record holds the facts, these only put them in words.
 import type { FileView, TaskItem } from "../../store/protocol";
 import { shownOf } from "./read";
-
-/** "1 task", "2 tasks". */
-export const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count} ${count === 1 ? one : many}`;
+import { plural } from "../../ui/words";
 
 /** Whether a task's steps are all checked: a task with no step is not done. */
 export const taskDone = (task: TaskItem) => task.total > 0 && task.done === task.total;

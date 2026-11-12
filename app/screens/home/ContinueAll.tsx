@@ -9,6 +9,7 @@ import { call, record, StoreError } from "../../store";
 import type { RefusedRun } from "../../store/protocol";
 import { Button, Confirm, Refusal, Text } from "../../ui/controls";
 import { idsWords as and } from "../round/words";
+import { plural } from "../../ui/words";
 
 /** "cli-tuis and search could not continue: another session of this feature is working." */
 function refusedWords(refused: ReadonlyArray<RefusedRun>): string {
@@ -31,7 +32,7 @@ export function ContinueAll(props: { repo: string }) {
   const pending = signal(false);
   const asking = signal(false);
   const refusal = signal<string | null>(null);
-  const runs = () => `${names().length} ${names().length === 1 ? "run" : "runs"}`;
+  const runs = () => plural(names().length, "run");
   const send = async () => {
     if (pending() || names().length === 0) return;
     pending.set(true);

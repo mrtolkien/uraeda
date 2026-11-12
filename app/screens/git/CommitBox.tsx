@@ -11,6 +11,7 @@ import { Button, Text } from "../../ui/controls";
 import { keyScope, registerKey } from "../../ui/keys/registry";
 import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
 import { isNarrow } from "../../ui/width";
+import { plural } from "../../ui/words";
 
 function CommitBox(props: {
   group: GitGroup;
@@ -26,7 +27,7 @@ function CommitBox(props: {
   const can = () => !props.held && staged() > 0;
   const commit = () => {
     if (!can() || message.pending()) return false;
-    const files = `${staged()} ${staged() === 1 ? "file" : "files"}`;
+    const files = plural(staged(), "file");
     const { repo, where } = props;
     const { folder, name } = props.group;
     void message
@@ -66,7 +67,7 @@ function CommitBox(props: {
   const label = () => {
     if (props.held) return "An agent works here";
     if (staged() === 0) return "Stage files to commit";
-    return `Commit ${staged()} ${staged() === 1 ? "file" : "files"} to ${props.group.name}`;
+    return `Commit ${plural(staged(), "file")} to ${props.group.name}`;
   };
   return (
     <View style={{ gap: 8 }}>
