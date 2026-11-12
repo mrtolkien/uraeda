@@ -135,20 +135,20 @@ step("03-round answering the agent's questions", async (hand) => {
   await hand.wheel("text:Goal", 900, "context");
   await hand.point("id:round-next", "first-question");
   await hand.click("id:round-next", "first-question");
-  await hand.point("id:option-a", "option");
-  await hand.click("id:option-a", "option");
-  await hand.click("id:option-b", "option-also");
+  await hand.point("id:option-A", "option");
+  await hand.click("id:option-A", "option");
+  await hand.click("id:option-B", "option-also");
+  await hand.click("id:option-B", "option-unpicked");
   await hand.write("id:round-comment", "Only on the phone.", "answer");
-  await hand.click("id:round-next", "next-question");
-  await hand.click("id:option-a", "option-2");
-  await hand.click("id:round-next", "next-question-2");
-  await hand.click("id:option-a", "option-3");
+  for (const n of [2, 3]) {
+    await hand.click("id:round-next", `next-question-${n}`);
+    await hand.click("id:option-A", `option-${n}`);
+  }
   await hand.click("id:round-next", "to-the-end");
   hand.page("round end");
   await hand.point("id:round-submit", "submit");
   await hand.click("id:round-submit", "submit");
-  hand.page("confirm");
-  await hand.click("id:round-confirm", "confirm", 2000);
+  // The commit is the button's press: no confirmation comes, as with Ctrl+Enter's.
   hand.page("after");
 });
 
@@ -159,13 +159,141 @@ step("04-spec reading and approving the spec", async (hand) => {
   await hand.point("text:Spec to review, about 25 minutes.", "part");
   await hand.click("text:Spec to review, about 25 minutes.", "part");
   await hand.rightClick("text:Spec: Recurring tasks", "title");
+  await hand.drag("text:Spec to review, about 25 minutes.", { x: 150 }, "select-part");
   hand.page("comment open");
   await hand.write("id:review-comment", "Say what happens to a task done late.", "comment");
-  await hand.click("text:Save the comment", "save-comment");
+  await hand.click("text:Save the comment >> nth=0", "save-comment");
   await hand.wheel("text:Spec: Recurring tasks", 3000, "further");
   await hand.point("id:review-approve", "approve");
   await hand.click("id:review-approve", "approve", 1000);
-  hand.page("confirm");
-  await hand.click("text:Approve >> nth=1", "confirm", 2000);
   hand.page("after");
 });
+
+// The rest of the app, by pointer: what she meets around her errands.
+
+step("05-inbox a note added, organised, deleted, and undone", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Inbox >> nth=0", "sidebar-inbox");
+  await hand.write("id:inbox-new-note", "Dark mode for the calendar", "note");
+  await hand.point("id:inbox-add-note", "add-note");
+  await hand.click("id:inbox-add-note", "add-note", 1500);
+  hand.page("inbox");
+  const note = "text:We need a home icon >> nth=0";
+  await hand.click(note, "note");
+  await hand.rightClick(note, "note");
+  await hand.point("text:Move to a category", "move");
+  await hand.click("text:Move to a category", "move");
+  await hand.click("text:Inbox >> nth=0", "outside-the-picker");
+  await hand.point("label:Rename the category UI…", "rename-category");
+  await hand.click("label:Rename the category UI…", "rename-category");
+  await hand.click("text:Cancel", "cancel-rename");
+  await hand.click("text:Make it a proposal", "proposal");
+  await hand.wheel("text:Now >> nth=0", 400, "the-picker");
+  await hand.click("text:Inbox >> nth=0", "outside-the-picker-2");
+  await hand.click(note, "note-again");
+  await hand.click("text:Delete", "delete", 400);
+  hand.page("toast");
+  await hand.point("id:undo-toast >> text:Undo", "undo");
+  await hand.click("id:undo-toast >> text:Undo", "undo");
+});
+
+step("06-session talking to an agent, and scrolling back while it answers", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Sessions >> nth=0", "sidebar-sessions");
+  hand.page("sessions");
+  await hand.click("id:sessions >> text:Dark mode", "a-session", 1500);
+  await hand.drag("text:Sub-agent: Review the question cards", { x: 200 }, "select-transcript");
+  await hand.wheel("id:transcript", -3000, "up");
+  await hand.point("id:jump-to-latest", "jump");
+  await hand.click("id:jump-to-latest", "jump");
+  await hand.write("id:composer", "Make the toggle remember the choice.", "message");
+  await hand.point("label:Send", "send");
+  await hand.click("label:Send", "send", 400);
+  await hand.wheel("id:transcript", -1500, "up-while-it-answers");
+  await hand.point("id:stop", "stop");
+  await hand.click("id:stop", "stop");
+  await hand.click("id:jump-to-latest", "jump-again");
+  await hand.rightClick("id:transcript", "transcript");
+});
+
+step("07-git staging, committing, pushing", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Git >> nth=0", "sidebar-git");
+  hand.page("git");
+  await hand.point("label:Stage notes/standup.md", "stage-icon");
+  await hand.click("id:git-changes >> text:README.md", "a-file");
+  await hand.point("id:git-discard", "discard");
+  await hand.click("id:git-discard", "discard");
+  await hand.click("text:Keep them", "keep");
+  await hand.click("text:Stage >> nth=0", "stage");
+  await hand.write("id:git-message", "Add the notes", "message");
+  await hand.point("id:git-commit", "commit");
+  await hand.click("id:git-commit", "commit", 1500);
+  await hand.click("text:/^Push to origin/", "push");
+  hand.page("push dialog");
+  await hand.click("text:Cancel", "cancel");
+});
+
+step("08-settings every kind of control", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Settings >> nth=0", "sidebar-settings");
+  hand.page("settings");
+  await hand.wheel("label:Search the settings", 800, "down");
+  await hand.click("text:Keyboard", "keyboard");
+  hand.page("keyboard settings");
+  await hand.click("text:Settings >> nth=1", "back-to-settings");
+  await hand.click("text:Runs", "runs");
+  await hand.click("label:Default agent", "a-select");
+  await hand.click("text:Fake agent >> nth=1", "an-option");
+});
+
+step("09-jobs adding a job", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Jobs >> nth=0", "sidebar-jobs");
+  await hand.click("id:jobs-add", "add");
+  await hand.write("id:job-name", "Weekly tidy", "name");
+  await hand.write("id:job-prompt", "Tidy the imports.", "prompt");
+  await hand.click("id:job-time", "time");
+  await hand.click("id:job-add", "add-the-job", 1500);
+});
+
+step("10-panes arranging a page by mouse", async (hand) => {
+  await hand.walk.go("/r/sample/f/2026-10-17-keyboard-shortcuts/session");
+  await hand.walk.shot("session-page", 1500);
+  await hand.point("label:Move the pane >> nth=0", "pane-menu");
+  await hand.click("label:Move the pane >> nth=0", "pane-menu");
+  hand.page("pane menu");
+  await hand.click("text:Keyboard shortcuts >> nth=0", "outside-the-menu");
+  await hand.drag("label:Resize the side stack", { x: -200 }, "side-edge");
+  await hand.click("label:Fold the side stack", "fold-side");
+  await hand.click("label:Unfold the side stack", "unfold-side");
+});
+
+step(
+  "11-small a small laptop's window",
+  async (hand) => {
+    await hand.walk.go("/r/sample/");
+    await hand.walk.shot("home", 1000);
+    await hand.click("text:New >> nth=0", "new");
+    await hand.click("text:recurring-tasks >> nth=0", "spec");
+  },
+  { height: 720, width: 1280 },
+);
+
+step("12-priorities a proposal's line and its nested lines", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Priorities >> nth=0", "sidebar-priorities");
+  hand.page("priorities");
+  await hand.click("text:Claude Code runner (triggered by a git hook)", "a-proposal");
+  hand.page("proposal");
+  await hand.rightClick("text:Claude Code runner (triggered by a git hook) >> nth=1", "proposal");
+});
+
+step("13-decisions reading the decisions", async (hand) => {
+  await hand.walk.go("/r/sample/");
+  await hand.click("text:Decisions >> nth=0", "sidebar-decisions");
+  hand.page("decisions");
+  await hand.click("text:Agents >> nth=0", "a-decision");
+  await hand.rightClick("text:Agents >> nth=1", "decision-title");
+});
+
