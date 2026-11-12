@@ -28,7 +28,8 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `Space w`                 | The panes: `H` `L` send one to a stack, `m` makes it main, `z` zooms, `o` one stack, `q` closes                        | Every page                            |
 | `Shift+Enter`             | Open what the selected row names beside the page, as a tab of the other stack                                          | A list whose rows name a pane         |
 | `?`                       | The key map: every key that works where the focus is, with a search                                                    | Every page                            |
-| `b`                       | Back                                                                                                                   | Every page                            |
+| `Tab`, `Shift+Tab`        | The focused pane's next and previous control, field, or link, around; `Enter` presses it, `Escape` lets it go          | Every pane, and every dialog          |
+| `b`                       | Back to the page before: never through a page's own search, tabs, or categories                                        | Every page                            |
 | `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                 | Every page                            |
 | `[`, `]`                  | Fold the sidebar, and the right column                                                                                 | `[` everywhere; `]` on wide screens   |
 | `Escape`                  | Leave the field, the layer, or the mode, and nothing more; with Vim mode on, insert mode goes to normal mode first     | Every page                            |
@@ -192,6 +193,14 @@ it holds has a few keys of its own.
   changes nothing, and `y` confirms (see
   [A key that cannot be taken back](#a-key-that-cannot-be-taken-back)).
 - `Escape` gives the focus back where it was before the layer opened.
+- **`Tab` and `Shift+Tab` go through the focused pane's controls, fields, and links**, in the order
+  they are drawn, and around from the last to the first, never into another pane; in a dialog or a
+  sheet, through its own. What `Tab` reaches has the one ring of the design language
+  (`button.focusRing`, outside its edge), on GTK as in a browser, and comes into sight; a link,
+  words of a line, takes its tint instead. `Enter` presses it before the pane's own `Enter`, and
+  follows a link. `Space` stays the leader's on a page; in a layer, where no leader is, it presses
+  too. `Escape`, or any other key of the pane's, lets go of it, and that key acts on the pane: `j`
+  moves its list again. A control that goes while it has the focus leaves the pane its keys.
 - A page that starts something opens with the focus in its text field: the New page in the picked
   kind's composer, and again after `s c f` pick a card, a feature's New session in its composer, and
   on a keyboard's screen, the session a hand-over opens, the workflow's message waiting for `Enter`.
@@ -207,11 +216,15 @@ it holds has a few keys of its own.
 ## What shows the keys
 
 - **The status line**, at the bottom of wide and semi-wide screens, in LazyVim's shape, opens with
-  the Vim mode while Vim mode is on: NAV while the keys act on the page, else the field's mode, as
-  NORMAL or INSERT. It then shows the hints the page's bindings declare (a binding with a `hint`),
-  each one a button that does what its key does. `Space menu` comes first, `? keys` second, and
-  `[ ] fold` third, then the page's hints, in the order the human uses them, the step that ends the
-  page's work last ("Start should be at the end"), then the shell's.
+  the mode: NAV while the keys act on the page, else the field's, INSERT in a field without Vim, and
+  with Vim NORMAL, INSERT, and the others. In a field it hints only the keys the field lets through.
+  It then shows the hints the bindings that work declare (a binding with a `hint`), each one a
+  button that does what its key does, nearest the focus first: `Space menu` and `? keys`, which
+  teach the rest, then a held selection's (the frame's tabs while they hold the keys: `h l tab`),
+  then the focused pane's, in the order the human uses them, the step that ends the pane's work last
+  ("Start should be at the end"), then the page's and the frame's (`[ ] fold`, `Space w panes`,
+  `h l pane`), then the shell's. A line too short hides the last whole. A hint follows its key's
+  guard: `h l pane` shows only where there is a pane to go to.
 - **The most important keys of the whole page**, decided page by page: "the status bar holds the
   _most important_ shortcuts for the _full page_". A key that works on every page (`b`, `Ctrl+D`,
   `gg`), a second key for an action already shown (`a` beside `o`, `Enter` beside `n`), and the
@@ -223,13 +236,18 @@ it holds has a few keys of its own.
 - **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui, the
   panes' `Space w`, whose moves [the panes guide](panes.md#the-moves) lists), and the `g` keys. It
   is a menu of its own, not an index of every key: a page's single keys are not in it, they show in
-  the status line. Its rows are buttons, and a click on `Space menu` opens it at once.
+  the status line. Its rows are buttons, and a click on `Space menu` opens it at once. A step lists
+  its keys in their characters' order, where a person looks a letter up, unless its group declares
+  an order of use, as `Space w` does, the pane's `…` menu's. A key none of its entries has closes
+  it, as LazyVim's which-key does, does nothing else, and the status line says "`Space x` is no key
+  here" for two seconds.
 - **The key map**, `?` or `Space ?`, lists every key that works where the focus is, read from the
-  registry: the page's, the shell's, the leader menu's by group, and the `g` keys, keys of one label
-  on one row (`j ↓ +`), with a search over the labels, the keys, and the groups. It is the index the
-  leader menu is not, and runs nothing: a reference over the page, on glass over the dimmed page, a
-  sheet on the phone. With the single keys off it lists only the keys that still work, the leader's
-  written from `Ctrl+K`.
+  registry: the focused pane's first, under its tab's title, then the page's and the frame's
+  ("Layout"), the shell's ("Everywhere"), the leader menu's by group, and the `g` keys, keys of one
+  label on one row (`j ↓ +`), with a search over the labels, the keys, and the groups. It is the
+  index the leader menu is not, and runs nothing: a reference over the page, on glass over the
+  dimmed page, a sheet on the phone. With the single keys off it lists only the keys that still
+  work, the leader's written from `Ctrl+K`.
 - **Nothing on the phone.** Keys still work with a keyboard attached, but the phone's bars show
   icons, not keys (see [the phone](phone.md)).
 
@@ -240,3 +258,11 @@ Keys answer at once. A move, an edit, or a reorder shows its result immediately 
 happened. The leader menu waits a moment before showing (300 ms), so a quick sequence never flashes
 it, and slides in when it does. Once shown, a menu waits for its key, a `g`'s as Space's, as
 LazyVim's which-key does: it never closes under the human reading it.
+
+## Back
+
+`b`, and the phone's and the browser's Back, return to the previous page. What a page shows inside
+itself, a search, a tab, a category of the settings, another row beside the same list, changes the
+visit shown and adds none (`redirect`), so Back never walks a page's own history: from the settings,
+after three categories, Back returns to where they were opened from. A page that opens another page,
+a session from a list, a feature from the priorities, adds a visit (`navigate`).

@@ -10456,3 +10456,48 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   said "Idle" with no cause (rule 8), crowding what works.
 - **Where**: `app/screens/home/core.tsx`, `app/screens/session/SessionsPage.tsx`,
   `app/screens/session/panels/words.ts`.
+
+## T191.1: Tab goes through the focused pane's stops; Enter presses, Space stays the leader
+
+- **Decision**: each pane has a list of focus stops of its own (`paneStops`, made in the layout's
+  `PaneBody`), as an overlay has; its scope binds Tab and Shift+Tab, from a field too, through its
+  controls, fields, and a document's links, in the order they were made, around, never into another
+  pane. While a pane's control has the ledger's focus, the registry gives it Enter before any
+  binding, and Escape or any other key, but Tab and the leader's, lets go of it, that key then
+  acting on the pane. Space stays the leader's on a page; in a layer it presses, as before. A link
+  takes the link's tint under its words, which have no view to ring.
+- **Rationale**: R165 left "a Tab order through a page's controls" unbuilt, and NSH 0.5.0's own Tab
+  moved its platform focus among every view that takes a press, the panes' frames and the rows, none
+  of which draws a focus: Tab drew nothing, and controls with no key of their own were out of reach
+  of the keyboard, against "every action MUST work by keyboard". Keeping Space the leader keeps the
+  keyboard decision's "Space MUST open the leader menu outside text fields and open layers"; Enter
+  presses, as on every platform.
+- **Alternatives considered**: NSH's own Tab, in the widget tree's order: it reaches every pressable
+  view of the window, the sidebar and the status line's hints included, and most draw no focus.
+  Space pressing a focused switch, as a browser does: a second meaning of Space on a page.
+- **If wrong**: the order is the order stops were made, which a pane that shows a control later (a
+  "show more") breaks: sort by measured place in `focusNext` then. On GTK a web view cannot be
+  entered by Tab now that the pane binds it (R341): a press still enters it.
+- **Where**: `app/ui/surfaces/focus.ts`, `app/ui/keys/registry.tsx`, `app/ui/layout/Stack.tsx`,
+  `app/ui/controls/press.ts`, `app/ui/document/Spans.tsx`, `app/ui/layout/focus.test.tsx`.
+
+## T191.2: A key the leader's menu does not have closes it, and the status line names it
+
+- **Decision**: at a pending step, a printable key no entry has ends the sequence, does nothing
+  else, and the status line says "`Space x` is no key here" for two seconds. `Space w` lists its
+  moves in their declared order (`declared` in `groups.ts`), the pane menu's; other groups keep the
+  order of their keys.
+- **Rationale**: the menu stayed open by design, and a person who typed a key it lacked saw nothing
+  happen. LazyVim's which-key closes; the line says why, so the key is not silently lost.
+- **If wrong**: `MISSED` in `app/ui/keys/sequence.ts` returns the step again to keep it open.
+- **Where**: `app/ui/keys/{sequence.ts,leader.ts,LeaderMenu.tsx,groups.ts}`,
+  `app/ui/layout/StatusLine.tsx`.
+
+## T191.3: Back returns to the previous page; what a page shows inside itself adds no visit
+
+- **Decision**: a category of the settings opened from their index, once they are shown, replaces
+  the visit (`redirect`), as the decisions' list and the inbox already did for their rows; opening
+  the settings from elsewhere is a visit. The keyboard guide says the rule for every page.
+- **Rationale**: Back from the settings walked their categories one by one before leaving them.
+  Unsaved text of a category is kept on the device, so changing it asks nothing.
+- **Where**: `app/screens/settings/Index.tsx`, `specs/ui/keyboard.md`.

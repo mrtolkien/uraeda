@@ -171,13 +171,13 @@ repeating some of it is expected.
 ## The status line
 
 The bottom line of wide and semi-wide screens, in the shape of LazyVim's: lualine's sections in the
-theme's `mode-*` roles, set apart by triangles. In order: the Vim mode while Vim mode is on, the
-branch a page names, like a buffer's, the page's key hints, the counts of what needs the human and
-what runs. No cursor's place: its line, column, and "All" were "distracting". The mode reads NAV,
-grey, while keys act on the page, and in a field NORMAL, INSERT, VISUAL, REPLACE, or COMMAND, each
-in its role: in Catppuccin blue, green, mauve, red, and peach. With Vim mode off, the line keeps its
-sections without the mode. It holds no content. It has a slot for a page's own controls, which only
-the phone's bar uses today.
+theme's `mode-*` roles, set apart by triangles. In order: the mode, the branch a page names, like a
+buffer's, the page's key hints, the counts of what needs the human and what runs. No cursor's place:
+its line, column, and "All" were "distracting". The mode reads NAV, grey, while keys act on the
+page, and in a field NORMAL, INSERT, VISUAL, REPLACE, or COMMAND, each in its role: in Catppuccin
+blue, green, mauve, red, and peach. With Vim mode off, the mode still reads NAV on the page, and
+INSERT in a field, so the line says where the keys go. It holds no content. It has a slot for a
+page's own controls, which only the phone's bar uses today.
 
 ## A session
 
