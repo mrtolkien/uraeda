@@ -80,7 +80,8 @@ test("a reader who scrolled up is not moved", async () => {
   await app.waitFor("id:jump-to-latest");
   // Where the reader is: the human's message, above the reply.
   await app.waitUntil(() => shows(app, "Show it slowly"));
-  await grown(app, "Part 5").catch(() => undefined);
+  // The reply streams a word at a time for a minute: it grows meanwhile. Its later parts are off
+  // screen, where the list draws no row, so waiting for one to show waited 40 s for nothing.
   await app.wait(3_000);
   // The reply went on growing, and the reader stayed where they were.
   expect(shows(app, "Show it slowly")).toBe(true);
