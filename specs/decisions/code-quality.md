@@ -42,8 +42,9 @@ beside its code, the same way in both languages, and fails once the code is fixe
 - A feature touching a marked function or file splits it first, in a commit that only restructures
   it, and removes its marker.
 - Lua, and duplication across languages, stay checked by review only.
-- A TSX function's length is not checked yet: 49 functions of the app pass 100 lines, mostly
-  components whose markup is one function. Oxlint holds nesting, parameters, and a file's length.
+- A TSX function's length is checked at 150 lines, without blanks and comments, a looser limit than
+  Rust's: a component's markup is one function. The functions over it are marked in place, as Rust's
+  are. Oxlint holds nesting, parameters, a function's and a file's length.
 
 ## Applies to
 
