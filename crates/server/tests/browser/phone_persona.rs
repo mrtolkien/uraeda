@@ -13,8 +13,7 @@ use serde_json::json;
 
 use super::super::cdp::{Browser, PHONE};
 use super::{
-    KEYBOARD, Phone, Shots, box_of, hold_at, keyboard, open, seen, swipe, tap, tap_label,
-    tap_selector,
+    KEYBOARD, Phone, Shots, box_of, keyboard, open, seen, swipe, tap, tap_label, tap_selector,
 };
 
 /// Notes a step that did not happen.
@@ -244,7 +243,13 @@ async fn comment(browser: &mut Browser, shots: &mut Shots) {
         .types("Only on the desktop for now, the phone can wait until the round after this one.")
         .await;
     shots.take(browser, "03-03-comment-keyboard").await;
-    above_keyboard(browser, shots, field, "the round's comment").await;
+    above_keyboard(
+        browser,
+        shots,
+        "[data-testid=\"round-comment\"]",
+        "the round's comment",
+    )
+    .await;
     keyboard(browser, 0).await;
     browser.evaluate("document.activeElement?.blur()").await;
 }
@@ -307,20 +312,19 @@ async fn spec(phone: &Phone, browser: &mut Browser, shots: &mut Shots) {
     let spec = "/r/sample/f/2026-10-17-recurring-reminders/spec.md";
     open(phone, browser, spec, "Spec to review").await;
     shots.take(browser, "05-01-spec").await;
-    swipe(browser, (195.0, 650.0), (195.0, 250.0)).await;
-    browser.tap_at((195.0, 420.0)).await;
+    // A part tapped opens its comment under it, as the page's first line says.
+    let tapped = tap(browser, "Spec to review, about 25 minutes.").await;
+    missed(shots, tapped, "the spec's first part cannot be tapped");
     tokio::time::sleep(Duration::from_millis(500)).await;
     shots.take(browser, "05-04-block-tapped").await;
-    hold_at(browser, (195.0, 420.0), Duration::from_millis(700)).await;
-    shots.take(browser, "05-05-block-held").await;
     if seen(browser, "Save the comment").await {
-        let field = ".nsh-sheet .nsh-field, [data-testid=\"review-comment\"] .nsh-field";
-        tap_selector(browser, field).await;
+        tap_selector(browser, "[data-testid=\"review-comment\"] .nsh-field").await;
         keyboard(browser, KEYBOARD).await;
         browser
             .types("Say what happens on the 31st of a short month.")
             .await;
         shots.take(browser, "05-06-comment-keyboard").await;
+        let field = "[data-testid=\"review-comment\"]";
         above_keyboard(browser, shots, field, "the block's comment").await;
         let saved = tap(browser, "Save the comment").await;
         missed(
