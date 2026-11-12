@@ -6,7 +6,7 @@ import { type AgentUsage, usageByAgent, LOW } from "../shell/usage";
 import { remember } from "../shell/undo";
 import { call, navigate, record } from "../../store";
 import type { Inbox, InboxNote } from "../../store/protocol";
-import { Icon, type IconName, iconNamed, Link, Text, refusalOf } from "../../ui/controls";
+import { Icon, IconButton, type IconName, iconNamed, Link, Text, refusalOf } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
@@ -71,20 +71,30 @@ export function InboxWidget(props: { repo: string }) {
   const count = () => inbox()?.count ?? 0;
   return (
     <View style={{ gap: 10 }}>
-      <TextField
-        hint={added() ?? "Enter adds it to the notes without a category."}
-        label="A note"
-        lines="one"
-        onChange={(value) => {
-          typed.set(value);
-          added.set(null);
-        }}
-        onEnter={() => void add()}
-        placeholder="A note for later"
-        ref={(made) => (field = made)}
-        refusal={refusal()}
-        value={typed()}
-      />
+      <View style={{ alignItems: "flex-start", flexDirection: "row", gap: 4 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <TextField
+            hint={added() ?? "Enter adds it to the notes without a category."}
+            label="A note"
+            lines="one"
+            onChange={(value) => {
+              typed.set(value);
+              added.set(null);
+            }}
+            onEnter={() => void add()}
+            placeholder="A note for later"
+            ref={(made) => (field = made)}
+            refusal={refusal()}
+            value={typed()}
+          />
+        </View>
+        <IconButton
+          disabled={typed().trim() === ""}
+          icon="corner-down-left"
+          label="Add the note"
+          onPress={() => void add()}
+        />
+      </View>
       <List
         cursor={cursor}
         empty={
