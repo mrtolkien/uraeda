@@ -4,8 +4,9 @@
 import { signal, View } from "nsh";
 import { call, navigate, record } from "../../store";
 import { Button, Heading, Text } from "../../ui/controls";
+import { registerKey } from "../../ui/keys";
 import { definePane, usePane } from "../../ui/layout";
-import { TextField } from "../../ui/text";
+import { TextField, type TextFieldRef } from "../../ui/text";
 
 /** The repository opened last whose folder is there. */
 const recent = () => record("Repositories", null)()?.rows.find((row) => !row.missing)?.name;
@@ -38,14 +39,26 @@ function FirstRun() {
     }
     pending.set(false);
   };
+  // Escape leaves the field for the page's keys: `i` comes back to it, as on every page.
+  let field: TextFieldRef | undefined;
+  registerKey({
+    hint: "i",
+    hintLabel: "type the folder",
+    keys: "i",
+    label: "Type the folder",
+    run: () => field?.focus(),
+  });
   return (
     <View style={{ gap: 16, maxWidth: 560 }}>
       <Head
         title="Add your first repository"
-        words="Uraeda shows the specs and runs agents in git repositories on this machine. Name the folder of one: its whole repository joins the list."
+        words="Uraeda shows the specs and runs agents in git repositories on this machine. Name the folder of one: its whole repository joins the list. In a terminal, ura add in a repository's folder adds it too."
       />
       <TextField
         autoFocus
+        ref={(ref) => {
+          field = ref;
+        }}
         label="Folder"
         lines="one"
         onChange={(value) => {
