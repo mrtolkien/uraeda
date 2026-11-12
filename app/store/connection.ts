@@ -26,7 +26,7 @@ import { type Line, liveUrl, type Opener, openSocket } from "./line";
 import type { ClientMessage, JsonValue, Protocol, ServerMessage, SignIn } from "./protocol";
 
 /** The version of the protocol this client speaks: it stops compiling when the server's rises. */
-export const PROTOCOL: Protocol = 2;
+export const PROTOCOL: Protocol = 3;
 
 /** The waits before each new try, after a drop: the last one repeats. */
 export const WAITS = [500, 1000, 2000, 4000, 8000, 10_000] as const;
