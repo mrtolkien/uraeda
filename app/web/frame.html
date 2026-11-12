@@ -11,8 +11,8 @@
 
      The app names the frame and itself in `uraedaFrame`, `{ secret, app }`: in the address's hash,
      or set before this script. The frame sends to the app's origin alone, every message with the
-     secret, which the app checks with the origin, and takes messages from its parent at the app's
-     origin alone. It carries; it decides nothing.
+     secret, which the app checks with the origin, and takes messages from the app's origin alone,
+     which the app posts at this frame's origin. It carries; it decides nothing.
 
      The app sends, as JSON: `{ run: { load, source, capabilities, params } }`, the page verified,
      once; `{ event, data }`, an event for the page's `host.on`; `{ reply, value }` or
@@ -110,8 +110,9 @@
         failed(error);
       }
 
+      // The app posts from its own realm, a frame of its page beside this one, at its origin alone.
       addEventListener("message", (event) => {
-        if (event.source !== parent || event.origin !== named.app) return;
+        if (event.origin !== named.app) return;
         if (typeof event.data !== "string") return;
         let message;
         try {

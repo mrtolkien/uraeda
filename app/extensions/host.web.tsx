@@ -19,7 +19,8 @@
 // - **The channel** is `postMessage` between the frame and the app's page. A message counts only
 //   from the frame's origin, with the secret the app gave that frame, and of its current load; its
 //   shape is checked, and its name is one the package grants. The frame takes the app's messages
-//   from its parent at the app's origin alone.
+//   from the app's origin alone, which posts them at the frame's origin: a document the frame
+//   navigated to hears nothing, and the frame is taken away (`left`).
 // - **What broke** is told by `PageWatch` (`crates/app/src/page_watch.rs`), the Linux view's rules.
 //   A browser cuts off no call: a page that never stops answers no ping, is named after 5 s, then
 //   its frame is taken away, which ends it.
@@ -60,8 +61,11 @@ const TICK = 500;
 /** The messages the app answers for the page; the others are the watch's. */
 const ANSWERED = new Set(["record", "call", "navigate"]);
 
+/** A frame's window, as a message's `source` gives it: posted to at its origin alone. */
+type FrameWindow = { postMessage(message: string, origin: string): void };
+
 /** The window of the app's page, which the frames post to: the app's own realm is a frame of it. */
-type Posted = { data: unknown; origin: string };
+type Posted = { data: unknown; origin: string; source?: FrameWindow | null };
 type Top = {
   addEventListener(kind: "message", listener: (event: Posted) => void): void;
   removeEventListener(kind: "message", listener: (event: Posted) => void): void;
@@ -186,6 +190,10 @@ export function ExtensionFrame(props: PageViewProps) {
   const watch = new PageWatch();
   const shown = signal<Shown | undefined>(undefined);
   let frame: WebViewRef | undefined;
+  /** The frame's window, from its first message: the app posts to it at the frame's origin. */
+  let target: FrameWindow | undefined;
+  /** How many documents the frame loaded: its page's, then any it navigated to. */
+  let loads = 0;
   let rights: ReadonlySet<string> = new Set();
   /** The page's calls the app answers: the app's number, to the load and the frame's number. */
   const calls = new Map<number, { load: number; id: number }>();
@@ -197,9 +205,19 @@ export function ExtensionFrame(props: PageViewProps) {
   let live = true;
   let started: ReturnType<typeof setTimeout> | undefined;
 
-  // Native Shell's `postMessage` reaches the frame shown, and takes no origin: not a window's.
-  // oxlint-disable-next-line unicorn/require-post-message-target-origin
-  const post = (message: unknown) => frame?.postMessage(JSON.stringify(message));
+  // To the frame's window at the frame's origin, so a document it navigated to hears nothing.
+  // A frame sandboxed without an origin has none to name: Native Shell's `postMessage` reaches it,
+  // which names none, and a navigation takes the frame away (`left`).
+  const post = (message: unknown) => {
+    const text = JSON.stringify(message);
+    const origin = shown()?.of.origin;
+    if (target !== undefined && origin !== undefined && origin !== "null") {
+      target.postMessage(text, origin);
+    } else {
+      // oxlint-disable-next-line unicorn/require-post-message-target-origin
+      frame?.postMessage(text);
+    }
+  };
   const problem = (kind: ProblemKind, message: string) =>
     props.onProblem?.({ kind, message, version: shown()?.page.build ?? 0 });
   const send = (event: string, data: unknown) => {
@@ -211,6 +229,8 @@ export function ExtensionFrame(props: PageViewProps) {
     clearTimeout(started);
     shown.set(undefined);
     frame = undefined;
+    target = undefined;
+    loads = 0;
     ran = false;
   };
 
@@ -245,11 +265,26 @@ export function ExtensionFrame(props: PageViewProps) {
     }
   };
 
+  /**
+   * A document loaded in the frame: the first is the page's; another means the page navigated
+   * its frame away, to an address that may be any site's. Its frame goes, with the problem named.
+   */
+  const left = () => {
+    loads += 1;
+    if (loads < 2 || shown() === undefined) return;
+    problem(
+      "load",
+      "the page left its frame for another address, which an extension's page may not",
+    );
+    cut();
+  };
+
   const heard = (posted: Posted) => {
     const page = shown();
     const said = page && frameSaid(posted, page.of);
     if (!live || said === undefined || page === undefined) return;
     if ("here" in said) {
+      target = posted.source ?? undefined;
       clearTimeout(started);
       watch.loading(page.page.build, now());
       const { source, capabilities } = page.page;
@@ -332,6 +367,7 @@ export function ExtensionFrame(props: PageViewProps) {
             baseUrl={page().home.html === undefined ? undefined : `${props.server}/`}
             html={page().home.html}
             javaScriptEnabled
+            onLoad={left}
             ref={(view: WebViewRef) => {
               frame = view;
             }}

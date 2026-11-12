@@ -125,6 +125,23 @@ async fn the_apps_files_are_served_compressed_and_cached_by_their_hash() {
 }
 
 #[tokio::test]
+async fn an_extensions_frame_reaches_no_other_site_and_opens_no_popup() {
+    let build = stand_in();
+    fs::write(build.path().join("extension.html"), "<!doctype html>").unwrap();
+    let server = serving(&build).await;
+    let frame = file(&server, "/extension.html", None).await;
+    let policy = frame.header("content-security-policy").expect("a policy");
+    for rule in [
+        "connect-src 'self'",
+        "form-action 'none'",
+        "sandbox allow-scripts allow-same-origin",
+    ] {
+        assert!(policy.contains(rule), "{rule} in {policy}");
+    }
+    assert!(!policy.contains("allow-popups"), "{policy}");
+}
+
+#[tokio::test]
 async fn an_unknown_path_answers_the_app_and_a_server_path_does_not() {
     let build = stand_in();
     let server = serving(&build).await;

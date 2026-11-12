@@ -621,7 +621,12 @@ frame of its own. What differs for its author:
   not exist in the app.
 - **It reaches nothing but its host.** Its frame has no session's cookie and none of the app's
   storage, and its policy lets it reach its own frame's host alone, which answers nothing without a
-  session: `fetch` to anywhere else is refused, as on the desktop.
+  session: `fetch`, a picture, or a form to anywhere else is refused, as on the desktop. On this
+  machine it opens no popup either. What a browser lets no policy stop is the page navigating its
+  own frame, `location.href = …`, which carries what it puts in the address: the app then takes the
+  frame away, and its place says the page failed as it loaded: it left its frame for another
+  address. Nothing more is sent to it. Behind a proxy's host name, the frame is Native Shell's,
+  which lets a page open a popup.
 - **Its imports of `nsh/base`** are what the app's web build holds: a part of Native Shell the app
   never uses may be missing there, and the page then fails as it loads, with
   `does not provide an export named …`.

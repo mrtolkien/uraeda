@@ -10053,7 +10053,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   goes with it.
 - **Where**: `crates/core/tests/check.rs`, `specs/decisions/run-lifecycle.md`.
 
-## T81.1: Every dialog whose content declares keys gives it the layer's scope
+## R502: Every dialog whose content declares keys gives it the layer's scope
 
 - **Decision**: R478 fixed the menus and the selectors; the confirmations were the same cause.
   `Confirm` wrote its keys (`Enter`, `y`, the key that asked) and its button inside `Dialog`, so in
@@ -10076,7 +10076,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/new/StartDialog.tsx`, `app/screens/git/Sync.tsx`; the browser test
   `a_confirmation_opens_and_confirms_by_its_key`.
 
-## T81.2: "Save over" is a kind of one save, never a flag
+## R503: "Save over" is a kind of one save, never a flag
 
 - **Decision**: `saveOver` set a flag the next run of the save consumed. A save over the same text
   as one already on its way joined that save (the de-duplication of `unsavedText.save`), and the
@@ -10088,7 +10088,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/editor/edited.ts`, `app/ui/text/{SaveStatus.tsx,unsaved.ts}`; the test
   `app/screens/editor/edited.test.ts`, both failure scenarios of the finding.
 
-## T81.3: An unreadable frame stops its subscription, asks once more, then fails with words
+## R504: An unreadable frame stops its subscription, asks once more, then fails with words
 
 - **Decision**: a frame the app cannot read ended the subscription only on the client: the server
   kept sending it, and the record stayed in error until the line dropped. Now the client sends
@@ -10099,7 +10099,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/store/connection.ts`; the store's test against the real server, by injected
   frames.
 
-## T81.4: Notifications in a browser go through a service worker
+## R505: Notifications in a browser go through a service worker
 
 - **Decision**: of the two ways the finding offered, the worker: `app/web/notify-worker.js`, served
   at the site's root by the web build, registered at the first notification, shows every
@@ -10115,7 +10115,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/shell/Notifications.tsx`; the browser test
   `the_worker_that_shows_notifications_is_served_for_the_whole_app`.
 
-## T81.5: "Jump to the latest" goes the way `G` goes
+## R506: "Jump to the latest" goes the way `G` goes
 
 - **Decision**: `VirtualListRef.toEnd()` scrolled with an animation from anywhere; R425's jump, when
   the end is more than 100 rows away, applied to `G` alone. Both now call one `toEnd`.
@@ -10123,3 +10123,24 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   their estimate opened at its start, passes before the change too, in `nsh test` and on GTK: the
   stop short R425 saw needs the real transcript's rows. It stays, as the guarantee's guard.
 - **Where**: `app/ui/lists/VirtualList.tsx`, `app/ui/lists/__checks__/lists.tsx`.
+
+## R507: An extension's frame: posted to at its origin, taken away when it navigates, no popup
+
+- **Decision**: what is cheap and sound against a page that sends what it reads elsewhere.
+  - The app posts to the frame's window at the frame's origin, never `*`: Native Shell's
+    `postMessage` names none, so the app posts itself, to the window the frame's first message came
+    from. A frame sandboxed without an origin, behind a proxy, has no origin to name: it still goes
+    through Native Shell's. The frame takes messages of the app's origin, which now come from the
+    app's realm, beside it, not from its parent.
+  - A second document loaded in the frame means the page navigated it: the frame is taken away, and
+    the place says the page failed as it loaded, "it left its frame for another address".
+  - `extension.html`'s policy adds `sandbox allow-scripts allow-same-origin`, which removes the
+    popups, the downloads, and the browser's dialogs that Native Shell's frame grants (its `sandbox`
+    attribute is Native Shell's, `allow-popups allow-popups-to-escape-sandbox`, which the app does
+    not set). `form-action 'none'` was there.
+- **Not prevented**: the navigation itself, which carries what the page puts in the address:
+  `navigate-to` left the standard, and no browser shipped it. Behind a proxy, a popup: that frame's
+  page is inline, which a header cannot reach. The policy's comment and `docs/extensions.md` say so.
+- **Where**: `app/extensions/host.web.tsx`, `app/web/frame.html`,
+  `crates/server/src/http/web/policy.rs`, `docs/extensions.md`; the test
+  `an_extensions_frame_reaches_no_other_site_and_opens_no_popup`.
