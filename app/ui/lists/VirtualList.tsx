@@ -122,6 +122,7 @@ export function VirtualList(props: VirtualListProps) {
     // `G` on a chat of 20,000 messages came to rest forty short of it, "Jump to the latest" shown.
     if (index === rows.length - 1) {
       list.scrollToEnd({ animated: true });
+      if (props.follow === true) follows(true);
       return;
     }
     list.scrollToIndex({ animated: true, index, viewPosition: index < shown.first ? 0 : 1 });
@@ -205,7 +206,9 @@ export function VirtualList(props: VirtualListProps) {
         if (props.follow === true && props.offset === undefined && start > 0) {
           // Unless a row was asked for meanwhile, as a link to a turn asks.
           setTimeout(() => {
-            if (untracked(cursor.reveal) === undefined) node.scrollToEnd({ animated: false });
+            if (untracked(cursor.reveal) !== undefined) return;
+            node.scrollToEnd({ animated: false });
+            follows(true);
           }, 0);
         }
         props.ref?.({
