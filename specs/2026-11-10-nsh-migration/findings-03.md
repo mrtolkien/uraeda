@@ -112,7 +112,7 @@ Full review comments:
   Run now confirmation registers another `r` in the same scope and throws; other confirmation
   shortcuts remain outside the active modal layer. Pass an explicit layer scope through the dialog
   and its controls, as Menu and Select do. This follows the browser-specific requirement in
-  [AGENTS.md](AGENTS.md#L224-L228).
+  [AGENTS.md](/AGENTS.md).
 
 - [P1] Preserve edits that return to the pre-save text —
   /home/tolki/Development/ai/uraeda/.worktrees/2026-11-10-nsh-migration/app/ui/text/unsaved.ts:277-283
