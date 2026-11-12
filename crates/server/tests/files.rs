@@ -280,10 +280,10 @@ async fn a_mockup_page_asked_for_picking_carries_the_pick_script() {
     let plain = framed("ui.html?theme=dark".to_owned()).await.text();
     let script = framed("ui.js?uraeda-pick".to_owned()).await.text();
 
-    let head = "<html><head><title>UI</title><script>";
-    assert!(picking.starts_with(head), "{picking}");
+    assert!(picking.starts_with("<html><head><script>"), "{picking}");
     assert!(picking.contains(r#"uraeda: "picked""#));
-    assert!(picking.ends_with("</script></head><body><p>UI</p></body></html>"));
+    let rest = "</script><title>UI</title></head><body><p>UI</p></body></html>";
+    assert!(picking.ends_with(rest), "{picking}");
     assert_eq!((plain.as_str(), script.as_str()), (page, "let a = 1;"));
 }
 

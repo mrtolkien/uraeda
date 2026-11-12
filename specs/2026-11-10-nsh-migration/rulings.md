@@ -8405,3 +8405,22 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   second wait, after which it is stopped, would go in `ensure`, where the first one ends.
 - **Where**: `crates/app/src/server_start.rs`; `crates/app/tests/host/stand_in.rs`, with the
   stand-in of `ura`, `crates/app/tests/host/ura-stand-in`.
+
+## T88.3: The pick script goes after the head's tag, never before the doctype
+
+- **Decision**: a mockup's page asked for picking takes the pick script right after its `<head ...>`
+  tag, else before its `<body`, else after its `<html ...>` tag, else after its doctype, and at its
+  start only for a fragment with none of them (`files/pick.rs`, `place`). The page is read tag by
+  tag: a comment's text, and a script's, a style's, a title's, or a field's, is passed over, and a
+  `>` in a quoted value does not end its tag.
+- **Rationale**: the first review's finding 3 is right, seen in a table of seventeen pages before
+  the change: without a `</head>` the script went at byte 0, before the doctype, which puts the page
+  in quirks mode, so a mockup looked different picked than viewed; and the search for `</head>`
+  found the one in a comment. With a head, the script moved from its end to its start: a head whose
+  end tag is left out, as HTML allows, has no end to find, and at its start no `<meta>` of the
+  page's own, a content security policy, comes before it.
+- **If wrong**: the script must run after something the head loads. It only listens: nothing in it
+  reads the page before its `load`.
+- **Where**: `crates/server/src/files/pick.rs`;
+  `a_mockup_page_asked_for_picking_carries_the_pick_script` (`crates/server/tests/files.rs`), whose
+  page now takes the script first in its head.
