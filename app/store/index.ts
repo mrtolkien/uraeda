@@ -16,7 +16,7 @@ export { StoreError } from "./errors";
 export type { Refused, StoreErrorCode } from "./errors";
 export type { ListView, RowOf } from "./held";
 export type { Heard, Line, Opener } from "./line";
-export { list, text } from "./records";
+export { list, onUnheldRead, RecordsRoot, rootDrawn, text } from "./records";
 export type {
   ActionName,
   Args,

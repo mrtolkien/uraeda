@@ -120,6 +120,14 @@ export class Connection {
   }
 
   /**
+   * The records subscribed now, each as its name and its arguments, sorted: what a test compares
+   * before and after a place was opened and closed, to name a record nothing lets go.
+   */
+  held(): ReadonlyArray<string> {
+    return [...this.subs.values()].map((entry) => entry.key).toSorted();
+  }
+
+  /**
    * How many records something reads now that wait for the server's first value: none once the
    * page shown has its data. The development build's timing of an interaction reads it.
    */

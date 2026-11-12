@@ -12,7 +12,15 @@ import { Frame } from "./Frame";
 import { failureWords, type Server, type ShellHost } from "./host";
 import { Lone } from "./Lone";
 import { Stopped } from "./Stopped";
-import { connect, type Connection, type Opener, pathOf, route } from "../../store";
+import {
+  connect,
+  type Connection,
+  type Opener,
+  pathOf,
+  RecordsRoot,
+  rootDrawn,
+  route,
+} from "../../store";
 import type { SignIn } from "../../store/protocol";
 import { Pairing } from "../sign-in/Pairing";
 import { Update } from "../sign-in/Update";
@@ -27,6 +35,8 @@ type Phase =
   | { is: "connected"; server: Server; conn: Connection; generation: number };
 
 export type RootProps = {
+  /** How long a record nobody reads stays subscribed, for a test that waits for it: the store's. */
+  grace?: number;
   host: ShellHost;
   /** The seam to the line, which a test wraps: the platform's WebSocket unless given. */
   open?: Opener;
@@ -37,7 +47,12 @@ export function Root(props: RootProps) {
   let generation = 0;
 
   const start = (server: Server, signIn: SignIn) => {
-    const conn = connect({ address: server.address, open: props.open, signIn });
+    const conn = connect({
+      address: server.address,
+      grace: props.grace,
+      open: props.open,
+      signIn,
+    });
     generation += 1;
     phase.set({ conn, generation, is: "connected", server });
   };
@@ -87,46 +102,50 @@ export function Root(props: RootProps) {
     return now.is === "connected" ? [now] : [];
   };
 
+  // From here on, a record read outside these views, where nothing lets it go, is told.
+  rootDrawn();
   return (
-    <KeysHost place={pathOf(route())}>
-      <LeaveGuard />
-      <If when={phase().is === "finding"}>
-        <Lone
-          icon="server"
-          title="Starting Uraeda's server"
-          words="The app finds the server that runs on this machine, or starts one, and waits until it answers."
-        >
-          <Spinner label="Waiting for the server" />
-        </Lone>
-      </If>
-      <If when={failed()}>
-        {(words) => (
+    <RecordsRoot value>
+      <KeysHost place={pathOf(route())}>
+        <LeaveGuard />
+        <If when={phase().is === "finding"}>
           <Lone
-            icon="triangle-alert"
-            title="Uraeda's server did not start"
-            tone="danger"
-            words={words()}
+            icon="server"
+            title="Starting Uraeda's server"
+            words="The app finds the server that runs on this machine, or starts one, and waits until it answers."
           >
-            <View style={{ alignItems: "flex-start" }}>
-              <Button icon="refresh-cw" label="Try again" onPress={() => void find()} />
-            </View>
+            <Spinner label="Waiting for the server" />
           </Lone>
-        )}
-      </If>
-      <If when={pairing()}>
-        {(now) => (
-          <Pairing
-            host={props.host}
-            onPaired={(token) => start(now().server, { by: "token", token })}
-            server={now().server}
-            why={now().why}
-          />
-        )}
-      </If>
-      <Each key={(now) => now.generation} of={connected()}>
-        {(now) => <Connected conn={now().conn} host={props.host} server={now().server} />}
-      </Each>
-    </KeysHost>
+        </If>
+        <If when={failed()}>
+          {(words) => (
+            <Lone
+              icon="triangle-alert"
+              title="Uraeda's server did not start"
+              tone="danger"
+              words={words()}
+            >
+              <View style={{ alignItems: "flex-start" }}>
+                <Button icon="refresh-cw" label="Try again" onPress={() => void find()} />
+              </View>
+            </Lone>
+          )}
+        </If>
+        <If when={pairing()}>
+          {(now) => (
+            <Pairing
+              host={props.host}
+              onPaired={(token) => start(now().server, { by: "token", token })}
+              server={now().server}
+              why={now().why}
+            />
+          )}
+        </If>
+        <Each key={(now) => now.generation} of={connected()}>
+          {(now) => <Connected conn={now().conn} host={props.host} server={now().server} />}
+        </Each>
+      </KeysHost>
+    </RecordsRoot>
   );
 }
 

@@ -9,7 +9,7 @@ import { type Picked, picked } from "./picked";
 import { ago } from "./when";
 import { isPending, refusalAt, write } from "./writes";
 import { record } from "../../store";
-import type { GitCommitFile, GitDiff, GitFile, GitGroup } from "../../store/protocol";
+import type { GitCommitFile, GitDiff, GitFile, GitGroup, GitPage } from "../../store/protocol";
 import { Button, Heading, Refusal, Spinner, Text } from "../../ui/controls";
 import { Diff } from "../../ui/document";
 import { Empty } from "../../ui/lists";
@@ -100,7 +100,7 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
     keys: "s",
     label: "Stage or unstage the file",
     run: () => {
-      if (file() === undefined || pageHeld(props.repo, props.folder)) return false;
+      if (file() === undefined || pageHeld(page(), props.folder)) return false;
       stage();
       return undefined;
     },
@@ -130,7 +130,7 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
         <If when={file()}>
           {(shown) => (
             <Button
-              disabled={pageHeld(props.repo, props.folder)}
+              disabled={pageHeld(page(), props.folder)}
               icon={shown().staged === "yes" ? "minus" : "check"}
               label={shown().staged === "yes" ? "Unstage" : "Stage"}
               onPress={stage}
@@ -160,9 +160,11 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
   );
 }
 
-/** Whether an agent works in the checkout of a group, which refuses its writes. */
-function pageHeld(repo: string, folder: string | null): boolean {
-  const page = gitPage(repo)();
+/**
+ * Whether an agent works in the checkout of a group, which refuses its writes: of the page as its
+ * component read it, since a key's `run` asks, where no record may be read.
+ */
+function pageHeld(page: GitPage | null | undefined, folder: string | null): boolean {
   if (page === undefined || page === null) return true;
   if (folder === null) return page.agentWorking;
   return page.groups.find((one) => one.folder === folder)?.isWorking === true;

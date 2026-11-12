@@ -20,7 +20,10 @@ const merging = signal<string | null>(null);
 /** The repository whose push is asked about, drawn by its Changes pane. */
 const pushing = signal<string | null>(null);
 
-/** The page's record, as every pane of it reads it. */
+/**
+ * The page's record, as every pane of it reads it: called as a component renders, which holds it.
+ * A guard, a key's `run`, or a listener reads the accessor it gave, and never calls this.
+ */
 export const gitPage = (repo: string) => record("GitPage", { repo });
 
 /** The control the sync's writes come from, and their refusals show under. */
@@ -45,9 +48,13 @@ function syncWords(page: GitPage): string {
   return parts.join(" · ");
 }
 
-/** The sync's actions, each `false` where it cannot run now, as its key's guard reads it. */
+/**
+ * The sync's actions, each `false` where it cannot run now, as its key's guard reads it. Called
+ * as a component renders: it holds the page's record once, for its guards and its actions, which
+ * the keyboard runs outside anything that would let a record go.
+ */
 export function syncActions(repo: string, toChanges: () => void = () => undefined) {
-  const page = () => gitPage(repo)();
+  const page = gitPage(repo);
   const can = (also: (page: GitPage) => boolean) => () => {
     const now = page();
     return now !== undefined && now !== null && now.hasRemote && also(now);
@@ -96,8 +103,9 @@ export function SyncKeys(props: { repo: string; toChanges?: () => void }) {
 export function Sync(props: { narrow: boolean; repo: string }) {
   const act = syncActions(props.repo);
   const at = syncAt(props.repo);
+  const read = gitPage(props.repo);
   return (
-    <If when={gitPage(props.repo)()}>
+    <If when={read()}>
       {(page) => (
         <View style={{ gap: 10 }}>
           <Text testID="git-sync" tone="quiet">
@@ -248,10 +256,11 @@ function Holds(props: { page: GitPage; repo: string }) {
 
 /** "Merge into main…": the branches a merge may take, in a dialog; Enter or a press merges one. */
 function MergePicker(props: { merging: boolean; onClose: () => void; repo: string }) {
-  const branches = () => gitPage(props.repo)()?.branches ?? [];
+  const page = gitPage(props.repo);
+  const branches = () => page()?.branches ?? [];
   const rows = () => branches().map((name) => ({ id: name }));
   const cursor = createCursor(rows);
-  const into = () => gitPage(props.repo)()?.branch ?? "the branch";
+  const into = () => page()?.branch ?? "the branch";
   const merge = (branch: string) => {
     props.onClose();
     void write(

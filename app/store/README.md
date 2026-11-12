@@ -135,8 +135,16 @@ once, from memory, and written after.
 
 - **Keep a record's value in a component's state, or copy it into a signal.** Read it where it is
   drawn: a copy does not change with the server, and is stale after a reconnect.
-- **Call `record` in a listener or at a module's top level.** Nothing would let it go: it stays
-  subscribed. In a listener, read the record the component already holds.
+- **Call `record` in a listener, a key's `run` or `when`, a timer, after an `await`, or at a
+  module's top level.** Nothing would let it go: it stays subscribed for the life of the app. Call
+  it as the component renders, and read the accessor it gave from the listener: a helper that a
+  guard or a `run` calls takes the value, never the record's name (`syncActions` holds the Git page
+  once; `pageHeld(page(), folder)`). An accessor that calls `record` (`() => record(…)()`) is for
+  what is drawn; make it a `computed` when a listener reads it too. The store says so, once the
+  shell's root is drawn: "[store] GitPage … was read where nothing lets it go", in the log, and a
+  test's page hears it with `onUnheldRead`. `places.test.tsx` opens and closes every place, reads
+  every key's guard as the keyboard does, and fails on a record still subscribed after
+  (`connection().held()` names it).
 - **Read `rows()` for what a row shows.** A row is an id; its item is `item(id)`, whose changes
   redraw that row only.
 - **Open a socket, or `fetch` the server's routes for data.** `/live` is the store's; HTTP is for

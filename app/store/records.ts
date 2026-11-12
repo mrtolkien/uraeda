@@ -1,7 +1,7 @@
 // Records as signals, typed from the protocol's catalogue (`protocol.d.ts`). A record is subscribed
 // while a view that read it is there: `read` holds it for the component, effect, or computation
 // it is called in, and lets it go when that goes, with a grace (`GRACE`) before the `unsub`.
-import { type Accessor, cleanup, untracked } from "nsh";
+import { type Accessor, cleanup, context, untracked } from "nsh";
 import type { Connection, Entry } from "./connection";
 import type { StoreError } from "./errors";
 import type { ListView } from "./held";
@@ -25,12 +25,39 @@ export type Live<V> = Accessor<V | undefined> & {
 const lives = new WeakMap<Entry, Live<unknown>>();
 const entries = new WeakMap<Live<unknown>, Entry>();
 
+/**
+ * Whether the caller is drawn under the app's root (`RecordsRoot`): a component, or an effect or a
+ * computation of one. A listener, a key's `run` or `when` as the keyboard reads it, a timer, and a
+ * module's top level are not, and nothing there lets a record go.
+ */
+const Rooted = context(false);
+
+/** Around the app's views: a record read outside it is told to `onUnheldRead`. */
+export const RecordsRoot = Rooted.Provider;
+
+let unheld: (record: string) => void = (record) =>
+  console.warn(
+    `[store] ${record} was read where nothing lets it go, a listener or a key's run or guard: it stays subscribed. Read the record its component holds.`,
+  );
+let rooted = false;
+
+/** Hears each record read where nothing lets it go, once the app's root is drawn: a test's. */
+export function onUnheldRead(told: (record: string) => void) {
+  unheld = told;
+}
+
+/** Says the app's root is drawn: from then on a read outside it is told. */
+export function rootDrawn() {
+  rooted = true;
+}
+
 /** `name` with `args` on `connection`, held for the component or effect this is called in. */
 export function read<N extends RecordName>(
   connection: Connection,
   name: N,
   args: Args<N>,
 ): Live<Value<N>> {
+  if (rooted && !Rooted()) unheld(`${name} ${JSON.stringify(args)}`);
   const entry = connection.hold(name, args as JsonValue);
   cleanup(() => connection.letGo(entry));
   return liveOf(entry) as Live<Value<N>>;

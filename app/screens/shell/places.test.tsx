@@ -2,7 +2,9 @@
 // each, and no key of the shell, a pane, or a list means two things there. The key registry throws
 // as a pane that declares such a key is drawn, and the page stops: screens built at the same time
 // each saw their own pages work, and only their join showed that Git's `g g` broke every list.
-// A screen that declares a place adds its address below, or this test fails.
+// A screen that declares a place adds its address below, or this test fails. And once every place
+// was opened and closed, no record is still subscribed that was not before: a `record` called
+// where nothing lets it go, a key's `when`, a listener, stays subscribed for the life of the app.
 import { type App, expect, open, test } from "nsh/test";
 
 /** One address for each page a screen places, and words its records show once drawn. */
@@ -98,7 +100,7 @@ async function visit(app: App, page: string, at = PAGES[page]) {
 test("every place of the app mounts with its keys", async () => {
   const app = await open("./__checks__/Places.tsx", {
     height: 800,
-    host: { handlers: { places: null, problem: null, shown: null } },
+    host: { handlers: { guarded: null, held: null, places: null, problem: null, shown: null } },
     network: "live",
     width: 1400,
   });
@@ -117,3 +119,42 @@ test("every place of the app mounts with its keys", async () => {
     Promise.resolve(),
   );
 }, 120_000);
+
+/** The records subscribed now, once those nobody reads were let go: the check's grace is 100 ms. */
+async function held(app: App): Promise<ReadonlyArray<string>> {
+  await app.wait(400);
+  const before = posted(app, "held").length;
+  await app.host.send("held", null);
+  await app.waitUntil(() => posted(app, "held").length > before);
+  return posted(app, "held")[before] as ReadonlyArray<string>;
+}
+
+test("no record stays subscribed once its place is closed", async () => {
+  const app = await open("./__checks__/Places.tsx", {
+    height: 800,
+    host: { handlers: { guarded: null, held: null, places: null, problem: null, shown: null } },
+    network: "live",
+    width: 1400,
+  });
+  await app.waitUntil(() => app.shows("id:frame") || problems(app).length > 0, { timeout: 30_000 });
+  // A page that reads nothing of its own: what is subscribed there is the shell's.
+  await visit(app, "missing");
+  const shell = await held(app);
+  const places = (posted(app, "places")[0] as ReadonlyArray<string>).filter(
+    (page) => page !== "missing",
+  );
+  // Each place opened, and every key's guard read as a key pressed there reads it.
+  await places.reduce<Promise<void>>(
+    (done, page) =>
+      done.then(async () => {
+        await visit(app, page);
+        const before = posted(app, "guarded").length;
+        await app.host.send("guards", null);
+        await app.waitUntil(() => posted(app, "guarded").length > before);
+      }),
+    Promise.resolve(),
+  );
+  await visit(app, "missing");
+  const after = await held(app);
+  expect(after.filter((record) => !shell.includes(record))).toEqual([]);
+}, 180_000);

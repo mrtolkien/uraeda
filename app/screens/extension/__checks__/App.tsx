@@ -2,21 +2,40 @@
 // shell, opened on the inbox of `sample`. The test sends `go` with an address, which opens as a
 // link would, and `off` or `on` with a built-in's name, which turns it off in `sample` alone or on
 // everywhere again, as Settings, Extensions would; the app posts `done` once the server answered.
-import { host, mount, untracked } from "nsh";
-import { call, navigate, parseRoute, record, redirect } from "../../../store";
+import { host, mount, signal, untracked } from "nsh";
+import {
+  call,
+  connection,
+  navigate,
+  parseRoute,
+  record,
+  RecordsRoot,
+  redirect,
+} from "../../../store";
+import type { Repositories } from "../../../store/protocol";
 import { boot } from "../../shell/boot";
 import { appHost } from "../../shell/host";
 import { Root } from "../../shell/Root";
 
 const REPO = "sample";
 
+/** The repositories, held by a view of this page: a listener reads what it holds, never a record. */
+let repositories: () => Repositories | undefined = () => undefined;
+function Held() {
+  repositories = record("Repositories", null);
+  return null;
+}
+
+/** Whether the shell's connection is live: the repositories are read from then on. */
+const live = signal(false);
+const look = () => (connection()?.status() === "live" ? live.set(true) : setTimeout(look, 50));
+
 void boot().then(() => {
   redirect(parseRoute(`/r/${REPO}/inbox`));
   const shell = appHost();
   host.on("go", (address) => navigate(parseRoute(String(address))));
   host.on("off", (name) => {
-    // The frame holds the list: this reads it as it is, once the app connected.
-    const others = (untracked(record("Repositories", null))?.rows ?? [])
+    const others = (untracked(repositories)?.rows ?? [])
       .map((row) => row.name)
       .filter((one) => one !== REPO);
     void call("extensions.setOn", { name: String(name), on: others, onAll: false }).then(
@@ -30,5 +49,15 @@ void boot().then(() => {
       (error) => host.post("done", String(error)),
     );
   });
-  mount(() => <Root host={shell} />);
+  mount(() => (
+    <>
+      <Root host={shell} />
+      <RecordsRoot value>
+        <If when={live()}>
+          <Held />
+        </If>
+      </RecordsRoot>
+    </>
+  ));
+  look();
 });

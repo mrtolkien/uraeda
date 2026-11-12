@@ -108,6 +108,7 @@ export const unknownRepository = definePane<{ name: string }>({
 });
 
 function MissingFolder(props: { name: string; path: string }) {
+  const repositories = record("Repositories", null);
   const refusal = signal<string | null>(null);
   const pending = signal(false);
   const remove = async () => {
@@ -115,7 +116,7 @@ function MissingFolder(props: { name: string; path: string }) {
     refusal.set(null);
     try {
       await call("repositories.remove", { name: props.name });
-      const next = record("Repositories", null)()?.rows.find((row) => row.name !== props.name);
+      const next = repositories()?.rows.find((row) => row.name !== props.name);
       navigate({ page: "home", repo: next?.name });
     } catch (error) {
       refusal.set((error as Error).message);

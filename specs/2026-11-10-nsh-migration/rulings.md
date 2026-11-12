@@ -8677,3 +8677,30 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   map was never cleared, so the next round of the same name, as every inbox triage is, started with
   the last one's written answers and hash.
 - **Where**: `app/screens/round/saves.ts`, `saves.test.ts`.
+
+## T89.8: A record is read where something lets it go, and the store says when it is not
+
+- **Decision**: `syncActions` holds the Git page's record once, as its component renders, for its
+  guards and its actions; the merge picker and the file diff's `pageHeld` read the accessor their
+  component holds; the repository's "Folder not found" holds the list it reads after its removal.
+  For the class: the store knows the app's root (`RecordsRoot`, around the shell's views), and a
+  `record` read outside it, once the root is drawn, is told: a line in the log, naming the record,
+  or to `onUnheldRead`'s listener, which the places' page posts as a problem. `Connection.held()`
+  lists the records subscribed. `places.test.tsx`'s "no record stays subscribed once its place is
+  closed" opens every place, reads every key's `when` outside any view, as the keyboard does when a
+  key is pressed, goes back to a page that reads nothing, waits for the grace (100 ms on that page,
+  by `Root`'s `grace`), and fails on a record that was not subscribed at the start.
+- **Rationale**: Codex's P2, confirmed: the test failed with `GitPage {"repo":"sample"}` still
+  subscribed. `page()` called `record` afresh in each guard and in Pull's and Push's handlers. Found
+  the same way or by reading every `record(` outside a component's top: `pageHeld` in the file
+  diff's `s`, and a read after an `await` in the repository's removal. A context is how the store
+  tells a view from a listener: Native Shell gives no way to ask for the current owner, and a
+  context's default is what a listener reads. It gave no false alarm over every place and the 190
+  tests; its three hits were test pages reading beside the root, now under `RecordsRoot`.
+- **Not covered**: a key's `run` and a press are not run by the test, since they act; the store's
+  line in the log names such a read the first time it happens, in development and in any test that
+  presses it.
+- **Where**: `app/screens/git/{Sync,Detail}.tsx`, `app/screens/repository/panes.tsx`,
+  `app/store/{records,connection,index}.ts`, `app/screens/shell/Root.tsx`,
+  `app/screens/shell/places.test.tsx` and its page, the check pages of the buffer, the proposal, and
+  the extensions; `app/store/README.md`, "Never".

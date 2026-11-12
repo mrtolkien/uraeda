@@ -13,6 +13,7 @@ import {
   type Opener,
   parseRoute,
   record,
+  RecordsRoot,
   redirect,
 } from "../../../store";
 import { openSocket } from "../../../store/line";
@@ -97,9 +98,11 @@ void boot().then(() => {
   mount(() => (
     <>
       <Root host={played} open={open} />
-      <If when={live()}>
-        <Disk />
-      </If>
+      <RecordsRoot value>
+        <If when={live()}>
+          <Disk />
+        </If>
+      </RecordsRoot>
     </>
   ));
   look();

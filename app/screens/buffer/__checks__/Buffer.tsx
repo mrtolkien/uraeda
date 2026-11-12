@@ -4,7 +4,7 @@
 // action, `write`, as an agent would, and reads what the disk holds from `disk`, posted at each
 // change of the record.
 import { effect, host, mount, signal } from "nsh";
-import { call, connection, parseRoute, record, redirect } from "../../../store";
+import { call, connection, parseRoute, record, RecordsRoot, redirect } from "../../../store";
 import { boot } from "../../shell/boot";
 import { appHost } from "../../shell/host";
 import { Root } from "../../shell/Root";
@@ -52,9 +52,11 @@ void boot().then(async () => {
   mount(() => (
     <>
       <Root host={shell} />
-      <If when={made()}>
-        <Disk />
-      </If>
+      <RecordsRoot value>
+        <If when={made()}>
+          <Disk />
+        </If>
+      </RecordsRoot>
     </>
   ));
   await live();
