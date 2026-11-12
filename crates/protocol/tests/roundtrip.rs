@@ -184,3 +184,53 @@ fn a_hello_of_another_version_is_refused_naming_the_side_to_update() {
     };
     assert_eq!(code, ErrorCode::BadMessage);
 }
+
+// The break it catches: a reason an older client cannot draw, added without raising the version,
+// so the handshake passes and the client throws on the value. A new reason fails to build here:
+// raise `PROTOCOL` with it, and write it in this list.
+#[test]
+fn the_reasons_a_client_draws_are_those_of_its_version() {
+    use uraeda_protocol::{NeedsYouReason as N, StatusReason as S};
+    let status = |reason: S| match reason {
+        S::Blocked
+        | S::Step
+        | S::Failed
+        | S::Stopped
+        | S::Interrupted
+        | S::Halted
+        | S::Conflict
+        | S::Capped
+        | S::Waiting
+        | S::Continue => json!(reason),
+    };
+    let needs_you = |reason: N| match reason {
+        N::Blocked | N::Attention | N::Step | N::PullRequest | N::Continue => json!(reason),
+    };
+    let statuses = [
+        S::Blocked,
+        S::Step,
+        S::Failed,
+        S::Stopped,
+        S::Interrupted,
+        S::Halted,
+        S::Conflict,
+        S::Capped,
+        S::Waiting,
+        S::Continue,
+    ];
+    let needs = [N::Blocked, N::Attention, N::Step, N::PullRequest, N::Continue];
+    let seen = (
+        PROTOCOL,
+        statuses.map(status).to_vec(),
+        needs.map(needs_you).to_vec(),
+    );
+    let reasons = |names: &str| names.split(' ').map(Value::from).collect::<Vec<_>>();
+    assert_eq!(
+        seen,
+        (
+            3,
+            reasons("blocked step failed stopped interrupted halted conflict capped waiting continue"),
+            reasons("blocked attention step pull-request continue"),
+        )
+    );
+}

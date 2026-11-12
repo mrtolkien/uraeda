@@ -2,7 +2,7 @@
 // Written by `just protocol-types` from `crates/protocol/`: never by hand.
 
 /** The protocol's version, which a client's `hello` gives. */
-export type Protocol = 2;
+export type Protocol = 3;
 
 /**
  * An account of a runtime, for the UI.

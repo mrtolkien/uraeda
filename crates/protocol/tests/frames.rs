@@ -81,7 +81,7 @@ fn a_short_message_and_an_append_stay_text() {
         appended,
         ServerMessage::Refused {
             reason: Refusal::ClientTooOld,
-            protocol: 2,
+            protocol: 3,
         },
         ServerMessage::Error {
             id: Some(5),

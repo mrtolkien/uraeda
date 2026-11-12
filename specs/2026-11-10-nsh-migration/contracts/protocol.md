@@ -56,11 +56,11 @@ binary frame:
 The first message of a connection is the client's `hello`: its version, and how it signs in.
 
 ```json
-{ "type": "hello", "protocol": 2, "signIn": { "by": "cookie" } }
+{ "type": "hello", "protocol": 3, "signIn": { "by": "cookie" } }
 ```
 
 ```json
-{ "type": "hello", "protocol": 2, "signIn": { "by": "token", "token": "p8Zk1mQ4" } }
+{ "type": "hello", "protocol": 3, "signIn": { "by": "token", "token": "p8Zk1mQ4" } }
 ```
 
 - `cookie` signs in with the session cookie of the request that opened the connection, as a browser
@@ -69,7 +69,7 @@ The first message of a connection is the client's `hello`: its version, and how 
 - The server answers `welcome`, and the connection is open:
 
 ```json
-{ "type": "welcome", "protocol": 2, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" }
+{ "type": "welcome", "protocol": 3, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" }
 ```
 
 - `epoch` is a random text the server draws each time it starts. A
@@ -79,7 +79,7 @@ The first message of a connection is the client's `hello`: its version, and how 
 - Or the server answers `refused`, with its own version, and closes the connection:
 
 ```json
-{ "type": "refused", "reason": "client-too-old", "protocol": 2 }
+{ "type": "refused", "reason": "client-too-old", "protocol": 3 }
 ```
 
 | `reason`         | When                                             | What the client says   |
@@ -303,6 +303,9 @@ start of a message.
   raises it. There is one version at a time: an older client is refused, and updated.
 - Version 2 added the binary frames, which a client of version 1 cannot read: it is refused, and
   told to update.
+- Version 3 added the reason `continue` to a feature's status and to a row of Needs you, which a
+  client of version 2 cannot draw. A new value of an enum a client reads by a table is a change it
+  must understand.
 
 ## Signing in
 

@@ -10,7 +10,7 @@ use crate::change::Op;
 
 /// The protocol's version. It rises with each change an older client or server cannot read: the
 /// two sides of a connection have the same one, or refuse each other.
-pub const PROTOCOL: u32 = 2;
+pub const PROTOCOL: u32 = 3;
 
 /// What a client sends.
 ///
