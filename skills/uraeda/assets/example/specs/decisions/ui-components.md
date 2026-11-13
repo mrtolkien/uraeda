@@ -4,26 +4,17 @@ icon: component
 
 # UI components
 
-The UI is built from the project's own React components and CSS modules, without a component
-library. Screens stay light, and the app looks like itself rather than like a framework's demo.
+> "It should look like itself, not like a framework's demo."
 
 ## Rules
 
-- Components MUST be written in the project, in `src/components/`.
-- Styles MUST use CSS modules, with the theme's variables. Checked by Stylelint's `color-no-hex`
-  outside the theme.
-- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
-  by review of `package.json`.
+- The UI is built from the project's own components, without a component library or a CSS framework.
+  _So:_ a date picker is written here, and adding MUI or Tailwind changes this decision first.
 
 ## Why
 
 The constitution asks for a lightweight UI for non-technical users. Component libraries bring dense,
 technical-looking controls and a large bundle, while the app needs about ten controls.
-
-## Consequences
-
-- The bundle stays small, and every control matches the app's look.
-- Accessible controls, like menus and date pickers, must be built and tested in the project.
 
 ## Applies to
 

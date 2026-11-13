@@ -4,15 +4,17 @@ icon:
 
 # [Topic]
 
-[The intent: the choice and what it protects, in at most three plain sentences. The goal or
-approach, not a value the code holds.]
+> "[The principle, in the human's own words, quoted from where they said it.]"
+
+[What the quote needs to be understood alone, in a sentence or two: what it protects, and where it
+holds. Left out when the quote says it all.]
 
 ## Rules
 
-- [One sentence, one keyword. SHOULD by default: MUST only for an always or a never the human said,
-  or when breaking the rule loses work or opens the system. MUST rules first, then SHOULD, then
-  MAY.] [Optional: Checked by a lint, a test, or `ura check`, when one does.]
-- [Few rules: only those the human would miss. What any agent would do anyway is not one.]
+- [A boundary, in one plain sentence: what the product is built on, or what a tool may never do.]
+  _So:_ [one case it settles, as an agent would meet it].
+- [Only the rules the human would miss. What this feature does is its spec's, how an area should
+  feel is a guide's, and what any agent would do anyway is not written.]
 
 ## Why
 
@@ -21,12 +23,8 @@ history, and at most one link, to the feature's record.]
 
 ## Alternatives considered
 
-- [Optional: at most three options an agent could propose again, one line each with why they lose. A
-  change that reverses an earlier choice lists that choice, and why it was abandoned.]
-
-## Consequences
-
-- [At most four: the costs accepted, and what a later feature must do]
+- [Optional: only a choice the human reversed, or an option an agent would propose again, with why
+  it loses.]
 
 ## Applies to
 

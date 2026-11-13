@@ -42,13 +42,12 @@ The rules a task here could break. The other rules of [task storage](../decision
 [UI components](../decisions/ui-components.md), [preview](../decisions/preview.md), and
 [code quality](../decisions/code-quality.md) apply as written there.
 
-- From [due dates](../decisions/due-dates.md): "Due dates MUST be stored as `YYYY-MM-DD` strings."
-  "Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it."
-- From [repeating tasks](../decisions/repeating-tasks.md): "A repeating task MUST be a single task,
-  with its repeat rule stored on it." "Completing a repeating task MUST move its due date to the
-  next occurrence, in place of creating a new task."
-- From [task storage](../decisions/task-storage.md): "A change to stored data MUST come with a
-  versioned upgrade, tested on data saved by the previous version."
+- From [due dates](../decisions/due-dates.md): "A due date is a calendar day, never an instant."
+  "Date arithmetic happens in one place, the app's date module."
+- From [repeating tasks](../decisions/repeating-tasks.md): "A repeating task is one task, which
+  moves to its next date when it is completed." "The app keeps no history of completed occurrences."
+- From [task storage](../decisions/task-storage.md): "A change to stored data comes with an upgrade,
+  tested on data saved by the previous version."
 - From [the spec](spec.md): the repeat menu's entries read, in order, "Never", "Daily", "Weekdays",
   "Weekends", "Weekly", "Monthly", "Yearly", "Custom...".
 - From the spec: the confirmation after a completion reads "Next: " then the next due date, as in

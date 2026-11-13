@@ -4,37 +4,25 @@ icon: repeat
 
 # Repeating tasks
 
-A repeating task is a single task that carries its repeat rule. Completing it moves its due date to
-the next occurrence instead of creating a new task: lists never grow, and the app keeps no history
-of past completions. Repetition is about organizing what comes next, not about recording what was
-done.
+> "We're a todo app, not a calendar."
+
+Repetition organizes what comes next. It does not record what was done.
 
 ## Rules
 
-- A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
-  `RepeatRule` field of the `Task` type.
-- Completing a repeating task MUST move its due date to the next occurrence, in place of creating a
-  new task. Checked by the completion tests of the task store.
-- Features MUST NOT rely on a history of completed occurrences: there is none.
+- A repeating task is one task, which moves to its next date when it is completed. _So:_ completing
+  "Water the plants" never adds a second task to the list.
+- The app keeps no history of completed occurrences. _So:_ a statistics view, or "skip this one",
+  changes this decision first.
 
 ## Why
 
-"We're a todo app, not a calendar": repetition organizes what comes next, and a list that grows with
-each completion buries it. Counting the next date from the previous due date keeps a weekly task on
-its weekday, however late it is completed. History:
-[Recurring tasks](../done/2026-10-06-recurring-tasks.md).
+A list that grows with each completion buries what comes next, and a history would make the app a
+calendar. History: [Recurring tasks](../done/2026-10-06-recurring-tasks.md).
 
 ## Alternatives considered
 
-- A new task per completion: keeps a history, but the list grows, and repetition is about
-  organization, not history.
-
-## Consequences
-
-- Lists stay short, and a repeating task is edited like any other task.
-- No completion history or statistics on repeating tasks.
-- Skipping one occurrence, or editing one apart from the others, needs a change to this decision.
-- Features like reminders attach to the task, and move with its due date.
+- A new task per completion: keeps a history, but the list grows with every completion.
 
 ## Applies to
 

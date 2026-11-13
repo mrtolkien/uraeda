@@ -4,16 +4,16 @@ icon: calendar-clock
 
 # Due dates
 
-Due dates are calendar days, like `2026-10-12`, without a time or a timezone. A task due Monday
-stays due Monday wherever the user is, and adding a week never lands on Sunday because of daylight
-saving time.
+> "A task due Monday stays due Monday, wherever I am."
+
+Due dates are calendar days, like `2026-10-12`, without a time or a timezone.
 
 ## Rules
 
-- Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
-  store's upgrade test.
-- Date arithmetic MUST go through the app's date module.
-- Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
+- A due date is a calendar day, never an instant. _So:_ it is stored as `2026-10-12`, and a feature
+  that needs "at 3pm" changes this decision first.
+- Date arithmetic happens in one place, the app's date module. _So:_ a component that needs "a week
+  later" asks the module, and never builds a `Date` from a due date itself.
 
 ## Why
 
@@ -25,14 +25,6 @@ move. A calendar day has no time to drift. History:
 ## Alternatives considered
 
 - UTC timestamps: exact instants, but a task due Monday shows as due Sunday for users west of UTC.
-- The Temporal API: the right model, but not available in all supported browsers yet.
-
-## Consequences
-
-- Date bugs stay in one module, and tests of date arithmetic need no timezone setup. Only the
-  upgrade from timestamps depends on the user's timezone.
-- Due times, like "at 3pm", need a change to this decision.
-- Tasks saved before this decision are upgraded once, from timestamps to calendar days.
 
 ## Applies to
 

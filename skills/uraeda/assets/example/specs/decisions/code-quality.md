@@ -4,37 +4,23 @@ icon: ruler
 
 # Code quality
 
-Size and nesting limits hold the app's TypeScript code, in ESLint, which `npm run lint` runs. Code
-that already broke a limit when the project was set up is marked in place, with its reason. The lint
-fails on a new violation, and on a marker left behind once its code is fixed, so the numbers can
-only go down.
+> "I don't read the code, so the checks have to hold it."
+
+Size and nesting limits live in ESLint's configuration, which `npm run lint` runs.
 
 ## Rules
 
-- Functions MUST NOT be longer than 80 lines. Checked by ESLint's `max-lines-per-function`.
-- Functions MUST NOT take more than 4 parameters. Checked by ESLint's `max-params`.
-- Code MUST NOT nest blocks more than 3 levels deep inside a function. Checked by ESLint's
-  `max-depth`.
-- Source files MUST NOT be longer than 400 lines. Tests are exempt. Checked by ESLint's `max-lines`.
-- Code that broke a limit when this decision was approved MUST be marked where it stands, with an
-  `// eslint-disable-next-line <rule> -- <reason>` comment. Checked by ESLint, which fails on
-  unmarked code over a limit.
-- A marker on code that no longer breaks its limit MUST fail the lint. Checked by ESLint's
-  `reportUnusedDisableDirectives: "error"`.
-- A new marker MUST NOT be added unless a human approves it as a constitution exception in the
-  plan's complexity tracking.
+- Functions and files stay within the limits the linter holds. _So:_ a task that would push a
+  function past its limit splits it first, in a commit of its own.
+- An exception is marked where the code stands, with its reason, and a new one needs the human's
+  approval in the plan. _So:_ no `eslint-disable` is added to get a task through.
+- The numbers only go down. _So:_ a marker left on code that was fixed fails the lint.
 
 ## Why
 
-Set up with the project, as Uraeda proposes: agents extend the code they find, and only a check that
-fails stops functions and files from growing feature after feature. The limits are where today's
-code mostly fits: only `updateTask`, in [the task store](/src/store/tasks.ts), was over them.
-
-## Consequences
-
-- A feature touching a marked function splits it first, in a commit that only restructures it, then
-  removes its marker.
-- Duplication is checked by review only.
+Agents extend the code they find, and only a check that fails stops functions and files from growing
+feature after feature. The limits are where today's code mostly fits: only `updateTask`, in
+[the task store](/src/store/tasks.ts), was over them.
 
 ## Applies to
 

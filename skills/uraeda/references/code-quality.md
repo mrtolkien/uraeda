@@ -50,8 +50,8 @@ A rule only a reader remembers is followed until someone forgets it. A rule a to
 - **When a written rule keeps being missed, move it into code**: a type, a lint, a test.
 - **A custom lint rule or structural test says the fix in its message**: "split this file by
   responsibility", not only "file too long". The agent that hits it reads the message.
-- **A decision's rule that a tool checks may say so**, "Checked by" a lint or a test. A check a tool
-  could run and does not yet is a task of the plan.
+- **A boundary a tool can check gets its check**: a task of the plan adds it. The decision does not
+  name the check: the code does.
 
 ## Testing
 

@@ -47,33 +47,37 @@ start a new round for it. Otherwise, write the decisions the answers ask for, th
 
 ### What is a decision
 
-**Most features produce no decision.** A decision is a boundary or a direction the human set, that
-work outside this feature must respect: what the code is built on, what a tool may never do, how the
-product should feel. "Tools never lose the user's work." "One kind of information is drawn by one
-shared component on every page." Each is a sentence the human would repeat to every future agent.
+**Most features produce no decision.** A decision is a boundary the human set, that work outside
+this feature must respect: what the product is built on, and what a tool may never do. "Tools never
+lose the user's work." "No commit without the commit page." Each is a sentence the human said, or
+would repeat word for word to every future agent.
 
 Everything else has another home:
 
-- **What this feature does**, however long it lasts, is its spec, then its record.
-- **How an area is designed**, its keys, its layouts, its formats, its wording, is the project's
-  guide for that area, like `specs/ui/`. Guides are free form, and you edit them with the feature.
+- **How an area should feel and behave** is a guide: its keys, its layouts, its formats, its
+  wording, the habits it borrows from another product. Guides are free form, in prose, with the
+  human's own words quoted, examples, and tables, and you edit them with the feature. A UI's guides
+  live in `specs/ui/`, any other area's in `specs/guides/`. Direction lives here because a list of
+  rules can forbid, and cannot show what good looks like.
+- **What this feature does**, however long it lasts, is its spec, then its record: a key, a number,
+  a text, one page's layout.
 - **What only the code needs to know**, and enforces with a type, a schema, a lint, or a test, is
   the code's. A boundary the human set stays a decision when a test also guards it.
 - **A choice made while building** is a ruling.
 
 Test a rule before writing it:
 
-1. **Would it still be true, word for word, if the code it governs were rewritten?** A flag, a
-   timeout, a file name, a component's name, a list of keys: those are the code's, and change
-   without the human. A value stays only when it is the human's own, like "a session lasts 30 days".
-2. **Would the human check a plan against it?** If any agent would do it anyway, it is noise.
-3. **Did the human say it?** Every rule comes from their words: an answer, a note, a comment, the
-   proposal. It says no more than they said. A rule drawn from your own reading, or from a point you
-   settled, is an assumption of the spec, not a rule of the project.
+1. **Is it the human's?** Every rule comes from their words: an answer, a note, a comment, the
+   proposal, a message. It says no more than they said. A rule drawn from your own reading, or from
+   a point you settled, is an assumption of the spec.
+2. **Is it a boundary?** It says what is never done, or what everything is built on. If it says how
+   something should look, feel, or flow, it is a guide's.
+3. **Would it still be true, word for word, if the code it governs were rewritten?** A flag, a
+   timeout, a file name, a component's name, a list of keys: those are the code's. A value stays
+   only when it is the human's own, like "a session lasts 30 days".
 
-The reverse also holds: an answer that forbids something across the product, "no commit without the
-commit page", is a decision even when its question was narrower. Lose it, and the next feature
-proposes it again.
+The reverse also holds: an answer that forbids something across the product is a decision even when
+its question was narrower. Lose it, and the next feature proposes the forbidden thing again.
 
 A decision is never edited to describe the code. When the code and a decision disagree, the code
 changes, or the question goes to the human.
@@ -104,19 +108,29 @@ merges and cuts as edits on its branch, and ask one question per merge or remova
 
 ### Writing a decision
 
-Write for an agent that reads the decision alone, before a task, and for a human who approves each
-line. [A decision](writing.md#a-decision) gives the shape: the intent first, few rules, SHOULD by
-default, a short Why in the present tense.
+An agent reads a decision alone, before a task, and the human approves each of its lines.
+[A decision](writing.md#a-decision) gives its shape: the human's words first, a few rules with an
+example each, and why.
 
-- **Rules** are sentences a spec, a plan, or code can be checked against. Each stands on its own,
-  since plans copy it word for word. A rule a tool already checks may end with how, "Checked by" a
-  lint or a test: see [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
-- **Why**: the reason, so an agent can apply a rule to a case it does not name. Until the feature is
+- **The quote**: the principle, in the human's own words, from where they said it. When they never
+  said it in one sentence, quote the closest, and add a sentence of context. Never write a quote for
+  them.
+- **Rules**: each a boundary, in one plain sentence, followed by "_So:_" and one case it settles.
+  The example is what lets an agent apply the rule to a case it does not name.
+- **Why**: the reason, in the present tense. Until the feature is
   [finished](finish.md#rewrite-the-links), its one link points to the spec, then to the record.
-- **Consequences**: the costs the human accepted, and what a later feature must do.
 - **Applies to**: the folders and kinds of features it governs.
-- **Alternatives considered** and **Revisit when** are optional: the rejected options an agent could
-  propose again, and the condition or date that ends a temporary decision.
+- **Alternatives considered** and **Revisit when** are optional: a choice the human reversed, and
+  the condition or date that ends a temporary decision.
+
+### Writing a guide
+
+A guide says how an area should feel and behave, for the agent about to design in it. It has no
+template. Write it in prose, around the human's own words: quote what they said, where they said it
+matters. Show what good looks like, with examples from the product and from the products it follows,
+and a table where things compare. Say what is a habit and what is a rule. A guide is edited with
+every feature that learns something about its area, and a taste the human states in a review goes
+into it in the same commit.
 
 ## Spec document
 
@@ -307,8 +321,9 @@ Before committing, read the spec again, and fix what you find:
    block, said as what happens to them.
 3. **Acts and states**: every act a story adds has a scenario whose Then is its effect. Every view
    is shown or described at its narrowest, empty, and overfull.
-4. **Decisions**: none, unless a rule passes the three tests. Each rule says no more than the human
-   said, and is a MUST only as [a decision](writing.md#a-decision) allows.
+4. **Decisions**: none, unless a rule passes the three tests. Each opens with the human's words, and
+   each rule says no more than they said, with its example. What says how an area should feel went
+   to its guide.
 5. **One reading**: no placeholder, no requirement that reads two ways, no section that contradicts
    another, each thing said once.
 6. **Risks**: every unverified outside behaviour and every relaxed guard is in the block.
