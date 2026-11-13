@@ -293,7 +293,7 @@ const PAGES: &[(&str, &str, &str)] = &[
     (
         "decision",
         "/r/realistic/decisions/git",
-        "Rust tools MUST read git with the gix library",
+        "Rust tools read git with the gix library",
     ),
     (
         "branch-decision",

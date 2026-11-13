@@ -244,7 +244,7 @@ async fn branch_decision_answers_its_shape() {
     let repo = fixture_repo(REPO);
     let text = repo
         .read("specs/decisions/git.md")
-        .replace("MUST", "SHOULD");
+        .replace("read git through gix", "read git through git2");
     repo.add_on_branch(HUMAN, "specs/decisions/git.md", &text);
     let server = serving(&repo).await;
 

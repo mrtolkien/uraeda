@@ -96,11 +96,10 @@ pub(super) fn plan(done: usize, status: &str) -> String {
 /// A new decision, named after the feature that made it.
 fn decision(title: &str) -> String {
     format!(
-        "---\nicon: book-open\n---\n\n# {title}\n\nFlows \
-         and states are Mermaid code blocks, drawn by the UI.\n\n## Rules\n\n- Flows MUST be \
-         drawn as Mermaid code blocks. Checked by review.\n- A diagram MUST draw in a frame \
-         without scripts. Checked by the UI tests.\n\n## Why\n\nOne way to draw a flow, \
-         readable as text.\n"
+        "---\nicon: book-open\n---\n\n# {title}\n\n> \"A flow should read as text, and \
+         draw safely.\"\n\n## Rules\n\n- Flows are drawn as Mermaid code blocks. _So:_ never \
+         an image of a flow.\n- A diagram draws in a frame without scripts. _So:_ a script in its \
+         text never runs.\n\n## Why\n\nOne way to draw a flow, readable as text.\n"
     )
 }
 

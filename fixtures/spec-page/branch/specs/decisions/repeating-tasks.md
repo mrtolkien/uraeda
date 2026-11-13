@@ -4,26 +4,19 @@ icon: repeat
 
 # Repeating tasks
 
-A repeating task is a single task that carries its repeat rule. Completing it moves its due date to
-the next occurrence instead of creating a new task: lists never grow, and the app keeps no history
-of past completions.
+> "We're a todo app, not a calendar."
 
 ## Rules
 
-- A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
-  `RepeatRule` field of the `Task` type.
-- Completing a repeating task MUST move its due date to the next occurrence, and MUST NOT create a
-  new task. Checked by the completion tests of the task store.
-- Features MUST NOT rely on a history of completed occurrences: there is none. Checked by review.
+- A repeating task is one task, which moves to its next date when it is completed. _So:_
+  completing "Water the plants" never adds a second task.
+- The app keeps no history of completed occurrences. _So:_ "skip this one" changes this decision
+  first.
 
 ## Why
 
-You chose a single task whose date moves: "we're a todo app, not a calendar".
-
-## Consequences
-
-- Lists stay short, and a repeating task is edited like any other task.
-- Skipping one occurrence, or editing one apart from the others, needs a change to this decision.
+A list that grows with each completion buries what comes next, and a history would make the app a
+calendar.
 
 ## Applies to
 

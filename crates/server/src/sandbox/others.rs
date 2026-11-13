@@ -208,8 +208,8 @@ pub(super) fn realistic(path: &Path) -> Result<(), String> {
 fn reminders_notify() -> Result<String, String> {
     let active =
         String::from_utf8_lossy(&bytes("realistic/decisions/notifications.md")?).into_owned();
-    let rule = "- The tab's title SHOULD count the items that need the human.";
-    let added = "- A reminder that comes due MUST notify, as an item that needs the human does. Checked by\n  the notifier's tests.\n";
+    let rule = "- The tab's title counts the items that need the human.";
+    let added = "- A reminder that comes due notifies, as an item that needs the human does. _So:_ a task due\n  at 9:00 notifies at 9:00.\n";
     let at = active
         .find(rule)
         .ok_or("the notifications decision lost its last rule")?;

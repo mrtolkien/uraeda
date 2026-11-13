@@ -55,6 +55,9 @@ pub(crate) enum Checked {
     Triage,
     /// The record of a finished feature or change, in `specs/done/`.
     Record,
+    /// A guide, a markdown file at any depth of `specs/ui/` or `specs/guides/`: free form, only its
+    /// links checked.
+    Guide,
 }
 
 /// A file being checked, with the other files of its folder.
@@ -242,9 +245,29 @@ fn walk(root: &Path, dir: &Path, finder: &Finder<'_>, problems: &mut Vec<Problem
     }
 }
 
+/// The folders of `specs/` that hold guides, free form, at any depth.
+const GUIDE_FOLDERS: [&str; 2] = ["ui", "guides"];
+
+/// Whether a folder is a guides' folder of `specs/`, or one under it.
+fn in_guides(dir: &Path) -> bool {
+    dir.ancestors().any(|folder| {
+        folder
+            .file_name()
+            .is_some_and(|name| GUIDE_FOLDERS.iter().any(|guides| name == *guides))
+            && folder
+                .parent()
+                .and_then(Path::file_name)
+                .is_some_and(|name| name == "specs")
+    })
+}
+
 /// What kind of file a name is, in a folder: decisions in `decisions/`, records in `specs/done/`,
-/// priorities anywhere, and the inbox and its triage in `specs/`.
+/// priorities anywhere, the inbox and its triage in `specs/`, and guides in `specs/ui/` and
+/// `specs/guides/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
+    if name.ends_with(".md") && in_guides(dir) {
+        return Some(Checked::Guide);
+    }
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
     if parent.as_deref() == Some("decisions") && name == "preview.md" {
         return Some(Checked::PreviewDecision);

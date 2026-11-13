@@ -17,7 +17,7 @@ const LONGEST: Duration = Duration::from_secs(90);
 /// The limit on a call, in place of its 10 seconds, for the test that waits it out.
 const CALL_LIMIT: Duration = Duration::from_secs(2);
 
-// The extensions decision: a broken extension MUST NOT stop Uraeda or another extension. Each
+// The extensions decision: a broken extension never stops Uraeda or another extension. Each
 // of these is broken its own way, as it loads or after, and names its problem in the record
 // `Extensions`: the server and the extension beside them go on.
 #[tokio::test]

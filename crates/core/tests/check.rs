@@ -419,14 +419,9 @@ fn each_rule() {
             "specs/PRIORITIES.md: missing section \"## Next\"".into(),
         ),
         (
-            "decision order, a rule with no keyword between a MAY and a MUST",
-            |e| with_rules(e, "- A rule MAY hold.\n- A rule with no keyword.\n- A rule MUST hold.\n"),
-            format!("warning: {DECISION}:{}: a MUST rule after a MAY one: put the strongest first", line_of(DECISION, "## Rules") + 4),
-        ),
-        (
-            "decision order, a rule ranks by its first keyword",
-            |e| with_rules(e, "- A rule SHOULD hold, and MUST NOT break.\n- A rule MUST hold.\n"),
-            format!("warning: {DECISION}:{}: a MUST rule after a SHOULD one: put the strongest first", line_of(DECISION, "## Rules") + 3),
+            "a decision's rule with no case",
+            |e| with_rules(e, "- A rule holds. _So:_ a case.\n- A rule holds.\n"),
+            format!("warning: {DECISION}:{}: a rule with no case: add one after _So:_, as an agent would meet it", line_of(DECISION, "## Rules") + 3),
         ),
     ];
     for (name, break_it, expected) in rows {
@@ -540,6 +535,31 @@ fn a_ui_folder_has_no_problem() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+/// `specs/guides/`, the guides of the areas other than the UI, is a folder of its own, free form,
+/// its links checked as any file of `specs/`.
+#[test]
+fn a_guides_folder_is_free_form_and_its_links_are_checked() {
+    let example = Example::new();
+    example.write(
+        "specs/guides/git.md",
+        "# Git\n\n> \"Keep the history readable.\"\n\n| Habit | Why |\n| --- | --- |\n\
+         | One commit per step | [Due dates](../decisions/due-dates.md) |\n",
+    );
+    example.write("specs/guides/runs/agents.md", "Free form, no title.\n");
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+
+    example.write(
+        "specs/guides/git.md",
+        "# Git\n\nSee [the hooks](../decisions/hooks.md).\n",
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        ["specs/guides/git.md:3: no file ../decisions/hooks.md"]
+    );
+}
+
 /// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.
 #[test]
 fn a_spec_with_a_story_link_has_no_problem() {
@@ -559,8 +579,8 @@ fn the_preview_decisions_fields() {
     const PREVIEW: &str = "specs/decisions/preview.md";
     let decision = |fields: &str| {
         format!(
-            "---\nicon: eye\n{fields}---\n\n# Preview\n\n## Rules\n\n- A rule.\n\n\
-             ## Why\n\nWhy.\n\n## Alternatives considered\n\n- None.\n\n## Consequences\n\n- None.\n\n\
+            "---\nicon: eye\n{fields}---\n\n# Preview\n\n## Rules\n\n- A rule. _So:_ a case.\n\n\
+             ## Why\n\nWhy.\n\n## Alternatives considered\n\n- None.\n\n\
              ## Applies to\n\n- `src/`\n"
         )
     };
@@ -646,8 +666,8 @@ fn preview_fields_belong_to_the_preview_decision() {
 fn a_decision_may_have_an_icon() {
     let decision = |title: &str, fields: &str| {
         format!(
-            "---\n{fields}---\n\n# {title}\n\n## Rules\n\n- A rule.\n\n\
-             ## Why\n\nWhy.\n\n## Consequences\n\n- None.\n\n## Applies to\n\n- `src/`\n"
+            "---\n{fields}---\n\n# {title}\n\n## Rules\n\n- A rule. _So:_ a case.\n\n\
+             ## Why\n\nWhy.\n\n## Applies to\n\n- `src/`\n"
         )
     };
     let example = Example::new();
@@ -2234,14 +2254,14 @@ fn a_decision_item_the_page_cannot_read() {
 
 const DECISION: &str = "specs/decisions/task-storage.md";
 
-/// `count` rules, each a MUST, one with a nested item.
+/// `count` rules, each with its case, one with a nested item.
 fn rules(count: usize) -> String {
     (1..=count)
-        .map(|n| format!("- Rule {n} MUST hold. Checked by review.\n"))
+        .map(|n| format!("- Rule {n} holds. _So:_ a case.\n"))
         .collect::<String>()
         .replacen(
-            "- Rule 1 MUST hold. Checked by review.\n",
-            "- Rule 1 MUST hold. Checked by review.\n  - A nested point.\n  - Another.\n",
+            "- Rule 1 holds. _So:_ a case.\n",
+            "- Rule 1 holds. _So:_ a case.\n  - A nested point.\n  - Another.\n",
             1,
         )
 }
@@ -2256,11 +2276,12 @@ fn with_rules(example: &Example, rules: &str) {
     );
 }
 
-/// US6 1: a decision of 12 rules warns on its `## Rules` heading; nested items are no rules.
+/// A decision of more rules than its limit warns on its `## Rules` heading, saying to cut or to move
+/// them to a guide; nested items are no rules.
 #[test]
-fn a_decision_of_12_rules() {
+fn a_decision_of_too_many_rules() {
     let example = Example::new();
-    with_rules(&example, &rules(12));
+    with_rules(&example, &rules(check::DECISION_RULES + 2));
     let line = line_in(&example.read(DECISION), "## Rules");
 
     let problems = example.problems();
@@ -2268,58 +2289,61 @@ fn a_decision_of_12_rules() {
     assert_eq!(
         summary(&problems),
         [format!(
-            "warning: {DECISION}:{line}: 12 rules: keep at most 10, or split the topic"
+            "warning: {DECISION}:{line}: 7 rules: keep at most 5, and cut the rest or move them to \
+             a guide"
         )]
     );
     assert_eq!(problems[0].rule, "decision.rules");
-    let ten = Example::new();
-    with_rules(&ten, &rules(check::DECISION_RULES));
-    assert_eq!(ten.warnings(), Vec::<String>::new());
+    let at_the_limit = Example::new();
+    with_rules(&at_the_limit, &rules(check::DECISION_RULES));
+    assert_eq!(at_the_limit.warnings(), Vec::<String>::new());
 }
 
-/// US2 more 2: a rule stronger than the one before it warns, on its line, naming both keywords.
+/// A rule with no case after `_So:_` warns on its line; a case in emphasis of either mark counts,
+/// and "So:" outside emphasis or in code does not.
 #[test]
-fn a_must_after_a_should() {
-    let cases = [
-        ("SHOULD", "MUST", "a MUST rule after a SHOULD one"),
-        (
-            "SHOULD NOT",
-            "MUST NOT",
-            "a MUST NOT rule after a SHOULD NOT one",
-        ),
-        ("MAY", "SHOULD", "a SHOULD rule after a MAY one"),
-    ];
-    for (weaker, stronger, message) in cases {
-        let example = Example::new();
-        with_rules(
-            &example,
-            &format!(
-                "- The first rule MUST hold.\n- A rule {weaker} hold.\n- A rule {stronger} hold.\n- A rule MAY hold.\n"
-            ),
-        );
-        let line = line_in(
-            &example.read(DECISION),
-            &format!("- A rule {stronger} hold."),
-        );
-
-        assert_eq!(
-            example.warnings(),
-            [format!(
-                "warning: {DECISION}:{line}: {message}: put the strongest first"
-            )],
-            "{weaker} then {stronger}"
-        );
-    }
-    let ordered = Example::new();
+fn a_rule_with_no_case() {
+    let example = Example::new();
     with_rules(
-        &ordered,
-        "- A MUST NOT.\n- A MUST.\n- A MUST NOT.\n- A SHOULD.\n- A SHOULD NOT.\n- No keyword.\n- A SHOULD.\n- A MAY.\n",
+        &example,
+        "- A rule holds. _So:_ a case.\n- Another holds. *So:* a case.\n- A third holds.\n\
+         - A fourth holds. So: not emphasized.\n- A fifth holds. `_So:_` in code.\n",
     );
-    assert_eq!(ordered.warnings(), Vec::<String>::new());
+    let text = example.read(DECISION);
+    let lines = [
+        "- A third holds.",
+        "- A fourth holds. So: not emphasized.",
+        "- A fifth holds. `_So:_` in code.",
+    ]
+    .map(|rule| line_in(&text, rule));
+
+    let problems = example.problems();
+
+    assert_eq!(
+        summary(&problems),
+        lines.map(|line| format!(
+            "warning: {DECISION}:{line}: a rule with no case: add one after _So:_, as an agent \
+             would meet it"
+        ))
+    );
+    assert!(problems.iter().all(|p| p.rule == "decision.example"));
 }
 
-/// Replaces the body of the decision's `heading` section, up to the next level-2 heading; the
-/// intent, for the title.
+/// A decision that opens with no quote, the human's words, is not a problem.
+#[test]
+fn a_decision_without_a_quote_has_no_problem() {
+    let example = Example::new();
+    let text = example.read(DECISION);
+    let quote = text
+        .lines()
+        .find(|line| line.starts_with("> "))
+        .expect("the example's decision opens with a quote");
+    example.write(DECISION, &text.replace(&format!("{quote}\n\n"), ""));
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// Replaces the body of the decision's `heading` section, up to the next level-2 heading.
 fn with_section(example: &Example, heading: &str, body: &str) {
     let text = example.read(DECISION);
     let start = text.find(&format!("{heading}\n\n")).unwrap() + heading.len() + 2;
@@ -2343,24 +2367,12 @@ fn items(count: usize) -> String {
     (1..=count).map(|n| format!("- Item {n}.\n")).collect()
 }
 
-/// US2 1, 2, 3, more 1, 2, SC-003, and the edge cases on keywords and links: each limit warns one
-/// past it, on the section to cut, and a decision at every limit warns nothing.
+/// Each limit warns one past it, on the section to cut, saying to cut and never to split the
+/// topic, and a decision at every limit warns nothing.
 #[test]
 fn each_decision_limit() {
     type Break = fn(&Example);
     let rows: Vec<(&str, Break, &str, String)> = vec![
-        (
-            "decision.intent",
-            |e| {
-                with_section(
-                    e,
-                    "# Task storage",
-                    "Tasks stay. They sync. They upgrade. They last.\n",
-                )
-            },
-            "# Task storage",
-            "4 sentences: keep the intent to at most 3".into(),
-        ),
         (
             "decision.why",
             |e| {
@@ -2371,36 +2383,20 @@ fn each_decision_limit() {
                 )
             },
             "## Why",
-            "81 words: keep the reason under 80".into(),
+            "81 words: keep the reason under 80, and cut the rest or move it to a guide".into(),
         ),
         (
             "decision.alternatives",
             |e| with_section(e, "## Alternatives considered", &items(4)),
             "## Alternatives considered",
-            "4 alternatives: keep at most 3, the ones an agent could propose again".into(),
-        ),
-        (
-            "decision.consequences",
-            |e| with_section(e, "## Consequences", &items(5)),
-            "## Consequences",
-            "5 consequences: keep at most 4, the costs and what a later feature must do".into(),
+            "4 alternatives: keep at most 3, the ones an agent could propose again, and cut the rest"
+                .into(),
         ),
         (
             "decision.rules",
-            |e| with_rules(e, &format!("> ## A quoted heading\n\n{}", rules(11))),
+            |e| with_rules(e, &format!("> ## A quoted heading\n\n{}", rules(6))),
             "## Rules",
-            "11 rules: keep at most 10, or split the topic".into(),
-        ),
-        (
-            "decision.keywords",
-            |e| {
-                with_rules(
-                    e,
-                    "- Sessions MUST be random, and MUST end after 30 days. Checked by review.\n",
-                )
-            },
-            "- Sessions MUST be random, and MUST end after 30 days. Checked by review.",
-            "2 keywords: one rule holds one MUST, SHOULD, or MAY".into(),
+            "6 rules: keep at most 5, and cut the rest or move them to a guide".into(),
         ),
     ];
     for (rule, break_it, at, message) in rows {
@@ -2416,13 +2412,9 @@ fn each_decision_limit() {
             [format!("warning: {DECISION}:{line}: {message}")],
             "{rule}"
         );
+        assert!(!message.contains("split"), "{rule}");
     }
     let limits = Example::new();
-    with_section(
-        &limits,
-        "# Task storage",
-        "Tasks stay. They sync. They upgrade.\n",
-    );
     let why = words(79).replace(".\n", "");
     with_section(
         &limits,
@@ -2434,14 +2426,9 @@ fn each_decision_limit() {
         "## Alternatives considered",
         &items(check::DECISION_ALTERNATIVES),
     );
-    with_section(
-        &limits,
-        "## Consequences",
-        &items(check::DECISION_CONSEQUENCES),
-    );
     with_rules(
         &limits,
-        "- Code MUST NOT call `MAY` directly. Checked by a lint that refuses SHOULD.\n",
+        "- Code never calls `So:` directly. _So:_ a lint refuses it.\n",
     );
     assert_eq!(limits.warnings(), Vec::<String>::new());
 }
@@ -2477,33 +2464,6 @@ fn the_example_spec_is_at_most_2000_words() {
     assert!(words <= 2_000, "{words} words");
 }
 
-/// The shape warnings of a decision the human approved as it stands, over this test: the UI layout
-/// decision's Why and alternatives, as the panes-size spec changed them, and the UI behaviour
-/// decision's 12 rules, as the performance pass's four rules on writes, one claim each, made them,
-/// the attachments decision's rule on SVG, its MUST and its MAY, as mockup previews approved it,
-/// and the Git decision's 11 rules and 84-word Why, as Vim in text edit mode's rules on commits and
-/// the master pull request's rules on branches, each approved alone, made them together. Theirs to
-/// trim or keep.
-fn approved_over_its_shape(problem: &Problem) -> bool {
-    (problem.file.ends_with("specs/decisions/ui-layout.md")
-        && matches!(
-            problem.rule.as_str(),
-            "decision.why" | "decision.alternatives"
-        ))
-        || (problem.file.ends_with("specs/decisions/ui-behaviour.md")
-            && problem.rule == "decision.rules")
-        || (problem.file.ends_with("specs/decisions/attachments.md")
-            && problem.rule == "decision.keywords")
-        || (problem.file.ends_with("specs/decisions/git.md")
-            && matches!(problem.rule.as_str(), "decision.rules" | "decision.why"))
-        // The human's rule for a reply stuck on a background command, on the default branch.
-        || (problem.file.ends_with("specs/decisions/run-lifecycle.md")
-            && matches!(
-                problem.rule.as_str(),
-                "decision.keywords" | "decision.why" | "decision.consequences"
-            ))
-}
-
 /// US3 1, SC-001, SC-004: the repository's decisions warn nothing on their shape, and each Why
 /// links one record at most. Each decision is held short by its shape's limits, not by a budget
 /// over the whole ledger.
@@ -2517,7 +2477,6 @@ fn the_ledger_reads_alone() {
     let shape: Vec<&Problem> = problems
         .iter()
         .filter(|p| p.rule.starts_with("decision.") && p.rule != "decision.unapproved")
-        .filter(|p| !approved_over_its_shape(p))
         .collect();
     assert!(shape.is_empty(), "{shape:#?}");
     for entry in fs::read_dir(&decisions).unwrap() {

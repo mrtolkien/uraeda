@@ -80,16 +80,15 @@ pub struct SectionChange {
 pub struct PartChange {
     /// `kept`, `changed`, `added`, or `removed`.
     pub kind: String,
-    /// A list item's strength, as `Strength::as_str` names it.
-    pub strength: Option<String>,
     /// Its lines in the merge base's version, from the file's first line.
     pub before: Option<LineRange>,
     /// Its lines in the branch's version, from the file's first line.
     pub after: Option<LineRange>,
-    /// The part's words. For a rule, the words before its check.
+    /// The part's words. For a list item with a case, the words before it.
     pub runs: Vec<Run>,
-    /// For a rule, the words of its check, from "Checked by"; empty for any other part.
-    pub check: Vec<Run>,
+    /// For a list item, the words of its case, after "So:", which they leave out; empty for any
+    /// other part, and for an item with no case.
+    pub example: Vec<Run>,
 }
 
 /// Words of a part, joined with single spaces, all `kept`, `added`, or `removed`.
@@ -152,15 +151,19 @@ pub struct Decision {
     pub title: String,
     /// Its frontmatter's `icon`, a Lucide icon name, like `git-branch`.
     pub icon: Option<String>,
-    /// The first sentence of its first paragraph, when one comes before its first section.
-    pub summary: Option<String>,
+    /// The principle in the human's words: the text of the quote before its first section, its
+    /// paragraphs joined, when it opens with one.
+    pub quote: Option<String>,
+    /// What the quote needs to be understood alone: the paragraphs before its first section,
+    /// outside the quote, joined, when it has some.
+    pub context: Option<String>,
     /// The date of the last commit of the default branch touching it, `YYYY-MM-DD`.
     pub changed: Option<String>,
     /// Its file as read, frontmatter included: what a preview shows.
     pub text: String,
     pub document: Document,
-    /// The kept parts of its `## Rules` section, each with its strength and its check; empty for
-    /// an unreadable file or one without the section.
+    /// The kept parts of its `## Rules` section, each rule with its case; empty for an unreadable
+    /// file or one without the section.
     pub rules: Vec<PartChange>,
     /// The first problem `ura check` finds in it.
     pub problem: Option<String>,

@@ -1,9 +1,9 @@
 //! A decision's change between two versions of its file, its parts compared as `compare` matches
-//! them, each rule with its strength and its check apart.
+//! them, each rule with its case apart.
 
 use serde::Serialize;
 
-use super::strength::strength;
+use super::CASE;
 use crate::compare::{Part, Run, Version, diff, matched, section_titles, version};
 use crate::files::document::LineRange;
 use crate::files::frontmatter;
@@ -52,16 +52,15 @@ pub struct SectionChange {
 pub struct PartChange {
     /// `kept`, `changed`, `added`, or `removed`.
     pub kind: String,
-    /// A list item's strength, as `Strength::as_str` names it.
-    pub strength: Option<String>,
     /// Its lines in the merge base's version, from the file's first line.
     pub before: Option<LineRange>,
     /// Its lines in the branch's version, from the file's first line.
     pub after: Option<LineRange>,
-    /// The part's words. For a rule, the words before its check.
+    /// The part's words. For a list item with a case, the words before it.
     pub runs: Vec<Run>,
-    /// For a rule, the words of its check, from "Checked by"; empty for any other part.
-    pub check: Vec<Run>,
+    /// For a list item, the words of its case, after "So:", which they leave out; empty for any
+    /// other part, and for an item with no case.
+    pub example: Vec<Run>,
 }
 
 /// Compares the two versions of the decision `name`: `None` before for a new decision, `None`
@@ -156,59 +155,59 @@ fn compare_section(old: &[Part], new: &[Part]) -> Vec<PartChange> {
 /// A part's change from its two versions, at least one of them there.
 fn part_change(old: Option<&Part>, new: Option<&Part>) -> PartChange {
     let (kind, runs) = diff((old, new));
-    let shown = new.or(old);
-    let strength = shown
-        .filter(|part| part.item)
-        .and_then(|part| strength(&part.text))
-        .map(|strength| strength.as_str().to_string());
-    let (runs, check) = match strength {
-        Some(_) => split_check(runs),
-        None => (runs, Vec::new()),
+    let item = new.or(old).is_some_and(|part| part.item);
+    let (runs, example) = if item {
+        split_case(runs)
+    } else {
+        (runs, Vec::new())
     };
     PartChange {
         kind: kind.to_string(),
-        strength,
         before: old.map(|part| part.lines),
         after: new.map(|part| part.lines),
         runs,
-        check,
+        example,
     }
 }
 
-/// The words that start a rule's check, as decisions write it.
-const CHECK: &str = "Checked by";
-
-/// A rule's runs, split where its check starts: the runs before, and the check's. A run holding
-/// both is cut in two of its kind.
-fn split_check(runs: Vec<Run>) -> (Vec<Run>, Vec<Run>) {
+/// A rule's runs, split where its case starts: the runs before "So:", and the case's after it,
+/// "So:" left out. A run holding both is cut in two of its kind.
+fn split_case(runs: Vec<Run>) -> (Vec<Run>, Vec<Run>) {
     let Some((at, cut)) = runs
         .iter()
         .enumerate()
-        .find_map(|(at, run)| check_start(&run.text).map(|cut| (at, cut)))
+        .find_map(|(at, run)| case_start(&run.text).map(|cut| (at, cut)))
     else {
         return (runs, Vec::new());
     };
     let mut rule = runs;
-    let mut check = rule.split_off(at);
-    let before = check[0].text[..cut].trim_end().to_string();
-    check[0].text = check[0].text[cut..].to_string();
-    if !before.is_empty() {
-        rule.push(Run {
-            kind: check[0].kind.clone(),
-            text: before,
-        });
+    let mut case = rule.split_off(at);
+    let kind = case[0].kind.clone();
+    let before = case[0].text[..cut].trim_end().to_string();
+    let after = case[0].text[cut + CASE.len()..].trim_start().to_string();
+    if after.is_empty() {
+        case.remove(0);
+    } else {
+        case[0].text = after;
     }
-    (rule, check)
+    if !before.is_empty() {
+        rule.push(Run { kind, text: before });
+    }
+    (rule, case)
 }
 
-/// Where "Checked by" starts in a text: at its start, or after a space.
-fn check_start(text: &str) -> Option<usize> {
-    text.match_indices(CHECK).find_map(|(at, _)| {
+/// Where "So:" starts in a text, as a word of its own: at its start or after a space, and before
+/// a space or the end.
+fn case_start(text: &str) -> Option<usize> {
+    text.match_indices(CASE).find_map(|(at, _)| {
         let starts = text[..at]
             .chars()
             .next_back()
             .is_none_or(char::is_whitespace);
-        let ends = !text[at + CHECK.len()..].starts_with(|c: char| c.is_alphanumeric() || c == '_');
+        let ends = text[at + CASE.len()..]
+            .chars()
+            .next()
+            .is_none_or(char::is_whitespace);
         (starts && ends).then_some(at)
     })
 }

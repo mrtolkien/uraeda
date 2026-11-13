@@ -1,6 +1,6 @@
 //! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, beside the fixed
-//! folders, `ui/` among them, rounds have two digits, a change's folder holds only a change's
-//! files, and `specs/bugs/` is no longer used; and `layout.old-folder`: `specs/drafts/` and
+//! folders, `ui/` and `guides/` among them, rounds have two digits, a change's folder holds only a
+//! change's files, and `specs/bugs/` is no longer used; and `layout.old-folder`: `specs/drafts/` and
 //! `specs/backlog/` are no longer read.
 
 use std::fs;
@@ -61,7 +61,15 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
     let here = name(dir);
     let parent = dir.parent().map(name).unwrap_or_default();
     let fixed: &[&str] = if here == "specs" {
-        &["proposals", "notes", "decisions", "changes", "done", "ui"]
+        &[
+            "proposals",
+            "notes",
+            "decisions",
+            "changes",
+            "done",
+            "ui",
+            "guides",
+        ]
     } else if here == "changes" && parent == "specs" {
         &[]
     } else {
