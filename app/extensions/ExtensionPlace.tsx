@@ -14,6 +14,7 @@ import { declared, declaredBy } from "./declared";
 import { extensionHost } from "../store";
 import type { ExtensionRow } from "../store/protocol";
 import { Banner, Icon, Text } from "../ui/controls";
+import { ios } from "../ui/native";
 import { tokens } from "../ui/tokens";
 import { Empty } from "../ui/lists";
 import { pickedFonts, shownTheme } from "../ui/theme";
@@ -47,8 +48,11 @@ const NativeView = nativeComponent<ViewProps, ViewEvents>("uraeda.extension", {
   events: ["ready", "problem", "message"],
 });
 
-/** What runs a page here: the Linux host's view, or a browser's frame, with the same props. */
-const ExtensionView = platform.os === "web" ? ExtensionFrame : NativeView;
+/**
+ * What runs a page here: the Linux host's view, or a frame, a browser's or the iOS app's web view
+ * (`host.web.tsx`), with the same props. iOS registers no native view of its own.
+ */
+const ExtensionView = platform.os === "web" || ios ? ExtensionFrame : NativeView;
 
 export type ExtensionPlaceProps = {
   host: ExtensionHost;

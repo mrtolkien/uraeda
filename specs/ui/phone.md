@@ -188,6 +188,13 @@ square corners, its panes, and its type ("it needs to look iOS native with the c
 - **A swipe from the left edge goes back**, the page following the finger a little.
 - **What a key does has a tap**: a file's and a decision's "Edit" opens it in the editor, which
   `Space b` does on a keyboard.
+- **An extension's page runs in a web view**, WebKit's, in a process of its own: the browser's frame
+  (`extension.html`), which the app loads with the server as its base, puts the device's width and
+  the bridge to the app before, and fetches with the device's token. Any server's frame page works.
+- **The sidebar is a drawer from the leading edge**, over the page dimmed, as an iPhone app's: the
+  system has no sidebar on a phone. Its panel is the system's glass, its outer corners as round as
+  the screen's, its head the repository's name, which opens the switcher. A press beside it, the
+  system's escape gesture, or a swipe toward its edge closes it.
 - **Choices are felt**: a tab picked, a switch or a box flipped, a step taken, and a toast as it
   shows, an error's, a warning's, or a success's.
 - **"System" follows the phone's appearance**, the status bar and the system's parts with it.

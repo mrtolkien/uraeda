@@ -1,5 +1,5 @@
-// The web form of `uraeda.extension`: an extension's page in a browser, where the Linux host's
-// native view does not exist. It takes the view's props, gives its events, and takes its commands,
+// The web form of `uraeda.extension`: an extension's page in a browser, and in the iOS app, where
+// the Linux host's native view does not exist. It takes the view's props, gives its events, and takes its commands,
 // so `ExtensionPlace` draws either the same way, and answers the page with the same rules
 // (`pageChannel` in `host.tsx`): this file carries the channel, and decides nothing of what a page
 // may read or do.
@@ -21,10 +21,16 @@
 //   shape is checked, and its name is one the package grants. The frame takes the app's messages
 //   from the app's origin alone, which posts them at the frame's origin: a document the frame
 //   navigated to hears nothing, and the frame is taken away (`left`).
+// - **In the iOS app** the frame is a web view of its own, WebKit's, whose content runs in a process
+//   of its own, the frame's page loaded from the app with the server as its base. The app and the
+//   frame speak over the web view's bridge, Native Shell's `window.nsh.postMessage` one way and the
+//   view's `postMessage` the other, which nothing else reaches: the app puts what the frame needs
+//   for it before its page (`BRIDGED`), so the `extension.html` of any server works. The app
+//   fetches the page with the device's token, as the Linux view does.
 // - **What broke** is told by `PageWatch` (`crates/app/src/page_watch.rs`), the Linux view's rules.
 //   A browser cuts off no call: a page that never stops answers no ping, is named after 5 s, then
 //   its frame is taken away, which ends it.
-import { cleanup, effect, signal, untracked, View, WebView, type WebViewRef } from "nsh";
+import { cleanup, effect, platform, signal, untracked, View, WebView, type WebViewRef } from "nsh";
 import { PageWatch, verifyPage } from "uraeda/native";
 import type { PageMessage, PageProblem, ProblemKind } from "./host";
 import type { Declarations, PageParams } from "./page";
@@ -70,7 +76,13 @@ type Top = {
   addEventListener(kind: "message", listener: (event: Posted) => void): void;
   removeEventListener(kind: "message", listener: (event: Posted) => void): void;
 };
-const top = (globalThis as unknown as { top: Top }).top;
+const top = (globalThis as unknown as { top?: Top }).top;
+
+/**
+ * The app runs as Native Shell's own app, not in a browser: the iOS app. Its frame is a web view
+ * at the top of its own page, which speaks over the view's bridge alone.
+ */
+const bridged = platform.os !== "web";
 
 /** A secret no other frame can guess. */
 function secret(): string {
@@ -78,15 +90,34 @@ function secret(): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * What the iOS app puts before the frame's page, whichever server's it is, as a server built before
+ * the app's web view served it: the device's width, which WebKit lays a page out at a desktop's
+ * without, and the frame's messages to the app, which it posts to its parent at the app's origin,
+ * `""` here, carried over Native Shell's bridge instead. A web view at the top of its own page has
+ * no parent but itself.
+ */
+const BRIDGED =
+  '<meta name="viewport" content="width=device-width, initial-scale=1" />' +
+  "<script>(function () {" +
+  "var own = window.postMessage.bind(window);" +
+  "window.postMessage = function (data, origin) {" +
+  'if (origin === "" && window.nsh) { window.nsh.postMessage(data); return; }' +
+  "return own(data, origin);" +
+  "};" +
+  "})();</script>";
+
 /** The frame's page, fetched once, for frames sandboxed without an origin. */
 let framePage: Promise<string> | undefined;
 
 /** Where the page of `name` runs, for its load `load`, named by `named`. */
 async function home(server: string, name: string, load: number, named: object): Promise<Home> {
   const app = new URL(server);
-  const loopback = ["127.0.0.1", "localhost"].includes(app.hostname);
+  // A web view of the app's own takes the frame's page from the app, whatever the server's host.
+  const loopback = !bridged && ["127.0.0.1", "localhost"].includes(app.hostname);
   const label = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(name);
-  const said = JSON.stringify({ ...named, app: app.origin });
+  // Over the bridge the app's messages come with no origin: the frame takes them from "".
+  const said = JSON.stringify({ ...named, app: bridged ? "" : app.origin });
   if (loopback && label) {
     const origin = `http://${name}.localhost:${app.port}`;
     return { origin, src: `${origin}/extension.html?load=${load}#${encodeURIComponent(said)}` };
@@ -96,14 +127,19 @@ async function home(server: string, name: string, load: number, named: object): 
     throw new Error(`/extension.html answered ${answer.status}`);
   });
   const page = await framePage;
-  const first = `<script>window.uraedaFrame = ${said};</script>`;
+  const first = `${bridged ? BRIDGED : ""}<script>window.uraedaFrame = ${said};</script>`;
   const html = page.replace("<head>", `<head>\n${first}<!-- ${name}, load ${load} -->`);
   return { html, origin: "null" };
 }
 
-/** The body of a signed-in `GET` of `path`, answered 200. */
-async function got(server: string, path: string): Promise<Response> {
-  const answer = await fetch(`${server}${path}`);
+/**
+ * The body of a signed-in `GET` of `path`, answered 200: by the browser's cookie, or the device's
+ * token where it has one.
+ */
+async function got(server: string, path: string, token?: string): Promise<Response> {
+  const headers: Record<string, string> =
+    token === undefined ? {} : { authorization: `Bearer ${token}` };
+  const answer = await fetch(`${server}${path}`, { headers });
   if (answer.ok) return answer;
   throw new Error(`${path} answered ${answer.status}: ${(await answer.text()).trim()}`);
 }
@@ -114,12 +150,16 @@ function unrun(kind: ProblemKind, error: unknown): PageProblem {
   return { kind, message: error instanceof Error ? error.message : String(error), version: 0 };
 }
 
-async function fetched(server: string, name: string): Promise<Verified | PageProblem> {
+async function fetched(
+  server: string,
+  name: string,
+  token?: string,
+): Promise<Verified | PageProblem> {
   let key: string;
   let bytes: Uint8Array;
   try {
-    key = await (await got(server, "/extensions/key")).text();
-    const page = await got(server, `/extensions/${encodeURIComponent(name)}/page`);
+    key = await (await got(server, "/extensions/key", token)).text();
+    const page = await got(server, `/extensions/${encodeURIComponent(name)}/page`, token);
     bytes = new Uint8Array(await page.arrayBuffer());
   } catch (error) {
     return unrun("unreachable", error);
@@ -301,7 +341,8 @@ export function ExtensionFrame(props: PageViewProps) {
       asked(page, said.call, said.data, said.id);
     }
   };
-  top.addEventListener("message", heard);
+  // A browser's frames post to the app's page; the iOS app's web view, to its bridge (`onMessage`).
+  if (!bridged) top?.addEventListener("message", heard);
 
   props.ref?.({
     command(name, args) {
@@ -323,7 +364,7 @@ export function ExtensionFrame(props: PageViewProps) {
     const key = JSON.stringify({ name, params, version });
     if (!live || key === loaded || props.server === "" || name === "") return;
     loaded = key;
-    const page = await fetched(props.server, name);
+    const page = await fetched(props.server, name, props.token);
     if (!live || loaded !== key) return;
     if ("kind" in page) {
       props.onProblem?.(page);
@@ -355,7 +396,7 @@ export function ExtensionFrame(props: PageViewProps) {
   }, TICK);
   cleanup(() => {
     live = false;
-    top.removeEventListener("message", heard);
+    if (!bridged) top?.removeEventListener("message", heard);
     clearInterval(ticking);
     clearTimeout(started);
   });
@@ -369,6 +410,9 @@ export function ExtensionFrame(props: PageViewProps) {
             html={page().home.html}
             javaScriptEnabled
             onLoad={left}
+            // Over the view's bridge only its own document posts: the frame's page, whose
+            // origin is the one the app gave it.
+            onMessage={({ data }) => heard({ data, origin: page().of.origin, source: null })}
             ref={(view: WebViewRef) => {
               frame = view;
             }}

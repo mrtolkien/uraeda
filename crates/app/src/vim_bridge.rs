@@ -27,6 +27,7 @@ use nsh_core::time::Instant;
 use uraeda_vim::{Edit, Key, Lines, Mode, TextView, Vim};
 
 mod api;
+mod echo;
 mod keys;
 mod types;
 
@@ -87,6 +88,8 @@ struct Keep {
     command: RefCell<Option<String>>,
     /// The status last told.
     told: RefCell<VimStatus>,
+    /// The texts told to the owner since it last caught up (`echo.rs`).
+    texts: RefCell<echo::Told>,
 }
 
 /// The editor of every text field: Native Shell's editor set as a field, Markdown highlighted, or
@@ -133,7 +136,14 @@ impl Field {
         editor()
             .component_ref(&self.ed)
             .classes(classes)
-            .value(move || Some(props.value.get()))
+            // A text the keys typed past since is an echo that came late: the field keeps its own.
+            .value({
+                let echoes = self.keep.clone();
+                move || {
+                    let value = props.value.get();
+                    echoes.texts.borrow_mut().takes(&value).then_some(value)
+                }
+            })
             .language(move || {
                 Some(
                     props
@@ -161,6 +171,7 @@ impl Field {
             .decorations(move || block.block())
             .on_change(move |value: &SharedString| {
                 changed.keep.edited.set(true);
+                changed.keep.texts.borrow_mut().told(value);
                 changed.cx.emit(TextEditorEvent::Change(value.clone()));
             })
             .on_selection_change(move |all: &Vec<EditorSelection>| selected.selected(all))

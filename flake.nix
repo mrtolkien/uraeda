@@ -218,8 +218,12 @@
               desktop-file-utils
               squashfsTools
             ]
-            # On a Mac, `flock` for `scripts/isolated.sh`'s heavy slots: util-linux's is Linux's.
-            ++ lib.optionals stdenv.hostPlatform.isDarwin [ flock ]
+            # On a Mac, `flock` for `scripts/isolated.sh`'s heavy slots, util-linux's being Linux's,
+            # and brotli for `just web-build`, which the iOS app's extension pages run in.
+            ++ lib.optionals stdenv.hostPlatform.isDarwin [
+              flock
+              brotli
+            ]
             ++ lib.optionals (stdenv.hostPlatform.system == "x86_64-linux") [ (nshFor pkgs) ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (gtkFor pkgs);
           # `nix develop` points the temporary folder at a `nix-shell.*` folder of its own, and

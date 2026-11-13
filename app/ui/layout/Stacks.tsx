@@ -18,6 +18,7 @@ import { BottomBar, NavBar } from "./bars";
 import { kindOfKey } from "./arrangement";
 import { tabDrags } from "./drag";
 import { choices, frameState, same } from "./frame";
+import { Drawer } from "./Drawer";
 import { FloatingBar, Toolbar } from "./iosBars";
 import { besideOffer } from "./here";
 import { FrameKeys } from "./keys";
@@ -326,16 +327,31 @@ export function Stacks(props: StacksProps) {
                       </View>
                     </If>
                   </If>
-                  <Sheet
-                    onClose={() => sheet.set(false)}
-                    open={sheet()}
-                    // The sidebar's panes fill what holds them: a sheet as tall as its content
-                    // had none, and showed its title alone.
-                    style={{ height: Math.round(windowSize().height * 0.75) }}
-                    title={props.rail?.title ?? "Sidebar"}
+                  <If
+                    when={ios}
+                    else={
+                      <Sheet
+                        onClose={() => sheet.set(false)}
+                        open={sheet()}
+                        // The sidebar's panes fill what holds them: a sheet as tall as its
+                        // content had none, and showed its title alone.
+                        style={{ height: Math.round(windowSize().height * 0.75) }}
+                        title={props.rail?.title ?? "Sidebar"}
+                      >
+                        {props.rail?.sidebar}
+                      </Sheet>
+                    }
                   >
-                    {props.rail?.sidebar}
-                  </Sheet>
+                    {/* On iOS the sidebar is a drawer from the leading edge, as on an iPhone. */}
+                    <Drawer
+                      onClose={() => sheet.set(false)}
+                      onTitle={props.rail?.onTitle}
+                      open={sheet()}
+                      title={props.rail?.title ?? "Uraeda"}
+                    >
+                      {props.rail?.sidebar}
+                    </Drawer>
+                  </If>
                 </View>
               }
             >

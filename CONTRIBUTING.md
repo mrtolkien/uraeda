@@ -75,26 +75,21 @@ configuration, and cache folders are temporary, and never yours. The sandbox kee
 
 ### iOS
 
-On a Mac with Xcode, `just app-ios` runs the app in the iOS Simulator, reloading as its TSX changes,
-beside a sandbox the simulator reaches at `127.0.0.1` as the Mac does (`just sandbox --no-app`). Its
-first page asks for a server: "Use this Mac's sandbox" takes that one, and the field takes any other
+On a Mac with Xcode, `just app-ios` runs the app in the iOS Simulator, reloading as its TSX changes.
+Its first page asks for a server: "Use this Mac's sandbox" takes the one `just sandbox --no-app`
+started, which the simulator reaches at `127.0.0.1` as the Mac does. The field takes any other
 address, as a sandbox started with `--sign-in --port 4431`, whose
 `ura pair --data-dir <its folder>/data` prints a code and a link to pair with.
-`--device "iPhone 17 Pro"` picks a simulator. It needs NSH's `ios` component,
-`nsh component add ios`, with an `nsh` of the pinned version on the `PATH`: the dev shell brings NSH
-on Linux alone. The Rust targets are in [`rust-toolchain.toml`](rust-toolchain.toml).
-[`scripts/ios.sh`](scripts/ios.sh) puts Xcode's tools ahead of Nix's, which know no simulator, and
-sets the oldest iOS the app runs on, 15, for every crate: Rust's default for a device is older than
-a symbol QuickJS's C calls, and the device's link failed on it.
+`--device "iPhone 17 Pro"` picks a simulator. An extension's page runs in the frame page of the
+server's web build, `extension.html`: on a Mac, `nsh component add web` once, then `just web-build`,
+and a sandbox started with `URAEDA_WEB_BUILD=$PWD/target/web`. `just package-ios` builds the app
+with no development server, in `target/ios/`, and installs and starts it in the simulator; with
+`--target ios --sign "<identity>" --profile <file>.mobileprovision` it writes a device's `.ipa`
+instead (`security find-identity -v -p codesigning` lists the identities).
 
-A Mac's disk does not tell `undo.ts` from `Undo.tsx`: two files of one folder never differ by their
-letters' case alone, or the bundler takes one for the other there.
-
-What the app draws differently on iOS is in the [phone guide](specs/ui/phone.md#ios). On a device
-the app's host is TSX, `deviceHost` of [`app/screens/shell/host.ts`](app/screens/shell/host.ts): it
-keeps the server its owner named and the token it paired for. `nsh test` runs headless as iOS on
-every machine: `ios` of [`app/ui/native.ts`](app/ui/native.ts) is false there, so the tests draw the
-phone every other platform draws.
+A text field keeps the texts it told its owner until its owner gives the last of them back
+([`vim_bridge/echo.rs`](crates/app/src/vim_bridge/echo.rs)): a late echo of an older one never puts
+the caret back, which lost keys typed fast on a busy phone.
 
 #### On a phone
 
@@ -109,9 +104,6 @@ It finds the profile, the certificate, and the phone itself ([`scripts/ios.sh`](
 [`scripts/ios-device.py`](scripts/ios-device.py)), builds the app with no development server,
 installs it, and starts it. `URAEDA_IOS_DEVICE` names another phone, by the identifier
 `xcrun devicectl list devices` prints. Run it again for every new version of the app.
-`just package-ios` alone builds the app with no development server: for the simulator, installed and
-started there, or with `--target ios --id <the ID> --sign "<identity>" --profile <the profile>` the
-`.ipa` of a device.
 
 **Every 7 days on a free Apple account**, the profile and the certificate expire, and the app stops
 opening ("every provisioning profile has expired" is what the command says). Open the Xcode project
@@ -132,9 +124,11 @@ Team":
 3. Install once with `just install-ios`. On the phone, Settings, General, VPN & Device Management,
    under Developer App, tap your certificate, Trust. Then open the app.
 
-The app asks for its server on its first page: the address of the Mac that runs `ura serve`, as the
-phone reaches it, `https://<your Mac>.<tailnet>.ts.net` over Tailscale
-([docs/app.md](docs/app.md#reaching-it-from-another-device)), then the code `ura pair` prints.
+The app asks for its server on its first page: the address of the Mac that runs `ura serve` as the
+phone reaches it, `https://<your Mac>.<tailnet>.ts.net` over Tailscale, then the code `ura pair`
+prints ([docs/app.md](docs/app.md#reaching-it-from-another-device)).
+`just package-ios --target ios --id <the ID> --sign "<identity>" --profile <the profile>` builds the
+`.ipa` alone.
 
 `nix develop -c just package` packages the app as a release ships it, in `target/package/`: the
 folder `uraeda/`, the same as a tarball and as an AppImage, each with its `.sha256`.

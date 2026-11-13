@@ -630,7 +630,8 @@ like `https://mac.tail1234.ts.net/`, once that name is in `allowed_hosts`.
 
 The iOS app asks for that address as it first opens, on "Connect to your server", then for a pairing
 code. The link `ura pair` prints does both at once, pasted in the same field. The server it uses is
-in Settings, under Sign-in, "This app's server", with "Use another server…".
+in Settings, under Sign-in, "This app's server", with "Use another server…". Your extensions' places
+and panes work there as in a browser.
 
 ## Sessions with Claude Code and Codex
 
