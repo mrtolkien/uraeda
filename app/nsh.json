@@ -9,7 +9,8 @@
   "icon": { "web": "web/icon.png" },
   "web": { "base": "/", "history": false },
   "updater": {
-    "github": "mrtolkien/uraeda"
+    "github": "mrtolkien/uraeda",
+    "publicKey": "LkKgugKypyl2JkbSl7yGsaTSmS/ZAarkezaRGQa6PnE="
   },
   "ios": {
     "infoPlist": {
