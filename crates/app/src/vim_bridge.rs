@@ -32,7 +32,7 @@ mod keys;
 mod types;
 
 pub use api::TextEditorApi;
-use keys::{editor_position, position, vim_key, vim_strokes};
+use keys::{caret_box, editor_position, open_vim, position, vim_key, vim_strokes};
 pub use types::*;
 
 thread_local! {
@@ -484,25 +484,4 @@ impl Field {
             self.cx.emit(TextEditorEvent::Status(status));
         }
     }
-}
-
-/// The layer for a field that takes the focus: typing, or in normal mode as a buffer opens.
-fn open_vim(vim: &mut Vim, view: &TextView<'_>, normal: bool) -> Vec<Edit> {
-    if normal {
-        vim.reset();
-        vim.sync(view)
-    } else {
-        vim.insert(view)
-    }
-}
-
-/// The caret's box in the field, when it is laid out.
-fn caret_box(api: &EditorApi) -> Option<CaretBox> {
-    let bounds = api.caret_bounds()?.bounds;
-    Some(CaretBox {
-        x: f64::from(bounds.origin.x.0),
-        y: f64::from(bounds.origin.y.0),
-        width: f64::from(bounds.size.width.0),
-        height: f64::from(bounds.size.height.0),
-    })
 }

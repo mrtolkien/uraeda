@@ -1,7 +1,10 @@
-//! The keys Vim takes, as `keymap` names them, and positions between the layer and the editor.
+//! The keys Vim takes, as `keymap` names them, positions between the layer and the editor, and
+//! the caret's box.
 
-use nsh_base::editor::EditorPosition;
-use uraeda_vim::{Key, Position};
+use nsh_base::editor::{EditorApi, EditorPosition};
+use uraeda_vim::{Edit, Key, Position, TextView, Vim};
+
+use super::CaretBox;
 
 /// The characters of the US layout's keys, without and with Shift, as `keymap` names the keys.
 const PLAIN: &str = "abcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./";
@@ -52,4 +55,25 @@ pub(super) fn position(at: EditorPosition) -> Position {
 
 pub(super) fn editor_position(at: Position) -> EditorPosition {
     EditorPosition::new(at.line, at.column)
+}
+
+/// The layer for a field that takes the focus: typing, or in normal mode as a buffer opens.
+pub(super) fn open_vim(vim: &mut Vim, view: &TextView<'_>, normal: bool) -> Vec<Edit> {
+    if normal {
+        vim.reset();
+        vim.sync(view)
+    } else {
+        vim.insert(view)
+    }
+}
+
+/// The caret's box in the field, when it is laid out.
+pub(super) fn caret_box(api: &EditorApi) -> Option<CaretBox> {
+    let bounds = api.caret_bounds()?.bounds;
+    Some(CaretBox {
+        x: f64::from(bounds.origin.x.0),
+        y: f64::from(bounds.origin.y.0),
+        width: f64::from(bounds.size.width.0),
+        height: f64::from(bounds.size.height.0),
+    })
 }
