@@ -37,3 +37,7 @@ install-updater = false
 precise-builds = true
 # The release workflow runs on tags only: CI runs `dist plan` on pull requests
 pr-run-mode = "skip"
+
+# GitHub retired macos-14, which dist 0.33 still picks for Apple Silicon
+[dist.github-custom-runners]
+aarch64-apple-darwin = "macos-15"
