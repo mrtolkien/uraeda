@@ -18,8 +18,8 @@ permissions:
 # `ready` runs the full pass, every check of the repository, then fails when its checks changed a
 # file, such as a generated one left uncommitted: `crates/xtask/tests/toolchain.rs` checks that a
 # job runs it. `web` builds the app for a browser and opens it, and `release` checks the release's
-# plan and packages the Linux app. Validation runs on Linux x64 only; the release matrix builds
-# the other platforms.
+# plan and packages the Linux app, and `macos` packages the Mac app. Validation runs on Linux x64
+# only; the release matrix builds the other platforms.
 jobs:
   ready:
     runs-on: ubuntu-latest
@@ -100,6 +100,25 @@ jobs:
           size=$(stat -c %s target/dist/ura)
           echo "ura: $size bytes"
 
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  macos:
+    # The Mac app's package, on Apple silicon, as the release builds it (`build-app-macos.yml`):
+    # the app's crates and NSH's AppKit runner in release, `ura` with link-time optimisation, and
+    # the web build `ura` holds.
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Check the app's types on macOS
+        # The app's crate builds there with the Mac's server start and keychain (`local.rs`).
+        run: nix develop --command just app-check
+      - name: Package the Mac app
+        run: nix develop --command just package-macos
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain

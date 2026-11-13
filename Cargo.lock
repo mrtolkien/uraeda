@@ -9234,6 +9234,7 @@ dependencies = [
  "rolldown_fs",
  "rolldown_std_utils",
  "rolldown_tracing",
+ "security-framework",
  "serde",
  "serde_json",
  "syntect",

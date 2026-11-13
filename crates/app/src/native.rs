@@ -30,6 +30,7 @@ use nsh_core::prelude::*;
 /// Adds every export of `uraeda/native` to `registry`, one line for each part.
 pub(crate) fn register(registry: &mut Registry) {
     registry.module::<crate::about::About>();
+    registry.module::<crate::local::Local>();
     // The files of `assets/`, the bundled fonts, which Native Shell registers before the first frame:
     // in a browser only the first face, the others as they are shown.
     registry.assets(crate::fonts::registered());

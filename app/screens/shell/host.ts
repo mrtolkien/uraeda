@@ -2,9 +2,14 @@
 // Linux the app's host, `uraeda` (`crates/app/src/host.rs`), answers over NSH's host channel: it
 // finds or starts this machine's server, and keeps the token in the system's secret store. On a
 // phone or a tablet there is no server to start: its owner names one, another machine's, once, and
-// the device pairs with it and keeps its token (`deviceHost`). Run without either, by `just
-// app-dev` or a test's picture, the app works with a sandbox, which needs no sign-in.
+// the device pairs with it and keeps its token (`deviceHost`). On a Mac the app's own native
+// module finds or starts this machine's server, as the Linux host does, and keeps the token in the
+// login keychain (`macHost`, `crates/app/src/local.rs`). Run without any, by `just app-dev`, a test,
+// or a picture, the app works with a sandbox, which needs no sign-in.
 import { type Accessor, host, platform, signal } from "nsh";
+import { Application } from "nsh/desktop";
+import { localForget, localPair, localServer, localStop, localToken } from "uraeda/native";
+import { followed } from "../../sandbox/tracked";
 import { device } from "../../store/device";
 import { refusalOf } from "../../ui/controls";
 import { ios } from "../../ui/native";
@@ -165,10 +170,38 @@ export function deviceHost(): ShellHost {
   };
 }
 
-/** The host the app runs in: the Linux host's channel, a device's own, or the sandbox. */
+/**
+ * The Mac app's host: this Mac's server, found or started by the app's native module, which stops
+ * the one it started as the app quits. The device pairs with it by itself, and its token is kept
+ * in the login keychain.
+ */
+export function macHost(): ShellHost {
+  Application.on("quit", () => localStop());
+  return {
+    forget: () => localForget(),
+    pair: (given) =>
+      localPair(
+        given !== null && "code" in given ? given.code : null,
+        given !== null && "key" in given ? given.key : null,
+      ),
+    server: async () => ({ address: await localServer(), local: true }),
+    token: () => localToken(),
+  };
+}
+
+/**
+ * Whether the app is the Mac app a person opened: on macOS, neither a development run nor a test,
+ * which work with a sandbox (`URAEDA_SANDBOX`).
+ */
+const macApp = () =>
+  platform.os === "macos" && !followed && process.env.URAEDA_SANDBOX === undefined;
+
+/** The host the app runs in: the Linux host's channel, a device's own, the Mac's, or the sandbox. */
 export function appHost(): ShellHost {
   if (host.params.local === undefined) {
-    return ios ? deviceHost() : sandboxHost(process.env.URAEDA_SANDBOX ?? SANDBOX);
+    if (ios) return deviceHost();
+    if (macApp()) return macHost();
+    return sandboxHost(process.env.URAEDA_SANDBOX ?? SANDBOX);
   }
   return {
     forget: () => ask<null>("uraeda.forget").then(() => undefined),

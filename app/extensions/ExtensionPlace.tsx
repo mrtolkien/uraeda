@@ -49,10 +49,11 @@ const NativeView = nativeComponent<ViewProps, ViewEvents>("uraeda.extension", {
 });
 
 /**
- * What runs a page here: the Linux host's view, or a frame, a browser's or the iOS app's web view
- * (`host.web.tsx`), with the same props. iOS registers no native view of its own.
+ * What runs a page here: the Linux host's view, or a frame, a browser's or the Apple apps' web
+ * view (`host.web.tsx`), with the same props. iOS and the Mac register no native view of their own.
  */
-const ExtensionView = platform.os === "web" || ios ? ExtensionFrame : NativeView;
+const ExtensionView =
+  platform.os === "web" || platform.os === "macos" || ios ? ExtensionFrame : NativeView;
 
 export type ExtensionPlaceProps = {
   host: ExtensionHost;

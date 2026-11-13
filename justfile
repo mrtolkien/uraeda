@@ -88,7 +88,8 @@ app-check:
 app-test:
     {{ heavy }} scripts/sandboxed.sh {{ nsh }} test
 
-# The app on GTK, with hot reload. An agent, and any check, runs `hidden-display just app-dev`.
+# The app with hot reload: on GTK, or on a Mac on AppKit, over a sandbox already running at 4420
+# (`just sandbox --no-app`). An agent, and any check, runs `hidden-display just app-dev` on Linux.
 app-dev *args:
     {{ nsh }} run "$@"
 
@@ -108,6 +109,14 @@ package-ios *args:
 # for every new version, and every 7 days on a free account.
 install-ios:
     scripts/ios.sh install
+
+# The Mac app as a release ships it, in `target/macos/`: `Uraeda.app`, with `ura` inside, which
+# it starts as its server when none runs, and `uraeda-app-aarch64-macos.zip` with its `.sha256`.
+# On an Apple silicon Mac. `just package-macos --open` opens it after: it finds this Mac's server,
+# or starts one, and stops the one it started as it quits. It makes the web build `ura` holds,
+# unless `URAEDA_WEB_BUILD` names one, as the release's does.
+package-macos *args:
+    scripts/macos.sh "$@"
 
 # The app on Linux, `uraeda`, built with `ura` beside it: it finds this machine's server, or starts
 # it, and stops the one it started when its window closes. Its flags: `--server <address>` for

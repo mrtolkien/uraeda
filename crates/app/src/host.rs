@@ -13,7 +13,6 @@
 //! An extension's page runs in a view of its own, with a channel of its own: it reaches none of
 //! these.
 
-mod pairing;
 mod secrets;
 mod window;
 
@@ -21,6 +20,7 @@ pub use window::{Args, run};
 
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
+use crate::pairing;
 use crate::server_start::Local;
 
 /// The server the app works with.

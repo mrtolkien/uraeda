@@ -61,8 +61,9 @@ echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 
 The app runs in any browser, a phone's too: `ura serve` serves it, as
 [a server alone](#a-server-alone) says, and nothing else is installed. On Linux x64, it is also a
-desktop window, which this section installs. The desktop app holds its own `ura`: on its machine, it
-finds the server running, or starts `ura serve` and stops it when its window closes.
+desktop window, and on a Mac with Apple silicon a Mac app, which this section installs. The desktop
+app holds its own `ura`: on its machine, it finds the server running, or starts `ura serve` and
+stops it when its window closes.
 
 It needs GTK 4.14 or newer and WebKitGTK 6.0, which Ubuntu 24.04, Debian 13, Fedora 40, and later
 releases have. A desktop usually has GTK already; WebKitGTK may need installing:
@@ -103,6 +104,22 @@ cp -r ~/.local/opt/uraeda/share/. ~/.local/share/
 
 Uraeda is then in the desktop's launcher, and `uraeda` starts it from a terminal. Its `ura` comes
 with the app, so `ura upgrade` does not update it: install the next release's tarball instead.
+
+### On a Mac
+
+Each release has the Mac app, for Apple silicon and macOS 14 or newer, as a zip of `Uraeda.app`:
+
+```sh
+curl -LO https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-app-aarch64-macos.zip
+ditto -x -k uraeda-app-aarch64-macos.zip /Applications
+xattr -dr com.apple.quarantine /Applications/Uraeda.app
+```
+
+The app is signed ad hoc, not by a known developer, so macOS refuses to open it from a download: the
+last line lifts that, once. It opens your server as it does on Linux, with the `ura` inside it, and
+keeps its pairing in your login keychain, which asks once to let it read it after each update. Its
+`ura` serves with your login shell's `PATH`, so it finds `git`, `claude`, and `codex` as a terminal
+does. It does not update itself: install the next release's zip the same way.
 
 ### Another machine's server
 

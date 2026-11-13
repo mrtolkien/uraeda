@@ -22,7 +22,8 @@ required-features = ["host"]
 default = ["host"]
 # The Linux host's native component `uraeda.extension`, which runs an extension's page in a view
 # of its own. The server takes the module list of `uraeda/native` alone, without GTK.
-# The Linux host, `uraeda`, and its server start and secret store (`host.rs`, `server_start.rs`).
+# The Linux host, `uraeda`, and its server start and secret store (`host.rs`, `server_start.rs`);
+# on a Mac, the app's way to its own server (`local.rs`).
 host = [
   "dep:libc",
   "dep:nsh-engine",
@@ -30,6 +31,7 @@ host = [
   "dep:tokio",
   "dep:ureq",
   "dep:uraeda-core",
+  "dep:security-framework",
 ]
 
 # Every integration test, in one program: each program linked the whole crate and what it depends
@@ -82,6 +84,15 @@ libc = { workspace = true, optional = true }
 # The desktop's notifications are answered on a thread of their own (`notify.rs`).
 tokio = { workspace = true, optional = true }
 # The host's own data folder, where it keeps this machine's server (`host/window.rs`).
+uraeda-core = { workspace = true, optional = true }
+
+# The Mac app's way to its own server (`local.rs`): it finds or starts `ura serve`, as the Linux
+# host does (`server_start.rs`), pairs with it (`pairing.rs`), and keeps the device's token in the
+# login keychain.
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = { workspace = true, optional = true }
+security-framework = { version = "3.7", optional = true }
+ureq = { workspace = true, optional = true }
 uraeda-core = { workspace = true, optional = true }
 
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that

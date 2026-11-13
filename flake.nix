@@ -30,38 +30,62 @@
       # Native Shell's CLI, `nsh`, with the runtimes it runs and packages a TSX app on: the release's
       # prebuilt distribution, pinned by its version and its hashes. The version is also the `nsh-*`
       # crates' in `Cargo.toml` and `minRuntime` in `app/nsh.json`, and the release's commit is in
-      # `AGENTS.md`: they move together. NSH releases it for x86_64 Linux only, so the app builds
-      # there.
+      # `AGENTS.md`: they move together. A new hash is what
+      # `nix store prefetch-file --hash-type sha256 <url>` prints.
+      #
+      # - On x86_64 Linux: GTK's runtime, and the web's.
+      # - On an Apple silicon Mac: AppKit's runtime, the web's, and iOS's (the simulator's, a
+      #   device's, and Mac Catalyst's), which `just app-ios` and `just package-ios` take.
+      nshVersion = "0.5.0";
+      nshRelease = name: "https://github.com/longbridge/nsh/releases/download/v${nshVersion}/${name}";
       nshFor =
         pkgs:
-        pkgs.stdenv.mkDerivation (finalAttrs: {
-          pname = "nsh";
-          version = "0.5.0";
-          src = pkgs.fetchurl {
-            url = "https://github.com/longbridge/nsh/releases/download/v${finalAttrs.version}/nsh-linux-x86_64.tar.gz";
-            hash = "sha256-pCK75dwqeuP/MI7lbgXXPVvsyB9XrfEUR/xXDc7mXg8=";
-          };
-          # The web runtime, a component of the release since 0.5.0: `nsh` would download it at the
-          # first web build, into its own folder, which the store does not allow. Its record,
-          # `components/web.json`, tells `nsh` it is installed. A new hash is what
-          # `nix store prefetch-file --hash-type sha256 <url>` prints.
+        let
+          darwin = pkgs.stdenv.hostPlatform.isDarwin;
+          # The web runtime, a component of the release since 0.5.0: `nsh` would download it at
+          # the first web build, into its own folder, which the store does not allow. Its record,
+          # `components/web.json`, tells `nsh` it is installed. iOS's is another component, with
+          # its own record.
           web = pkgs.fetchurl {
-            url = "https://github.com/longbridge/nsh/releases/download/v${finalAttrs.version}/nsh-web.tar.gz";
+            url = nshRelease "nsh-web.tar.gz";
             hash = "sha256-F8TYtpDBKR/+7FnG3MbLlnvQPbtIZKyaYdPNPSGSxHc=";
           };
-          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
-          buildInputs = gtkFor pkgs ++ [ pkgs.stdenv.cc.cc.lib ];
-          # `nsh` finds its runtimes in `bin/../runtime`: Linux's, which the release holds, and the
-          # web's. Android's, GPUI's, the terminal's, and the embedding kits are other components,
-          # left out: the app targets GTK and the web.
+          ios = pkgs.fetchurl {
+            url = nshRelease "nsh-ios-macos-arm64.tar.gz";
+            hash = "sha256-4KUDlwKtPFP6k42N+6SIhW6L6GMvX6wVOPJB329rtT0=";
+          };
+        in
+        pkgs.stdenv.mkDerivation {
+          pname = "nsh";
+          version = nshVersion;
+          src =
+            if darwin then
+              pkgs.fetchurl {
+                url = nshRelease "nsh-macos-arm64.tar.gz";
+                hash = "sha256-5nIkJ7ORsAz37BMTfbk2bnjR56BF8pM88As0A2UwnZ0=";
+              }
+            else
+              pkgs.fetchurl {
+                url = nshRelease "nsh-linux-x86_64.tar.gz";
+                hash = "sha256-pCK75dwqeuP/MI7lbgXXPVvsyB9XrfEUR/xXDc7mXg8=";
+              };
+          nativeBuildInputs = pkgs.lib.optionals (!darwin) [ pkgs.autoPatchelfHook ];
+          buildInputs = pkgs.lib.optionals (!darwin) (gtkFor pkgs ++ [ pkgs.stdenv.cc.cc.lib ]);
+          # `nsh` finds its runtimes in `bin/../runtime`: the platform's own, which the release
+          # holds, the web's, and on a Mac iOS's. Android's, GPUI's, the terminal's, and the
+          # embedding kits are other components, left out.
           installPhase = ''
             mkdir -p $out/runtime
             cp -r bin $out/bin
-            cp -r runtime/linux $out/runtime/
-            tar -xzf $web --strip-components=1 -C $out nsh/runtime/web nsh/components/web.json
+            cp -r runtime/* $out/runtime/
+            tar -xzf ${web} --strip-components=1 -C $out nsh/runtime/web nsh/components/web.json
+          ''
+          + pkgs.lib.optionalString darwin ''
+            tar -xzf ${ios} --strip-components=1 -C $out nsh/runtime/ios nsh/components/ios.json
           '';
+          # The Mac's programs are signed: stripping them would break their signatures.
           dontStrip = true;
-        });
+        };
 
       # The C compiler of the web build: Native Shell's `zlib` module links zstd's C library into
       # the WebAssembly module. The dev shell's `clang` is Nix's wrapper, which hardens every
@@ -224,7 +248,10 @@
               flock
               brotli
             ]
-            ++ lib.optionals (stdenv.hostPlatform.system == "x86_64-linux") [ (nshFor pkgs) ];
+            # NSH releases its CLI for these two: the app builds there.
+            ++ lib.optionals (
+              stdenv.hostPlatform.system == "x86_64-linux" || stdenv.hostPlatform.system == "aarch64-darwin"
+            ) [ (nshFor pkgs) ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (gtkFor pkgs);
           # `nix develop` points the temporary folder at a `nix-shell.*` folder of its own, and
           # writes its shell's startup file in a `nix-develop-<its pid>-*` one: it removes neither

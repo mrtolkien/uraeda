@@ -1,5 +1,5 @@
 //! Uraeda's app on Native Shell: the native module the app's TSX imports as `uraeda/native`, the
-//! app's native components, and the Linux host.
+//! app's native components, the Linux host, and the Mac app's way to its server.
 
 mod about;
 mod apart;
@@ -14,13 +14,16 @@ mod frames;
 mod highlight;
 #[cfg(all(target_os = "linux", feature = "host"))]
 pub mod host;
+mod local;
 mod native;
 pub mod notify;
 mod page_trust;
 mod page_watch;
+#[cfg(all(any(target_os = "linux", target_os = "macos"), feature = "host"))]
+mod pairing;
 mod patch;
 mod reply;
-#[cfg(all(target_os = "linux", feature = "host"))]
+#[cfg(all(any(target_os = "linux", target_os = "macos"), feature = "host"))]
 pub mod server_start;
 pub mod theme;
 mod time;

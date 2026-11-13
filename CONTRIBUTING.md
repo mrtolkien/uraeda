@@ -41,9 +41,10 @@ The UI is one TSX app on [Native Shell](https://nsh.dev) (NSH), in [`app/`](app/
 crate in [`crates/app/`](crates/app/). It talks to the server, [`crates/server/`](crates/server/),
 over [`crates/protocol/`](crates/protocol/), and edits text through [`crates/vim/`](crates/vim/).
 `nix develop` on x86_64 Linux brings what they build with: NSH's CLI, `nsh`, GTK 4 and WebKitGTK
-6.0, clang, and a display no screen shows. Without Nix, install NSH 0.5.0, the version of the
-`nsh-*` crates in [`Cargo.toml`](Cargo.toml), with what its
-[installation page](https://nsh.dev/docs/installation) lists for Linux.
+6.0, clang, and a display no screen shows. On an Apple silicon Mac it brings `nsh` with its AppKit,
+iOS, and web runtimes; the Mac app needs Xcode's command line tools too, and the iOS app Xcode.
+Without Nix, install NSH 0.5.0, the version of the `nsh-*` crates in [`Cargo.toml`](Cargo.toml),
+with what its [installation page](https://nsh.dev/docs/installation) lists for Linux.
 
 ```sh
 just app-check                         # cargo check of the app's crate, then the types of its TSX
@@ -61,6 +62,8 @@ just gallery                           # every component of the library, in one 
 just sandboxed scripts/nsh.sh test     # a command beside a fresh sandbox, its address in URAEDA_SANDBOX
 just web-build                         # the app for a browser, in target/web/, which ura serve serves
 just web-test                          # that build in a real browser: sign-in, the home page, its pictures
+just app-dev                           # on a Mac: the app in an AppKit window, over `just sandbox --no-app`
+just package-macos                     # the Mac app as a release ships it, in target/macos/
 just app-ios                           # the app in the iOS Simulator, on a Mac, with hot reload
 just package-ios                       # the iOS app as a device installs it, in target/ios/
 just install-ios                       # that app, built and installed on the phone that is plugged in
@@ -72,6 +75,27 @@ way, as `just nsh build`. `just app-check` also writes NSH's types in `app/.nsh/
 picture, and sandbox recipe runs through [`scripts/isolated.sh`](scripts/isolated.sh): its data,
 configuration, and cache folders are temporary, and never yours. The sandbox keeps its state in
 `.sandbox/` until `--reset`, and never reads your projects, your data, or a real agent.
+
+### macOS
+
+On a Mac, `just app-dev` runs the app on AppKit, reloading as its TSX changes, over the sandbox that
+`just sandbox --no-app` started (`just sandbox` alone starts both). It opens a window on your
+screen: macOS has no hidden display. The checks' pictures draw in windows too:
+`nsh test --target macos` puts them on a second display when there is one, and in the background.
+Leave `--window-size` larger than the screen out: a window macOS shrinks as it opens keeps its
+texts' first layout, wrapped too wide, until each changes.
+
+`nix develop -c just package-macos` packages the app as a release ships it, in `target/macos/`:
+`Uraeda.app` and `uraeda-app-aarch64-macos.zip`, with its `.sha256`
+([`scripts/macos.sh`](scripts/macos.sh)). `nsh package --target macos` builds NSH's AppKit runner
+with the app's crate and the TSX compiled for release; the script puts `ura`, built with the
+`release-app` profile, beside the runner in `Contents/MacOS/`, and signs the bundle again, ad hoc.
+`--open` opens it after: it finds this Mac's server through its status file, or starts the `ura`
+beside it in `ura serve`'s data folder, with your login shell's `PATH`, and keeps the device's token
+in the login keychain ([`crates/app/src/local.rs`](crates/app/src/local.rs)). A development run and
+the checks work with the sandbox instead, and never start a server. The look the Mac takes, the
+toolbar, the menu bar, the system's menus and alerts, is in
+[`specs/ui/wide.md`](specs/ui/wide.md#macos).
 
 ### iOS
 

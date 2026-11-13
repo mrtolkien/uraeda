@@ -18,9 +18,10 @@ publish-jobs = ["./publish-homebrew"]
 # `.github/build-setup.yml` put its files where each build of `ura` reads them
 plan-jobs = ["./build-web"]
 github-build-setup = "../build-setup.yml"
-# The Linux app, its tarball and its AppImage, built from the same tag and released with `ura`:
-# `.github/workflows/build-app.yml`, which runs `just package` in the dev shell
-global-artifacts-jobs = ["./build-app"]
+# The Linux app, its tarball and its AppImage, and the Mac app, its zip, built from the same tag
+# and released with `ura`: `.github/workflows/build-app.yml`, which runs `just package` in the dev
+# shell, and `.github/workflows/build-app-macos.yml`, which runs `just package-macos`
+global-artifacts-jobs = ["./build-app", "./build-app-macos"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
   "aarch64-apple-darwin",
