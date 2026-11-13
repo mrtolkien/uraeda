@@ -60,47 +60,34 @@ fn context_parts(doc: &Document) -> Vec<ContextPart> {
         .collect()
 }
 
-/// The settled groups, all before the `**Notes:**` line: `## Check these`, with its blocks before
-/// any sub-heading, then the settled section's `### Behaviour` and `### Under the hood`. Each is its
-/// heading and its top-level blocks. An unknown sub-heading, which `ura check` reports, like the old
-/// format's `### Check these` or any heading under `## Check these`, makes no group: the blocks
-/// under it are in none.
+/// The settled groups, all before the `**Notes:**` line: `## Check these`, before the questions,
+/// then `## Settled without the human`, after them. Each is its `##` heading and its top-level
+/// blocks before any sub-heading: a `###` heading there, which `ura check` reports, like the old
+/// format's `### Behaviour`, makes no group, and the blocks under it are in none.
 fn settled_groups(doc: &Document, notes_line: usize) -> Vec<SettledGroup> {
-    let check = top_section(doc, "Check these").map(|index| {
-        let blocks = parts(doc, "Check these")
+    [
+        ("Check these", SettledKind::Check),
+        ("Settled without the human", SettledKind::Settled),
+    ]
+    .into_iter()
+    .filter_map(|(title, kind)| {
+        let heading = top_section(doc, title)?;
+        let blocks: Vec<u32> = parts(doc, title)
             .into_iter()
-            .find(|(heading, _)| heading.is_none())
+            .find(|(sub_heading, _)| sub_heading.is_none())
             .map(|(_, blocks)| blocks)
-            .unwrap_or_default();
-        (index, SettledKind::Check, blocks)
-    });
-    let settled = parts(doc, "Settled without the human")
-        .into_iter()
-        .filter_map(|(heading, blocks)| {
-            let heading = heading?;
-            let kind = match plain(&doc.blocks[heading].spans).as_str() {
-                "Behaviour" => SettledKind::Behaviour,
-                "Under the hood" => SettledKind::Hood,
-                _ => return None,
-            };
-            Some((heading, kind, blocks))
-        });
-    check
-        .into_iter()
-        .chain(settled)
-        .map(|(heading, kind, blocks)| {
-            let blocks: Vec<u32> = blocks
-                .into_iter()
-                .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
-                .collect();
-            SettledGroup {
-                heading: doc.blocks[heading].id,
-                kind,
-                points: u32::try_from(points_in(doc, &blocks).count()).unwrap_or(u32::MAX),
-                blocks,
-            }
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
+            .collect();
+        Some(SettledGroup {
+            heading: doc.blocks[heading].id,
+            kind,
+            points: u32::try_from(points_in(doc, &blocks).count()).unwrap_or(u32::MAX),
+            blocks,
         })
-        .collect()
+    })
+    .collect()
 }
 
 /// The points among a group's blocks, in order: the items of its lists that start in bold.

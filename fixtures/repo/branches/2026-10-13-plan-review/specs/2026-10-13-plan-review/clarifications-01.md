@@ -251,8 +251,6 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
 
 ## Settled without the human
 
-### Behaviour
-
 - **Monthly repeats on the 29th to 31st** fall on the last day of shorter months, which is what
   date-fns' `addMonths` does. See [discovery](discovery-01.md#dates-in-javascript).
 - **Repeating tasks show a repeat icon** in the list, next to the due date, with the project's

@@ -2,11 +2,12 @@
 //! template's order, and no level-2 section the template does not have, nor, in a round, a level-3
 //! heading under a section whose template has only fixed ones. A template section whose
 //! placeholder starts with `[Optional` may be left out, and one starting `[Optional, required from
-//! round 02` only in a first round. `settled.*`: a round's settled points sit in groups, each starting with its bold subject.
+//! round 02` only in a first round. `settled.subject`: a round's settled points each start with
+//! their bold subject.
 
 use crate::actions::triage;
 use crate::embedded;
-use crate::files::document::{self, Block, BlockKind, plain};
+use crate::files::document;
 use crate::files::markdown::{Document, Heading};
 use crate::files::{clarifications, inbox, items};
 use crate::workspace::{FileKind, Problem};
@@ -248,10 +249,13 @@ fn fixed_children<'a>(slots: &'a [TemplateHeading], heading: &Heading) -> Option
     (!texts.is_empty() && texts.len() == children.len()).then_some(texts)
 }
 
+/// The round's two sections of settled points, which hold their points with no sub-heading.
+const SETTLED: [&str; 2] = ["Check these", "Settled without the human"];
+
 /// Unknown level-2 sections, unless the template lets any heading in, and in a round, unknown
-/// level-3 headings under a section whose template has only fixed ones: the Context and the
-/// settled points, and any heading under `## Check these`. A heading in a quote or a callout is
-/// the quote's, and left out.
+/// level-3 headings under a section whose template has only fixed ones, the Context, and any
+/// heading under `## Check these` or `## Settled without the human`. A heading in a quote or a
+/// callout is the quote's, and left out.
 fn check_unknown(
     file: &File<'_>,
     document: &Document,
@@ -274,15 +278,17 @@ fn check_unknown(
                         .iter()
                         .any(|s| s.level == 2 && matches(&s.slot, heading))
             }
-            // The points to check are list items with no sub-heading.
-            3.. if round && parent.is_some_and(|parent| parent.text == "Check these") => false,
+            // The settled points are list items with no sub-heading.
+            3.. if round
+                && parent.is_some_and(|parent| SETTLED.contains(&parent.text.as_str())) =>
+            {
+                false
+            }
             3 if round => parent
                 .and_then(|parent| fixed_children(slots, parent))
                 .is_none_or(|children| children.contains(&heading.text.as_str())),
-            // The page reads only `##` and `###` in these sections: a deeper heading is dropped.
-            4.. if round => parent.is_none_or(|parent| {
-                !["Context", "Settled without the human"].contains(&parent.text.as_str())
-            }),
+            // The page reads only `##` and `###` in the Context: a deeper heading is dropped.
+            4.. if round => parent.is_none_or(|parent| parent.text != "Context"),
             _ => true,
         };
         if !known {
@@ -347,42 +353,9 @@ fn check_order(
     }
 }
 
-/// `settled.group`: in a round, every point of the settled section sits under a group,
-/// `### Behaviour` or `### Under the hood`: a top-level list item between `## Settled without the
-/// human` and its first top-level sub-heading, or its notes, is in none. The points to check have a
-/// section of their own, `## Check these`, before the questions.
-pub(super) fn check_settled_groups(
-    file: &File<'_>,
-    tree: &document::Document,
-    problems: &mut Vec<Problem>,
-) {
-    let top_heading = |b: &Block, level: u32| {
-        b.parent.is_none() && b.kind == BlockKind::Heading && b.level.is_some_and(|l| l <= level)
-    };
-    let Some(start) = tree.blocks.iter().position(|b| {
-        top_heading(b, 2) && b.level == Some(2) && plain(&b.spans) == "Settled without the human"
-    }) else {
-        return;
-    };
-    let notes_line = clarifications::notes(file.text).map_or(u32::MAX, |(line, _)| line as u32);
-    let loose = tree.blocks[start + 1..]
-        .iter()
-        .filter(|b| b.parent.is_none())
-        .take_while(|b| !top_heading(b, 3) && b.start_line < notes_line)
-        .filter(|b| b.kind == BlockKind::List)
-        .flat_map(|list| tree.children(list.id));
-    for item in loose {
-        problems.push(file.problem(
-            Some(item.start_line as usize),
-            "settled.group",
-            "a settled point outside a group: put it under \"### Behaviour\" or \"### Under the hood\"",
-        ));
-    }
-}
-
-/// `settled.subject`: in a round, every point of `## Check these`, `### Behaviour`, and `### Under
-/// the hood` starts with its bold subject: a top-level list item that does not makes no point, and
-/// the page draws none for it.
+/// `settled.subject`: in a round, every point of `## Check these` and `## Settled without the
+/// human` starts with its bold subject: a top-level list item that does not makes no point, and the
+/// page draws none for it.
 pub(super) fn check_settled_subjects(
     file: &File<'_>,
     tree: &document::Document,

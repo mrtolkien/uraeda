@@ -141,7 +141,7 @@ fn a_round_has_its_questions_and_options() {
     assert_eq!(follow_up.parent_letter.as_deref(), Some("B"));
     assert_eq!(follow_up.applies, "no");
     let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
-    assert_eq!(kinds, [SettledKind::Check, SettledKind::Behaviour]);
+    assert_eq!(kinds, [SettledKind::Check, SettledKind::Settled]);
     let subjects = |group: &uraeda_core::files::items::SettledGroup| -> Vec<String> {
         round
             .settled_points
@@ -171,7 +171,7 @@ fn a_round_has_its_questions_and_options() {
             doc.text(group.heading),
             match group.kind {
                 SettledKind::Check => "Check these",
-                _ => "Behaviour",
+                SettledKind::Settled => "Settled without the human",
             }
         );
     }
@@ -773,12 +773,12 @@ fn a_subject_repeated_across_groups_takes_its_comment_on_the_first() {
     let text = format!(
         "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
 ## Check these\n\n- **Same subject** first.\n\n\
-## Settled without the human\n\n### Under the hood\n\n- **Same subject** second.\n- **Other** point.\n\n\
+## Settled without the human\n\n- **Same subject** second.\n- **Other** point.\n\n\
 **Notes:**\n\n- **Same subject**: A comment.\n"
     );
     let (round, doc) = round_of("clarifications-01.md", &text);
     let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
-    assert_eq!(kinds, [SettledKind::Check, SettledKind::Hood]);
+    assert_eq!(kinds, [SettledKind::Check, SettledKind::Settled]);
     let first = round.settled_groups[0].blocks[0];
     let point = doc.children(first).next().unwrap().id;
     assert_eq!(round.settled_comments.len(), 1);
@@ -790,7 +790,7 @@ fn a_subject_repeated_across_groups_takes_its_comment_on_the_first() {
 fn a_quoted_heading_starts_no_part_nor_group() {
     let text = format!(
         "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{}\n\
-## Settled without the human\n\n### Behaviour\n\n- **First** point.\n\n\
+## Settled without the human\n\n- **First** point.\n\n\
 > ### Under the hood\n>\n> A quoted source.\n\n- **Second** point.\n",
         PARTS.replace(
             "A scope.\n",
@@ -802,7 +802,7 @@ fn a_quoted_heading_starts_no_part_nor_group() {
     assert_eq!(titles, ["Goal", "Today", "Scope", "Sources"]);
     assert_eq!(round.context[2].blocks.len(), 2);
     let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
-    assert_eq!(kinds, [SettledKind::Behaviour]);
+    assert_eq!(kinds, [SettledKind::Settled]);
     let points: Vec<&str> = round
         .settled_points
         .iter()
@@ -879,20 +879,13 @@ fn group_subjects(
 }
 
 /// `## Check these`, before the questions, is the first settled group, its heading the section's;
-/// Behaviour and Under the hood follow from the settled section.
+/// the settled section's points follow, as one group.
 #[test]
 fn the_points_to_check_come_first() {
     let (round, doc) = fixture_round("round-merge-chats/clarifications-01.md", "");
 
     let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
-    assert_eq!(
-        kinds,
-        [
-            SettledKind::Check,
-            SettledKind::Behaviour,
-            SettledKind::Hood
-        ]
-    );
+    assert_eq!(kinds, [SettledKind::Check, SettledKind::Settled]);
     let check = &round.settled_groups[0];
     assert_eq!(doc.blocks[check.heading as usize].level, Some(2));
     assert_eq!(doc.text(check.heading), "Check these");
@@ -905,20 +898,24 @@ fn the_points_to_check_come_first() {
         .iter()
         .map(|g| group_subjects(&round, &doc, g).len())
         .collect();
-    assert_eq!(counts, [2, 3, 3]);
+    assert_eq!(counts, [2, 6]);
 }
 
-/// A `### Check these` under the settled section, the old format, makes no group.
+/// A sub-heading under the settled section, as the old format's `### Behaviour`, ends its points.
 #[test]
-fn check_these_under_settled_makes_no_group() {
+fn a_sub_heading_under_settled_ends_its_points() {
     let text = format!(
         "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
-## Settled without the human\n\n### Check these\n\n- **Old** point.\n\n\
-### Behaviour\n\n- **Kept** point.\n\n**Notes:**\n"
+## Settled without the human\n\n- **Kept** point.\n\n\
+### Behaviour\n\n- **Old** point.\n\n**Notes:**\n"
     );
-    let (round, _) = round_of("clarifications-01.md", &text);
+    let (round, doc) = round_of("clarifications-01.md", &text);
     let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
-    assert_eq!(kinds, [SettledKind::Behaviour]);
+    assert_eq!(kinds, [SettledKind::Settled]);
+    assert_eq!(
+        group_subjects(&round, &doc, &round.settled_groups[0]),
+        strings(&["Kept"])
+    );
 }
 
 /// The block's verdict: its first item starting "Verdict: ", by its phrase, and its text after the
@@ -1022,13 +1019,13 @@ fn round_text(body: &str) -> String {
     )
 }
 
-/// A point under an unknown sub-heading of the settled section, like the old `### Check these`,
-/// is in no group, so it takes no comment: the comment stays a free note.
+/// A point under a sub-heading of the settled section, like the old `### Behaviour`, is in no
+/// group, so it takes no comment: the comment stays a free note.
 #[test]
 fn a_point_under_an_unknown_sub_heading_takes_no_comment() {
     let text = round_text(
-        "## Settled without the human\n\n### Check these\n\n- **Old** point.\n\n\
-### Behaviour\n\n- **Kept** point.\n\n**Notes:**\n\n- **Old**: A note.\n",
+        "## Settled without the human\n\n- **Kept** point.\n\n\
+### Behaviour\n\n- **Old** point.\n\n**Notes:**\n\n- **Old**: A note.\n",
     );
     let (round, _) = round_of("clarifications-01.md", &text);
     let subjects: Vec<&str> = round
@@ -1043,7 +1040,7 @@ fn a_point_under_an_unknown_sub_heading_takes_no_comment() {
 }
 
 /// A sub-heading under `## Check these`, which `ura check` reports, ends its points: the blocks
-/// after it are in no group, as under an unknown sub-heading of the settled section.
+/// after it are in no group, as under a sub-heading of the settled section.
 #[test]
 fn a_sub_heading_under_check_these_ends_its_points() {
     let text = round_text(
@@ -1242,13 +1239,13 @@ fn a_plan_without_a_lead_has_none() {
 }
 
 /// A group counts its points, the items starting in bold, as the comments take them: an item
-/// without a bold start is no point, and a group of such items has none.
+/// without a bold start is no point.
 #[test]
 fn a_settled_group_counts_its_points() {
     let text = format!(
         "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
-## Settled without the human\n\n### Behaviour\n\n- **First** point.\n- Not a point.\n\
-- **Second** point.\n\n### Under the hood\n\n- No point here.\n\n**Notes:**\n"
+## Settled without the human\n\n- **First** point.\n- Not a point.\n\
+- **Second** point.\n\n**Notes:**\n"
     );
     let (round, _) = round_of("clarifications-01.md", &text);
     let counts: Vec<(SettledKind, u32)> = round
@@ -1256,10 +1253,7 @@ fn a_settled_group_counts_its_points() {
         .iter()
         .map(|g| (g.kind, g.points))
         .collect();
-    assert_eq!(
-        counts,
-        [(SettledKind::Behaviour, 2), (SettledKind::Hood, 0)]
-    );
+    assert_eq!(counts, [(SettledKind::Settled, 2)]);
 }
 
 /// A question's "Why it matters" and "Example:" paragraphs come without their lead, which their

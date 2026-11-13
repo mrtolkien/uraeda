@@ -251,8 +251,6 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
 
 ## Settled without the human
 
-### Behaviour
-
 - **Undoing a completion** puts back what completing changed: it removes the occurrence created with
   A in Q2, or restores the previous due date with C. Otherwise undo leaves the list in a state the
   user never saw. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).

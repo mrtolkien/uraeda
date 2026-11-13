@@ -277,17 +277,12 @@ Why it matters: a move down needs its own path in the skill and the code.
 
 ## Settled without the human
 
-### Behaviour
-
 - **Inbox triage and the decisions check** stay chats on the main checkout, since they write on the
   default branch. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 - **A chat that becomes a change** loses rename and archive, like every change: its name is its
   proposal's title, and it ends with its record. See [discovery](discovery-01.md#important-reads).
 - **The upgraded change's entry** goes to the top of **Now**, committed on the default branch, as
   starting a change does today. See [discovery](discovery-01.md#rules-and-their-owners).
-
-### Under the hood
-
 - **The session's link to its change** lives in the server's cache only, set once on the upgrade.
   Losing it loses the chat's history, never workflow state, which stays in git. See
   [discovery](discovery-01.md#rules-and-their-owners).

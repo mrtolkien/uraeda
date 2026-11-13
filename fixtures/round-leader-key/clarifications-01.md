@@ -345,8 +345,6 @@ only starts when the spec that lists it is approved, so you can still change its
 
 ## Settled without the human
 
-### Behaviour
-
 - **The menu appears after 500 ms.** Keys typed faster than that run without showing it, so fast use
   never flashes the menu. which-key.nvim waits 200 ms and Emacs 1 s. See
   [discovery](discovery-01.md#needs-no-choice).
@@ -361,9 +359,6 @@ only starts when the spec that lists it is approved, so you can still change its
 - **A sequence like `g h` waits 1 second** for its second key, then starts over, as the libraries
   read do. While one is pending, the status line shows the choices, which settles the status line's
   place in the menu's look.
-
-### Under the hood
-
 - **One registry owns a key's handler and its hint**, so the status line and a later key search read
   one source. It replaces the pairing of `useHotkeys` and `useStatusHints` by hand. See
   [discovery](discovery-01.md#rules-and-their-owners).
