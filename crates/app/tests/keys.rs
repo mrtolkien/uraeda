@@ -19,6 +19,9 @@ const HEARS: &[&str] = &[
 /// The files that may hear keys. A file whose keys are no shortcut, as a text field's own, adds
 /// its line here, with what they are.
 const ALLOWED: &[&str] = &[
+    // The sandbox's picker, of a development run alone: its Ctrl+Shift+C and Escape work in a
+    // field, a menu, and a popover, over every layer of the registry, which it picks from.
+    "app/sandbox/Pick.tsx",
     // The registry itself: every shortcut's one listener.
     "app/ui/keys/registry.tsx",
     // The text field's own keys, Vim's, and its owner's `inField` keys handed back to the

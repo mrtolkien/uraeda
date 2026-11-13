@@ -87,7 +87,9 @@ uraeda-core = { workspace = true, optional = true }
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
 # text out of a build without `declarations`.
 [dev-dependencies]
-nsh-core = { workspace = true, features = ["declarations"] }
+# `shader`: `tests/shaders.rs` compiles the app's shaders, as every platform's backend does; on
+# Linux its backend turns it on already.
+nsh-core = { workspace = true, features = ["declarations", "shader"] }
 # `tests/theme.rs` measures the shipped themes, which the core reads, from a temporary folder.
 tempfile.workspace = true
 uraeda-core.workspace = true
