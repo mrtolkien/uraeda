@@ -1,11 +1,13 @@
 //! One data folder, one server: a second start on the folder of a server that runs, but has not
-//! said so yet in its status file, is refused, and touches none of the first's files.
+//! said so yet in its status file, is refused, and touches none of the first's files. A start
+//! right after a server let the folder go, as it stops, waits for the lock instead.
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
-use uraeda_server::{Server, status};
+use uraeda_server::{Options, Server, status};
 
 use crate::support;
 
@@ -39,7 +41,7 @@ async fn a_second_server_on_one_data_folder_is_refused() {
     // Before the first says where it listens, a second start, on any port, finds no status.
     status::remove(&data);
     let before = files(&data);
-    let Err(refused) = Server::start(first.options()).await else {
+    let Err(refused) = Server::start(waiting_briefly(first.options())).await else {
         panic!("a second server started on the first's data folder");
     };
     assert_eq!(
@@ -73,4 +75,28 @@ async fn a_second_server_on_one_data_folder_is_refused() {
         )
     );
     first.stop().await;
+}
+
+/// A start that waits a fifth of a second for a held lock, in place of its 2 seconds.
+fn waiting_briefly(options: Options) -> Options {
+    Options {
+        lock_wait: Some(Duration::from_millis(200)),
+        ..options
+    }
+}
+
+#[tokio::test]
+async fn a_start_waits_for_a_lock_let_go_a_moment_later() {
+    let setup = support::setup();
+    let data = setup.options().data_dir;
+    // What a server that stops holds for a moment, its status file already removed: in another
+    // process, until that process ends.
+    let held = status::lock(&data).unwrap().expect("a free folder");
+    let letting_go = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        drop(held);
+    });
+    let server = setup.start().await;
+    letting_go.join().unwrap();
+    server.stop().await;
 }

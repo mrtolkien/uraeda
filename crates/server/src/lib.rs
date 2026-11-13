@@ -125,13 +125,16 @@ pub struct Options {
     /// How long a piece of an extension's server code may run once it is loaded: none for its
     /// 10 seconds. Only a test of that limit sets it, to see it cut off sooner.
     pub extension_call_limit: Option<Duration>,
+    /// How long a start waits for a data folder's lock that another server holds without a status
+    /// file, as one stopping does for a moment: none for its 2 seconds. Only a test sets it.
+    pub lock_wait: Option<Duration>,
 }
 
 /// A running server.
 pub struct Server {
     shared: Shared,
     /// The data folder's lock, let go once the server has stopped.
-    lock: std::fs::File,
+    lock: status::Lock,
     routes: Vec<&'static str>,
     serving: Option<JoinHandle<()>>,
 }

@@ -31,13 +31,28 @@ pub struct Status {
 /// advisory lock on it, from before it reads the status file until it stops, or its process ends.
 pub const LOCK: &str = "server.lock";
 
-/// The data folder's lock, when no other process holds it: `None` when one does. Held as long as
-/// the file returned is open.
+/// The data folder's lock, held until it is dropped.
+///
+/// Dropping it unlocks the file before closing it: a process the server starts holds a copy of
+/// every open file from its fork until its `exec`, and the lock, which belongs to the open file
+/// and not to the process, would outlive the server's own close for that moment. The unlock
+/// releases it for every copy, so a start that follows a stop always finds the folder free.
+#[derive(Debug)]
+pub struct Lock(File);
+
+impl Drop for Lock {
+    fn drop(&mut self) {
+        // A lock that cannot be undone is undone as the last copy of the file closes.
+        let _ = self.0.unlock();
+    }
+}
+
+/// The data folder's lock, when no other server holds it: `None` when one does.
 ///
 /// # Errors
 ///
 /// When the data folder cannot take the file, or the lock cannot be asked for.
-pub fn lock(data_dir: &Path) -> io::Result<Option<File>> {
+pub fn lock(data_dir: &Path) -> io::Result<Option<Lock>> {
     let path = data_dir.join("run").join(LOCK);
     DirBuilder::new()
         .recursive(true)
@@ -50,7 +65,7 @@ pub fn lock(data_dir: &Path) -> io::Result<Option<File>> {
         .mode(0o600)
         .open(&path)?;
     match file.try_lock() {
-        Ok(()) => Ok(Some(file)),
+        Ok(()) => Ok(Some(Lock(file))),
         Err(TryLockError::WouldBlock) => Ok(None),
         Err(TryLockError::Error(error)) => Err(error),
     }
@@ -124,4 +139,23 @@ fn alive(_pid: u32) -> bool {
 pub fn remove(data_dir: &Path) {
     // A file that is not there is removed already.
     let _ = fs::remove_file(path(data_dir));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_dropped_lock_is_free_while_a_started_process_still_holds_the_file() {
+        let data = tempfile::TempDir::new().unwrap();
+        let held = lock(data.path()).unwrap().expect("a free folder");
+        // What a process forked as the server stops holds, until its `exec` closes it.
+        let child = held.0.try_clone().unwrap();
+        drop(held);
+        assert!(
+            lock(data.path()).unwrap().is_some(),
+            "the lock outlived the server's own file"
+        );
+        drop(child);
+    }
 }

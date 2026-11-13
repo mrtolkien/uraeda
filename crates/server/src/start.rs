@@ -1,10 +1,10 @@
 //! A start: the data folder's lock, the port taken, or handed over to the server already running; the status file; then
 //! each domain, in order.
 
-use std::fs::File;
 use std::io::ErrorKind;
 use std::net::Ipv4Addr;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use tokio::net::TcpListener;
 
@@ -106,23 +106,38 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     Ok(server)
 }
 
+/// How long a start waits for a lock held without a status file, by default.
+const LOCK_WAIT: Duration = Duration::from_secs(2);
+
+/// How often a waiting start asks for the lock again.
+const LOCK_POLL: Duration = Duration::from_millis(25);
+
 /// The data folder's lock. When another server holds it, the start's folder goes to that server
 /// when its status file names it and it answers: one data folder has one server, whatever port this
-/// start asks for.
-async fn hold(options: &Options) -> Result<File, NotStarted> {
+/// start asks for. Held without a status file, the lock is waited for a moment: a server that
+/// stops removes its file before it lets the lock go, and another process that stops lets it go
+/// when its process ends. Only a start still under way past that is refused.
+async fn hold(options: &Options) -> Result<status::Lock, NotStarted> {
     let data_dir = &options.data_dir;
-    let lock = status::lock(data_dir).map_err(|error| {
-        let path = data_dir.join("run").join(status::LOCK);
-        NotStarted::Failed(format!("cannot lock {}: {error}", path.display()))
-    })?;
-    if let Some(lock) = lock {
-        return Ok(lock);
-    }
-    let Some(running) = status::read(data_dir) else {
-        return Err(NotStarted::Held(format!(
-            "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
-            data_dir.display()
-        )));
+    let deadline = Instant::now() + options.lock_wait.unwrap_or(LOCK_WAIT);
+    let running = loop {
+        let lock = status::lock(data_dir).map_err(|error| {
+            let path = data_dir.join("run").join(status::LOCK);
+            NotStarted::Failed(format!("cannot lock {}: {error}", path.display()))
+        })?;
+        if let Some(lock) = lock {
+            return Ok(lock);
+        }
+        if let Some(running) = status::read(data_dir) {
+            break running;
+        }
+        if Instant::now() >= deadline {
+            return Err(NotStarted::Held(format!(
+                "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
+                data_dir.display()
+            )));
+        }
+        tokio::time::sleep(LOCK_POLL).await;
     };
     let folder = options.folder.as_deref();
     let handed = hand_over(running.port, Some(&running.token), folder).await;

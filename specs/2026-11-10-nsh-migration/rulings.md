@@ -10675,3 +10675,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the first is a rewrite of history, which is the human's to choose, and costs
   references; the second is the tool's own output; the third goes away with the merge.
 - **Where**: `specs/2026-11-10-nsh-migration/findings-04.md`.
+
+## R533: A start right after a stop finds the data folder free
+
+- **Decision**: the data folder's lock is a `status::Lock`, which unlocks its file before closing
+  it, so `Server::stop` and a dropped server release it at once. A start that finds the lock held
+  with no status file asks again every 25 ms for up to 2 seconds (`Options::lock_wait` in tests),
+  hands over when a status file appears meanwhile, and only then refuses with R529's words.
+- **Rationale**: `stop()` already dropped the lock last, after removing the status file, but the
+  lock is `flock`'s, which belongs to the open file, and every process the server starts holds a
+  copy of its open files from its fork until its `exec`. A git or an agent started as the server
+  stopped kept the lock past `stop()` for that moment, longer on a loaded machine: two restart tests
+  were refused once each. The unlock releases it for every copy. The wait covers what no unlock can:
+  another process still stopping, as the app restarting its server or `ura serve` run again right
+  after Ctrl+C. A start still under way after 2 seconds is refused as before.
+- **Where**: `crates/server/src/status.rs` (`Lock`), `crates/server/src/start.rs` (`hold`),
+  `crates/server/tests/one_server.rs`.

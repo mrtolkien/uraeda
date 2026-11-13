@@ -132,6 +132,7 @@ impl Setup {
             no_scheduled_jobs: false,
             sandbox: None,
             extension_call_limit: self.extension_call_limit,
+            lock_wait: None,
         }
     }
 
