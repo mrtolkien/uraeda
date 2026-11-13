@@ -43,9 +43,9 @@ orients them: the details stay in the file.
   subject, never by a number the reader has not met. First come the choices you made for them that
   change what they get. Then what lasts beyond the feature, a risk, a cost, and what is not verified
   yet. A guard you relaxed is said as what an attacker could then do.
-- **A handful of items.** Past 7, the reader skims and misses the line that mattered, and
-  `ura check` warns. The number is there to keep the block sharp, never to hide a choice: group
-  related items, and when more than 7 still deserve a line, keep them all and let the warning stand.
+- **A handful of items.** In a long block the reader skims and misses the line that mattered, and
+  `ura check` warns on one. That is there to keep the block sharp, never to hide a choice: group
+  related items, and when many still deserve a line, keep them all and let the warning stand.
 - **No chores.** A rewritten file, a merge, or a rebase is no choice to weigh.
 - **On a revision**: what changed since their last review.
 
@@ -207,18 +207,18 @@ without the feature that made it. The human approves each of its lines.
   protects.
 - **Few rules.** Each added rule lowers how well the others are followed. A decision that needs many
   is holding a feature's spec: cut what any agent would do anyway, and what the code already holds.
-  `ura check` warns past 10 rules, and its message offers a split: cut or merge rules first. The
-  room under that number is not there to be filled, and a second decision is the last resort.
+  `ura check` warns on a decision with many rules, and its message offers a split: cut or merge
+  rules first, and a second decision is the last resort.
 - **One keyword per rule, and SHOULD by default.** A rule is a MUST only when the human said always
   or never, or when breaking it loses work or opens the system. What the human prefers is a SHOULD.
   MUST rules come first, then SHOULD, then MAY.
 - **The Why gives the reason, in the present tense, in a few sentences.** An agent applies a rule to
   a case it does not name from its reason. No history: who asked what, and when, is the record's. It
   quotes the human only when their words are the reason. It ends with at most one link, to the
-  feature's record. `ura check` warns past 80 words.
+  feature's record. `ura check` warns on a long one.
 - **Alternatives and consequences are short lists**: the options an agent could propose again, with
-  why they lose, and the costs the human accepted, with no code facts. `ura check` warns past 3
-  alternatives and 4 consequences.
+  why they lose, and the costs the human accepted, with no code facts. `ura check` warns on long
+  lists.
 - **Terms are defined in the decision**, since it is read alone.
 - **Applies to names folders and kinds of features**, never the files inside a folder.
 

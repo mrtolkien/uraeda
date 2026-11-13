@@ -182,22 +182,23 @@ story holds, in order:
 - **Its journey**: the user's path, in plain language, in one or two sentences.
 - **Its mockup**: for a story with UI work, alone in its paragraph. See [Mockups](#mockups).
 - **"Why this priority:"**: only when the order is not obvious.
-- **"Key scenarios:"**: the two or three scenarios that show the story best.
+- **"Key scenarios:"**: the few scenarios that show the story best.
 - **"More scenarios:"**: optional, the others. They do not count in the reviewed part.
 
 Scenarios are **Given** / **When** / **Then**, with exact values: "a weekly task due Monday the
-5th", never "the next week", in at most 4 steps. **A scenario's Then is what the user came for**:
-the text is selected, the field takes the next key, the column is wider. A label, a count, or a
-mode's name is a sign of it, and a feature can show the sign without working. Every answer that
-changes behaviour shows up in a scenario.
+5th", never "the next week", and short. **A scenario's Then is what the user came for**: the text is
+selected, the field takes the next key, the column is wider. A label, a count, or a mode's name is a
+sign of it, and a feature can show the sign without working. Every answer that changes behaviour
+shows up in a scenario.
 
 ## Mockups
 
 Any UI work requires mockups: a new screen, a new control, or a visible change to one. The human
 approves what users will see, and looks at mockups before anything else in the spec.
 
-- **Read first**: the project's guides and look decisions, and what the human said about earlier
-  mockups, in the records of `specs/done/`. A taste they already stated is not taught twice.
+- **Read first**: the project's guides and look decisions, when it has them, and what the human said
+  about earlier mockups, in the records of `specs/done/`. Without a guide, the views that exist are
+  the reference. A taste they already stated is not taught twice.
 - **Draw in the project's own look**, with its components. For a view that exists, the mockup is the
   real view, changed.
 - **Show each view as its user meets it, not only at its best**: at the narrowest width the project
@@ -328,8 +329,9 @@ The spec is amended in place: it stays the single source of truth.
     mockups, the assumptions, and the decisions for what you replaced. One stale sentence is read as
     "the opposite of what I asked".
   - **A comment that states a taste beyond this view**, "nothing round", "no layout shift", goes
-    into the project's guide for that area in the same commit. A review file is replaced by the next
-    one, and the taste would be taught again.
+    into the project's guide for that area in the same commit. A project without a guide gets one
+    this way: the comment is its first line, in `specs/ui/` for a look. A review file is replaced by
+    the next one, and the taste would be taught again.
 - **A newer round is answered**: read its answers, and amend the spec and its decisions.
 
 `## Your review` answers each comment of the last review, one item each, the comment named in a few

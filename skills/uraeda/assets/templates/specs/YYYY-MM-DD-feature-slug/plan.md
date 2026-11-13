@@ -9,82 +9,70 @@ spec-revision: [the spec's revision]
 >
 > [Only when the plan waits for a review.] Plan to review, about [M] minutes.
 >
-> - [Where your attention matters most, one line each: the review focus, new dependencies, the order
->   of risky tasks]
+> - [Where the plan goes beyond the spec, one line each: the review focus, a new dependency, a new
+>   lint marker, the order of risky tasks]
 
 **Goal:** [one sentence on what the feature builds]
 
-**Architecture:** [the approach, ownership of changed rules, state, and resources, and the
-boundaries tasks rely on. Scale the detail to the change. See the
-[spec's architecture](spec.md#architecture).]
+**Architecture:** [the approach, who owns each changed rule, state, and resource, and the boundaries
+tasks rely on. See the [spec's architecture](spec.md#architecture).]
 
-**Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
+**Spec:** [spec.md](spec.md)
 
 ## Review focus
 
-The most consequential conditions or sequences the spec implies but does not name, including
-interactions with existing behaviour. Each names the task whose tests cover it, or says why it has
-none.
+[Optional: the conditions the spec implies but does not name, which the build must still get right,
+each with the task that covers it.]
 
-1. **[An input or failure mode the spec does not mention]** [the behaviour a reasonable person would
-   expect]. Task [N].
+1. **[An input or sequence the spec does not mention]** [what must happen]. Task [N].
 
 ## Global constraints
 
-The approved rules and existing guarantees the change must preserve, with their sources. Every
-task's requirements include these:
+What every task must keep, each with its source. Only the rules a task could break: link the rest.
 
-- [An approved rule, copied word for word with its source; or an existing guarantee, described with
-  links to its code and tests. Use an approval comment where it explicitly replaces a spec clause.]
+- [An approved rule, word for word, from a decision, the spec, or an approval comment that replaces
+  a spec clause.]
+- [An existing guarantee the change must preserve, with a link to its code or test.]
 - [**Out of validation**, only when the feature replaces code: the suites of the replaced code,
-  which no task, wave, or final review runs, from the task that freezes it to the one that removes
-  it.]
+  which nothing runs from the task that freezes it to the one that removes it.]
 
 ## Code read
 
-- [`path`](/path): [what it showed: the test setup and layout, the readers, writers, and entry
-  points affected by the change]
+[Optional: what the next agent could not find fast: the test setup, the validation commands, and
+every reader and writer of the data that changes, each with a link.]
+
+- [`path`](/path): [what it showed]
 
 ## Constitution check
 
-| I. [Principle] | II. [Principle] |
-| -------------- | --------------- |
-| ✅             | ✅              |
-
-[A line per tension, its principle's cell reading ⚠️ instead.]
+[Optional: only when a principle is in tension. One line per tension, and what it costs.]
 
 ## Complexity tracking
 
-[Every new abstraction: a type, module, layer, wrapper, or helper shared by several parts, tests
-included, even when the spec's architecture introduced it. Every function or file a task grows past
-the project's limits, or leaves over them. Every constitution exception: one the human accepted in
-the questions, or a new marker on code over a limit, for the plan's review to approve. Name the
-callers, shared rule, or approved variation that needs each one, and the simpler alternative
-rejected. "None." otherwise.]
+[Optional: only when there is one. Each new abstraction shared by several parts, each unit a task
+grows past the project's limits or marks, and each constitution exception the human accepted, with
+why it is needed and the simpler alternative rejected.]
 
 | Abstraction or exception | Why it is needed | Simpler alternative rejected because |
 | ------------------------ | ---------------- | ------------------------------------ |
 
 ## Review comments
 
-[Optional: only when the spec was approved with comments, each comment of `spec-review.md`, and the
-task that carries it out. State which spec clause it supersedes when it explicitly changes one.]
+[Optional: only when the spec was approved with comments, each comment of `spec-review.md`, named by
+its subject, and the task that carries it out.]
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it, or "none"
-and why. [The number of new tests, at most the spec's key scenarios plus its high edge cases. How
-the tests run: what they render, on which store, with which clock, and which checks use a real
-boundary. One test may own several rows.]
+[How the tests run: what they render, on which store, with which clock, and which use a real
+boundary.] Each scenario, edge case, and criterion of the spec, with the task and test that own it,
+or "none" and why.
 
-| Spec                                                              | Task | Test                       |
-| ----------------------------------------------------------------- | ---- | -------------------------- |
-| [US1 1, 2, more 1; an edge case; SC-001; Review focus: a subject] | [N]  | [`tests/exact/path`, what] |
-| [US2 3: a scenario the project's stage asks no test for]          | none | [none: why]                |
+| Spec                                                      | Task | Test                       |
+| --------------------------------------------------------- | ---- | -------------------------- |
+| [US1 1, 2; an edge case; SC-001; Review focus: a subject] | [N]  | [`tests/exact/path`, what] |
+| [US2 3: a scenario the project's stage asks no test for]  | none | [why]                      |
 
 ## Waves
-
-The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
 
 1. Task 1: [why it comes alone, such as a data change every later task builds on]
 2. Tasks [2] and [3]: [the different parts of the code each touches, and any shared file each adds
@@ -102,69 +90,36 @@ concurrency, or a rule several callers share, what makes it risky. It is reviewe
 - Start from: [Optional: for a view whose mockups are the project's own stories, the picked story,
   `path#Export`, whose component this task starts from]
 - Create: `exact/path`
-- Modify: `exact/path` ([function or lines])
+- Modify: `exact/path` ([function])
 - Test: `tests/exact/path`
 
 **Interfaces:**
 
-- Consumes: [what this task uses from earlier tasks, with exact signatures]
-- Produces: [what callers or later tasks rely on: exact names, parameters, return types, and
-  behaviour. Private helpers and internal decomposition remain implementation choices.]
+- Consumes: [what this task uses from earlier tasks, with exact names and signatures]
+- Produces: [what later tasks rely on: exact names, parameters, return types, and behaviour]
 
-- [ ] **Step 1: [Only when the task touches a unit over the project's limit.] Split `[unit]` before
-      it changes**
+- [ ] **Split first: [Optional: only when the task touches a unit over the project's limit]**
 
-[How to restructure the unit without changing what it does, and its marker to remove.]
+[The unit, how to split it without changing what it does, and its marker to remove. The tests pass
+before and after. Its own commit: `refactor([slug]): [the restructuring]`.]
 
-- Run: `[the tests and the check of the limits]`, before and after the split
-- Expected: PASS both times, [with no unused marker]
+- [ ] **Tests**
 
-```bash
-git add [the restructured files]
-git commit -m "refactor([number]): [the restructuring]"
-```
+[Each test by name, with the values the spec pins and the break it catches. Code only where an
+assertion is not obvious from that. The helpers the tests need.]
 
-- [ ] **Step 2: Write the failing tests, and the helpers they use**
+- `[the scenario, in words]`: [given, act, expected value]. Catches [the realistic mistake].
 
-```ts
-// tests/exact/path
-test("[the scenario, in words]", async () => {
-  // Arrange, with the shared helpers
-  // Act
-  // Assert, with values derived from the approved behaviour, independently of implementation:
-  // only what the task adds, picked out of the results; an old result stays with its test
-});
-```
+- [ ] **Implement**
 
-The break each test catches:
+[The responsibility, the values the spec pins, and an algorithm only when correctness depends on it.
+Private structure is the implementer's.]
 
-- [The test, in a few words]: [the realistic mistake that makes it fail].
-
-- [ ] **Step 3: Run them to check they fail**
-
-- Run: `[command]`
-- Expected: FAIL, [the behaviour that is missing; the exact message only when it is stable].
-
-- [ ] **Step 4: Implement**
-
-[Responsibilities, files, the values the spec pins, and exact signatures for public and cross-task
-contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
-to the implementer.]
-
-- [ ] **Step 5: Run the task's validation[, and the benchmark]**
-
-- Run: `[command]`
-- Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets],
-  [with the checks it defers to the complete validation named, when the project has a fast check:
-  the plan names only the expected deferrals, and the commit body names the real ones].
-
-- [ ] **Step 6: [Only when the task builds something a user acts on.] Use it**
+- [ ] **Use it: [Optional: only when the task builds something a user acts on]**
 
 [The act to do in the running product, and the effect to see.]
 
-- [ ] **Step 7: Commit**
+- [ ] **Validate and commit**
 
-```bash
-git add [the files of this task]
-git commit -m "feat([number]): [what this task delivers]"
-```
+- Run: `[the task's validation command]`[, and the benchmark against its baseline]
+- Commit: `feat([slug]): [what this task delivers]`

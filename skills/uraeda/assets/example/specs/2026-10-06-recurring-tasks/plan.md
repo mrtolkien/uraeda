@@ -9,184 +9,95 @@ spec-revision: 2
 >
 > Approved on 2026-10-10.
 >
-> - Five inputs the spec does not mention get a test each: see [review focus](#review-focus).
-> - Beyond the spec: a new development dependency, `fake-indexeddb`, so focused tests run the real
->   store in memory. The project's tests have no IndexedDB today.
-> - Calendar-day due dates and their upgrade come first, so every later task is built and tested on
->   them.
+> - Five inputs the spec does not mention must still behave: see [review focus](#review-focus).
+> - Beyond the spec: a new development dependency, `fake-indexeddb`, so tests run the real store in
+>   memory. The project's tests have no IndexedDB today.
+> - Calendar-day due dates and their upgrade come first, so every later task is built on them.
 
 **Goal:** users can make a task repeat, from a menu, a custom screen, or its title, and completing
 it moves it to its next due date.
 
-**Architecture:** repeat rules are plain data, with pure functions in `src/lib/repeat.ts` on top of
-calendar-day helpers in `src/lib/dates.ts`. The store applies them when a task is completed, moved,
-edited, or renamed. The edit panel, the custom screen, and the title parser all produce the same
-`RepeatPattern`, which the store turns into a `RepeatRule` with its starting date. See the
-[spec's architecture](spec.md#architecture).
+**Architecture:** repeat rules are plain data. The date module, `src/lib/dates.ts`, owns calendar
+arithmetic. The repeat module, `src/lib/repeat.ts`, owns recurrence rules. The store owns
+transactions, and applies those rules for every entry point: completing, moving, editing, renaming.
+The edit panel, the custom screen, and the title parser all produce one `RepeatPattern`, which the
+store turns into a `RepeatRule` with its starting date. Components keep only the confirmation and
+undo state, and never calculate a next date. See the [spec's architecture](spec.md#architecture).
 
-The date module owns calendar arithmetic; the repeat module owns recurrence rules; the store owns
-transactions and applies those rules for every entry point. Components keep only the confirmation
-and undo state, and never calculate or save a next date themselves. The test helpers own the
-database, clock, and timezone setup and restore or close them after each test. A later preset should
-produce another `RepeatPattern`, without adding another scheduling implementation.
-
-**Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
+**Spec:** [spec.md](spec.md)
 
 ## Review focus
 
-The most consequential conditions or sequences the spec implies but does not name, including
-interactions with existing behaviour. Each gets a test in the task that owns the code.
-
-1. **A double click on a repeating task's checkbox** moves it once: clicks while the confirmation
-   shows are ignored. Task 2.
-2. **A title phrase in another case, or with a final period**, like "Water the plants Every
-   Monday.", is recognized. Task 5.
+1. **A double click on a repeating task's checkbox** moves it once. Task 2.
+2. **A title phrase in another case, or with a final period**, "Water the plants Every Monday.", is
+   recognized. Task 5.
 3. **An interval of 0**, in a title or the custom screen, is refused: the title stays as typed, and
-   the screen's "Save" stays disabled. Tasks 4 and 5.
+   "Save" stays disabled. Tasks 4 and 5.
 4. **A yearly task due on February 29** falls on February 28 in years without one. Task 2.
 5. **A weekly custom rule with no day chosen** cannot be saved. Task 4.
 
 ## Global constraints
 
-From the decisions and the spec, word for word. Every task's requirements include these.
+The rules a task here could break. The other rules of [task storage](../decisions/task-storage.md),
+[UI components](../decisions/ui-components.md), [preview](../decisions/preview.md), and
+[code quality](../decisions/code-quality.md) apply as written there.
 
-Existing behaviour to preserve, from [the store](/src/store/tasks.ts): completing a task without a
-repeat marks it done. Task 2 checks this through the app on an upgraded task. The spec's
-[edge cases](spec.md#edge-cases) also require a failed save to keep the previous due date; task 2
-checks that together with the error shown.
-
-From [due dates](../decisions/due-dates.md):
-
-- Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
-  store's upgrade test.
-- Date arithmetic MUST go through the app's date module.
-- Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
-
-From [repeating tasks](../decisions/repeating-tasks.md):
-
-- A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
-  `RepeatRule` field of the `Task` type.
-- Completing a repeating task MUST move its due date to the next occurrence, in place of creating a
-  new task. Checked by the completion tests of the task store.
-- Features MUST NOT rely on a history of completed occurrences: there is none.
-
-From [task storage](../decisions/task-storage.md):
-
-- Data MUST be stored in IndexedDB, through `src/store/`.
-- Components MUST NOT call IndexedDB or the `idb` library directly. Checked by ESLint's
-  `no-restricted-imports` and `no-restricted-globals` in `src/components/`.
-- A change to stored data MUST come with a versioned upgrade, tested on data saved by the previous
-  version. Checked by the upgrade's own test.
-
-From [UI components](../decisions/ui-components.md):
-
-- Components MUST be written in the project, in `src/components/`.
-- Styles MUST use CSS modules, with the theme's variables. Checked by Stylelint's `color-no-hex`
-  outside the theme.
-- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
-  by review of `package.json`.
-
-From [preview](../decisions/preview.md):
-
-- The preview MUST be the app's Storybook, at the repository's top level, run by
-  `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
-- This decision's frontmatter MUST hold the preview's folder and command, as `preview-folder: .` and
-  that `preview-command`. Checked by `ura check`.
-- Storybook MUST use its Vite builder, through `@storybook/react-vite`. Checked by
-  `uraeda-preview.js`, which stops a webpack Storybook.
-- Mockups and named states MUST be stories, in `*.stories.tsx` files under `src/`, one export per
-  state or variant.
-- Stories MUST get their tasks from the app's own store, on an in-memory IndexedDB the story fills,
-  as the integration tests do.
-- Storybook MUST load the Uraeda skill's helpers from its `assets/storybook/`, copied unchanged: its
-  `main.ts` wrapped by `uraeda-preview.js`, and its preview loading `uraeda-pick.js`.
-- Storybook's packages MUST be pinned to exact versions, and upgraded together.
-- Storybook's telemetry MUST be off.
-
-From [code quality](../decisions/code-quality.md):
-
-- Functions MUST NOT be longer than 80 lines. Checked by ESLint's `max-lines-per-function`.
-- Functions MUST NOT take more than 4 parameters. Checked by ESLint's `max-params`.
-- Code MUST NOT nest blocks more than 3 levels deep inside a function. Checked by ESLint's
-  `max-depth`.
-- Source files MUST NOT be longer than 400 lines. Tests are exempt. Checked by ESLint's `max-lines`.
-- Code that broke a limit when this decision was approved MUST be marked where it stands, with an
-  `// eslint-disable-next-line <rule> -- <reason>` comment. Checked by ESLint, which fails on
-  unmarked code over a limit.
-- A marker on code that no longer breaks its limit MUST fail the lint. Checked by ESLint's
-  `reportUnusedDisableDirectives: "error"`.
-- A new marker MUST NOT be added unless a human approves it as a constitution exception in the
-  plan's complexity tracking.
-
-From [the spec](spec.md):
-
-- The repeat menu offers: never, daily, weekdays, weekends, weekly, monthly, yearly, and custom. Its
-  entries read, in order: "Never", "Daily", "Weekdays", "Weekends", "Weekly", "Monthly", "Yearly",
-  "Custom...".
-- The confirmation after a completion reads "Next: " then the next due date, as in "Next: Monday 12"
-  (date-fns' `EEEE d` format), with an "Undo" button, for 5 seconds. A failed save shows "Could not
-  save".
-- SC-002: rendering a list of 5,000 tasks is not slower than before the feature: no benchmark slower
-  than its baseline from before task 1, beyond the benchmark's own reported margin of error.
+- From [due dates](../decisions/due-dates.md): "Due dates MUST be stored as `YYYY-MM-DD` strings."
+  "Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it."
+- From [repeating tasks](../decisions/repeating-tasks.md): "A repeating task MUST be a single task,
+  with its repeat rule stored on it." "Completing a repeating task MUST move its due date to the
+  next occurrence, in place of creating a new task."
+- From [task storage](../decisions/task-storage.md): "A change to stored data MUST come with a
+  versioned upgrade, tested on data saved by the previous version."
+- From [the spec](spec.md): the repeat menu's entries read, in order, "Never", "Daily", "Weekdays",
+  "Weekends", "Weekly", "Monthly", "Yearly", "Custom...".
+- From the spec: the confirmation after a completion reads "Next: " then the next due date, as in
+  "Next: Monday 12" (date-fns' `EEEE d`), with an "Undo" button, for 5 seconds. A failed save shows
+  "Could not save", and keeps the previous due date.
+- Existing behaviour: completing a task without a repeat marks it done
+  ([the store](/src/store/tasks.ts)).
+- SC-002: no benchmark of the 5,000-task list slower than its baseline from before task 1, beyond
+  the benchmark's own margin of error.
 
 ## Code read
 
 - [`vitest.config.ts`](/vitest.config.ts): Vitest with jsdom, Testing Library, and `user-event`,
-  benchmarks in [`bench/`](/bench/). Tests live in [`tests/`](/tests/);
-  [`tests/task-list.test.tsx`](/tests/task-list.test.tsx) is the only one, and renders the list on
-  an empty store mock. No test uses IndexedDB.
+  benchmarks in [`bench/`](/bench/). [`tests/task-list.test.tsx`](/tests/task-list.test.tsx) is the
+  only test, on a store mock. No test uses IndexedDB.
 - Due dates are read in three places: `createTask` in [the task store](/src/store/tasks.ts), the
   date input of [the edit panel](/src/components/EditPanel.tsx), and
-  [the task row](/src/components/TaskRow.tsx), which shows them in a `<time>` element: its text
-  formatted with date-fns' `EEE, MMM d`, its `dateTime` attribute the timestamp's `toISOString()`.
-- The edit panel saves its date input with `updateTask(id, { dueDate })`, and has a "Delete" button
-  calling `deleteTask(id)`, both in [the task store](/src/store/tasks.ts).
-- [`eslint.config.js`](/eslint.config.js): the [code quality](../decisions/code-quality.md) limits,
-  run by `npx eslint src`. `updateTask`, in [the task store](/src/store/tasks.ts), is 96 lines, the
-  only function over them, and carries its `max-lines-per-function` marker.
-- [`src/store/db.ts`](/src/store/db.ts): `openDatabase()` opens the `todo` database with the `idb`
-  library, and runs [`upgrades.ts`](/src/store/upgrades.ts) on version changes.
-
-## Constitution check
-
-| I. Simple for non-technical users | II. Local first | III. Fast with thousands of tasks |
-| --------------------------------- | --------------- | --------------------------------- |
-| ✅                                | ✅              | ✅                                |
+  [the task row](/src/components/TaskRow.tsx), whose `<time dateTime>` the tests read.
+- [`eslint.config.js`](/eslint.config.js) holds the limits, run by `npx eslint src`. `updateTask`,
+  in the task store, is 96 lines, the only function over them, and carries its marker.
+- [`src/store/db.ts`](/src/store/db.ts) opens the `todo` database with `idb`, and runs
+  [`upgrades.ts`](/src/store/upgrades.ts) on version changes.
 
 ## Complexity tracking
 
-| Abstraction or exception                                | Why it is needed                                                                          | Simpler alternative rejected because                                            |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `src/lib/dates.ts` and `CalendarDay`                    | The one place where due dates meet `Date`, as the due dates decision requires             | date-fns calls spread in components would convert due dates everywhere          |
-| `RepeatPattern` and `RepeatRule`, shared by every entry | One format for the menu, the screen, and the parser, from the [data model](data-model.md) | Three formats would need three versions of `nextDueDate`                        |
-| `renderApp` and its helpers, in `tests/helpers/`        | Each focused test stays a few lines long                                                  | Setting up the database, clock, and timezone in each test buries what it checks |
-| The failing store, in `renderApp`                       | Tests "Could not save" through the real app                                               | Mocking the store in one test would test the mock, not the error path           |
+| Abstraction or exception                         | Why it is needed                                                | Simpler alternative rejected because                                |
+| ------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `src/lib/dates.ts` and `CalendarDay`             | The one place where due dates meet `Date`, as the decision asks | date-fns calls in components would convert due dates everywhere     |
+| `RepeatPattern` and `RepeatRule`                 | One format for the menu, the screen, and the parser             | Three formats would need three versions of `nextDueDate`            |
+| `renderApp` and its helpers, in `tests/helpers/` | Each test stays a few lines long                                | Setting up the database, clock, and timezone in each test buries it |
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it. The tests
-render the real app on an in-memory IndexedDB, with the clock and timezone set by the test; none
-uses a real browser, since the app has no browser runner. One test may own several rows.
+The tests render the real app on an in-memory IndexedDB, with the clock and timezone set by the
+test. None uses a real browser: the app has no browser runner.
 
-| Spec                                                     | Task | Test                                                                                           |
-| -------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
-| Edge case: a saved due date that is not a date           | 1    | `tests/recurring-tasks/upgrade.test.tsx`                                                       |
-| US2 1, 2, more 1, 2; edge cases: moved, deleted, 31st    | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| Edge case: a failed save                                 | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| US1 1, 2, more 1; SC-001                                 | 3    | `tests/recurring-tasks/make-a-task-repeat.test.tsx`                                            |
-| US3 1, 2, more 1                                         | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                                               |
-| US4 1, 2, more 1, 2; edge cases: a phrase alone, unknown | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`                                               |
-| SC-003                                                   | 5    | `tests/recurring-tasks/parse-repeat.test.ts`, one row a phrase                                 |
-| Review focus: a double click on the checkbox             | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| Review focus: a phrase in another case, with a period    | 5    | `tests/recurring-tasks/parse-repeat.test.ts`                                                   |
-| Review focus: an interval of 0                           | 4, 5 | `tests/recurring-tasks/custom-schedule.test.tsx`, `tests/recurring-tasks/parse-repeat.test.ts` |
-| Review focus: a yearly task due on February 29           | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| Review focus: a weekly custom rule with no day           | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                                               |
-| SC-002                                                   | 1–5  | the [list benchmark](/bench/list.bench.ts), against its baseline                               |
+| Spec                                                                 | Task | Test                                                             |
+| -------------------------------------------------------------------- | ---- | ---------------------------------------------------------------- |
+| Edge case: a saved due date that is not a date                       | 1    | `tests/recurring-tasks/upgrade.test.tsx`                         |
+| US2; edge cases: moved, deleted, the 31st, a failed save             | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`       |
+| Review focus: a double click; February 29                            | 2    | the same file                                                    |
+| US1; SC-001                                                          | 3    | `tests/recurring-tasks/make-a-task-repeat.test.tsx`              |
+| US3; review focus: an interval of 0, no day chosen                   | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                 |
+| US4; edge cases: a phrase alone, an unknown phrase                   | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`                 |
+| SC-003; review focus: another case, a final period, an interval of 0 | 5    | `tests/recurring-tasks/parse-repeat.test.ts`, a row a phrase     |
+| SC-002                                                               | 1–5  | the [list benchmark](/bench/list.bench.ts), against its baseline |
+| The repeat icon's look, the screen's layout                          | none | looked at in the running app, in each task's "Use it"            |
 
 ## Waves
-
-The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
 
 1. Task 1: calendar-day due dates and their upgrade, which every later task is built on.
 2. Task 2: completing a repeating task, which defines `RepeatPattern` and `RepeatRule`.
@@ -203,97 +114,54 @@ users' dates.
 
 **Files:**
 
-- Create: `src/lib/dates.ts`
-- Modify: `src/store/tasks.ts` (`Task` type, `createTask`), `src/store/upgrades.ts`,
-  `src/components/EditPanel.tsx` (date input), `src/components/TaskRow.tsx` (date display)
-- Create: `tests/setup.ts`, `tests/helpers/app.tsx`, `tests/helpers/database.ts`
+- Create: `src/lib/dates.ts`, `tests/setup.ts`, `tests/helpers/app.tsx`, `tests/helpers/database.ts`
+- Modify: `src/store/tasks.ts` (`Task`, `createTask`), `src/store/upgrades.ts`,
+  `src/components/EditPanel.tsx` (date input), `src/components/TaskRow.tsx` (date display),
+  `package.json` (`fake-indexeddb`), `vitest.config.ts` (`setupFiles`)
 - Test: `tests/recurring-tasks/upgrade.test.tsx`; move `tests/task-list.test.tsx` to the helpers
-- Modify: `package.json` (`fake-indexeddb` as a development dependency), `vitest.config.ts`
-  (`setupFiles: ["tests/setup.ts"]`)
 
 **Interfaces:**
 
 - Produces, in `src/lib/dates.ts`: `type CalendarDay = string` (`YYYY-MM-DD`);
-  `today(): CalendarDay`; `addDays(day: CalendarDay, n: number): CalendarDay`;
-  `addMonths(day: CalendarDay, n: number): CalendarDay`, clamped to the month's last day;
-  `weekday(day: CalendarDay): number` (0 is Sunday); `weekStart(day: CalendarDay): CalendarDay`, the
+  `today(): CalendarDay`; `addDays(day, n): CalendarDay`; `addMonths(day, n): CalendarDay`, clamped
+  to the month's last day; `weekday(day): number` (0 is Sunday); `weekStart(day): CalendarDay`, the
   Monday of its week; `fromTimestamp(ms: unknown): CalendarDay | null`, in the local timezone,
   `null` when `ms` is not a finite number.
 - Produces, in `tests/helpers/app.tsx`:
-  `renderApp(options?: { tasks?: SeedTask[]; today?: CalendarDay; timezone?: string }): Promise<{ user: UserEvent }>`,
-  with `today` defaulting to `"2026-10-05"` and `timezone` to `"UTC"`, where `SeedTask` is
-  `{ title: string; dueDate?: CalendarDay | null; done?: boolean }`;
-  `dueDateOf(title: string): CalendarDay | null`, read from the row's `<time dateTime>`;
-  `row(title: string): HTMLElement`; `loggedWarnings(): string[]`.
+  `renderApp(options?: { tasks?: SeedTask[]; today?: CalendarDay; timezone?: string }): Promise<{ user }>`,
+  `today` defaulting to `"2026-10-05"` and `timezone` to `"UTC"`;
+  `SeedTask = { title: string; dueDate?: CalendarDay | null; done?: boolean }`;
+  `dueDateOf(title): CalendarDay | null`, read from the row's `<time dateTime>`; `row(title)`;
+  `loggedWarnings(): string[]`.
 - Produces, in `tests/helpers/database.ts`:
-  `versionOneDatabase(tasks: { title: string; dueDate: unknown }[], options?: { timezone?: string }): Promise<void>`.
+  `versionOneDatabase(tasks: { title: string; dueDate: unknown }[], options?: { timezone?: string })`.
 
-- [x] **Step 1: Record the benchmark baseline**
+- [x] **Tests**
 
-- Run: `npx vitest bench --run --outputJson bench/baseline.json`
-- Expected: `bench/baseline.json` written, before any change.
+The helpers first: a fresh in-memory `IDBFactory` before each test; `renderApp` sets the timezone
+and the clock, seeds the database, then starts the app; teardown closes everything, even on a
+failure. Record the benchmark baseline before any change:
+`npx vitest bench --run --outputJson bench/baseline.json`.
 
-- [x] **Step 2: Write the failing tests, and the helpers they use**
+- `converts version 1 due dates to calendar days, west of UTC`: a version 1 task due at midnight Los
+  Angeles time on 2026-10-05 shows `2026-10-05`. Catches an upgrade that keeps the timestamp, or
+  writes it as a UTC instant, a day late.
+- `removes a saved due date that is not a date, keeps the task, and logs it`: `"not a date"` gives a
+  visible row, no due date, and a warning. Catches a conversion that throws and loses the task.
 
-The helpers: `tests/setup.ts` imports `fake-indexeddb/auto`, with a fresh `IDBFactory` before each
-test. `renderApp` sets `process.env.TZ`, fakes the clock with `vi.setSystemTime`, writes the seed
-tasks to the database directly, then starts the app. `versionOneDatabase` writes tasks as version 1
-saved them. `loggedWarnings` spies on `console.warn`. Teardown unmounts the app, closes database
-connections, and restores the timezone, timers, and spies, even when a test fails.
+- [x] **Implement**
 
-```tsx
-// tests/recurring-tasks/upgrade.test.tsx
-test("converts version 1 due dates to calendar days, west of UTC", async () => {
-  const midnight = new Date("2026-10-05T00:00:00-07:00").getTime();
-  await versionOneDatabase([{ title: "Pay rent", dueDate: midnight }], {
-    timezone: "America/Los_Angeles",
-  });
+`upgrades.ts`, version 2: `dueDate = fromTimestamp(dueDate)` for every task, with a `console.warn`
+when it returns `null`. `createTask`, the edit panel, and the task row read and write `CalendarDay`.
 
-  await renderApp({ timezone: "America/Los_Angeles" });
+- [x] **Use it**
 
-  expect(dueDateOf("Pay rent")).toBe("2026-10-05");
-});
+Open the app on a database saved by version 1: every due date shows the same day as before.
 
-test("removes a saved due date that is not a date, keeps the task, and logs it", async () => {
-  await versionOneDatabase([{ title: "Old task", dueDate: "not a date" }]);
-
-  await renderApp();
-
-  expect(row("Old task")).toBeVisible();
-  expect(dueDateOf("Old task")).toBeNull();
-  expect(loggedWarnings()).toContainEqual(expect.stringContaining("not a date"));
-});
-```
-
-The break each test catches:
-
-- West of UTC: an upgrade that leaves the timestamp, or writes it as an ISO instant.
-- Not a date: a conversion that throws on a string, losing the task, or saves `Invalid Date`.
-
-- [x] **Step 3: Run them to check they fail**
-
-- Run: `npx vitest run tests/recurring-tasks/upgrade.test.tsx`
-- Expected: FAIL, `expected '2026-10-05T07:00:00.000Z' to be '2026-10-05'`: the row still holds the
-  version 1 timestamp.
-
-- [x] **Step 4: Implement**
-
-- `src/lib/dates.ts`: the functions above, on date-fns.
-- `upgrades.ts`, version 2: `dueDate = fromTimestamp(dueDate)` for every task, with
-  `console.warn("Due date is not a date:", raw)` when it returns `null`.
-- `createTask`, the edit panel, and the task row read and write `CalendarDay`.
-
-- [x] **Step 5: Run the task's validation, and the benchmark**
+- [x] **Validate and commit**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
-- Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
-
-- [x] **Step 6: Commit**
-
-```bash
-git add src/lib/dates.ts src/store src/components tests package.json vitest.config.ts
-git commit -m "feat(recurring-tasks): calendar-day due dates, with upgrade 2"
-```
+- Commit: `feat(recurring-tasks): calendar-day due dates, with upgrade 2`
 
 ## Task 2: Completing a repeating task
 
@@ -302,11 +170,9 @@ git commit -m "feat(recurring-tasks): calendar-day due dates, with upgrade 2"
 **Files:**
 
 - Create: `src/lib/repeat.ts`
-- Modify: `src/store/tasks.ts` (`updateTask` split first; `repeat` field, `completeTask`,
-  `restoreDueDate`, `updateTask` for due dates), `src/store/upgrades.ts` (`repeat: null` in upgrade
-  2), `src/components/TaskRow.tsx`
-- Modify: `tests/helpers/app.tsx` (`SeedTask` gets `repeat`; `renderApp` gets `failingStore`;
-  `completeBox`, `openTask`, `moveDueDate`, `deleteFromPanel`)
+- Modify: `src/store/tasks.ts` (`updateTask`, `repeat` field, `completeTask`, `restoreDueDate`),
+  `src/store/upgrades.ts` (`repeat: null` in upgrade 2), `src/components/TaskRow.tsx`,
+  `tests/helpers/app.tsx`
 - Test: `tests/recurring-tasks/complete-a-repeating-task.test.tsx`
 
 **Interfaces:**
@@ -317,521 +183,213 @@ git commit -m "feat(recurring-tasks): calendar-day due dates, with upgrade 2"
   `type RepeatRule = RepeatPattern & { from: CalendarDay }`;
   `nextDueDate(rule: RepeatRule, dueDate: CalendarDay, today: CalendarDay): CalendarDay`.
 - Produces, in `src/store/tasks.ts`:
-  `completeTask(id: string): Promise<{ previousDueDate: CalendarDay | null }>`;
-  `restoreDueDate(id: string, day: CalendarDay | null): Promise<void>`;
-  `updateTask(id, { dueDate })` now also sets `repeat.from` to the new date on a repeating task.
+  `completeTask(id): Promise<{ previousDueDate: CalendarDay | null }>`;
+  `restoreDueDate(id, day: CalendarDay | null): Promise<void>`; `updateTask(id, { dueDate })` now
+  also sets `repeat.from` to the new date on a repeating task.
 - Produces, in `tests/helpers/app.tsx`: `SeedTask.repeat?: RepeatRule | null`; `renderApp`'s
-  `failingStore?: boolean`, which wraps the app's store so every save rejects, after seeding;
-  `completeBox(title: string): HTMLElement`; `openTask(user, title): Promise<void>`;
-  `moveDueDate(user, title: string, day: CalendarDay): Promise<void>`;
-  `deleteFromPanel(user, title: string): Promise<void>`.
+  `failingStore?: boolean`, every save rejecting after the seed; `completeBox(title)`;
+  `openTask(user, title)`; `moveDueDate(user, title, day)`; `deleteFromPanel(user, title)`.
 
-- [x] **Step 1: Split `updateTask` before it changes**
+- [x] **Split first**
 
-`updateTask` is over the 80-line limit, and this task changes it. Move its title, notes, and due
-date updates into one private function each, without changing what it does, and remove its marker.
+`updateTask` is 96 lines, over the limit, and this task changes it. Move its title, notes, and due
+date updates into one private function each, and remove its marker. `npx vitest run` and
+`npx eslint src` pass before and after. Commit:
+`refactor(recurring-tasks): split updateTask by field`.
 
-- Run: `npx vitest run && npx eslint src`, before and after the split
-- Expected: PASS both times, with no unused disable directive
+- [x] **Tests**
 
-```bash
-git add src/store/tasks.ts
-git commit -m "refactor(recurring-tasks): split updateTask by field"
-```
+"Water the plants" repeats every Monday from 2026-10-05, and is due that day.
 
-- [x] **Step 2: Write the failing tests, and the helpers they use**
+- `completing a weekly task moves it to its next date`, a row per case: on its due date gives
+  `2026-10-12`; three days late gives `2026-10-12`; after its next date passed, on the 14th, gives
+  `2026-10-19`. The box ends unchecked. Catches counting from today, and skipping the check against
+  today.
+- `the confirmation names the next date, and disappears after 5 seconds`: "Next: Monday 12" and
+  "Undo", gone after 5,000 ms. Catches a timer never set.
+- `undo puts the previous due date back`: `2026-10-05`. Catches restoring nothing, or today.
+- `a double click moves the task once`: `2026-10-12`. Catches a checkbox left enabled.
+- `a failed save keeps the due date, and says so`: `2026-10-05` and "Could not save". Catches
+  showing the new date before the save resolves.
+- `a monthly task due on the 31st comes back to the 31st`: completed twice from 2026-10-31, it gives
+  `2026-11-30`, then `2026-12-31`. Catches adding a month to the previous date, which gives the
+  30th.
+- `a yearly task due on February 29 falls on February 28`: from 2028-02-29, `2029-02-28`. Catches
+  adding 365 days.
+- `moving a weekly task by hand restarts its schedule`: moved to Wednesday the 7th and completed, it
+  gives `2026-10-12`. Catches `updateTask` dropping the rule.
+- `deleting a repeating task ends it`: the row is gone. Catches a delete that only clears the date.
+- In `upgrade.test.tsx`: a task upgraded from version 1 does not repeat. It already passes.
 
-```tsx
-// tests/recurring-tasks/complete-a-repeating-task.test.tsx
-const everyMonday: RepeatRule = { unit: "week", interval: 1, weekdays: [1], from: "2026-10-05" };
-const plants = { title: "Water the plants", dueDate: "2026-10-05", repeat: everyMonday };
-
-test.each([
-  ["on its due date", "2026-10-05", "2026-10-12"],
-  ["three days late", "2026-10-08", "2026-10-12"],
-  ["after its next date passed", "2026-10-14", "2026-10-19"],
-])("completing a weekly task %s moves it to its next date", async (_, day, next) => {
-  const { user } = await renderApp({ today: day, tasks: [plants] });
-
-  await user.click(completeBox("Water the plants"));
-
-  expect(dueDateOf("Water the plants")).toBe(next);
-  expect(completeBox("Water the plants")).not.toBeChecked();
-});
-
-test("the confirmation names the next date, and disappears after 5 seconds", async () => {
-  const { user } = await renderApp({ tasks: [plants] });
-
-  await user.click(completeBox("Water the plants"));
-
-  expect(row("Water the plants")).toHaveTextContent("Next: Monday 12");
-  vi.advanceTimersByTime(5000);
-  expect(row("Water the plants")).not.toHaveTextContent("Next:");
-  expect(within(row("Water the plants")).queryByRole("button", { name: "Undo" })).toBeNull();
-});
-
-test("undo puts the previous due date back", async () => {
-  const { user } = await renderApp({ tasks: [plants] });
-  await user.click(completeBox("Water the plants"));
-
-  await user.click(within(row("Water the plants")).getByRole("button", { name: "Undo" }));
-
-  expect(dueDateOf("Water the plants")).toBe("2026-10-05");
-});
-
-test("a double click moves the task once", async () => {
-  const { user } = await renderApp({ tasks: [plants] });
-
-  await user.dblClick(completeBox("Water the plants"));
-
-  expect(dueDateOf("Water the plants")).toBe("2026-10-12");
-});
-
-test("a failed save keeps the due date, and says so", async () => {
-  const { user } = await renderApp({ tasks: [plants], failingStore: true });
-
-  await user.click(completeBox("Water the plants"));
-
-  expect(dueDateOf("Water the plants")).toBe("2026-10-05");
-  expect(row("Water the plants")).toHaveTextContent("Could not save");
-});
-
-test("a monthly task due on the 31st comes back to the 31st after a shorter month", async () => {
-  const repeat: RepeatRule = { unit: "month", interval: 1, from: "2026-10-31" };
-  const { user } = await renderApp({
-    today: "2026-10-31",
-    tasks: [{ title: "Rent", dueDate: "2026-10-31", repeat }],
-  });
-
-  await user.click(completeBox("Rent"));
-  const first = dueDateOf("Rent");
-  vi.advanceTimersByTime(5000);
-  await user.click(completeBox("Rent"));
-
-  expect([first, dueDateOf("Rent")]).toEqual(["2026-11-30", "2026-12-31"]);
-});
-
-test("a yearly task due on February 29 falls on February 28 in other years", async () => {
-  const repeat: RepeatRule = { unit: "year", interval: 1, from: "2028-02-29" };
-  const { user } = await renderApp({
-    today: "2028-02-29",
-    tasks: [{ title: "Leap", dueDate: "2028-02-29", repeat }],
-  });
-
-  await user.click(completeBox("Leap"));
-
-  expect(dueDateOf("Leap")).toBe("2029-02-28");
-});
-
-test("moving a weekly task by hand restarts its schedule on its chosen days", async () => {
-  const { user } = await renderApp({ today: "2026-10-07", tasks: [plants] });
-  await moveDueDate(user, "Water the plants", "2026-10-07");
-
-  await user.click(completeBox("Water the plants"));
-
-  expect(dueDateOf("Water the plants")).toBe("2026-10-12");
-});
-
-test("deleting a repeating task ends it", async () => {
-  const { user } = await renderApp({ tasks: [plants] });
-
-  await deleteFromPanel(user, "Water the plants");
-
-  expect(screen.queryByText("Water the plants")).toBeNull();
-});
-```
-
-Also in `tests/recurring-tasks/upgrade.test.tsx`: a task upgraded from version 1 does not repeat:
-completing it marks it done.
-
-The expected dates come from the approved schedule rules, independently of `nextDueDate`. The
-non-repeating completion check preserves existing behaviour and already passes before this task. The
-break each test catches:
-
-- Moves: counting from today, which puts the late task on 2026-10-15, or skipping the check against
-  today, which leaves the third on 2026-10-12.
-- Confirmation: a timer never set, so "Next:" stays.
-- Undo: restoring nothing, or today's date.
-- Double click: a checkbox left enabled during the confirmation, which moves the task two weeks.
-- Failed save: showing the new date before the save resolves.
-- Month end: adding a month to the previous date, which gives December 30 on the second completion.
-- February 29: adding 365 days, which gives March 1.
-- Moving by hand: `updateTask` dropping the rule when the date changes, so completing marks it done.
-- Deleting: a delete that only clears a repeating task's due date.
-
-- [x] **Step 3: Run them to check they fail**
-
-- Run: `npx vitest run tests/recurring-tasks/complete-a-repeating-task.test.tsx`
-- Expected: FAIL, `expected '2026-10-05' to be '2026-10-12'`: completing still only marks the task
-  done.
-
-- [x] **Step 4: Implement**
+- [x] **Implement**
 
 `nextDueDate` generates the rule's dates from `rule.from`, in order, and returns the first one after
-`dueDate` that is on or after `today`:
+`dueDate` that is on or after `today`. Always from `from`, never from the previous date, so month
+ends do not drift:
 
-- `day`: `addDays(from, k × interval)`, for k = 0, 1, 2, ...
-- `month`: `addMonths(from, k × interval)`; `year`: `addMonths(from, 12 × k × interval)`. Always
-  from `from`, never from the previous date, so month ends do not drift.
-- `week`: for k = 0, 1, 2, ..., the chosen `weekdays` of the week starting
-  `addDays(weekStart(from), 7 × k × interval)`, in order.
+- `day`: `addDays(from, k × interval)`; `month`: `addMonths(from, k × interval)`; `year`:
+  `addMonths(from, 12 × k × interval)`.
+- `week`: the chosen `weekdays` of the week starting `addDays(weekStart(from), 7 × k × interval)`.
 
-`completeTask`, for a repeating task, saves `nextDueDate(...)` in one transaction and returns the
-previous date; for other tasks, unchanged. The task row shows "Next: ..." and "Undo" for 5 seconds,
-with the checkbox disabled meanwhile, and "Could not save" when the store rejects.
+`completeTask` saves the next date in one transaction and returns the previous one. The task row
+disables the checkbox while the confirmation shows.
 
-- [x] **Step 5: Run the task's validation, and the benchmark**
+- [x] **Use it**
+
+Complete a repeating task: the row shows "Next: …" and "Undo", the date moves, and the box is free
+again after 5 seconds. Press Undo. Double click the box.
+
+- [x] **Validate and commit**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
-- Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
-
-- [x] **Step 6: Commit**
-
-```bash
-git add src/lib/repeat.ts src/store src/components/TaskRow.tsx tests
-git commit -m "feat(recurring-tasks): complete a repeating task"
-```
+- Commit: `feat(recurring-tasks): complete a repeating task`
 
 ## Task 3: The repeat menu
 
 **Files:**
 
-- Start from: `src/tasks/RepeatMenu.stories.tsx#Open`, the repeat menu written with the spec, a
-  `Select` labelled "Repeat" shown on its own: the tests of US1's scenarios come first, then the
-  edit panel draws it, wired to the store.
+- Start from: `src/tasks/RepeatMenu.stories.tsx#Open`, the menu written with the spec
 - Modify: `src/lib/repeat.ts` (presets, labels, `alignDueDate`), `src/store/tasks.ts` (`setRepeat`),
-  `src/components/EditPanel.tsx` (draws the story's menu), `src/components/TaskRow.tsx` (repeat
-  icon), `src/components/icons.tsx`, `src/tasks/RepeatMenu.stories.tsx` (`Open` fills the store)
-- Modify: `tests/helpers/app.tsx` (`repeatMenu`, `pickRepeat`)
+  `src/components/EditPanel.tsx`, `src/components/TaskRow.tsx` (repeat icon),
+  `src/components/icons.tsx`, `tests/helpers/app.tsx`
 - Test: `tests/recurring-tasks/make-a-task-repeat.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `RepeatPattern`, `RepeatRule`, `nextDueDate` from task 2; `today`, `weekday` from task
-  1; `openTask` from task 2.
+- Consumes: `RepeatPattern`, `RepeatRule`, `nextDueDate`, `openTask` from task 2; `today`, `weekday`
+  from task 1.
 - Produces, in `src/lib/repeat.ts`:
   `type Preset = "daily" | "weekdays" | "weekends" | "weekly" | "monthly" | "yearly"`;
-  `presetPattern(preset: Preset): RepeatPattern`, where "weekly" has no `weekdays`;
-  `repeatLabel(rule: RepeatRule): string`;
-  `alignDueDate(pattern: RepeatPattern, dueDate: CalendarDay | null, today: CalendarDay): CalendarDay`.
-- Produces, in `src/store/tasks.ts`:
-  `setRepeat(id: string, pattern: RepeatPattern | null): Promise<void>`. It aligns the due date,
-  fills a weekly pattern without `weekdays` with the aligned date's day, and saves the rule with
-  `from` set to that date.
-- Produces, in `tests/helpers/app.tsx`: `repeatMenu(): HTMLElement`;
-  `pickRepeat(user, entry: string): Promise<void>`, which opens the menu and picks the entry.
+  `presetPattern(preset): RepeatPattern`, where "weekly" has no `weekdays`;
+  `repeatLabel(rule): string`;
+  `alignDueDate(pattern, dueDate: CalendarDay | null, today): CalendarDay`: today when there is no
+  due date, then the first chosen weekday on or after it.
+- Produces, in `src/store/tasks.ts`: `setRepeat(id, pattern: RepeatPattern | null): Promise<void>`.
+  It aligns the due date, fills a weekly pattern without `weekdays` with that date's day, and saves
+  the rule with `from` set to that date.
+- Produces, in `tests/helpers/app.tsx`: `repeatMenu()`; `pickRepeat(user, entry)`.
 
-- [x] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Tests**
 
-```tsx
-// tests/recurring-tasks/make-a-task-repeat.test.tsx
-test("the menu offers its entries in order", async () => {
-  const { user } = await renderApp({ tasks: [{ title: "Gym" }] });
-  await openTask(user, "Gym");
+- `the menu offers its entries in order`: the eight entries of the global constraints. Catches one
+  missing, or out of order.
+- `picking weekly makes a task repeat on its due date's day, in two clicks`: due Monday the 5th, the
+  menu reads "Every week on Monday", and the row has the "Repeats" icon. Catches a preset saved
+  without the weekday.
+- `picking weekly on a task without a due date sets it to today`: on Thursday the 8th, `2026-10-08`
+  and "Every week on Thursday". Catches a repeat that leaves the date empty.
+- `picking never stops the repeat, and keeps the due date`. Catches clearing the date too.
 
-  await user.click(repeatMenu());
+- [x] **Implement**
 
-  expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
-    "Never",
-    "Daily",
-    "Weekdays",
-    "Weekends",
-    "Weekly",
-    "Monthly",
-    "Yearly",
-    "Custom...",
-  ]);
-});
+The edit panel draws the `Open` story's menu, a `Select` labelled "Repeat", and calls `setRepeat`.
+"Custom..." is listed, and does nothing until task 4. The task row shows the repeat icon, labelled
+"Repeats", when `repeat` is set.
 
-test("picking weekly makes a task repeat on its due date's day, in two clicks", async () => {
-  const { user } = await renderApp({
-    tasks: [{ title: "Water the plants", dueDate: "2026-10-05" }],
-  });
-  await openTask(user, "Water the plants");
+- [x] **Use it**
 
-  await user.click(repeatMenu());
-  await user.click(screen.getByRole("option", { name: "Weekly" }));
+Open a task, pick "Weekly" with the keyboard alone, then "Never". At the phone's width, the menu
+stays inside the panel.
 
-  expect(repeatMenu()).toHaveTextContent("Every week on Monday");
-  expect(within(row("Water the plants")).getByLabelText("Repeats")).toBeVisible();
-});
-
-test("picking weekly on a task without a due date sets it to today", async () => {
-  const { user } = await renderApp({ today: "2026-10-08", tasks: [{ title: "Call mom" }] });
-  await openTask(user, "Call mom");
-
-  await pickRepeat(user, "Weekly");
-
-  expect(dueDateOf("Call mom")).toBe("2026-10-08");
-  expect(repeatMenu()).toHaveTextContent("Every week on Thursday");
-});
-
-test("picking never stops the repeat, and keeps the due date", async () => {
-  const repeat: RepeatRule = { unit: "week", interval: 1, weekdays: [1], from: "2026-10-05" };
-  const { user } = await renderApp({ tasks: [{ title: "Gym", dueDate: "2026-10-05", repeat }] });
-  await openTask(user, "Gym");
-
-  await pickRepeat(user, "Never");
-
-  expect(dueDateOf("Gym")).toBe("2026-10-05");
-  expect(within(row("Gym")).queryByLabelText("Repeats")).toBeNull();
-});
-```
-
-The break each test catches:
-
-- Entries: one missing, or out of order.
-- Weekly: a preset saved without the due date's weekday, which reads "Every week".
-- Without a due date: a repeat that leaves the date empty.
-- Never: clearing the due date with the repeat.
-
-- [x] **Step 2: Run them to check they fail**
-
-- Run: `npx vitest run tests/recurring-tasks/make-a-task-repeat.test.tsx`
-- Expected: FAIL, `Unable to find a label with the text of: Repeat`.
-
-- [x] **Step 3: Implement**
-
-- `alignDueDate`: today when `dueDate` is `null`, then, for patterns with `weekdays`, the first
-  chosen day on or after it.
-- Edit panel: the `Open` story's menu, a `Select` labelled "Repeat" with the global constraints'
-  entries, drawn in the panel and calling `setRepeat`. "Custom..." is listed, and opens the custom
-  screen from task 4: until then, it does nothing. The story keeps showing the menu open, on a task
-  its store holds.
-- Task row: the repeat icon, labelled "Repeats", when `repeat` is set.
-
-- [x] **Step 4: Run the task's validation, and the benchmark**
+- [x] **Validate and commit**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
-- Expected: PASS, and no benchmark slower than the baseline beyond its margin of error (SC-002).
-
-- [x] **Step 5: Commit**
-
-```bash
-git add src/lib/repeat.ts src/store/tasks.ts src/components tests
-git commit -m "feat(recurring-tasks): repeat menu"
-```
+- Commit: `feat(recurring-tasks): repeat menu`
 
 ## Task 4: The custom repeat screen
 
 **Files:**
 
-- Start from: `src/tasks/RepeatMenu.stories.tsx#Custom`, the `RepeatScreen` written with the spec:
-  the tests of US3's scenarios come first, then the edit panel opens it and saves its pattern.
-- Modify: `src/components/RepeatScreen.tsx`, `src/components/RepeatScreen.module.css` (from the
-  `Custom` story: Save's rules)
-- Modify: `src/components/EditPanel.tsx` ("Custom..." opens the screen)
-- Modify: `tests/helpers/app.tsx` (`fillCustomRepeat`)
+- Start from: `src/tasks/RepeatMenu.stories.tsx#Custom`, the `RepeatScreen` written with the spec
+- Modify: `src/components/RepeatScreen.tsx`, `src/components/RepeatScreen.module.css`,
+  `src/components/EditPanel.tsx` ("Custom..." opens the screen), `tests/helpers/app.tsx`
 - Test: `tests/recurring-tasks/custom-schedule.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `RepeatPattern`, `repeatLabel` from tasks 2 and 3; `setRepeat`, `pickRepeat` from task
-  3; `openTask` from task 2.
+- Consumes: `RepeatPattern`, `repeatLabel`, `setRepeat`, `pickRepeat`, `openTask` from tasks 2
+  and 3.
 - Produces:
-  `RepeatScreen(props: { pattern: RepeatPattern | null; onSave(pattern: RepeatPattern): void; onCancel(): void })`,
+  `RepeatScreen(props: { pattern: RepeatPattern | null; onSave(pattern): void; onCancel(): void })`,
   a dialog named "Custom repeat".
 - Produces, in `tests/helpers/app.tsx`:
-  `fillCustomRepeat(user, { every: number; unit: "days" | "weeks" | "months" | "years"; days?: string[] }): Promise<void>`,
+  `fillCustomRepeat(user, { every: number; unit: "days" | "weeks" | "months" | "years"; days?: string[] })`,
   which fills the open screen without saving.
 
-- [x] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Tests**
 
-```tsx
-// tests/recurring-tasks/custom-schedule.test.tsx
-async function setCustom(user, title, fields) {
-  await openTask(user, title);
-  await pickRepeat(user, "Custom...");
-  await fillCustomRepeat(user, fields);
-  await user.click(screen.getByRole("button", { name: "Save" }));
-}
+- `every 2 weeks moves a completed task two weeks later`: due Monday the 5th, `2026-10-19`. Catches
+  an ignored interval.
+- `Mondays and Thursdays move a Monday task to Thursday`: `2026-10-08`. Catches keeping only the
+  first chosen day.
+- `choosing days moves the due date to the first chosen day`: due Tuesday the 6th, `2026-10-08`.
+  Catches a rule saved without aligning the date.
+- `Save stays disabled`, a row per case: an interval of 0; weeks with no day chosen. Catches a
+  pattern that never repeats.
 
-test("every 2 weeks moves a completed task two weeks later", async () => {
-  const { user } = await renderApp({ tasks: [{ title: "Clean", dueDate: "2026-10-05" }] });
-  await setCustom(user, "Clean", { every: 2, unit: "weeks", days: ["Monday"] });
+- [x] **Implement**
 
-  await user.click(completeBox("Clean"));
+"Save" is enabled only for a valid pattern: an interval of at least 1 and, for weeks, a day chosen.
+It calls `setRepeat` through the edit panel.
 
-  expect(dueDateOf("Clean")).toBe("2026-10-19");
-});
+- [x] **Use it**
 
-test("Mondays and Thursdays move a Monday task to Thursday", async () => {
-  const { user } = await renderApp({ tasks: [{ title: "Run", dueDate: "2026-10-05" }] });
-  await setCustom(user, "Run", { every: 1, unit: "weeks", days: ["Monday", "Thursday"] });
+Open the screen from "Custom...", set every 2 weeks on Monday and Thursday, save, and read the
+menu's label. Leave with Escape: nothing changed. At the phone's width, the seven days fit.
 
-  await user.click(completeBox("Run"));
-
-  expect(dueDateOf("Run")).toBe("2026-10-08");
-});
-
-test("choosing days moves the due date to the first chosen day", async () => {
-  const { user } = await renderApp({ tasks: [{ title: "Run", dueDate: "2026-10-06" }] });
-
-  await setCustom(user, "Run", { every: 1, unit: "weeks", days: ["Monday", "Thursday"] });
-
-  expect(dueDateOf("Run")).toBe("2026-10-08");
-});
-
-test.each([
-  ["an interval of 0", { every: 0, unit: "days" }],
-  ["weeks with no day chosen", { every: 1, unit: "weeks", days: [] }],
-])("Save stays disabled with %s", async (_, fields) => {
-  const { user } = await renderApp({ tasks: [{ title: "Run" }] });
-  await openTask(user, "Run");
-  await pickRepeat(user, "Custom...");
-
-  await fillCustomRepeat(user, fields);
-
-  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-});
-```
-
-The break each test catches:
-
-- Every 2 weeks: an ignored interval, which gives 2026-10-12.
-- Mondays and Thursdays: only the first chosen day kept, which gives 2026-10-12.
-- Choosing days: a rule saved without aligning the due date, which stays on 2026-10-06.
-- Save disabled: a pattern accepted with an interval of 0, or no day, which never repeats.
-
-- [x] **Step 2: Run them to check they fail**
-
-- Run: `npx vitest run tests/recurring-tasks/custom-schedule.test.tsx`
-- Expected: FAIL, `Unable to find role="dialog" and name "Custom repeat"`.
-
-- [x] **Step 3: Implement**
-
-The `Custom` story's dialog keeps its number input for the interval, its unit `Select`, and, for
-weeks, its seven day toggles. "Save" is enabled only for a valid pattern, an interval of at least 1
-and, for weeks, a day chosen, and calls `setRepeat` through the edit panel.
-
-- [x] **Step 4: Run the task's validation**
+- [x] **Validate and commit**
 
 - Run: `npx vitest run`
-- Expected: PASS.
-
-- [x] **Step 5: Commit**
-
-```bash
-git add src/components tests
-git commit -m "feat(recurring-tasks): custom repeat screen"
-```
+- Commit: `feat(recurring-tasks): custom repeat screen`
 
 ## Task 5: Repeats typed in the title
 
 **Files:**
 
-- Modify: `src/lib/repeat.ts` (`parseRepeat`), `src/store/tasks.ts` (`createTask`, `renameTask`)
-- Modify: `tests/helpers/app.tsx` (`addTask`, `editTitle`)
+- Modify: `src/lib/repeat.ts` (`parseRepeat`), `src/store/tasks.ts` (`createTask`, `renameTask`),
+  `tests/helpers/app.tsx`
 - Test: `tests/recurring-tasks/repeat-in-title.test.tsx`,
   `tests/recurring-tasks/parse-repeat.test.ts`
 
 **Interfaces:**
 
-- Consumes: `RepeatPattern` from task 2; `setRepeat` from task 3, which aligns the due date and
-  fills a weekly pattern's day.
+- Consumes: `RepeatPattern` from task 2; `setRepeat` from task 3.
 - Produces, in `src/lib/repeat.ts`:
   `parseRepeat(title: string): { title: string; pattern: RepeatPattern } | null`, `null` when the
   title has no phrase at its end, or nothing before it.
-- Produces, in `src/store/tasks.ts`: `renameTask(id: string, title: string): Promise<void>`, which
-  parses the title before saving, as `createTask` now does.
-- Produces, in `tests/helpers/app.tsx`: `addTask(user, title: string): Promise<void>`;
-  `editTitle(user, from: string, to: string): Promise<void>`.
+- Produces, in `src/store/tasks.ts`: `renameTask(id, title): Promise<void>`, which parses the title
+  before saving, as `createTask` now does.
+- Produces, in `tests/helpers/app.tsx`: `addTask(user, title)`; `editTitle(user, from, to)`.
 
-- [x] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Tests**
 
-```tsx
-// tests/recurring-tasks/repeat-in-title.test.tsx
-test("a new task's title sets the repeat, and its next Monday", async () => {
-  const { user } = await renderApp({ today: "2026-10-08" });
+- `a new task's title sets the repeat, and its next Monday`: "Water the plants every monday" typed
+  on Thursday the 8th gives the icon and `2026-10-12`.
+- `an edited title sets the repeat, and moves the due date`: "Call mom", due the 7th, renamed "Call
+  mom every monday" gives `2026-10-12`. With the test above, catches a phrase parsed by only one of
+  `createTask` and `renameTask`.
+- `an interval in the title starts today on a task without a due date`: "every 2 weeks" on the 8th
+  gives `2026-10-08`. Catches a pattern saved without aligning.
+- `stays as typed, without a repeat`: "Read every so often", and "every monday" alone. Catches any
+  "every ..." stripped, or a title emptied.
+- `parse-repeat.test.ts`, a table with a row per phrase of the spec (SC-003): every day, weekday,
+  weekend, week, month, year; every 3 days, 2 weeks, 6 months; "every monday and thursday"; and "Gym
+  Every Monday." Each gives the title "Gym" and its pattern. "Gym", "Gym every so often", "Gym every
+  0 days", and "every monday" give `null`. Catches a case-sensitive match, a final period kept, or a
+  0 interval accepted.
 
-  await addTask(user, "Water the plants every monday");
+- [x] **Implement**
 
-  expect(within(row("Water the plants")).getByLabelText("Repeats")).toBeVisible();
-  expect(dueDateOf("Water the plants")).toBe("2026-10-12");
-});
+`parseRepeat` recognizes the spec's phrases at the end of the title, whatever their case, ignoring a
+final period, with any whole number from 1 as the interval. `createTask` and `renameTask` call it
+before saving, then `setRepeat` with the pattern.
 
-test("an edited title sets the repeat, and moves the due date", async () => {
-  const { user } = await renderApp({ tasks: [{ title: "Call mom", dueDate: "2026-10-07" }] });
+- [x] **Use it**
 
-  await editTitle(user, "Call mom", "Call mom every monday");
+Type "Water the plants every monday" as a new task: the title loses the phrase, and the row repeats.
+Rename a task the same way.
 
-  expect(within(row("Call mom")).getByLabelText("Repeats")).toBeVisible();
-  expect(dueDateOf("Call mom")).toBe("2026-10-12");
-});
-
-test("an interval in the title starts today on a task without a due date", async () => {
-  const { user } = await renderApp({ today: "2026-10-08", tasks: [{ title: "Call mom" }] });
-
-  await editTitle(user, "Call mom", "Call mom every 2 weeks");
-
-  expect(within(row("Call mom")).getByLabelText("Repeats")).toBeVisible();
-  expect(dueDateOf("Call mom")).toBe("2026-10-08");
-});
-
-test.each(["Read every so often", "every monday"])(
-  "%s stays as typed, without a repeat",
-  async (typed) => {
-    const { user } = await renderApp();
-
-    await addTask(user, typed);
-
-    expect(within(row(typed)).queryByLabelText("Repeats")).toBeNull();
-  },
-);
-```
-
-```ts
-// tests/recurring-tasks/parse-repeat.test.ts, one row per phrase (SC-003)
-test.each([
-  ["Gym every day", { unit: "day", interval: 1 }],
-  ["Gym every weekday", { unit: "week", interval: 1, weekdays: [1, 2, 3, 4, 5] }],
-  ["Gym every weekend", { unit: "week", interval: 1, weekdays: [0, 6] }],
-  ["Gym every week", { unit: "week", interval: 1 }],
-  ["Gym every month", { unit: "month", interval: 1 }],
-  ["Gym every year", { unit: "year", interval: 1 }],
-  ["Gym every 3 days", { unit: "day", interval: 3 }],
-  ["Gym every 2 weeks", { unit: "week", interval: 2 }],
-  ["Gym every 6 months", { unit: "month", interval: 6 }],
-  ["Gym every monday and thursday", { unit: "week", interval: 1, weekdays: [1, 4] }],
-  ["Gym Every Monday.", { unit: "week", interval: 1, weekdays: [1] }],
-])("%s", (typed, pattern) => {
-  expect(parseRepeat(typed)).toEqual({ title: "Gym", pattern });
-});
-
-test.each(["Gym", "Gym every so often", "Gym every 0 days", "every monday"])(
-  "%s is left alone",
-  (typed) => expect(parseRepeat(typed)).toBeNull(),
-);
-```
-
-The break each test catches:
-
-- New and edited titles: a phrase parsed by only one of `createTask` and `renameTask`.
-- An interval without a due date: a pattern saved without aligning, which leaves no date.
-- Stays as typed: any "every ..." stripped, or a title made only of a phrase emptied.
-- The table: a case-sensitive match, a final period kept, or a 0 interval accepted.
-
-- [x] **Step 2: Run them to check they fail**
-
-- Run:
-  `npx vitest run tests/recurring-tasks/repeat-in-title.test.tsx tests/recurring-tasks/parse-repeat.test.ts`
-- Expected: FAIL, `parseRepeat is not a function`.
-
-- [x] **Step 3: Implement**
-
-`parseRepeat` recognizes the table's phrases case-insensitively at the end of the title, ignoring a
-final period, with any whole number from 1 as the interval. Unrecognized phrases and titles made
-only of a repeat phrase stay unchanged. `createTask` and `renameTask` call it before saving, then
-`setRepeat` with the pattern; the parser's private implementation is left to the implementer.
-
-- [x] **Step 4: Run the task's validation**
+- [x] **Validate and commit**
 
 - Run: `npx vitest run`
-- Expected: PASS.
-
-- [x] **Step 5: Commit**
-
-```bash
-git add src/lib/repeat.ts src/store/tasks.ts tests
-git commit -m "feat(recurring-tasks): repeats typed in the title"
-```
+- Commit: `feat(recurring-tasks): repeats typed in the title`

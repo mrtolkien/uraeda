@@ -556,8 +556,8 @@ fn a_plan_has_its_tasks_and_steps() {
 
     let task4 = tasks.iter().find(|t| t.number == 4).unwrap();
     assert_eq!(task4.title, "The custom repeat screen");
-    assert_eq!((task4.done, task4.total), (5, 5));
-    assert_eq!(task4.steps.len(), 5);
+    assert_eq!((task4.done, task4.total), (4, 4));
+    assert_eq!(task4.steps.len(), 4);
 }
 
 #[test]
