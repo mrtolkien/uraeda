@@ -1491,7 +1491,8 @@ predates. Read its record first: it is the specification.
   - A run a usage limit refused goes on at once on the account with the most room among those that
     hold its conversation, with a line naming the account; with no room elsewhere it waits for its
     own reset ([`account-move.ts`](/packages/server/src/runner/account-move.ts), and the
-    [models](../decisions/models.md) and [run lifecycle](../decisions/run-lifecycle.md) decisions).
+    [models](../decisions/run-options.md) and [run lifecycle](../decisions/run-lifecycle.md)
+    decisions).
   - An account's problems, for the settings' banners.
 
 - [x] **Step 1: Write the failing tests**, on the fake runtime with scripted accounts, reusing the

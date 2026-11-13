@@ -39,11 +39,15 @@ editing it.
   links into the skill and the example, with a quick install. The reference moved to its own pages:
   every way to install in `INSTALL.md`, reference for users (the app, the `ura` CLI, the `specs/`
   folder) in `docs/`, and building, testing, and releasing in `CONTRIBUTING.md`. The
-  [documentation](specs/decisions/documentation.md) decision says what goes where: update the page a
+  [documentation guide](specs/guides/documentation.md) says what goes where: update the page a
   change makes wrong.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
 - `specs/ui/`: the app's guides, how its views read, behave, and look at each width. Read them
   before designing or changing a view.
+- `specs/guides/`: the guides of the other areas, how testing, agents' runs, statuses, mockups,
+  performance, and the documentation are meant to work. Read the one for the area you touch.
+- `specs/decisions/`: the boundaries the human set, each in their own words, with a case each rule
+  settles. Short enough to read all of them before any work.
 
 ## Repository layout
 

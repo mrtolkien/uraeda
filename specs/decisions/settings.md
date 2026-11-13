@@ -4,47 +4,44 @@ icon: settings
 
 # Settings
 
-Uraeda's settings live in one TOML file that a human edits, backs up, and keeps in their dotfiles.
-The app writes the same file without losing a hand edit. A flag or an environment variable overrides
-a setting for one run, and settings stay apart from Uraeda's data and secrets.
+> "Store the config in a simple format that can be backed up/added to dotfiles simply"
+
+A setting is a choice that follows the human to every device. What one device remembers about its
+own screen, a pane's width, the theme picked there, is no setting, and stays on that device.
 
 ## Rules
 
-- Settings MUST live in one TOML file in the config folder, on macOS too, apart from Uraeda's data
-  and secrets. Checked by the core's tests.
-- The settings file MUST NOT hold a secret, or be read from a repository.
-- Colour themes MUST live one per file in a folder beside the settings file, never read from a
-  repository. Checked by the core's tests.
-- Finding, reading, validating, and writing the settings and the theme files MUST live in the Rust
-  core.
-- A write MUST keep a human's comments, unknown keys, and order. Checked by the core's tests.
-- A write MUST NOT overwrite a file that is unreadable or invalid. Checked by the core's tests.
-- A setting MUST resolve from its flag, then its environment variable, then the file, then its
-  default. Checked by the server's tests.
-- A flag or an environment variable MUST NOT be written into the file. Checked by the server's
-  tests.
-- A setting changed in the app MUST apply at once when it can, the page saying otherwise when it
-  applies.
+- Settings live in one TOML file in the config folder, on macOS too, apart from Uraeda's data and
+  secrets. _So:_ the switch that turns single-key shortcuts off is a line of that file, not a value
+  the app keeps on one device. A file that lives only while a server runs goes to the data folder.
+- Nothing a repository holds chooses what Uraeda runs, spends, or shows: no setting, scheduled job,
+  or run option is read from one. _So:_ a job file committed in a repository is never read, however
+  useful to a team. A feature's picks of agent and model are kept in the data folder, and a
+  repository the human opens cannot bring a colour theme with it.
+- The settings file never holds a secret, and the server reads secrets only from a `.env` file in
+  the config folder, never from a project or the folder it runs in. _So:_ what signs a device in is
+  kept in the data folder, and a cloned repository cannot widen the host names the server accepts.
+- A write by the app keeps the human's comments, unknown keys, and order, and never overwrites a
+  file it cannot read. _So:_ changing the port on the settings page leaves every comment in place. A
+  file with a syntax error shows its problem on the page, and stays as it is until fixed by hand.
+- A flag or an environment variable overrides the file for one run, and is never written into it.
+  _So:_ a server started for a test with its own port leaves the file's port alone. The order is the
+  flag, the variable, the file, then the default.
 
 ## Why
 
-A file is simple to back up and keep in one's dotfiles. TOML is the one format both usual in the
-config folder and safe to annotate by hand. Settings stay apart from data and secrets, so dotfiles
-never hold a secret. A theme is long, so it is a file of its own in the same dotfiles, and no
-repository restyles the UI. A flag overrides for one run. History:
+A file is simple to back up and to keep in one's dotfiles, and TOML is the format usual in the
+config folder that is safe to annotate by hand. The human edits it too, so the app treats it as
+theirs. Settings stay apart from data and secrets, so dotfiles never hold a secret. A repository is
+other people's text: one that could set a value could restyle the app, choose what the human's runs
+spend, or run an agent on their machine. A feature's run options are workflow choices kept out of
+git for that reason, an exception to the constitution's "git and plain text first". History:
 [Settings page](../done/2026-10-16-settings-page.md).
 
 ## Alternatives considered
 
-- JSON, in the data or the config folder: no dependency, but no comments.
-- Splitting the data, state, and cache folders as XDG does: a migration, while macOS merges the
-  folders anyway.
-- Themes as tables of the settings file: a theme maps about 50 roles, too long to share the file.
-
-## Consequences
-
-- Every later setting, like models, run options, or reviews, joins one file and one page.
-- A hand edit shows on the page at once, and a broken file shows its problem there.
+- JSON: no dependency, but no comments.
+- A flag written into the file at start: a start for a test would change the settings for good.
 
 ## Applies to
 

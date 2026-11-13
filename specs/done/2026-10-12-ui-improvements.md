@@ -260,8 +260,8 @@ of ideas) or the priorities page".
 
 - [UI components](../decisions/ui-components.md), new: Astryx first, StyleX with tokens only, no
   global stylesheet, `@dnd-kit/react` for dragging, pinned versions, all enforced by lint.
-- [UI layout](../decisions/ui-layout.md), new: two width classes at 768 px, panes and popovers on
-  wide screens, pages and sheets on the phone, 17 px and 19 px text, left-aligned.
+- [UI layout](../ui/README.md), new: two width classes at 768 px, panes and popovers on wide
+  screens, pages and sheets on the phone, 17 px and 19 px text, left-aligned.
 - [UI behaviour](../decisions/ui-behaviour.md), new: whole rows tappable, edits in place, modals
   only for confirmations and short forms, inline status, 5-second toasts, the place kept on Back.
 - [UI checks, now in Testing](../decisions/testing.md), new: tests that guard behaviour only, layout

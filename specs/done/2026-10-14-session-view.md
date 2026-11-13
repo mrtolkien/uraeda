@@ -166,9 +166,9 @@ stays plain tool rows.
 
 ## Decisions
 
-- [UI layout](../decisions/ui-layout.md), changed: readability first, view by view; a view the human
-  follows, like a session, is a page of its own, with a foldable column; the sidebar stays short,
-  slugs and icons, with full words in accessible names.
+- [UI layout](../ui/README.md), changed: readability first, view by view; a view the human follows,
+  like a session, is a page of its own, with a foldable column; the sidebar stays short, slugs and
+  icons, with full words in accessible names.
 
 ## Changes after approval
 

@@ -4,48 +4,42 @@ icon: flask-conical
 
 # Sandbox
 
-Uraeda's built UI is reviewed in a sandbox: the whole app, hot-reloading from the code of the
-checkout it runs in, over sample projects and a fake agent. It never touches the human's real
-projects, data, or agent. The gallery stays the place for mockups and variants, and the sandbox is
-where pages are browsed together, as a user does.
+> "What I want is to use the sandbox (`nix develop -c just sandbox`), point out issues to you, and
+> have you fix them _as fast as possible_. Velocity is paramount."
+
+The sandbox is the whole app, hot-reloading from the code of the checkout it runs in, over sample
+projects and a fake agent, which answers from canned text and changes no file. It is where the human
+reviews the UI.
 
 ## Rules
 
-- The sandbox MUST show the whole app from the checkout it runs in, with hot reload, over sample
-  projects only.
-- The sandbox MUST NOT read or write the human's real repositories, data folder, config folder, or
-  agent. Checked by a test.
-- The sandbox's sessions MUST run on a fake agent, which answers from canned text and changes no
-  file. Checked by a test.
-- The sandbox's state MUST survive its restarts, until the human asks for a reset. Checked by a
-  test.
-- The sandbox's sample projects MUST NOT reach the package, where its command is hidden and runs
-  from a checkout only.
-- Mockups and variants SHOULD stay gallery pages, as [Preview](preview.md) says.
+- The sandbox never reads or writes the human's real repositories, data folder, config folder, or
+  agent. _So:_ its sessions run on the fake agent, and every test, picture, and tool run gets
+  folders of its own, and fails when it wrote in the human's.
+- The sandbox always has a picker: a way to point at an element and copy, as text for the agent,
+  what it is and where. _So:_ a move of the app to another framework brings the picker with the
+  sandbox. When the move to Native Shell dropped it, the human asked for it back the same day.
 
 ## Why
 
-UI work needs the app in many states, and the gallery's pages show components alone, never a way
-from page to page. A fake agent costs nothing, answers at once, and answers the same every time.
-State kept until a reset brings the human back where they were. History:
+The human finds what is wrong in the UI by using it, and a fix goes fastest when they can point at
+an element instead of describing it. UI work needs the app in many states: sample projects give them
+without risk to real ones, and a fake agent costs nothing and answers the same every time. History:
 [UI sandbox](../done/2026-10-20-ui-sandbox.md).
 
 ## Alternatives considered
 
-- A sandbox mode inside the development server: sample and real data in one app.
+- Dropping the picker where a framework gives no source location of an element: done once, and
+  reversed. A pick that names the file and the component that wrote the element is enough.
 - The real agent on the sample projects: costly, slow, and never the same twice.
-- A picker that copies an element's page and source location for the agent, which the web UI's
-  sandbox had: its build plugin went with that UI, and Native Shell has none.
-
-## Consequences
-
-- Every UI feature can be reviewed in the sandbox, at every step of the workflow.
-- The sample projects need upkeep as the workflow's files and steps change.
-- A step never moves on by itself in the sandbox: the human sees an agent at work, not its result.
 
 ## Applies to
 
-- [`crates/server/src/sandbox/`](/crates/server/src/sandbox/), `ura sandbox`, `just sandbox`, and
-  every feature with UI work
-- The builders of the sample projects, in the same folder, and every feature that adds a workflow
-  step or file
+- [`crates/server/src/sandbox/`](/crates/server/src/sandbox/) and [`app/sandbox/`](/app/sandbox/),
+  and every feature with UI work
+- Every feature that adds a workflow step or file, which the sample projects must show
+
+## Revisit when
+
+The human decides whether Uraeda keeps its own app, or sits on another orchestrator with its skill,
+its CLI, and a small view: they asked on 2026-11-13 how much custom UI it needs, and it is open.

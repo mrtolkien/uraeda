@@ -95,7 +95,7 @@ closed.
 
 ## Decisions
 
-- [UI look](/specs/decisions/ui-look.md): on the phone, a pane keeps its whole border, with little
+- [UI look](/specs/ui/look-and-feel.md): on the phone, a pane keeps its whole border, with little
   room inside it and around it, where it kept only its titled top border.
 
 ## Follow-ups

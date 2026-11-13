@@ -4,57 +4,47 @@ icon: keyboard
 
 # Keyboard
 
-The whole app can be driven from the keyboard, and every shortcut is declared once, in one registry.
-Space opens the leader menu, a menu of nested groups of shortcuts, and every page shares one base
-set of keys. Single-key shortcuts can be turned off, and no key is ever the only way to do
-something.
+> "Mouse is not necessary to do _any_ action."
+
+Said of the review pages, and meant for the product: "We're adding keyboard navigation for the
+_whole_ application." The key registry is the app's one list of shortcuts: each key with what it
+does, its label, and its hint. The leader menu is the menu of key sequences that Space opens. Which
+keys a view takes, and how it shows them, is the [keyboard guide](../ui/keyboard.md)'s.
 
 ## Rules
 
-- A shortcut MUST be declared in the key registry, and listened for nowhere else. Checked by a
-  structural test.
-- Every action MUST work by keyboard and by tap, never by hover or a single key alone.
-- Single-key shortcuts MUST be switchable off by a setting in the settings file. Checked by the
-  settings page's tests.
-- A chord with a modifier key MUST open the leader menu while single-key shortcuts are off. Checked
-  by the settings page's tests.
-- Space MUST open the leader menu outside text fields and open layers, after a short wait, so quick
-  typing shows nothing. Checked by the UI tests.
-- Shortcuts MUST work at every width, with their hints hidden on narrow screens. Checked by the UI
-  tests.
-- Every page MUST share one base set of keys, following Vim's habits to move, add, edit, and go to a
-  page.
-- A key MUST NOT mean two things at once on one page, though two pages may give it different
-  meanings, and so may a selection while it holds, shown on it. Checked by the registry's tests.
-- A page's own keys SHOULD be few and mnemonic.
-- The status line SHOULD show the keys that work on the page, drawn from the registry. Checked by
-  the UI tests.
+- Every action works by keyboard and by tap, never by hover or a single key alone. _So:_ a new view
+  ships with its keys in the same feature. A session's side column that no key reached was a bug,
+  not a later feature.
+- A shortcut is declared in the key registry, and listened for nowhere else. _So:_ a page that adds
+  `n` declares it there, and the leader menu, the status line, and the key map show it with no
+  further work. Only the keys a text field or an open dialog takes for itself stay with it.
+- A key never means two things at once on one page; another page, or a selection that shows it while
+  it holds, may give it another meaning. _So:_ `n` is New on most pages and Next on a round of
+  questions. A held question's `a` to `f` pick its options, so `b` is Back again only after Escape.
+  `m` opens a composer's model picker only on pages with no row to move.
+- Single-key shortcuts can be switched off, by a setting in the settings file. _So:_ with the switch
+  off, `?` does nothing, and `Ctrl+K` still opens the leader menu, where `?` opens the key map.
+- Keys work at every width: a narrow screen hides their hints, never the keys. _So:_ a round's `n`
+  and `p` reach the blank questions on a tablet with a keyboard, while the phone's bars show icons
+  and no key.
 
 ## Why
 
-Keys scattered through components drifted from their hints, and one rule had three copies, so one
-registry feeds the leader menu, the hints, and a search of the keys. A Space leader follows LazyVim
-and Helix, the editors these keys imitate. A selection's keys, like a question's letters picking its
-options, cost one key where a mode would cost two. WCAG 2.1.4 asks for a way to turn single-key
-shortcuts off. History: [Leader key](../done/2026-10-26-leader-key.md).
+The human works from the keyboard all day, with LazyVim's habits, and a view that needs the mouse
+stops them. Keys handled inside views drift from their hints and clash unseen. One registry feeds
+every place that shows a key, and catches a clash as the view is made. A single key is a slip away
+under speech input or a screen reader, so single keys can be turned off. History:
+[Leader key](../done/2026-10-26-leader-key.md).
 
 ## Alternatives considered
 
-- **A mode for a selection's keys**, entered with a key as move mode is: two more keys for each
-  question answered.
-- **Digits to pick an option**: the key would not match the letter shown on it.
-
-## Consequences
-
-- A new feature declares its keys in the registry, and the leader menu, the status line, and the key
-  search read them with no further work.
-- A key conflict on one page fails a test, instead of being found by pressing keys; a selection's
-  own keys exist only while it holds, and Escape gives the page's keys back.
-- Every shortcut needs a label, an icon, and a group, and a page cannot grab a key on its own.
-- The switch is read by the server and the page, so it lives in the Rust core with the other
-  settings.
+- No keys on narrow screens, since a phone has no keyboard: a tablet's keyboard, or a narrow window
+  on a desk, would lose them.
+- The switch for single keys kept on the device: it would not follow the human to their next device,
+  as the settings file does.
 
 ## Applies to
 
-- [`app/`](/app/), and every feature that adds or changes a view or a shortcut
+- [`app/`](/app/), and every feature that adds or changes a view, an action, or a shortcut
 - [`crates/core/`](/crates/core/)'s settings, for the switch

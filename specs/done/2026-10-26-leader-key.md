@@ -252,7 +252,7 @@ pressed, as Helix does.
   file with a chord left for the menu, none is the only way to do something, Space opens the leader
   menu after a short moment, keys work at every width with no hints on narrow screens, pages share
   one base keymap, and a key means one thing per page.
-- Relied on: [UI behaviour](../decisions/ui-behaviour.md), [UI layout](../decisions/ui-layout.md),
+- Relied on: [UI behaviour](../decisions/ui-behaviour.md), [UI layout](../ui/README.md),
   [UI coherence, now in UI components](../decisions/ui-components.md),
   [Settings](../decisions/settings.md), [UI checks, now in Testing](../decisions/testing.md), and
   [Preview](../decisions/preview.md).

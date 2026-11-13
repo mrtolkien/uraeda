@@ -48,8 +48,9 @@ scope: the human builds them later, on a Mac.
   layer, a named subset, in place of CodeMirror's.
 - **Changed: [UI components](../decisions/ui-components.md)**. Components come from Uraeda's own
   library, in place of Astryx.
-- **Changed: [UI look](../decisions/ui-look.md)**. Glass, blur, and glow are part of the look, and
-  the terminal direction stays.
+- **Removed: UI look** (`ui-look.md`). Glass, blur, and glow are part of the look, and the terminal
+  direction stays: since the month's review, the look is the [look and feel](../ui/look-and-feel.md)
+  guide's.
 - **Changed: [Colour themes](../decisions/colour-themes.md)**. Themes gain roles for glass and glow,
   in the same TOML format.
 - **Changed: [Preview](../decisions/preview.md)**. Previews draw in a web view on native clients,
@@ -64,7 +65,7 @@ Relied on:
 | Decision                                       | What it means for this spec                                     |
 | ---------------------------------------------- | --------------------------------------------------------------- |
 | [Keyboard](../decisions/keyboard.md)           | The key registry, the leader menu, and their rules stay.        |
-| [UI layout](../decisions/ui-layout.md)         | The three width classes and their rules stay.                   |
+| [UI layout](../ui/README.md)                   | The three width classes and their rules stay.                   |
 | [UI behaviour](../decisions/ui-behaviour.md)   | Behaviour rules stay, and the new components follow them.       |
 | [Undo](../decisions/undo.md)                   | Undo keeps its keys, its stack of 50, and its rules.            |
 | [Run lifecycle](../decisions/run-lifecycle.md) | Runs keep their states and their automatic continues.           |

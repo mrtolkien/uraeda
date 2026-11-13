@@ -487,8 +487,8 @@ keep the skill's wording generic."
   stage, and a web UI test is kept only when extremely useful.
 - [UI checks, now in Testing](../decisions/testing.md), changed: the human checks UI work by using
   the app, with one screenshot of each new view in the pull request.
-- [UI layout](../decisions/ui-layout.md), [UI look](../decisions/ui-look.md),
-  [UI behaviour](../decisions/ui-behaviour.md), [Problems](../decisions/problems.md),
+- [UI layout](../ui/README.md), [UI look](../ui/look-and-feel.md),
+  [UI behaviour](../decisions/ui-behaviour.md), [Problems](../decisions/feature-status.md),
   [Settings](../decisions/settings.md), and [Preview](../decisions/preview.md), changed: rules keep
   their intent and end "Checked by review", but contrast; stories do not run as tests.
 

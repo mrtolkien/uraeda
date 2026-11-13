@@ -4,54 +4,46 @@ icon: activity
 
 # Feature status
 
-A feature's status tells the human, in every view, whether it needs them, works, or waits. It is
-decided in one place, from the branch's commits and the feature's sessions, so a running agent
-always shows, an old failure never hides current work, and a warning stays until the human deals
-with it.
+> "Any agent working on a feature means it's in progress. It can't be waiting for me if something's
+> running. Normally."
+
+A feature's status tells the human, in every view, whether it needs them, works, or waits. They
+spend their attention where it points, so it says "Needs you" only when there is something for them
+to do. A session is a conversation with an agent, and a run is one stretch of the agent's work in
+it. A check result is something `ura check` found wrong in a workflow file.
 
 ## Rules
 
-- A feature's status MUST be decided in one place, which every view, notification, and count reads.
-  Checked by the server's tests.
-- A feature MUST read as working while any of its sessions runs, whatever its step. Checked by the
-  server's tests.
-- A feature no session works on MUST follow its latest session, never an older session's outcome.
-  Checked by the server's tests.
-- A failed or stopped run MUST ask for the human until they dismiss it, unless it waits to continue
-  by itself. Checked by the runner's tests.
-- A run waiting to continue by itself MUST read as in progress, with when it goes on. Checked by the
-  server's tests.
-- A pull request MUST read as ready for the human's review only when it holds the branch's latest
-  commit, and the branch holds every change of the default branch beyond its priorities, inbox,
-  proposals, and notes. Checked by the core's tests.
-- A branch's step SHOULD be read from its latest commit, or from a write of the human's that Uraeda
-  is still committing. Checked by the core's workspace tests.
+- A feature's status is decided in one place, which every view, notification, and count reads. _So:_
+  a scheduled job's session takes its status from the server, like any other session, and its page
+  works out none of its own.
+- A feature reads as working while any of its sessions runs, or waits to continue by itself,
+  whatever its step. _So:_ a spec waiting for approval reads "Working" while an agent revises it. An
+  open pull request is not ready for review while a session runs. A run paused by a usage limit
+  reads "Waiting until 8:41", in progress.
+- A failed or stopped run asks for the human until they dismiss it. _So:_ opening its session clears
+  nothing, and a newer run that fails asks again.
+- A check result counts as a feature's problem only when it stops the workflow. Anything else is a
+  note, and never makes a feature read as needing the human. _So:_ a spec missing a required section
+  is a note on its page, and a blank answer in an answered round is a problem.
 
 ## Why
 
-The human spends their attention where the status points. A status that hides a running agent, keeps
-an old crash, or calls unfinished work ready wastes it, as does a pull request never checked against
-the default branch it merges into. Copies of the rule in each view drifted apart. Commits keep the
-state recoverable from the repository. A write of the human's that is landing is no guess, and a
-refused commit puts it back. History: [Feature state pass](../done/2026-10-30-feature-state.md).
+A status that hides a running agent, keeps an old crash, calls unfinished work ready, or flags a
+file still being written wastes the human's attention, and a tool that cries wolf gets ignored.
+Copies of the rule in each view drift apart, so one place decides. A failure cleared by a glance is
+a failure nobody dealt with. History: [Feature state pass](../done/2026-10-30-feature-state.md).
 
 ## Alternatives considered
 
-- The most urgent session's status, working ranked first: an old crash came back after every run.
-- A warning cleared by opening its session: a glance cleared a failure not dealt with yet.
+- The rule kept in the UI's guides: proposed first, and refused by the human. A decision binds every
+  feature that adds a view, a count, or a notification.
+- A warning cleared by opening its session: proposed first, and refused by the human, for an
+  explicit Dismiss.
 - A run waiting for a limit's reset asking for the human: a notification with nothing to do.
-
-## Consequences
-
-- The app moves when a commit lands or the human's own write is queued, not when a file is saved by
-  hand.
-- A run that waits to continue by itself never notifies: the human learns of it only if it fails, or
-  stops continuing.
-- The workflow has a step for the agent to push the commits an open pull request lacks, and one to
-  catch the branch up with the default branch.
 
 ## Applies to
 
 - [`crates/core/`](/crates/core/), [`crates/server/`](/crates/server/), and [`app/`](/app/), and
   every feature that shows, notifies, or counts a feature's or a session's status
-- The skill's step table, in [`skills/uraeda/`](/skills/uraeda/)
+- Every feature that adds a rule to `ura check`

@@ -73,8 +73,8 @@ Lines are 1.4 high everywhere: "just do 1.4 everywhere".
 ## The scale of widths
 
 Every page and pane takes one width of a short scale, picked by what it holds, never a number of its
-own ([UI layout](../decisions/ui-layout.md)). On semi-wide and wide screens, at the default fonts;
-each width made of the measure follows the reading font and size picked:
+own ([UI components](../decisions/ui-components.md)). On semi-wide and wide screens, at the default
+fonts; each width made of the measure follows the reading font and size picked:
 
 | Width        | Token                  | At default fonts          | Holds                                                               |
 | ------------ | ---------------------- | ------------------------- | ------------------------------------------------------------------- |
@@ -168,6 +168,13 @@ secondary colour, its text a list room in. "Bullet points should look the same e
   page's whole column, so its live window shows nearer its own size, the card's border around it,
   while its text stays a single card's width, about 80 characters a line, centred: "The mockup
   itself should be bigger than the pane… The text should stay 80 characters wide".
+
+## Diagrams
+
+A `mermaid` block of a workflow file is drawn as a picture, measured and drawn in the app's own
+fonts and colours, so it reads as part of its page. A diagram that cannot be drawn, or is not drawn
+in time, shows its source as code: the text is always there to read. It is a picture: its links
+cannot be followed.
 
 ## Not in text
 

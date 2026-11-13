@@ -5,7 +5,8 @@ holds the rule: a kind of information is drawn by one shared component everywher
 [`app/ui/`](/app/ui/); a screen imports from each folder's `index.ts`, as an extension's page does
 from [`app/ui/index.ts`](/app/ui/index.ts). Every component is in the gallery, in its states, in
 both themes: `hidden-display just gallery` runs it, `just gallery-shots [word]` pictures it. Look
-there before drawing anything.
+there before drawing anything. A spec's mockup of a component is its gallery page: the
+[mockups guide](../guides/mockups.md) says when a mockup is something else.
 
 ## Which component for what
 
@@ -73,6 +74,9 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   components: never a hex value, never a raw `View` with a border or a shadow of its own.
 - **A screen is panes.** A pane draws its content only, at the width its stack gives it
   (`props.width`), and never draws its own frame, title, tab bar, or side column.
+- **An extension's page is a screen like any other.** It draws with the library and the tokens, and
+  is reached as the app's own places are, so it has "the same look and feel as the rest of the app.
+  Accessible with the leader menu."
 - **Several facts about one thing make a `Card`**: a title a person would say, its state, its times,
   in the order things happened. Never a row of grey words, never an id in a title.
 - **A control moves at once; its refusal sits under it.** A value the server keeps goes through

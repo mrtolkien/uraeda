@@ -55,8 +55,8 @@ A row shows two or three lines. Its whole text, a proposal's or a note's, opens 
 dialog, 108 characters wide, its text in the reading font at the measure, on the row's own address,
 over the list, which keeps its selection and its scroll; a row with a file opens the file's page
 instead. Where reading an item is the page's job, the decisions page draws the list beside the item
-it reads, as the [UI layout](../decisions/ui-layout.md) decision asks. The priorities' side pane,
-and a hover card that followed the selection, were tried and removed.
+it reads ([wide screens](wide.md#the-frame)). The priorities' side pane, and a hover card that
+followed the selection, were tried and removed.
 
 ## The leader menu and the `g` keys
 
@@ -110,11 +110,11 @@ exist?" A proposal file opens its page, not an overlay. On the phone a dialog is
 ## Undo
 
 Every edit to the human's lists and texts goes on the tab's undo stack, as the
-[Undo](../decisions/undo.md) decision sets: the last 50 actions, until the tab reloads or closes.
-`u` or `Ctrl+Z` undoes the latest, minutes later if the human likes, and `U` or `Ctrl+Shift+Z`
-redoes it. An undo writes the reverse, which waits on the Git page, and takes the human to where the
-action happened, with what came back selected. It asks first once the action was committed since,
-and is refused, under the top bar, once its file changed since.
+[Undo](../decisions/undo.md) decision asks. The stack keeps the last 50 actions, until the tab
+reloads or closes. `u` or `Ctrl+Z` undoes the latest, minutes later if the human likes, and `U` or
+`Ctrl+Shift+Z` redoes it. An undo writes the reverse, which waits on the Git page, and takes the
+human to where the action happened, with what came back selected. It asks first once the action was
+committed since, and is refused, under the top bar, once its file changed since.
 
 Each action but a move shows a toast with Undo for 5 seconds , its time paused while the pointer is
 over it or the focus in it, so a slow reader or a screen reader keeps it. The toast is a reminder of
@@ -143,6 +143,20 @@ hook's output in a banner at that place, the verdict's place of a review, a roun
 editor's Commit. The toast keeps it too, with Open, which goes to that place, and Dismiss, which
 takes it out of every tab. Writing at that place again deals with it. The queue goes on past a
 refusal: the next writes land, or are refused, each alone.
+
+## Notifications
+
+Only what comes to need the human notifies, as the [Notifications](../decisions/notifications.md)
+decision asks. The rest is habit:
+
+- **Nothing tells about what the human is looking at.** While the window is in front, the page they
+  are on stays silent, and the desktop is sent nothing.
+- **What already waited when the app opened tells nothing.** The sidebar and home show it. Only an
+  item that comes after notifies, once for each new ask.
+- **The permission is asked once, after saying what will notify**, at the first item that comes,
+  never as the app opens. A "Not now" is kept, and the settings change it.
+- **A click opens the item's page**, bringing the window up.
+- **The window's title counts what waits**, and the Dock's icon on a Mac.
 
 ## Pages
 

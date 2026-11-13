@@ -54,7 +54,10 @@ view:
 
 ## Speed
 
-A press shows its effect at once.
+A press shows its effect at once. The human's numbers are the
+[Performance](../decisions/performance.md) decision's: 100 ms for a page or an action, and 120
+frames a second for what scrolls or streams. How a page reaches them, and how to measure it, is in
+the [performance guide](../guides/performance.md).
 
 - **Optimistic writes.** A move, an edit, or a reorder shows its result immediately, and the write
   runs behind it: "make everything optimistic and changes async". A refused write puts the result

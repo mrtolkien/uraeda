@@ -4,64 +4,49 @@ icon: refresh-cw
 
 # Run lifecycle
 
-Uraeda starts a run by itself only where the human set it up. It continues a run the server's
-restart cut or a usage limit stopped, catches up open pull requests once the human turns it on, and
-runs the jobs the human scheduled. Each automatic run says why in its session and can be turned off.
+> "Will need a few settings, should be able to turn it off too"
+
+Said of Uraeda continuing agents' runs by itself. An automatic run is one Uraeda starts or continues
+without the human asking for it then: after a server restart or a usage limit, to catch an open pull
+request up with the default branch, or for a scheduled job.
 
 ## Rules
 
-- A run cut by a server restart MUST continue by itself from its agent's session, when it was cut
-  recently. Checked by the runner's tests.
-- A run stopped by a usage limit MUST continue by itself, as a best effort: at once on another
-  account with room, as the [models](models.md) decision says, else once the limit resets. Checked
-  by the runner's tests.
-- Automatic continues MUST stop after the number in a row the human set, without a commit or a
-  message from them. Checked by the runner's tests.
-- An open pull request behind the default branch MUST be caught up by itself only when the human
-  turned it on, at most once per tip of the default branch. Checked by the server's tests.
-- A scheduled job MUST be the human's own, written in their settings, never read from a repository.
-  Checked by the core's tests.
-- Each automatic run MUST say in its session why it happened. Checked by the runner's tests.
-- A run the human stopped or dismissed MUST NOT continue by itself. Checked by the runner's tests.
-- Each kind of automatic run MUST have a setting that turns it off. Checked by the core's tests.
-- A reply that ended and waits for its background work MUST be asked about it after 10 minutes
-  without output, and MUST fail 10 minutes later without an answer. Checked by the runner's tests.
-- Agents SHOULD wait for their background work by its notice, never by polling it.
+- The human's settings decide every automatic run: each kind has a switch that turns it off. _So:_
+  continuing after a restart or a limit is on until they turn it off, and catching up open pull
+  requests, which spends usage on every merge, is off until they turn it on. A feature that adds a
+  kind ships its switch.
+
+- A run the human stopped or dismissed never continues by itself. _So:_ a Stop that arrives while
+  the run waits for a limit's reset leaves it stopped at the reset, and a pull request whose run the
+  human stopped is not caught up.
+- Automatic continues stop after the number in a row the human set, without a commit or a message
+  from them. _So:_ a continue on another account counts toward it, and the next step's run, which is
+  no continue, does not.
 
 ## Why
 
-A run that stops for something outside the work costs hours until the human notices, and upkeep
-nobody starts does not happen. Continuing and scheduling keep the workflow asynchronous. Continues
-without a cap could loop, and catching up spends usage on every merge, so the human sets both. A job
-read from a repository would let whoever pushes there run an agent on the human's machine. A run
-that polls cannot read the human's messages. A background command that never ends holds its reply
-forever, and the run that waits for that reply with it: only the agent can tell a long build from
-one that is stuck, so it is asked first. History:
-[Scheduled jobs](../done/2026-11-10-scheduled-jobs.md).
+A run that stops for something outside the work costs hours until the human notices, so Uraeda
+continues it, as a best effort. What runs unwatched spends the human's usage: they choose what runs,
+how often it may go on, and can stop it for good. A scheduled job is written in the human's
+settings, never read from a repository, as [Settings](settings.md) says of everything a repository
+holds. History: [Worker lifecycle](../done/2026-11-03-worker-lifecycle.md).
 
 ## Alternatives considered
 
-- Agents outliving the server, which reattaches to them: nothing redone, but a large change to how
-  agents are run, on undocumented behaviour.
-- Letting the agent wait out a limit inside its own process: a restart during the wait loses it.
-- Jobs as files of the repository: shared and reviewed, but whoever pushes there chooses what runs
-  unattended on the human's machine.
-
-## Consequences
-
-- A tool call or background work cut by a restart is redone by the continued run.
-- Weekly limits are continued only on another account with room: with none, they stop the run, which
-  asks for the human.
-- A run that ends before its next human gate asks for the human: Uraeda never asks it to go on, as
-  that misfired almost every time.
-- A long background command costs its agent one short answer every 10 minutes it stays silent.
-- A sub-agent's call that fails or stops answers with its last message, which may hold its whole
-  report.
-- Every later agent runtime must report restarts, limits, and their reset time for runs to continue.
+- Asking a run that ended before its human gate to go on: built, then removed, "It misfires 99% of
+  the time." A run that ends early asks for the human.
+- Keeping a run a usage limit refused on its own account until the reset: it goes on at once on
+  another account with room.
+- Making up a job's missed time once the server is back: a missed time is never made up.
 
 ## Applies to
 
 - [`crates/server/src/runner/`](/crates/server/src/runner/), the settings in
   [`crates/core/`](/crates/core/), and every feature that starts, follows, schedules, or stops an
   agent's run
-- The skill's guidance on background work, in [`skills/uraeda/`](/skills/uraeda/)
+
+## Revisit when
+
+The human decides whether Uraeda keeps running agents itself, or sits on another orchestrator with
+its skill, its CLI, and a small view: they asked on 2026-11-13, and it is open.

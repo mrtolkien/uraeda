@@ -160,8 +160,8 @@ waits for its reset, "It should come up pretty rarely with the rotation on sessi
 
 ## Decisions
 
-- [Models](../decisions/models.md): a session keeps the account it started on, a limit that refuses
-  its run included.
+- [Models](../decisions/run-options.md): a session keeps the account it started on, a limit that
+  refuses its run included.
 
 ## Changes after approval
 

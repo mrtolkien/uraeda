@@ -271,11 +271,11 @@ owners' approval, and neutral glyphs for the others.
 
 ## Decisions
 
-- [UI look](../decisions/ui-look.md), new: a terminal look in one theme, with readability first, a
+- [UI look](../ui/look-and-feel.md), new: a terminal look in one theme, with readability first, a
   monospace font and a proportional one for prose, Catppuccin schemes, 120% text, contrast floors,
   bundled fonts, Codicons' harness marks, and Lucide icons.
-- [UI layout](../decisions/ui-layout.md), changed: three width classes, narrow, semi-wide, and wide,
-  instead of two.
+- [UI layout](../ui/README.md), changed: three width classes, narrow, semi-wide, and wide, instead
+  of two.
 - [Preview](../decisions/preview.md), changed: an investigation may compare throwaway prototypes in
   any format, deleted at its spec's approval; a spec's mockups stay stories.
 

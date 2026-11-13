@@ -2,12 +2,12 @@
 
 The look of the Native Shell app: **a terminal, lit**. It keeps the terminal's grid, its square
 corners, and its titled panes. It adds depth, glass, and light, and gives each of them one meaning.
-The [UI look](../decisions/ui-look.md) and [UI components](../decisions/ui-components.md) decisions
-bind; this guide says how they look. A
-[browser mockup](../2026-11-10-nsh-migration/mockups/design-language.html) shows it, and its values
-were tuned there, over four rounds with the human. A browser is not the real renderer: eight samples
-then drew it on GTK, in both themes, and the values below are the ones that passed there. They are
-the tokens, in [`app/ui/tokens/`](/app/ui/tokens/). The samples are gone: the
+The [UI components](../decisions/ui-components.md) and
+[Colour themes](../decisions/colour-themes.md) decisions hold the boundaries; this guide is the
+look. A [browser mockup](../2026-11-10-nsh-migration/mockups/design-language.html) shows it, and its
+values were tuned there, over four rounds with the human. A browser is not the real renderer: eight
+samples then drew it on GTK, in both themes, and the values below are the ones that passed there.
+They are the tokens, in [`app/ui/tokens/`](/app/ui/tokens/). The samples are gone: the
 [gallery](/app/gallery/) draws every component with them, and `just gallery-shots` takes its
 pictures. Where GTK cannot draw a rule as written, the rule says so, with the ruling that holds the
 nearest look.
@@ -30,6 +30,9 @@ keys written out where they act.
 
 ## Heights
 
+"Components in our system should have a concept of "height". We have recessed surface, standard
+surface, and overlays, at least. This will help draw shadows, glass effects, ..."
+
 Four heights. A component picks one, and takes everything else from it. Light falls from above, so a
 surface that stands up catches it on its top edge, and one that sinks is shaded under its top edge.
 The difference is kept small: a hint of depth, never a bevel. Values are Catppuccin Mocha's, the
@@ -51,8 +54,9 @@ default dark theme; every theme maps its own.
 - **Three strengths exist**, as the token `height.depth`: `tone` is the fills alone; `lips`, the
   default, adds the 1 px of shade or light; `soft` adds soft shadows.
 - **Every edge is `rule`, `#70748b`**: the dimmest line that still reaches 3:1 against every surface
-  it borders, a raised card first, as the UI look decision asks of a border. A line that only
-  separates rows inside a pane is dimmer still: `rule-quiet`.
+  it borders, a raised card first, as the [Colour themes](../decisions/colour-themes.md) decision's
+  floor asks of a border. A line that only separates rows inside a pane is dimmer still:
+  `rule-quiet`.
 - **Under them all is the backdrop**, `backdrop`, `#11111b`: the darkest colour on screen. Panes sit
   on it with a gap, as tiled windows on a desktop: 8 px on a wide window, 4 px on a narrow one, 2 px
   on a phone. The gap is the same everywhere.
@@ -80,7 +84,9 @@ default dark theme; every theme maps its own.
   stops, `light.focus` to `light.focus-2`, at 45°: mauve `#cba6f7` to blue `#89b4fa` by default. A
   glow of the same colours follows the same outline, 18 px wide, at 42%. Its title fills with
   `light.focus`, with dark text, as the status line's mode block does. Nothing else marks the focus:
-  bright corner brackets were tried, and their hard white fought the gradient.
+  bright corner brackets were tried, and their hard white fought the gradient. "I like the idea of
+  having the active pane emit "light", it helps with understanding keyboard focus, like windows
+  border on a modern DE."
 - **The light glides.** When the focus moves, the light fades out of one pane and into the next over
   300 ms. The content answers at once: only the light takes its time.
 - **`needs-you` is a colour, not a lamp.** A pane that waits on the human has its title in orange,
@@ -107,7 +113,7 @@ default dark theme; every theme maps its own.
 ## Motion means a change of state
 
 Nothing moves on its own. A light or a surface moves when something just changed, once, and then
-rests.
+rests. "Movement should be meaningful (state transition)".
 
 - **A running pane has a steady line**: its top edge is drawn in `light.running`, with a short glow.
   It does not travel.
@@ -176,7 +182,8 @@ of Apple's glass, listed under [where it comes from](#where-it-comes-from).
   box with rounded corners, twice the band wide, while the shape stays square. The rim's brightness
   comes from where a point is on the box, not from its edge's direction.
 - **Glass is dark enough to read on.** Contrast comes before the effect: the tint is the well's
-  colour, darker than a pane, and what is behind is dimmed a little.
+  colour, darker than a pane, and what is behind is dimmed a little. "The glass should be a bit
+  darker btw. It's pretty good but not perfect yet, contrast is important."
 - **Glass shows shapes and colours, never words.** If a word behind it can be read, the frost is too
   weak. If the text on it falls under 4.5:1 over the busiest page, the tint is too thin: the tint
   thickens where the backdrop is bright, by 30% of the whole at most, and where it is dark in a

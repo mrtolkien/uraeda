@@ -4,60 +4,62 @@ icon: flask-conical
 
 # Testing
 
-Tests check that the code behaves as the decisions and the approved spec say, and never override
-them. How much is tested follows the project's stage, now `early`: only what is costly to get wrong
-and rarely changes, such as stored formats, git, security, and the contracts between the core, the
-CLI, and the server. The human checks the app by using it in the [sandbox](sandbox.md), so tests of
-the UI are rare.
+> "I'm down for tests but they should be useful: each test is added maintenance, because tests also
+> drift away from expected behaviour."
+
+The project's stage is `early`. At that stage a feature tests little beyond what is costly to get
+wrong and rarely changes:
+
+- stored formats, git, and security;
+- the contracts between the core, the CLI, the server, and the app;
+- pure logic with many cases, and the reproduction of each bug it fixes.
+
+The human checks the app by using it. [The testing guide](../guides/testing.md) shows what this
+looks like.
 
 ## Rules
 
-- A test MUST give way to the approved spec, the decisions, and the human's requests: a test of
+- A test gives way to the approved spec, the decisions, and the human's requests. _So:_ a test of
   behaviour they replace is rewritten or removed in the task that changes it, never kept by bending
   the code.
-- A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
-  their removal.
-- A test MUST assert what a caller or a user observes, never how the code does it.
-- At the `early` stage, a feature MUST test little beyond stored formats, git, security, contracts
-  between the project's parts, pure logic with many cases, and the reproduction of each bug fixed.
-- A test of the app's UI MUST guard behaviour that is costly to lose and that using the UI would not
-  show, such as unsaved text or a git write.
-- The stage MUST be set by the human, and moves only when they say so.
-- A UI change MUST be easy to try in the running app, through the sandbox.
-- The agent MUST review each changed view in the running app before handing it over, in both themes
-  and at a phone's and a desktop's width.
-- The agent MUST NOT wait for a live review of each UI change: the human may review several
-  together, after merging.
-- A pull request that adds a view MUST show one screenshot of it, never committed to the repository.
+- The stage is the human's, and moves only when they say so. _So:_ the page that starts a feature
+  from an inbox note got no test of its own. The server's tests own the git write, and using the app
+  shows the page.
+- A test of the app's UI guards behaviour that is costly to lose and that using the app would not
+  show. _So:_ a message that comes back when its send is refused has a test, and a view's layout has
+  none.
+- A picture of the app is a tool to look with, never a check, and none is committed for review.
+  _So:_ `just walk` writes its pictures in `target/`, and no comparison of pixels fails a build.
+- A test that fails without a bug is fixed in the pull request that finds it, or removed when it
+  guards nothing important. It is never retried, and never left failing. _So:_ a width check failed
+  now and then, with no cause found, and the case before it held the same guarantee. It was removed
+  with a ruling, and the human was not asked again.
+- The one exception is a test that failed on a saturated machine. It is run again, at most twice,
+  once the machine is quiet, or by its runner when it draws on a real display. It is never hunted by
+  loading the machine or looping the test. _So:_ a drawing check failed twice under other builds'
+  load, and passed three times of three on a quiet machine. It was run again, and named in a ruling.
 
 ## Why
 
-Agents bent code to keep old tests green, since nothing said what to do with a test of replaced
-behaviour, and the suite grew to about 3,900 tests. Early on, tests are undue inertia. UI tests were
-slow, tied to the markup, and made each visual change cost test edits, while the human prefers to
-review actual behaviour in the sandbox. History:
+Every test costs upkeep, and a test of behaviour a spec replaces pushes an agent to bend the code to
+keep it passing. Early on, most behaviour still changes, so a test is inertia unless a mistake there
+is costly. The human judges the app by using it, so a UI test earns its place only where using the
+app would not show the loss. A failure has to mean a bug: a retry hides a real race, and a test that
+fails for nothing teaches everyone to ignore failures. History:
 [Testing communication](../done/2026-10-26-testing-communication.md).
 
 ## Alternatives considered
 
-- A ruling per removed test, the earlier rule: it pushed agents to bend code.
-- Browser tests with screenshots, measures, or pixel comparisons: slow, tied to the look, and
-  failures only CI shows.
+- A ruling for each removed test, the earlier rule: it pushed agents to bend the code instead.
+- Tests of the UI by screenshots, measures, or pixel comparisons: slow, and tied to a look that
+  changes weekly.
 - Screenshots committed with each change: the repository filled with images nobody read again.
-
-## Consequences
-
-- A change to a view's look or behaviour costs almost no test edit, and a UI regression is found by
-  the human's review.
-- The sandbox must stay easy to start, since it is the UI's check.
-- Moving to `growing` needs a new answer on what tests the UI.
-- A spec carries one more list to read: the behaviour it replaces.
+- Retries that report the flaky tests: they hide real races.
 
 ## Applies to
 
 - Every feature and change, and the tests of [`crates/`](/crates/), [`app/`](/app/), and
   [`scripts/`](/scripts/)
-- [`app/`](/app/), and every feature or change that adds or changes a view
 
 ## Revisit when
 

@@ -25,6 +25,13 @@ whose answers either continue the implementation or revise the spec.
   after `Ctrl+Enter`, in one short dialog.
 - **Asking the agent** about a question puts it, quoted, in the session's composer, in the column on
   wide screens; a settled point's comment form can send its text to the session with "Ask AI".
+- **How a feature's steps run is one map**, the same in the settings, in a feature's or a change's
+  start, and on the feature's page: "an interactive diagram with models at each step (with icons,
+  not a ton of text), and symbols showing when we start a clean session". It is one component: "I
+  really like the new look. It should also be used in the feature page instead of the current
+  timeline because it’s so close!" Every pick on it is made by keyboard and by tap, and it says what
+  the options do without a paragraph to read: "Make it instantly clear what the settings do without
+  delving into text."
 
 ## Committing
 
@@ -43,9 +50,13 @@ whose answers either continue the implementation or revise the spec.
   No line under the field explains it, and no second Commit sits in the pane's border.
 - **Discard asks first**, through the shared confirmation, and restores one file, as git does.
 - **Pull, push, fetch, and merge are the page's**, as lazygit's keys, `p`, `P`, `f`, and `M`; a
-  conflict they stop on is fixed in the page, in the shared editor, then continued or aborted.
+  conflict they stop on is fixed in the page, in the shared editor, then continued or aborted. They
+  are there so the human never needs a terminal for them: "The goal here is to be able to work FULLY
+  REMOTELY."
 - **Starting work may commit by itself**: a flow whose only sense is to start, like starting a
-  feature, commits what it must without asking. "That much is ok."
+  feature, commits what it must without asking. "That much is ok." Because it commits, starting is
+  deliberate, "since it starts a branch and makes commits (making it annoying to edit)": a key that
+  also edits or saves, like Enter in a proposal's slug, never starts.
 
 ## Reviewing
 

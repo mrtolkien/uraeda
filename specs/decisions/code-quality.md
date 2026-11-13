@@ -4,47 +4,37 @@ icon: ruler
 
 # Code quality
 
-Agents extending code grow it feature after feature, and only a failing check stops that. Size and
-nesting limits hold the Rust and TypeScript code, in the linters already installed. Code over a
-limit when the limits were set is marked in place with its reason, so the exceptions can only go
-down.
+> "What I want is a system that gives me the least amount of work to create high quality,
+> maintainable apps. I do not intend to read a single line of code."
+
+Nobody reads the code, so checks hold it. Limits on a function's length, parameters, and nesting,
+and on a file's length, live in [`clippy.toml`](/clippy.toml) and
+[`.oxlintrc.json`](/.oxlintrc.json), which `just lint` runs. A marker is the line that excuses one
+function or file from a limit, written beside it with its reason.
 
 ## Rules
 
-- Rust and TypeScript functions and files MUST stay within limits on length, parameters, and
-  nesting. Checked by clippy and Oxlint.
-- The TypeScript lint configuration MUST be [`.oxlintrc.json`](/.oxlintrc.json), read by the dev
-  shell's Oxlint: its correctness and suspicious rules as errors, and these limits. Checked by
-  `just lint`.
-- Code over a limit when this decision was approved MUST be marked in place with its reason, so that
-  a marker left on fixed code fails. Checked by the linters.
-- A new marker MUST NOT be added unless a human approves it in the plan.
-- A custom lint rule or structural test MUST say in its message how to fix the problem.
-- Unit tests MUST NOT depend on elapsed time, except benchmarks of a spec's success criteria.
+- Functions and files stay within the limits the linters hold. _So:_ three new functions would have
+  pushed a file of 499 lines past its limit. The file was split first, in a commit that only
+  restructures.
+- An exception is marked where the code stands, with its reason, and a new one needs the human's
+  approval in the plan. _So:_ no marker is added to get a task through: the task splits the function
+  first.
+- The exceptions only go down. _So:_ a marker left on code that was fixed fails the lint. A feature
+  that touches a marked function splits it, and removes its marker.
 
 ## Why
 
-Instructions raise where code quality starts, not how fast it decays: only a failing check stops
-growth. Limits in the linters already installed need no new tool. A marker keeps each exception
-beside its code, the same way in both languages, and fails once the code is fixed. History:
-[Code quality in the skill](../done/2026-10-14-code-quality-in-the-skill.md).
+Agents extend the code they find. Instructions raise where quality starts, not how fast it decays:
+only a check that fails stops functions and files from growing feature after feature. A marker keeps
+each exception beside its code, the same way in Rust and in TSX, and fails once the code is fixed.
+History: [Code quality in the skill](../done/2026-10-14-code-quality-in-the-skill.md).
 
 ## Alternatives considered
 
-- jscpd for duplication and selene for Lua: two new tools, and jscpd misses a rule copied across
-  languages.
-- Oxlint's suppressions file as the baseline: counts kept away from the code.
-
-## Consequences
-
-- A feature touching a marked function or file splits it first, in a commit that only restructures
-  it, and removes its marker.
-- Lua, and duplication across languages, stay checked by review only.
-- A TSX function's length is checked at 150 lines, without blanks and comments, a looser limit than
-  Rust's: a component's markup is one function. The functions over it are marked in place, as Rust's
-  are. Oxlint holds nesting, parameters, a function's and a file's length.
+- A baseline file that lists the exceptions, as Oxlint's suppressions do: the counts live away from
+  the code, and nobody sees them shrink.
 
 ## Applies to
 
-- [`crates/`](/crates/), [`app/`](/app/), [`Cargo.toml`](/Cargo.toml), `clippy.toml`,
-  [`.oxlintrc.json`](/.oxlintrc.json), and every feature that adds or changes code
+- [`crates/`](/crates/), [`app/`](/app/), and every feature that adds or changes code

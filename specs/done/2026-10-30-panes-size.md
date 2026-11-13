@@ -144,8 +144,8 @@ _text_ colums take 692px".
 
 ## Decisions
 
-- [UI layout](../decisions/ui-layout.md), changed: every page and pane takes its width from one
-  short scale of named widths, picked by what it holds, set once in the theme.
+- [UI layout](../ui/README.md), changed: every page and pane takes its width from one short scale of
+  named widths, picked by what it holds, set once in the theme.
 
 ## Changes after approval
 

@@ -269,7 +269,7 @@ Remove pi's theme: it does not exist, pi generates its colours on the fly from t
 - [Colour themes](../decisions/colour-themes.md), new: views ask for a colour by its role, never a
   hue; themes map a private palette onto the roles in one TOML format; shipped themes keep their
   published colours except the smallest step to the floor; the user's apply as written.
-- [UI look](../decisions/ui-look.md), changed: colours come from the colour theme picked, not
+- [UI look](../ui/look-and-feel.md), changed: colours come from the colour theme picked, not
   Catppuccin; the contrast floor covers every shipped theme; the rule on named schemes moved to
   Colour themes.
 - [Settings](../decisions/settings.md), changed: theme files live one per file in a folder beside

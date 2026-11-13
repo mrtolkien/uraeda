@@ -4,56 +4,55 @@ icon: git-branch
 
 # Git
 
-Uraeda's tools read git fast, in process, and write it exactly as the user would, through their own
-hooks, signing, and credentials. The workflow's state is what is committed, on every branch at once,
-as [Feature status](feature-status.md) reads it. Tools never lose the user's work, and never commit
-it for them: committing is the human's act.
+> "… super destructive action without validation (discard) … forms and all just edit and save file,
+> and committing is its own dedicated view/flow."
+
+Said of a commit bar that sat on every page, with a Discard that asked nothing. Uraeda's tools leave
+the human's repository as the human would: nothing lost, nothing removed, nothing committed that
+they did not ask for. A tool here is Uraeda's own code: the `ura` CLI, the server, and the app. What
+an agent may run in its session is the human's to allow, and no part of this decision.
 
 ## Rules
 
-- Tools MUST NOT lose the user's work: no force-removed worktree, no force-push, and no deleted
-  branch with commits the default branch lacks. Checked by the core's tests.
-- Tools MUST remove or delete anything only when a human asks. Checked by the core's tests.
-- Tools MUST NOT bypass the user's hooks, signing, or credentials. Checked by the core's tests.
-- Tools MUST NOT switch the user's checkout unless the human asks.
-- Tools MUST NOT commit the human's edits unless the human asks for that commit, on the Git page or
-  by an action that says it commits. Checked by the core's tests.
-- Rust tools MUST read git with the gix library, and write through the system `git`, from one module
-  of the core.
-- Proposal files, the human's note files, and the human's inbox and priorities MUST be written on
-  the default branch. Checked by the core's tests.
-- A feature's or a change's branch MUST NOT write `PRIORITIES.md` or `INBOX.md`. Checked by the
-  core's tests.
-- An agent's inbox note MUST be a note file of its own, written in its own worktree, never on the
-  default branch. Checked by the CLI's tests.
-- Tools SHOULD keep their worktrees out of the user's `git status`, without editing a tracked file.
-  Checked by the core's tests.
-- Starting a feature or a change MAY commit on its own, as its first step.
+- Tools never lose the user's work: no force-removed worktree, no force-push, and no deleted branch
+  with commits the default branch lacks. _So:_ a pushed commit is never amended, since only a forced
+  push could send it again. A removed note keeps its file while the file holds text never committed.
+- Tools remove or delete only when a human asks. _So:_ a merged feature's worktree and branch stay
+  until the human runs `ura clean`, and a worktree with uncommitted work is reported and left alone.
+- Tools write git as the user would, through the system `git`, never around their hooks, signing, or
+  credentials. _So:_ a commit made from the app runs the user's pre-commit hook, and fails when the
+  hook refuses it. No `--no-verify`, and no commit written by a library.
+- Tools never switch the user's checkout unless the human asks. _So:_ a new feature starts in a
+  worktree of its own. An answer for a branch that is not checked out is written in that branch's
+  worktree.
+- Tools never commit the human's edits unless they ask for that commit, on the Git page or by an
+  action that says it commits. _So:_ saving the priorities only saves the file, and "Commit answers"
+  commits a round. Starting a feature commits by itself, which the human allowed: "that much is ok".
 
 ## Why
 
-Reads are most of what the tools do, and gix does them in process; it runs no hooks, so writes go
-through `git`, as the user would. The app writes on every branch from one checkout, so it never
-switches branches. Cleanup waits for the human, since a lost commit cannot come back. Commits wait
-too: the Git page shows what a commit holds before it lands. Branches add files rather than edit
-shared ones, so parallel work merges without conflict. History:
-[CLI core](../done/2026-10-10-cli-core.md).
+Uraeda works in the human's own repository, beside their editor, their hooks, and their habits. A
+lost commit, or a note typed and never committed, cannot come back, so removal waits for the human.
+Writes go through `git` itself, so hooks, signing, and credentials behave as they do by hand. The
+app writes on every branch from one checkout, often from a phone. So it works through worktrees, and
+never moves the branch the human is on. A commit made behind an edit hides what it holds: the human
+commits what they have seen. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 ## Alternatives considered
 
-- The system `git` for everything: a process, and text to parse, for every read.
-- Switching the user's checkout to write: abandoned when the app had to write on every branch.
-- Committing an edit as it is saved: it skips the Git page, where the human sees what a commit
-  holds.
-
-## Consequences
-
-- Hooks, signing, and credentials behave as by hand, and `git` must be on the PATH.
-- gix breaks its API at minor releases, so upgrades are deliberate.
-- A merged feature's line stays in the priorities until `ura clean` removes it.
-- An edit saved by any page waits on the Git page, which lists the edits of every branch.
+- The system `git` for reads too: proposed first, and refused by the human for speed across many
+  branches. Reads are in process, with the gix library, wherever it can do them.
+- Switching the user's checkout to write: the first choice, abandoned when the app had to write on
+  every branch.
+- Committing an edit as it is saved: every page grew a commit bar, and the human could not see what
+  a commit held.
 
 ## Applies to
 
-- [`crates/`](/crates/), and every feature that reads or writes git: the CLI, the git listener, the
-  runner
+- [`crates/`](/crates/) and [`app/`](/app/), and every feature that reads or writes git: the CLI,
+  the server, the app's Git page
+
+## Revisit when
+
+Uraeda removes merged worktrees and branches by itself. The human expects to automate that cleanup
+later: until then, the second rule holds as written.

@@ -137,9 +137,9 @@ decision optional.
 
 ## Decisions
 
-- [Documentation](../decisions/documentation.md), new: the README holds what a newcomer needs, a
-  quick install included; the full install lives in `INSTALL.md`, reference in `docs/`, building
-  Uraeda in `CONTRIBUTING.md`; documentation may repeat what helps its reader.
+- [Documentation](../guides/documentation.md), new: the README holds what a newcomer needs, a quick
+  install included; the full install lives in `INSTALL.md`, reference in `docs/`, building Uraeda in
+  `CONTRIBUTING.md`; documentation may repeat what helps its reader.
 
 ## Changes after approval
 
