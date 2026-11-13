@@ -6,6 +6,9 @@
 - [nsh-migration] Remove `ura import-sessions` and its importer once the port to the Rust server is
   done: it is a one-time tool.
 - #WORKAROUND comment to check againt future NSH releases + PRs?
+- eda-run-qBfn2J/tmp/tmp.BKZtcpWKZA/my-project
+- [nsh-migration] Review tug: https://www.youtube.com/watch?v=MyGyiKSv-QQ, plenty of good ideas
+- Should have a go to repo home shortcut (github/gitlab) in the git view
 
 ## Bugfix
 

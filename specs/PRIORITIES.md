@@ -8,6 +8,7 @@
 
 Human reviews:
 
+- [NSH rewrite cleanup!](proposals/nsh-rewrite-cleanup.md)
 - Review the UI guidelines properly
 - Better settings: they're long now, need better navigation
 - Once CRON jobs exist:
@@ -20,8 +21,6 @@ Human reviews:
     to our look and feel based on it.
   - ?daily? dependencies update > upgrade, check what broke, run tests
 - Add a background image option, and add some subtle blur/transparency to all surfaces
-- Everything should be a pane: sessions, home widgets, ... And we should be able to move them
-  between main and sidebars, with tabs too. Like a tiling DE.
 
 ## Next
 
