@@ -18,7 +18,7 @@ import { byKey } from "../priorities/order";
 import { plain, stepWords } from "../priorities/Section";
 import { FileEditor } from "./FileEditor";
 import { Nested } from "./Nested";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 import { NameDialog } from "../NameDialog";
 import { registerKey } from "../../ui/keys";
 

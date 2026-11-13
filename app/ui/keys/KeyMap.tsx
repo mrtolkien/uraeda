@@ -1,12 +1,12 @@
 // The key map, `?`: every key that works where the human is, as the registry declares them
-// (`keyMap.ts`), with a search over them. A reference, not a palette: its rows run nothing, for a
+// (`keyMapSections.ts`), with a search over them. A reference, not a palette: its rows run nothing, for a
 // page's key acts on the selection the map covers, and the leader menu already runs the sequences.
 // It floats in the window's middle over the page dimmed, a sheet on a narrow window, and owns the
 // keys while it is open: Escape, a press outside, and the phone's Back close it.
 import { Icon, isIconName, Kbd, Text } from "../controls";
 import { tokens } from "../tokens";
 import { Scroll, signal, View } from "nsh";
-import { type KeyRow, type KeySection, searchKeyMap } from "./keyMap";
+import { type KeyRow, type KeySection, searchKeyMap } from "./keyMapSections";
 import { Overlay } from "../surfaces";
 import { TextField } from "../text/TextField";
 

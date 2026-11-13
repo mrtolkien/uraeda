@@ -4,7 +4,7 @@
 // where its actions are.
 import { effect, type JSX, signal, untracked } from "nsh";
 import { KEY_MAP_TITLE, KeyMap } from "./KeyMap";
-import { keyMapSections, type KeySection } from "./keyMap";
+import { keyMapSections, type KeySection } from "./keyMapSections";
 import { LeaderMenuHost } from "./LeaderMenu";
 import {
   endKeys,

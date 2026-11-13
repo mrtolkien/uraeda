@@ -10,7 +10,7 @@ import { Button, Refusal, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { createCursor, Line, List } from "../../ui/lists";
 import { plain } from "../priorities/Section";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 import { NameDialog } from "../NameDialog";
 
 /** The dialog open: a line edited, or a new one, below a row or at the end. */

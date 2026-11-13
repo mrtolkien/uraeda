@@ -5,7 +5,7 @@
 import { call } from "../../store";
 import type { CommentItem } from "../../store/protocol";
 import type { FileArgs } from "../file/read";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 
 /** Where a comment points, as a person says it: "Architecture", "the whole spec". */
 const placeWords = (args: FileArgs, heading: string | null, general: boolean) =>

@@ -3,7 +3,7 @@
 import { computed, effect, signal, untracked, View } from "nsh";
 import { Cards, Nothing } from "./Cards";
 import { type AgentUsage, usageByAgent, LOW } from "../shell/usage";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 import { call, navigate, record } from "../../store";
 import type { Inbox, InboxNote } from "../../store/protocol";
 import {

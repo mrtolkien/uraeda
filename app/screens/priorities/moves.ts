@@ -7,7 +7,7 @@ import { type Arrangement, arrangementOf, byKey, type Move, moveOf } from "./ord
 import { call, type Live, StoreError } from "../../store";
 import type { Priorities, ProposalsMove } from "../../store/protocol";
 import { sent, refusalOf } from "../../ui/controls";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 
 /** What the page shows: an order, and the write that made it, for one the human made. */
 type Shown = { order: Arrangement; write?: Omit<ProposalsMove, "repo" | "hash"> };

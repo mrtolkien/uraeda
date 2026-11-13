@@ -5,7 +5,7 @@ import { type Accessor, cleanup, computed, effect, untracked, View } from "nsh";
 import type { Order } from "./moves";
 import { shownIn } from "./order";
 import { stateOf } from "../shell/Sidebar";
-import { broughtBack, remember, took } from "../shell/undo";
+import { broughtBack, remember, took } from "../shell/undoStack";
 import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
 import { Refusal } from "../../ui/controls";

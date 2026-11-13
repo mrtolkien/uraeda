@@ -7,7 +7,7 @@ import { Appearance } from "./Appearance";
 import { categoryOf } from "./categories";
 import { Extensions } from "./Extensions";
 import { Fonts } from "./Fonts";
-import { Index } from "./Index";
+import { Index } from "./SettingsIndex";
 import { Keyboard } from "./Keyboard";
 import { Runs } from "./Runs";
 import { Server } from "./Server";

@@ -12,7 +12,7 @@ import type { TextFieldRef } from "../../ui/text";
 import { TriageBanner } from "../triage/TriageBanner";
 import { ORGANIZE_INBOX, startChat } from "../triage/chat";
 import { deleteNote } from "./actions";
-import { broughtBack, remember, took } from "../shell/undo";
+import { broughtBack, remember, took } from "../shell/undoStack";
 import { AddNote, heldFor, holdImages } from "./AddNote";
 import { CategoryDialog } from "./CategoryDialog";
 import { droppedImages, pastedImage, pickImages } from "../images";

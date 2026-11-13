@@ -11,7 +11,7 @@ import type { Held } from "../images";
 import { sendImages } from "./images";
 import { quoted } from "./model";
 import { isNarrow } from "../../ui/width";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 
 /** The images held for each repository's next note, while the app runs: bytes, not text. */
 const held = signal<Readonly<Record<string, ReadonlyArray<Held>>>>({});

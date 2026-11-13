@@ -4,7 +4,7 @@ import { signal, View } from "nsh";
 import { call } from "../../store";
 import { Banner, Button, Refusal } from "../../ui/controls";
 import type { FileArgs } from "../file/read";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 
 export function StaleReview(props: { args: FileArgs }) {
   const pending = signal(false);

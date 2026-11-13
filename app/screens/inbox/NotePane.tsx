@@ -14,7 +14,7 @@ import { deleteNote } from "./actions";
 import { droppedImages, type Held, pastedImage, pickImages } from "../images";
 import { sendImages } from "./images";
 import { noteOf, plain, quoted } from "./model";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 import { NotePicker, type Picking } from "./Pickers";
 
 /** A note saved under a new text has a new key: its pane follows it there, by its id. */

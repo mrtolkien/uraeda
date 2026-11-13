@@ -1,4 +1,4 @@
-// The undo stack's part of the frame (`undo.ts`): its keys, declared at the shell's scope, so they
+// The undo stack's part of the frame (`undoStack.ts`): its keys, declared at the shell's scope, so they
 // work on every page outside a text field, whose own `Ctrl+Z` stays the field's; its toast, which
 // says what was done with Undo, or what came back with Redo; and its one question, for an action
 // committed since, which an undo writes over as a new change.
@@ -6,7 +6,7 @@
 // After an undo or a redo the human is taken where the action happened. A refusal stays in its
 // toast until closed: it concerns no control on the screen, and says what stays.
 import { cleanup, effect, untracked, View } from "nsh";
-import { asking, canRedo, canUndo, quiet, redo, said, type Said, undo } from "./undo";
+import { asking, canRedo, canUndo, quiet, redo, said, type Said, undo } from "./undoStack";
 import { navigate, pathOf, route } from "../../store";
 import { Button, Confirm, IconButton, Kbd, lastAsked, Text } from "../../ui/controls";
 import { registerKey, singleKeys } from "../../ui/keys";

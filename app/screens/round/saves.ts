@@ -13,7 +13,7 @@ import { call } from "../../store";
 import type { FileView, QuestionItem, SettledComment, WriteName } from "../../store/protocol";
 import { readUnsaved, settleUnsaved, unsavedKey } from "../../ui/text";
 import { type Ask, useAsk } from "../session";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 
 /** A round, as the record `WorkflowFile` names it: `<folder>/<name>`, or `inbox-triage`. */
 export type RoundArgs = { repo: string; id: string };

@@ -92,6 +92,23 @@ app-test:
 app-dev *args:
     {{ nsh }} run "$@"
 
+# The app in the iOS Simulator, with hot reload, on a Mac with Xcode, over a sandbox already
+# running at 4420 (`just sandbox --no-app`): `just app-ios`, or `just app-ios --device "iPhone 17 Pro"`.
+app-ios *args:
+    scripts/ios.sh run "$@"
+
+# The iOS app as a device installs it, with no development server, in `target/ios/`: an `.app` for
+# the simulator, installed and started there, or `just package-ios --target ios --sign "<identity>"
+# --profile <file>.mobileprovision` for a device's `.ipa`. On a Mac with Xcode.
+package-ios *args:
+    scripts/ios.sh package "$@"
+
+# The iOS app on the phone that is plugged in, rebuilt and installed: the profile, the certificate,
+# and the phone are found by themselves. After the one-time setup of CONTRIBUTING.md, "iOS"; again
+# for every new version, and every 7 days on a free account.
+install-ios:
+    scripts/ios.sh install
+
 # The app on Linux, `uraeda`, built with `ura` beside it: it finds this machine's server, or starts
 # it, and stops the one it started when its window closes. Its flags: `--server <address>` for
 # another machine's, `--data-dir <folder>` for another data folder. An agent runs it on the hidden

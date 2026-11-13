@@ -175,7 +175,7 @@ what = "Selecting what came back after an undo"
 old = "Undo"
 why = "each pane keeps its own cursor (task 50)"
 fate = "brought-back"
-now = "the inbox and the priorities: after an undo or a redo, the list of the page it returns to puts its cursor on the note or the proposal it brought back, found by the action's subject (`broughtBack` in `app/screens/shell/undo.ts`)"
+now = "the inbox and the priorities: after an undo or a redo, the list of the page it returns to puts its cursor on the note or the proposal it brought back, found by the action's subject (`broughtBack` in `app/screens/shell/undoStack.ts`)"
 
 [[left]]
 what = "A proposal's nested lines edited in place, and dropped across proposals"

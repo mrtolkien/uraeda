@@ -8,6 +8,12 @@
   "theme": "theme.json",
   "icon": { "web": "web/icon.png" },
   "web": { "base": "/", "history": false },
+  "ios": {
+    "infoPlist": {
+      "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true },
+      "NSLocalNetworkUsageDescription": "Uraeda connects to its server when you run it on a computer of your own network."
+    }
+  },
   "capabilities": {
     "network": {
       "hosts": ["*"]

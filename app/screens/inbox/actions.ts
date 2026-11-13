@@ -1,10 +1,10 @@
 // What the inbox does to a note: each write over the inbox as read, its refusal said where it was
-// asked, and an undoable one kept on the app's undo stack (`app/screens/shell/undo.ts`), whose
+// asked, and an undoable one kept on the app's undo stack (`app/screens/shell/undoStack.ts`), whose
 // toast says what was done, where the note went, and Undo. An undoable action never asks first
 // (the undo decision): Undo is the way back.
 import { call, type Route } from "../../store";
 import type { Inbox, UndoChange } from "../../store/protocol";
-import { remember } from "../shell/undo";
+import { remember } from "../shell/undoStack";
 import { quoted } from "./model";
 
 /** Deletes a note, its sub-items, and its note file: undone by Undo, never asked first. */

@@ -61,6 +61,9 @@ just gallery                           # every component of the library, in one 
 just sandboxed scripts/nsh.sh test     # a command beside a fresh sandbox, its address in URAEDA_SANDBOX
 just web-build                         # the app for a browser, in target/web/, which ura serve serves
 just web-test                          # that build in a real browser: sign-in, the home page, its pictures
+just app-ios                           # the app in the iOS Simulator, on a Mac, with hot reload
+just package-ios                       # the iOS app as a device installs it, in target/ios/
+just install-ios                       # that app, built and installed on the phone that is plugged in
 ```
 
 The recipes run `nsh` through [`scripts/nsh.sh`](scripts/nsh.sh), which builds in the repository's
@@ -69,6 +72,56 @@ way, as `just nsh build`. `just app-check` also writes NSH's types in `app/.nsh/
 picture, and sandbox recipe runs through [`scripts/isolated.sh`](scripts/isolated.sh): its data,
 configuration, and cache folders are temporary, and never yours. The sandbox keeps its state in
 `.sandbox/` until `--reset`, and never reads your projects, your data, or a real agent.
+
+### iOS
+
+On a Mac with Xcode, `just app-ios` runs the app in the iOS Simulator, reloading as its TSX changes,
+beside a sandbox the simulator reaches at `127.0.0.1` as the Mac does (`just sandbox --no-app`).
+`--device "iPhone 17 Pro"` picks a simulator. It needs NSH's `ios` component,
+`nsh component add ios`, with an `nsh` of the pinned version on the `PATH`: the dev shell brings NSH
+on Linux alone. The Rust targets are in [`rust-toolchain.toml`](rust-toolchain.toml).
+[`scripts/ios.sh`](scripts/ios.sh) puts Xcode's tools ahead of Nix's, which know no simulator, and
+sets the oldest iOS the app runs on, 15, for every crate: Rust's default for a device is older than
+a symbol QuickJS's C calls, and the device's link failed on it.
+
+A Mac's disk does not tell `undo.ts` from `Undo.tsx`: two files of one folder never differ by their
+letters' case alone, or the bundler takes one for the other there.
+
+#### On a phone
+
+Once the phone is set up (below), putting a new version on it is one command, with the phone plugged
+in and unlocked:
+
+```sh
+nix develop -c just install-ios        # build, install, and start the app on the phone
+```
+
+It finds the profile, the certificate, and the phone itself ([`scripts/ios.sh`](scripts/ios.sh),
+[`scripts/ios-device.py`](scripts/ios-device.py)), builds the app with no development server,
+installs it, and starts it. `URAEDA_IOS_DEVICE` names another phone, by the identifier
+`xcrun devicectl list devices` prints. Run it again for every new version of the app.
+`just package-ios` alone builds the app with no development server: for the simulator, installed and
+started there, or with `--target ios --id <the ID> --sign "<identity>" --profile <the profile>` the
+`.ipa` of a device.
+
+**Every 7 days on a free Apple account**, the profile and the certificate expire, and the app stops
+opening ("every provisioning profile has expired" is what the command says). Open the Xcode project
+of the one-time setup, run it on the phone once (▶), which makes a new profile, and run
+`just install-ios` again. A paid account's last a year.
+
+**The one-time setup**, on a Mac signed in to Xcode with an Apple ID, which gives a free "Personal
+Team":
+
+1. Plug the phone in, unlock it, and tap "Trust". In Xcode, Window, Devices and Simulators, select
+   the phone and wait for it to be prepared. Then, on the phone, Settings, Privacy & Security, at
+   the bottom, turn Developer Mode on: iOS shows it only after Xcode has prepared the phone. It
+   restarts.
+2. In Xcode, File, New, Project, iOS, App, with the Team set to your Personal Team and a Bundle
+   Identifier of your own, as `uraeda.uraeda`. Run it on the phone (▶). Xcode makes the certificate
+   and the profile, in `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`. The app's bundle
+   ID is that of the profile, so nothing here names it.
+3. Install once with `just install-ios`. On the phone, Settings, General, VPN & Device Management,
+   under Developer App, tap your certificate, Trust. Then open the app.
 
 `nix develop -c just package` packages the app as a release ships it, in `target/package/`: the
 folder `uraeda/`, the same as a tarball and as an AppImage, each with its `.sha256`.

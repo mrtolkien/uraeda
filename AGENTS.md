@@ -237,6 +237,16 @@ Running it here:
   never reaches content its caller wrote. Content that declares keys in a popover or a sheet takes
   its layer's scope explicitly (`keyScope`, then `scope` on the `Popover`, `Sheet`, and `Options`),
   as `Menu` and `Select` do (ruling R478). GTK and `nsh test` do not show it.
+- **The app on an iPhone is built with `just app-ios`** (the simulator, with hot reload, beside a
+  sandbox running at 4420: `just sandbox --no-app`), **`just package-ios`** (the app with no
+  development server), and **`just install-ios`**, which puts it on the human's phone, plugged in
+  and unlocked: it finds the profile, certificate, and phone, builds, installs, and starts the app.
+  `scripts/ios.sh` runs all three, with Xcode's `xcrun` and SDK ahead of the dev shell's, which know
+  no simulator, and `nsh` there is the machine's own, with its `ios` component. The human runs
+  `just install-ios` again for every new version, and every 7 days on a free Apple account, whose
+  profile expires (CONTRIBUTING.md, "On a phone", says how to renew it). The bundle ID is the
+  profile's, never `app/nsh.json`'s. A Mac's disk ignores a name's case: two files of one folder
+  never differ by case alone (`undo.ts` beside `Undo.tsx`), or the bundler takes one for the other.
 - `ura serve` listens on 4310 by default, and keeps its files in `uraeda-next` of the system's data
   folder: the earlier server's `uraeda` is only read, by `ura import-sessions`. A test or a run of
   yours always names its own port and data folder: `--port 0 --data-dir <a temporary folder>`.

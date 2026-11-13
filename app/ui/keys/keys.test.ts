@@ -3,7 +3,7 @@
 // through Native Shell's keymap; the rules over what is declared are read on a registry of the
 // test's own.
 import { expect, open, test } from "nsh/test";
-import { keyMapSections, searchKeyMap } from "./keyMap";
+import { keyMapSections, searchKeyMap } from "./keyMapSections";
 import { searchRanked } from "./pickerSearch";
 import { entriesAt, next } from "./sequence";
 import { createKeyStore, type KeySpec } from "./store";
