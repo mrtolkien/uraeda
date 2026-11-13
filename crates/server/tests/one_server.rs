@@ -1,6 +1,7 @@
 //! One data folder, one server: a second start on the folder of a server that runs, but has not
-//! said so yet in its status file, is refused, and touches none of the first's files. A start
-//! right after a server let the folder go, as it stops, waits for the lock instead.
+//! said so yet in its status file, or that does not answer, is refused once the start's wait is
+//! over, and touches none of the first's files. A start right after a server let the folder go, as
+//! it stops, waits for the lock instead.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -61,7 +62,7 @@ async fn a_second_server_on_one_data_folder_is_refused() {
     let mut gone = running.clone();
     gone.token = "a token it refuses".to_owned();
     fs::write(status::path(&data), serde_json::to_vec(&gone).unwrap()).unwrap();
-    let Err(refused) = Server::start(first.options()).await else {
+    let Err(refused) = Server::start(waiting_briefly(first.options())).await else {
         panic!("a second server started on the first's data folder");
     };
     assert_eq!(
@@ -92,6 +93,30 @@ async fn a_start_waits_for_a_lock_let_go_a_moment_later() {
     // What a server that stops holds for a moment, its status file already removed: in another
     // process, until that process ends.
     let held = status::lock(&data).unwrap().expect("a free folder");
+    let letting_go = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        drop(held);
+    });
+    let server = setup.start().await;
+    letting_go.join().unwrap();
+    server.stop().await;
+}
+
+#[tokio::test]
+async fn a_start_waits_for_a_server_that_stops_and_no_longer_answers() {
+    let setup = support::setup();
+    let data = setup.options().data_dir;
+    // A server that stops: it still holds the lock and its status file, and its port is closed.
+    let held = status::lock(&data).unwrap().expect("a free folder");
+    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = closed.local_addr().unwrap().port();
+    drop(closed);
+    let stopping = status::Status {
+        pid: std::process::id(),
+        port,
+        token: "the stopping server's".to_owned(),
+    };
+    fs::write(status::path(&data), serde_json::to_vec(&stopping).unwrap()).unwrap();
     let letting_go = std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(100));
         drop(held);

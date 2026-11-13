@@ -10691,3 +10691,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   after Ctrl+C. A start still under way after 2 seconds is refused as before.
 - **Where**: `crates/server/src/status.rs` (`Lock`), `crates/server/src/start.rs` (`hold`),
   `crates/server/tests/one_server.rs`.
+
+## T204.1: A start waits up to 10 seconds for a held lock, whether or not a status file names its server
+
+- **Decision**: a start that finds the data folder's lock held asks again every 25 ms until it gets
+  it, hands over as soon as the server its status file names answers, and is refused only after 10
+  seconds (`LOCK_WAIT`), in R529's words: the server that did not answer at the last ask, or one
+  that is starting. R533's wait was 2 seconds, and only for a lock held without a status file.
+- **Rationale**: a server that got Ctrl+C no longer answers, but keeps its status file and its lock
+  to the end of `stop()`: its agents get 5 seconds to end (`KILL_AFTER`), then its requests 5
+  seconds (`GRACE`). The app's own start of `ura serve` meanwhile was refused at once, for a server
+  gone a moment later. 10 seconds covers a normal stop; a healthy server answers and is handed the
+  start at once, so only a stopping or stuck one is waited for, and the app's own start waits a
+  minute anyway.
+- **If wrong**: a server stuck with its port closed delays a second start by 10 seconds before the
+  same refusal: lower `LOCK_WAIT`.
+- **Where**: `crates/server/src/start.rs` (`hold`), `crates/server/tests/one_server.rs`.

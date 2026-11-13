@@ -106,21 +106,25 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
     Ok(server)
 }
 
-/// How long a start waits for a lock held without a status file, by default.
-const LOCK_WAIT: Duration = Duration::from_secs(2);
+/// How long a start waits for a held lock, by default: the longest a server's normal stop takes,
+/// its agents' 5 seconds to end before they are killed, then its requests' 5 seconds of `GRACE`.
+/// A server that answers is handed the start at once: only one that stops, or is stuck, is waited
+/// for.
+const LOCK_WAIT: Duration = Duration::from_secs(10);
 
 /// How often a waiting start asks for the lock again.
 const LOCK_POLL: Duration = Duration::from_millis(25);
 
 /// The data folder's lock. When another server holds it, the start's folder goes to that server
 /// when its status file names it and it answers: one data folder has one server, whatever port this
-/// start asks for. Held without a status file, the lock is waited for a moment: a server that
-/// stops removes its file before it lets the lock go, and another process that stops lets it go
-/// when its process ends. Only a start still under way past that is refused.
+/// start asks for. Otherwise the lock is waited for: a server that stops no longer answers, and
+/// removes its status file only at the end of its stop, before it lets the lock go; another
+/// process that stops lets it go when its process ends. Only a lock still held past the wait is
+/// refused, naming the server that did not answer, or one that is starting.
 async fn hold(options: &Options) -> Result<status::Lock, NotStarted> {
     let data_dir = &options.data_dir;
     let deadline = Instant::now() + options.lock_wait.unwrap_or(LOCK_WAIT);
-    let running = loop {
+    loop {
         let lock = status::lock(data_dir).map_err(|error| {
             let path = data_dir.join("run").join(status::LOCK);
             NotStarted::Failed(format!("cannot lock {}: {error}", path.display()))
@@ -128,28 +132,38 @@ async fn hold(options: &Options) -> Result<status::Lock, NotStarted> {
         if let Some(lock) = lock {
             return Ok(lock);
         }
-        if let Some(running) = status::read(data_dir) {
-            break running;
+        // The server the status file names, when it did not answer.
+        let silent = status::read(data_dir);
+        if let Some(running) = &silent {
+            let folder = options.folder.as_deref();
+            let handed = hand_over(running.port, Some(&running.token), folder).await;
+            if let Some(ended) = handed_over(running.port, handed) {
+                return Err(ended);
+            }
         }
         if Instant::now() >= deadline {
-            return Err(NotStarted::Held(format!(
-                "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
-                data_dir.display()
-            )));
+            return Err(NotStarted::Held(held(data_dir, silent.as_ref())));
         }
         tokio::time::sleep(LOCK_POLL).await;
-    };
-    let folder = options.folder.as_deref();
-    let handed = hand_over(running.port, Some(&running.token), folder).await;
-    Err(handed_over(running.port, handed).unwrap_or_else(|| {
-        NotStarted::Held(format!(
+    }
+}
+
+/// Why a start was refused a folder whose lock stayed held: the server that did not answer, or one
+/// that is starting.
+fn held(data_dir: &Path, silent: Option<&status::Status>) -> String {
+    match silent {
+        Some(running) => format!(
             "the data folder {} is held by the Uraeda server at http://127.0.0.1:{} (process {}), \
              which did not answer: stop it, or pass another --data-dir",
             data_dir.display(),
             running.port,
             running.pid
-        ))
-    }))
+        ),
+        None => format!(
+            "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
+            data_dir.display()
+        ),
+    }
 }
 
 /// Takes the port asked for, on the loopback interface only.
