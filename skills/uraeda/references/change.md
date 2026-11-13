@@ -134,8 +134,7 @@ upgrade.
    branch, as [new decision or change](spec.md#new-decision-or-change) describes. A change has no
    spec: its Why links the round's question. The round links it, and asks to approve it, "A
    (recommended). Approve the change" first.
-2. **On "A"**, set `status: active` and `approved-by`, as
-   [approval](approval.md#apply-the-decisions) does, and commit `decision(<slug>): apply <topic>`.
+2. **On "A"**, the decision stands as edited: continue.
 3. **On another answer**, restore the decision's text as it was where the branch started,
    `git checkout $(git merge-base HEAD <default>) -- specs/decisions/<topic>.md`, and make the
    change within the decision as it is.
@@ -160,10 +159,9 @@ follows, as a round's question, "Make this change a feature?", with the upgrade 
 
 On yes, the change moves in place: its branch, folder, and code become the feature's. With `ura`,
 `ura start <change> --feature`; by hand, see
-[make a change a feature](by-hand.md#make-a-change-a-feature). The decisions the change applied go
-back to `proposed`. The feature has answered rounds and no discovery file, so its first step is the
-[spec](spec.md#is-the-scope-clear), which starts a new round for the feature's scope. On another
-answer, keep the change within that answer.
+[make a change a feature](by-hand.md#make-a-change-a-feature). The feature has answered rounds and
+no discovery file, so its first step is the [spec](spec.md#is-the-scope-clear), which starts a new
+round for the feature's scope. On another answer, keep the change within that answer.
 
 ## Making the change
 
@@ -221,7 +219,6 @@ Comments on the pull request are handled as
 ## Commit
 
 - **A round**: `discovery(<slug>): <what it asks>`, with the block's first line as the body.
-- **A decision's change, applied**: `decision(<slug>): apply <topic>`.
 - **Code**: `fix(<slug>): <what changed>` for a bug, `feat(<slug>): <what changed>` for a change,
   and `refactor(<slug>):` for a structural commit, each with its tests and its body.
 - **The record**: `finish(<slug>): <title>`, as the [finish](finish.md) step says.

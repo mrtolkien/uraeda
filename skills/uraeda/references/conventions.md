@@ -33,7 +33,8 @@ Templates are strict where tools and agents need to find things, and free elsewh
 - **Structured items** follow fixed patterns:
   - questions `## Q1: ...`, each with its `**Answer:**` line, and follow-ups `### Q1.B: ...`;
   - options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets;
-  - settled points starting with a bold subject, each in one of its groups;
+  - settled points starting with a bold subject, under `## Check these` or
+    `## Settled without the human`;
   - user stories `### US1: Title (P1)`, their scenarios in a "Key scenarios:" list and an optional
     "More scenarios:" list, each with **Given**, **When**, **Then**;
   - success criteria `- **SC-001** (<measure>): <outcome>.`, the measure optional;
@@ -64,16 +65,14 @@ Workflow files track their state in frontmatter fields.
 | `spec.md`              | `plan-review`     | `false`                               | may change it on approval                         |
 | `plan.md`              | `status`          | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested`                 |
 | `plan.md`              | `spec-revision`   | the spec `revision` it implements     |                                                   |
-| `decisions/*.md`       | `status`          | `proposed`, then `active` on approval | `active`                                          |
-| `decisions/*.md`       | `approved-by`     | the approver, on approval, if known   | the approver                                      |
 | `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                                     |
 | `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                                        |
-| `DECISIONS-CHECK.md`   | `status`          | `awaiting-human`                      | `answered`                                        |
 | `decisions/preview.md` | `preview-folder`  | where the preview runs: `.`, `web`    |                                                   |
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                                   |
 
-A decision is `proposed` while a branch creates or changes it: the branch edits it in place, and
-empties its `approved-by`. The default branch keeps the active text until the branch merges.
+A decision has no status: the one on the default branch is in force. A branch that creates or
+changes a decision edits it in place, and the default branch keeps its text until the branch merges.
+The human approves the difference with the spec, or in a change's round.
 
 **Set a human status only when the human expressly asks you to in the session**, "the spec is
 approved". Commit with the message a tool would write, `spec(recurring-tasks): approve`, and say so
@@ -147,7 +146,6 @@ without the date.
 | ------------ | -------------------------------------------- | -------------------------------------------------- |
 | `discovery:` | A round of questions, and its research       | `discovery(recurring-tasks): recurring tasks`      |
 | `spec:`      | Write or revise a spec and its decisions     | `spec(recurring-tasks): recurring tasks`           |
-| `decision:`  | Apply approved decisions                     | `decision(recurring-tasks): apply due dates`       |
 | `plan:`      | Write or revise a plan                       | `plan(recurring-tasks): split the store migration` |
 | `review:`    | Commit a review's findings, `findings-NN.md` | `review(recurring-tasks): findings 02`             |
 | `finish:`    | Replace the folder with its record           | `finish(recurring-tasks): recurring tasks`         |

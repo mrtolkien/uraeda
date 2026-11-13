@@ -46,9 +46,8 @@ likely newer than the branch.
 [Writing for the human](writing.md): `block.count`, `block.items`, `writing.sentence`, and
 `spec.length` on files waiting for the human, and `decision.intent`, `decision.rules`,
 `decision.keywords`, `decision.order`, `decision.why`, `decision.alternatives`, and
-`decision.consequences` on decisions. `decision.unapproved` warns on a decision edited on a branch
-after its spec's approval. It exits with an error when it found a problem, and with success when it
-found only warnings. `ura lsp` sends warnings to editors with the Warning severity.
+`decision.consequences` on decisions. It exits with an error when it found a problem, and with
+success when it found only warnings. `ura lsp` sends warnings to editors with the Warning severity.
 
 `ura check` reads git's history at the first link to a missing file, and its `links.file` message
 says where the file went: `no file <path>: it moved to /<new path>`,

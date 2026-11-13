@@ -88,16 +88,19 @@ Decisions are named after the question they answer, not the answer: `due-dates.m
 `due-dates-are-calendar-days.md`.
 
 - **A new one**: write it from
-  [the template](../assets/templates/specs/decisions/decision-topic.md), with `status: proposed` and
-  an empty `approved-by`.
+  [the template](../assets/templates/specs/decisions/decision-topic.md).
 - **One that exists**: edit it in place, on the feature's branch, as it should read after the
-  change, with `status: proposed` and an empty `approved-by`. The default branch keeps the active
-  text until this branch merges. A change that reverses an earlier choice lists that choice under
-  **Alternatives considered**, with why it was abandoned.
+  change. The default branch keeps its text until this branch merges. A change that reverses an
+  earlier choice lists that choice under **Alternatives considered**, with why it was abandoned.
 - **To remove one**: delete its file on the branch.
 
 The human sees each change as the difference between the decision on the branch and on the default
-branch, and approves it with the spec. The [approval](approval.md) step then activates it.
+branch, and approves it with the spec: nothing else activates it, and the merge brings it to the
+default branch. A decision edited again after the spec's approval needs their approval again: say so
+in the pull request's "Look at".
+
+A pass over all the decisions, when the human asks for one, is a [change](change.md): propose the
+merges and cuts as edits on its branch, and ask one question per merge or removal.
 
 ### Writing a decision
 
@@ -110,8 +113,7 @@ default, a short Why in the present tense.
   lint or a test: see [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
 - **Why**: the reason, so an agent can apply a rule to a case it does not name. Until the feature is
   [finished](finish.md#rewrite-the-links), its one link points to the spec, then to the record.
-- **Consequences**: the costs the human accepted, and what a later feature must do, in the future
-  tense while the decision is proposed.
+- **Consequences**: the costs the human accepted, and what a later feature must do.
 - **Applies to**: the folders and kinds of features it governs.
 - **Alternatives considered** and **Revisit when** are optional: the rejected options an agent could
   propose again, and the condition or date that ends a temporary decision.
@@ -166,8 +168,8 @@ There, they find it on the third read, or in the product.
 ```
 
 The sentence gives the rule itself, in the decision's words, for a new or changed one, and why for a
-removed one: the human approves rules, not a summary of them. Only these items count as listed: the
-approval step activates the decisions they name.
+removed one: the human approves rules, not a summary of them. Only these items count as listed: they
+are what the human approves.
 
 Then the paragraph "Relied on:", and a two-column table of the active decisions the spec follows:
 the decision, linked, and what it means for this spec.

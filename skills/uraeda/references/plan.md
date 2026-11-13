@@ -3,8 +3,8 @@
 Turns the approved spec into the tasks that build it: what each one delivers, the interfaces between
 them, the tests that prove them, and the order to build them in.
 
-- **Runs when**: `spec.md` is `approved` and its decisions are active, and there is no `plan.md`, or
-  its `spec-revision` is lower than the spec's `revision`; or `plan.md` is `changes-requested`
+- **Runs when**: `spec.md` is `approved`, and there is no `plan.md`, or its `spec-revision` is lower
+  than the spec's `revision`; or `plan.md` is `changes-requested`
 - **Writes**: `plan.md`, `rulings.md` when there are rulings, and `contracts/` when needed
 - **Ends at**: the [implementation](implementation.md) step (`auto-approved`), a human gate
   (`awaiting-human`), or, rarely, a new round of questions
@@ -34,8 +34,16 @@ describes has written the code instead, and the build will then diverge from it 
    what they already draw or name for the same thing: a size, a name, a key, an icon.
 
 If `spec.md` still opens with a `> [!IMPORTANT]` block, turn it into a note, as
-[the block](writing.md#the-block) says, in the plan's commit. If the feature's `mockups/` still
-holds a round's prototypes, delete them as [approval](approval.md#delete-the-prototypes) describes.
+[the block](writing.md#the-block) says, in the plan's commit. Use the spec's `plan-review` as the
+human left it when approving.
+
+### Delete the prototypes
+
+A round's [prototypes](discovery.md#prototypes) were throwaway: delete them in the plan's commit,
+and git keeps them. Keep the spec's mockups: each file a link of `spec.md` names, and the files it
+loads. Delete every other file of `mockups/`, and the folder when it ends up empty. Then turn each
+link to a deleted file, in any file of the feature, into its text and the file's path in code:
+``Terminal panes (`mockups/terminal-panes.html`, deleted)``.
 
 ## Scope check
 

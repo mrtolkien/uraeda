@@ -135,10 +135,8 @@ The move behind [upgrading](change.md#upgrading), once the human said yes.
 4. In the worktree, move `specs/changes/YYYY-MM-DD-<slug>/` to `specs/YYYY-MM-DD-<slug>/`, its files
    unchanged. Every file of `specs/` but `PRIORITIES.md` linking into the old folder, the moved one
    included, points at the new one, as [where a moved link points](#where-a-moved-link-points)
-   rewrites a moved link. Set each decision the change applied, the ones the branch changed that
-   read `active`, back to `status: proposed`, with an empty `approved-by:`. The human approved them
-   for the change only, and the feature's spec lists them again. Commit
-   `chore(<slug>): upgrade to a feature`.
+   rewrites a moved link. The decisions the branch changed were approved for the change only: the
+   feature's spec lists them again. Commit `chore(<slug>): upgrade to a feature`.
 
 The code the change committed stays on the branch, and the feature's spec describes it as built. The
 feature has answered rounds and no discovery file, so its first step is the
@@ -176,9 +174,8 @@ its newest removal, then the new path's removals after it, to the end:
 Then rewrite the link:
 
 - **Moved**: point it at the new path, in its own form. A rooted link, `/specs/...`, stays rooted,
-  and a relative one is written from its file's folder; a decision candidate's, in
-  `specs/decisions-check/`, from `specs/decisions/`, as its links resolve. Its anchor, title, and
-  `<…>` stay, and a link to a folder keeps its trailing `/`.
+  and a relative one is written from its file's folder; Its anchor, title, and `<…>` stay, and a
+  link to a folder keeps its trailing `/`.
 - **Became a record**: point it at the record. A question's anchor in a `clarifications-NN.md`,
   `#q<number>...`, stays; any other anchor is dropped. A file of the folder that is not markdown,
   like an image, counts as deleted: the finish deleted it.
@@ -199,10 +196,9 @@ repository: the branch is then most likely behind it.
 
 A branch is **behind** when neither it nor `origin/<branch>` holds the tip of `origin/<default>`, or
 of the local default branch without a remote, and the commits it lacks change any file but the
-default branch's own. Those are `PRIORITIES.md`, `INBOX.md`, `INBOX-TRIAGE.md`,
-`DECISIONS-CHECK.md`, `decisions-check/`, `proposals/`, `notes/`, and a started folder's
-`proposal.md`, all under `specs/`: a branch never changes them. With `ura`, `ura next` names the
-step. By hand, after `git fetch`, the branch lacks the tip when
+default branch's own. Those are `PRIORITIES.md`, `INBOX.md`, `INBOX-TRIAGE.md`, `proposals/`,
+`notes/`, and a started folder's `proposal.md`, all under `specs/`: a branch never changes them.
+With `ura`, `ura next` names the step. By hand, after `git fetch`, the branch lacks the tip when
 `git merge-base --is-ancestor origin/<default> <branch>` fails, and fails for `origin/<branch>` too.
 Then `git diff --name-only <merge-base> origin/<default>` lists the files the commits it lacks
 change. A branch the default branch already holds,

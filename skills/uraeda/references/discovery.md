@@ -300,8 +300,8 @@ grip". Commit the variants with the round. The spec keeps the picked one, as
 A round may also compare looks as throwaway prototypes, in any format: HTML pages, SVGs, generated
 images. Use them when building each look with the real components costs too much, like a whole
 layout or a colour scheme. They go in the feature's `mockups/` folder, each option linking its own.
-They are not the spec's mockups: the spec's [approval](approval.md#delete-the-prototypes) deletes
-them, and git keeps them.
+They are not the spec's mockups: the [plan step](plan.md#delete-the-prototypes) deletes them, and
+git keeps them.
 
 ## Self-review
 
