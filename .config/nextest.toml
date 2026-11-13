@@ -14,6 +14,12 @@ leak-timeout = { period = "500ms", result = "fail" }
 filter = "package(uraeda-app) & binary(tests) & test(/^outside::/)"
 retries = 2
 
+# The host's tests build `ura` in the first of them, in `target/host-tests/`: a cold build after a
+# change of toolchain, and on CI, takes longer than the 2 minutes of a hung test. They get 10.
+[[profile.default.overrides]]
+filter = "package(uraeda-app) & binary(tests) & test(/^host::/)"
+slow-timeout = { period = "60s", terminate-after = 10 }
+
 # Each browser test starts a Chromium of its own: sixteen at once made a tap land before its
 # page was drawn. Four run at a time.
 [[profile.default.overrides]]
@@ -32,6 +38,12 @@ leak-timeout = { period = "500ms", result = "fail" }
 [[profile.ci.overrides]]
 filter = "package(uraeda-app) & binary(tests) & test(/^outside::/)"
 retries = 2
+
+# The host's tests build `ura` in the first of them, in `target/host-tests/`: a cold build after a
+# change of toolchain, and on CI, takes longer than the 2 minutes of a hung test. They get 10.
+[[profile.ci.overrides]]
+filter = "package(uraeda-app) & binary(tests) & test(/^host::/)"
+slow-timeout = { period = "60s", terminate-after = 10 }
 
 # `just coverage`'s profile: the default's settings, without the iCCP bomb's memory test, whose
 # 40 MiB bound the instrumentation exceeds. It still runs in `ready`, under the default profile.
