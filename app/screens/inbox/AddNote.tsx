@@ -118,7 +118,6 @@ export function AddNote(props: AddNoteProps) {
 
   return (
     <View style={{ gap: 8 }}>
-<<<<<<< HEAD
       {/* Enter adds it, and so does a press on its button: the pointer's way, and a thumb's. */}
       <View style={{ alignItems: "flex-start", flexDirection: "row", gap: 4 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -139,10 +138,14 @@ export function AddNote(props: AddNoteProps) {
             onEnter={() => void add()}
             onFocus={() => props.onFocused(true)}
             onSave={() => void add()}
+            // On a phone the field is one line beside its icons: a longer placeholder wrapped, and
+            // the field showed its second line alone, "adds it". No key is hinted there.
             placeholder={
-              props.category === null
-                ? "Add a note: Enter adds it"
-                : `Add a note to ${props.category}`
+              props.category !== null
+                ? `Add a note to ${props.category}`
+                : isNarrow()
+                  ? "Add a note"
+                  : "Add a note: Enter adds it"
             }
             ref={props.ref}
             refusal={refusal()}
@@ -158,39 +161,6 @@ export function AddNote(props: AddNoteProps) {
           testID="inbox-add-note"
         />
       </View>
-=======
-      <TextField
-        autoFocus={props.focus}
-        hint={added() ?? undefined}
-        label="New note"
-        lines="one"
-        onBlur={() => {
-          props.onFocused(false);
-          added.set(null);
-        }}
-        onChange={(value) => {
-          field.change(value);
-          refusal.set(null);
-          added.set(null);
-        }}
-        onEnter={() => void add()}
-        onFocus={() => props.onFocused(true)}
-        onSave={() => void add()}
-        // On a phone the field is one line beside three icons: a longer placeholder wrapped, and the
-        // field showed its second line alone, "adds it". No key is hinted there.
-        placeholder={
-          props.category !== null
-            ? `Add a note to ${props.category}`
-            : isNarrow()
-              ? "Add a note"
-              : "Add a note: Enter adds it"
-        }
-        ref={props.ref}
-        refusal={refusal()}
-        testID="inbox-new-note"
-        value={field.text()}
-      />
->>>>>>> 6015c3cb (fix(nsh-migration): the phone's note field reads "Add a note", whole, and names no key)
       <If when={props.category}>
         {(name) => (
           <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>

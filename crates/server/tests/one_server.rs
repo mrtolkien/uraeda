@@ -9,7 +9,8 @@ use uraeda_server::{Server, status};
 
 use crate::support;
 
-/// Every file under `folder`, with its bytes.
+/// Every file under `folder`, with its bytes, but the extensions' built modules: the first server
+/// still writes those in the background as the second starts.
 fn files(folder: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     let mut found = BTreeMap::new();
     let mut folders = vec![folder.to_owned()];
@@ -17,6 +18,9 @@ fn files(folder: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
         for entry in fs::read_dir(&folder).unwrap().flatten() {
             let path = entry.path();
             if path.is_dir() {
+                if path.file_name().is_some_and(|name| name == "extensions") {
+                    continue;
+                }
                 folders.push(path);
             } else {
                 found.insert(path.clone(), fs::read(&path).unwrap());

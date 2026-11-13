@@ -10654,3 +10654,24 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `overlayVisits`, bound by the app's entry, `App.tsx` (the component library imports nothing of the
   store, as an extension's page is built from `app/ui/` alone, and the store nothing of the
   library's code).
+
+## R532: The final review's findings, and the three left to the human
+
+- **Decision**: of the final review's findings (`findings-04.md`), five are fixed: one data folder
+  has one server (R529), text typed back while a save is on its way stays whichever of the record
+  and the result arrives first, the protocol is version 3 since a status's reason can be `continue`
+  and a client draws a reason it does not know as a generic card, a feature's record no longer reads
+  the workspace again, and the Sessions page has one clock. Three are left as they are, for the
+  human:
+  - four commits of the branch (`b1b3c7a2`, `1f0f2db1`, `d0d93754`, `04118a98`) end with a co-author
+    line that names a tool, against the repository's authorship rule. Rewording them rewrites every
+    commit after the first of them, and the rulings and commit bodies name commits by their hashes;
+    a squash merge drops the lines without it.
+  - the findings files hold their reviewers' names as headings and paths of this machine: they are
+    written by the review tool, in its format, as on every feature.
+  - the feature's worktree holds an untracked `node_modules/` and a stand-in `vite.config.ts`, which
+    the main checkout's old commit hook needs until this branch is merged: they are deleted with the
+    worktree, and never committed.
+- **Rationale**: the first is a rewrite of history, which is the human's to choose, and costs
+  references; the second is the tool's own output; the third goes away with the merge.
+- **Where**: `specs/2026-11-10-nsh-migration/findings-04.md`.
