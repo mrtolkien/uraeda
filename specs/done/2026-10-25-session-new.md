@@ -198,9 +198,9 @@ small progress bar at the very bottom."
 
 ## Decisions
 
-None created or changed. The spec relied on [UI layout](../decisions/ui-layout.md),
+None created or changed. The spec relied on [UI layout](../ui/README.md),
 [UI coherence, now in UI components](../decisions/ui-components.md),
-[UI behaviour](../decisions/ui-behaviour.md), [UI look](../decisions/ui-look.md),
+[UI behaviour](../decisions/ui-behaviour.md), [UI look](../ui/look-and-feel.md),
 [UI components](../decisions/ui-components.md), and [Preview](../decisions/preview.md).
 
 ## Changes after approval

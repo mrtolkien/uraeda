@@ -4,50 +4,45 @@ icon: paperclip
 
 # Attachments
 
-Screenshots a human attaches to a workflow file are committed beside it, so they read the same
-wherever the workflow is read and leave with their feature. Images attached to a chat stay out of
-git. Uraeda's Rust core turns every attached image into one small, safe format, whatever tool
-received it.
+> "Since the files will live forever in the git history, we need to use an efficient, highly
+> compressed format, that still works well for screenshots."
+
+An attachment is an image a human or an agent adds to a workflow file: a screenshot in a proposal, a
+review, an answer, or an inbox note. It is committed beside that file. This is the exception to
+plain text in git that the constitution asks a decision to justify.
 
 ## Rules
 
-- An image attached to a workflow file MUST be committed beside that file, linked by a relative
-  path. Checked by the core's tests.
-- A record of a finished feature MUST NOT link to an image, since the images leave with the
-  feature's folder. Checked by the core's tests.
-- Images attached to a chat MUST stay out of git, in Uraeda's data folder. Checked by the server's
-  tests.
-- The core MUST turn every attached image into one small WebP, whatever tool received it. Checked by
-  the core's tests.
-- The core MUST refuse to attach image types that can carry code, such as SVG. An SVG already
-  committed to the repository MAY be read and shown, as the human committed it. Checked by the
-  core's tests.
-- TypeScript code and editor plugins MUST pass an image's bytes to the core, never encode or write
-  it themselves.
-- The server MUST serve attached images, and committed SVGs, so that a browser cannot run them as a
-  page. Checked by the server's tests.
+- An image attached to a workflow file is committed beside that file, and linked by a relative path.
+  _So:_ a screenshot pasted into an inbox note is saved in the note's own folder, and committed with
+  it. It is never uploaded to an image host, and never kept in Uraeda's data folder.
+- An image attached to a chat stays out of git, in Uraeda's data folder. _So:_ a session's
+  screenshots are lost with that folder, like its transcript, and no repository fills with the
+  images of conversations nobody reads again.
+- Every attached image is re-encoded into one small format, WebP, before it reaches git, and the
+  text in it stays sharp. _So:_ a screenshot an agent adds to a bug report is a WebP, about a
+  quarter of the PNG's size. A lossy setting that blurs coloured text is not used.
+- Nothing attached, and nothing shown as an image, can run code. _So:_ an SVG pasted into a proposal
+  is refused, since an SVG can carry scripts. An SVG committed by hand and linked as an image is
+  shown, served so that a browser draws it and never runs it.
 
 ## Why
 
-Screenshots in proposals, reviews, and answers must read everywhere the workflow is read, and be
-recoverable from git. What is committed stays in history forever, so the format must be small. One
-encoder in the core serves the server, the CLI, and the editors alike, and refuses what a browser
-could run. History: [Image attachments](../done/2026-10-13-image-attachments.md).
+Workflow files are read on GitHub, in an editor, and in the app. An image beside its file shows in
+all three, and comes back from git like the text does. What is committed stays in git's history for
+good: each image must be small, and a screenshot of a secret leaves only by rewriting history. A
+chat is not workflow state, so its images stay with it, outside git. An image is bytes from outside
+the repository: one encoder, for every tool that attaches, keeps what a browser could run out of it.
+History: [Image attachments](../done/2026-10-13-image-attachments.md).
 
 ## Alternatives considered
 
-- An image library in the server: out of reach of `ura lsp`, the editors' language server, which
-  runs without the server.
-- Images outside git, or in Git LFS: links break elsewhere, or every clone needs LFS.
-
-## Consequences
-
-- Every attached image stays in git history: a screenshot of a secret needs a history rewrite.
-- Building `ura` needs a C compiler.
-- Chat images are lost with Uraeda's data folder, like chat transcripts.
+- Images kept outside git, on a host or in Git LFS: a link breaks when the workflow is read
+  elsewhere, or every clone needs LFS.
 
 ## Applies to
 
-- [`crates/core/`](/crates/core/) and its callers: the [server](/crates/server/) and
-  [`ura lsp`](/crates/lsp/)
-- Every folder under `specs/` that holds images, and the [skill](/skills/uraeda/SKILL.md)'s layout
+- [`crates/core/`](/crates/core/), [`crates/server/`](/crates/server/), and
+  [`crates/lsp/`](/crates/lsp/), and every feature that lets a human or an agent attach or show an
+  image
+- Every folder under `specs/` that holds images

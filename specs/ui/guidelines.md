@@ -346,11 +346,13 @@ s, a progress indicator with what runs. Check: a slow load shows where its conte
 nothing jumps when it arrives. [NN/g, skeleton screens][nn-g-skeleton-screens], [progress
 indicators][progress-indicators]
 
+Uraeda's own targets are stricter than the first and the third rule here: see the last section.
+
 ## Per persona
 
 - **Tolki at the desk, the keyboard**: keyboard and focus first, all of it, a new view or action
   shipping with its keys; focus never hidden; keys learned where the action is; one key, one
-  meaning; answers within 400 ms.
+  meaning; answers within 100 ms.
 - **Tolki on the phone, an iPhone 18 Pro Max from the home screen**: safe areas and rounded corners,
   padded by the inset and no more; a way back without the browser's; the field above the keyboard,
   at 16 px; a selection and what was typed survive scrolls and dropped connections; 44 pt targets
@@ -385,6 +387,11 @@ The human ruled on each, on 2026-11-05; the guides now say so.
 9. **Desktop targets smaller than 24 px.** 24 px high at least, padding included, the hit area
    growing where the text stays dense
    ([Look and feel](look-and-feel.md#what-can-be-pressed-looks-pressable)).
+10. **An answer within 400 ms, and a skeleton while a page loads.** The human's target is 100 ms,
+    for a page and for an action, and a page shows no loading state for what the app can already
+    hold: "pages should simply ALL DRAW in 100ms." A skeleton or a `Spinner` with its words is for
+    work that is slow by nature, an agent starting or a commit's hooks
+    ([Performance](../decisions/performance.md), [Space and motion](space-and-motion.md#speed)).
 
 [refactoring-ui]: https://www.refactoringui.com/
 [laws-of-ux-proximity]: https://lawsofux.com/law-of-proximity/

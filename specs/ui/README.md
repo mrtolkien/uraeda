@@ -1,11 +1,11 @@
 # The UI's direction
 
 How Uraeda's app should read, behave, and be put together. The [decisions](../decisions/) hold the
-binding rules, [UI look](../decisions/ui-look.md), [UI layout](../decisions/ui-layout.md),
-[UI behaviour](../decisions/ui-behaviour.md), [UI components](../decisions/ui-components.md), and
-[Keyboard](../decisions/keyboard.md). These guides say what those rules aim at, and how a view meets
-them, from what the human asked for while going over every view by hand. Read them before designing
-or changing a view, and say in a spec when a view departs from them, and why.
+few boundaries, what a view may never do: [UI components](../decisions/ui-components.md),
+[UI behaviour](../decisions/ui-behaviour.md), [Colour themes](../decisions/colour-themes.md), and
+[Keyboard](../decisions/keyboard.md). These guides hold the direction, how a view should read,
+behave, and look, from what the human asked for while going over every view by hand. Read them
+before designing or changing a view, and say in a spec when a view departs from them, and why.
 
 ## In one paragraph
 
@@ -17,6 +17,11 @@ appears. What moves, glides; what is pressed, answers at once. The phone gets th
 reshaped for a thumb, not a smaller desktop.
 
 ## Its own look
+
+The human picked it among the directions mocked up over the same views: "It will be Terminal with
+some inspirations from Cyber." It answers what they asked of the UI: "it should look good, and be
+memorable". It is direction, not a list of rules: as the app moved to Native Shell, "the current
+behaviour and looks of uraeda are _guidelines_, not _rules_."
 
 Uraeda's look is its own: its inspiration is LazyVim, terminal interfaces, and modern Linux
 desktops, tiling, glassy, and keyboard-driven, never a generic iOS app or a shadcn page. It is a
@@ -37,8 +42,9 @@ heights, glass, and light that each mean one thing.
 
 When two conflict, the higher one wins.
 
-1. **Readable first.** The human reads specs, rounds, and sessions for hours. Text that is
-   comfortable to read beats text that fits more on screen. See [Reading](reading.md).
+1. **Readable first.** "Goal #1 is always readability and clarity for the user." The human reads
+   specs, rounds, and sessions for hours. Text that is comfortable to read beats text that fits more
+   on screen. See [Reading](reading.md).
 2. **Every action by keyboard and by tap.** A view without keyboard navigation is unfinished. A key
    is never the only way, and hover is never the only way. See [Keyboard](keyboard.md).
 3. **Coherent.** The same thing looks and behaves the same on every page, through one shared
@@ -70,6 +76,8 @@ When two conflict, the higher one wins.
 - [Flows](flows.md): committing, starting the agent, confirming, and reviewing.
 - By width: [the phone](phone.md) and iOS, [semi-wide](semi-wide.md), and [wide](wide.md) screens
   and macOS.
+- How a changed view is checked before it is handed over, and how the human reviews it, is in
+  [Tests and checks](../guides/testing.md#how-the-app-is-checked).
 
 ## How the direction was found
 

@@ -180,7 +180,7 @@ synced after a few seconds; and for the changed lines' count, "+1050 −250", on
   open tab, after "Turn on".
 - [Agents](../decisions/agents.md): every background task holds its turn and its process.
 - [Git](../decisions/git.md): an item's existence and step come from its branch's latest commit.
-- [UI layout](../decisions/ui-layout.md): cards, the rail, and resizable columns.
+- [UI layout](../ui/README.md): cards, the rail, and resizable columns.
 - [UI behaviour](../decisions/ui-behaviour.md): git writes show at once and block the others; cards
   show the action in flight.
 - [Repositories](../decisions/repositories.md): entries hold their items' names and colours; the

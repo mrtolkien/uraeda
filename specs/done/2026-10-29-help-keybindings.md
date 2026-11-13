@@ -100,7 +100,7 @@ once, as it opens, rather than keeping a list of its own.
 **Answer:** B, the same lighter glass for every light-theme glass: the key map, the leader menu, and
 the phone's bars and sheets. As built, the light glass over a page dimmed to 70% read at about 2:1,
 and the light glass alone left secondary text and keys at about 3.6:1, under the 4.5:1 the
-[UI look](/specs/decisions/ui-look.md) decision requires.
+[UI look](/specs/ui/look-and-feel.md) decision requires.
 
 #### Settled without the human
 

@@ -48,7 +48,7 @@ feature lands and is not reachable from the keyboard until they go back and ask 
 - **LazyVim's habits**: `j` `k` to move, `Space` as the leader, `g` to go, `Escape` to leave, Vim's
   keys in text fields. See [Keyboard](keyboard.md).
 - **Any window**: the app looks right at full screen and tiled in a half or a third of it.
-- **No lag**: a key answers within 400 ms, and what it shows is final, nothing jumping after.
+- **No lag**: a key answers within 100 ms, and what it shows is final, nothing jumping after.
 
 **Scenarios.**
 

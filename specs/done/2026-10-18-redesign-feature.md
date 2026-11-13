@@ -156,8 +156,8 @@ unresolved comment and fixes each in a commit.
 
 ## Decisions
 
-- [Problems](../decisions/problems.md): new. A check result is a feature's problem only when it
-  stops the workflow; every other one is a note, shown only on the item's page.
+- [Problems](../decisions/feature-status.md): new. A check result is a feature's problem only when
+  it stops the workflow; every other one is a note, shown only on the item's page.
 
 ## Changes after approval
 

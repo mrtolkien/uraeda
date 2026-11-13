@@ -1,7 +1,7 @@
 # Rulings: Coherence pass
 
 The low-impact choices made while building [the change](proposal.md), inside the limits of the
-[UI look](/specs/decisions/ui-look.md) and [UI components](/specs/decisions/ui-components.md)
+[UI look](/specs/ui/look-and-feel.md) and [UI components](/specs/decisions/ui-components.md)
 decisions. None binds future work: those are decisions.
 
 ## R1: The story page's column test reads the session's column
@@ -22,9 +22,9 @@ decisions. None binds future work: those are decisions.
 - **Decision**: every menu and selector opens as `useMenuPresentation()` says: a bottom sheet on
   narrow screens, a popover from semi-wide. The decisions' sort and a sidebar card's `…` menu, which
   took Astryx's `adaptive`, follow it too.
-- **Rationale**: the [UI layout](/specs/decisions/ui-layout.md) decision asks for sheets on narrow
-  screens, by the width. Astryx's `adaptive` opens a sheet only on a narrow screen with a coarse
-  pointer, so a narrow window with a mouse got a popover there and a sheet in the six other menus.
+- **Rationale**: the [UI layout](/specs/ui/README.md) decision asks for sheets on narrow screens, by
+  the width. Astryx's `adaptive` opens a sheet only on a narrow screen with a coarse pointer, so a
+  narrow window with a mouse got a popover there and a sheet in the six other menus.
 - **Alternatives considered**: `adaptive` everywhere, which breaks the decision's rule for a narrow
   window with a mouse.
 - **If wrong**: one function in [`useWidthClass.ts`](/packages/web/src/layout/useWidthClass.ts). The

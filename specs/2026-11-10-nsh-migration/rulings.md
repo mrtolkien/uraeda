@@ -2905,7 +2905,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   limit's move to another account, and a round of fixes to the screens, all in the code this feature
   ports and then removes. The parity lists of tasks 20 and 55 read that code, so with it on the
   branch a record or a route nobody ported fails a test. The decisions it changed,
-  [models](../decisions/models.md), [run lifecycle](../decisions/run-lifecycle.md), and
+  [models](../decisions/run-options.md), [run lifecycle](../decisions/run-lifecycle.md), and
   [agents](../decisions/agents.md), apply to the Rust runner: tasks 62 and 63 meet them.
 - **One conflict, in a decision**: both branches changed [toolchain](../decisions/toolchain.md). The
   two changes do not disagree: this branch removes the React Compiler rules, and the default branch

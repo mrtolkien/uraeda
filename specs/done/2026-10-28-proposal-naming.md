@@ -89,7 +89,7 @@ UI's components follow the core's names. This repository's own drafts moved to `
 
 - [Git](/specs/decisions/git.md): proposal files, note files, and the human's inbox and priorities
   are written on the default branch.
-- [Attachments](/specs/decisions/attachments.md) and [TUI](/specs/decisions/tui.md) say proposal
+- [Attachments](/specs/decisions/attachments.md) and [TUI](/specs/decisions/cli.md) say proposal
   files.
 
 ## Changes after approval

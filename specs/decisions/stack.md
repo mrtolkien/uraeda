@@ -4,52 +4,43 @@ icon: layers
 
 # Stack
 
-Uraeda's workflow logic is written once, in Rust, in one core. The CLI and the server reach it
-directly, inside one `ura` binary, clients reach the server through the [protocol](protocol.md), and
-editors through a language server. The server commits and runs project code, so it stays on the
-user's machine, and [Sign-in](sign-in.md) says who reaches it.
+> "The frontend can be mostly independent, logic should live in the CLI and backend."
+>
+> "I'd like to share code between CLI and backend to not re-implement the same logic twice."
+
+Today the CLI and the backend, the server, are one Rust binary, `ura`, over one Rust library, the
+core. The frontend is the app. Workflow logic is whatever reads a workflow file or decides about it:
+its format, its state, its problems, and what may be done next.
 
 ## Rules
 
-- Workflow logic, parsing, validation, and states MUST live in the Rust core.
-- The server MUST be Rust, inside the `ura` binary, reaching the core directly.
-- The `ura` CLI MUST be Rust, needing no runtime.
-- The UI MUST be TSX on Native Shell (NSH), a framework that draws one codebase natively and in a
-  browser, fed only by the server through the protocol.
-- The UI MUST hold no workflow logic: what it shows, and what it may do, come from the server.
-- Editor plugins MUST reach workflow files only through `ura lsp`, the language server over the
-  core.
-- Completions and code actions MUST edit only the open document, leaving commits to a command the
-  user runs.
-- The server MUST stop every preview command it runs when it stops. Checked by the server's tests.
-- Heavy UI logic, such as parsing, diffing, and modal keys, SHOULD be Rust modules called from TSX.
-- The server MAY run a checkout's active [preview](preview.md) command. Checked by the server's
-  tests.
+- Workflow logic lives once, in the Rust core: parsing, validation, and states. _So:_ the server
+  never tells one of the core's problems from another by reading its message's text: the core says
+  which it is.
+- The app holds no workflow logic: what it shows, and what it may do, come from the server. _So:_
+  the Home page's "Continue all" waited until the server said which runs can continue. A button
+  deciding that itself would guess.
+- The server and the CLI are Rust, in the one `ura` binary, and call the core directly. _So:_ an
+  extension's TypeScript runs in a VM inside the server. No second server process is added, and no
+  binding between two languages.
+- The app is TSX on Native Shell (NSH), a framework that draws one codebase natively and in a
+  browser. _So:_ a page is written once for every platform the app ships on. A React page, or a
+  second UI codebase, changes this decision first.
 
 ## Why
 
-One binary holds the CLI and the server, so nothing sits between the server and the core. NSH draws
-the same TSX natively and in a browser. Components stay TSX: they draw as fast as Rust ones, reload
-on save, and are shared with extension pages. Heavy logic is Rust, since TSX runs in an interpreter.
-Approving must be deliberate, so an editor never commits from a code action. History:
-[Stack decision](../done/2026-10-10-stack-decision.md).
+A rule written twice drifts: two readers disagree on the same file, and the wrong one looks right.
+With the logic in one core, the CLI, the server, and the app give one answer. One binary leaves
+nothing between the server and the core, and nothing else to install. NSH gives native apps and a
+web app from the same pages. History: [Stack decision](../done/2026-10-10-stack-decision.md).
 
 ## Alternatives considered
 
-- A TypeScript server on Node with a React UI, the earlier stack: a binding between two languages, a
-  runtime to install, and no native client.
-- Exact, another native framework: no window on a Linux desktop, and streams that drop messages.
-- A UI all in Rust: measured no faster to draw than TSX, and slower to write.
-
-## Consequences
-
-- One parser and one validator serve every tool: a new markdown feature or editor action starts in
-  the core.
-- Contributors and CI need Rust and NSH's tools.
-- NSH stays pinned, since its Rust API changes between releases.
-- Agent SDKs are TypeScript, so the server runs `claude` and `codex` as processes.
+- A TypeScript server on Node with a React UI, the earlier stack. It needed a binding between two
+  languages and a runtime to install, and gave no native app.
+- An app written all in Rust: measured no faster to draw than TSX, and slower to write.
 
 ## Applies to
 
-- [`crates/`](/crates/) and `app/`, and every feature that adds logic, a command, a record, an
-  action, or a page
+- [`crates/`](/crates/) and [`app/`](/app/), and every feature that adds logic, a command, a record,
+  an action, or a page

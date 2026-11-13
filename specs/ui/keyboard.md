@@ -2,8 +2,9 @@
 
 "Like every single other view, we need keyboard navigation." A view is not finished until the human
 can do everything in it without the mouse, with the habits of Vim, LazyVim, and Helix. The
-[Keyboard](../decisions/keyboard.md) decision holds the rules: one registry, a Space leader, a base
-keymap, and a switch to turn single keys off. This guide says how a view uses them.
+[Keyboard](../decisions/keyboard.md) decision holds the boundaries: every action by keyboard and by
+tap, one registry, one meaning for a key on a page, a switch to turn single keys off, and keys at
+every width. This guide says the rest: the keys themselves, and how a view shows them.
 
 ## The habits
 
@@ -23,7 +24,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `/`                       | Search or filter the page's list                                                                                       | A page with a list to filter          |
 | `gg`, `G`                 | Top and bottom: the first and last row of a list, as `Home` `End`; no other key takes `g g`                            | Every page                            |
 | `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` Git, `r` a repository | Every page                            |
-| `Space`                   | The leader menu                                                                                                        | Every page                            |
+| `Space`                   | The leader menu. `Ctrl+K`, or `Cmd+K`, opens it too, and still does with the single keys off                           | Every page                            |
 | `Space b`                 | Open the page's file as a buffer, the whole file to edit                                                               | Every page showing one file           |
 | `Space w`                 | The panes: `H` `L` send one to a stack, `m` makes it main, `z` zooms, `o` one stack, `q` closes                        | Every page                            |
 | `Shift+Enter`             | Open what the selected row names beside the page, as a tab of the other stack                                          | A list whose rows name a pane         |
@@ -100,7 +101,12 @@ kind follows the same rule: its label ends with "…", as its button's does.
 
 ## In a field
 
-Every text field is one editor, with keys of its own that the page never hears.
+Every text field is one editor, with keys of its own that the page never hears. A field behaves as
+its class does, wherever it is: "all text input fields should follow the same behaviour based on
+their types: single line inputs, multiline markdown inputs, and composer inputs are the 3 class I
+see atm." It highlights Markdown as it is typed, with Vim mode on or off, and wraps its text, a
+one-line field included: "make sure that single line inputs wrap: on mobile, a long single line
+input like a priority is impossible to edit properly". A field never scrolls sideways.
 
 - **`Enter`** runs a one-line field's action, like saving a row; in a field of several lines it adds
   a line. `Ctrl+Enter` sends what any field holds, as its button does: a commit message's commits

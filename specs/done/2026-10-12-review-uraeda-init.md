@@ -101,7 +101,7 @@ later".
 
 ## Decisions
 
-- [TUI](../decisions/tui.md), new: every TUI of `ura` is drawn with ratatui on crossterm, prompts
+- [TUI](../decisions/cli.md), new: every TUI of `ura` is drawn with ratatui on crossterm, prompts
   draw inline and leave their answer as a line, and TUIs use the terminal's 16 colours and read
   without colour.
 - [CLI](../decisions/cli.md), changed: CI prints the binary's size without failing on it, and a

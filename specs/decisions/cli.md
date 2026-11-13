@@ -4,46 +4,47 @@ icon: terminal
 
 # CLI
 
-The `ura` CLI is a fast path through the workflow, never the only one: the skill states every rule
-it follows, and every action it offers can be done by hand. It serves humans and agents alike, so
-nothing it does needs a terminal, and what it prints is stable enough for tools to read.
+> "We should then tell our skill/reference files to use the CLI for all workflow steps which will be
+> less error prone than telling an agent what it needs to do."
+
+The constitution keeps the workflow working without any tool. So the `ura` CLI is a fast path
+through the workflow, never the only one: the skill says everything it does. A TUI is a
+full-terminal interactive screen, like a picker. The human chose its library, and asked for more
+than a library: "Use ratatui for TUI. Make the TUI coherent and beautiful: look for inspiration and
+make a mock."
 
 ## Rules
 
-- Every rule the CLI enforces or checks MUST be written in the skill, in
-  [`skills/uraeda/`](/skills/uraeda/).
-- A change to a rule MUST update the skill and the CLI in the same change.
-- The skill MUST keep the manual instructions of every step.
-- The CLI MUST embed the skill and its templates, with no second copy of a template or a rule in its
-  code.
-- Every action of a TUI, a full-terminal interactive screen, MUST also be available without one, so
-  an agent never meets a prompt it cannot answer. Checked by the CLI's tests.
-- What commands print MUST be stable for tools to read, with versioned JSON on every read command.
-  Checked by the CLI's tests.
-- The release binary MUST stay as small as possible.
-- A step of the skill SHOULD name the command that performs it.
-- A feature adding a CLI dependency SHOULD measure what it adds, and pick the smallest that does the
-  job.
+- Every rule the CLI checks or enforces is written in the skill, beside the way to do the step by
+  hand. _So:_ `ura check` once checked the four sections of the priorities file, which the skill did
+  not name. The fix was a sentence in the skill.
+- An agent never meets a prompt it cannot answer: every action of a TUI is also a command with
+  flags. _So:_ adding an extension asks where to turn it on in a terminal, and takes `--all`,
+  `--here`, or `--repo` without one.
+
+- Every interactive screen of `ura`, a one-question picker included, is drawn with ratatui, and no
+  other prompt or terminal library is added. _So:_ the two pickers of `ura install` were written by
+  hand on ratatui, though dialoguer had them ready at a sixth of the size: the planned answer and
+  review screens need ratatui, and a second library would look different.
+- A terminal screen uses the terminal's own colours, never colours of its own. _So:_ it follows the
+  user's theme, and everyone else's, rather than matching one theme exactly.
 
 ## Why
 
-Agents make fewer errors through a CLI than through prose, but the constitution's principle V
-requires the workflow to work without it. A binary kept as small as possible serves better than a
-fixed size cap each dependency must fit under. History: [CLI core](../done/2026-10-10-cli-core.md).
+Agents make fewer errors through a command than through prose, so each step of the skill names its
+command. But a rule that lives only in a tool cannot be followed without it, and the workflow is the
+product, not the tool. An agent has no terminal to answer in: a command that waits on a prompt hangs
+its run. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 ## Alternatives considered
 
-- Rules living in the CLI only, like Backlog.md: the fewest agent errors, but against principle V.
-- A fixed size limit in CI: abandoned when one dependency came within 2 KB of it.
+- Rules living in the CLI only, with agents told never to edit a workflow file by hand. It gives the
+  fewest agent errors, but the workflow then needs the tool, against the constitution.
 
-## Consequences
-
-- The skill keeps its full length, and each command change is a skill change, reviewed together.
-- Runners and the app read stable JSON.
-- The binary grows with each dependency the human accepts, and review keeps it small.
+- dialoguer for the pickers: ready select prompts, but a second library once the planned screens use
+  ratatui.
 
 ## Applies to
 
-- [`crates/cli/`](/crates/cli/), [`skills/uraeda/`](/skills/uraeda/),
-  [`.github/workflows/`](/.github/workflows/), and every feature that adds or changes a command or a
-  TUI
+- [`crates/cli/`](/crates/cli/), [`skills/uraeda/`](/skills/uraeda/), and every feature that adds or
+  changes a command, a check, or a TUI

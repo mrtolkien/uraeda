@@ -4,51 +4,35 @@ icon: workflow
 
 # Diagrams
 
-Workflow files may hold diagrams written in Mermaid, in a fenced code block, which reads as text in
-any editor and renders on GitHub and GitLab. The app draws them in Rust, with the
-[Merman](https://github.com/Latias94/merman) library, as a picture made of shapes, so a diagram
-never runs code in the app.
+> "A round could ask to pick between multiple flows"
+
+Workflow files, such as rounds of questions, specs, and plans, may hold diagrams. What a diagram is
+for, a flow, a sequence, or states that a list would bury, is in the skill's
+[writing rules](/skills/uraeda/references/writing.md).
 
 ## Rules
 
-- A diagram in a workflow file MUST be a fenced `mermaid` code block, not another diagram language,
-  an image, or an ASCII drawing.
-- The app MUST draw diagrams in Rust, with the Merman library, measured and drawn in the app's own
-  fonts and colours.
-- A diagram MUST NOT run a script in the app, even when its text holds one. Checked by the diagram's
-  tests.
-- A diagram that fails to draw, or is not drawn in time, MUST show its source instead. Checked by
-  the diagram's tests.
-- A diagram MUST NOT repeat what the text around it says.
-- A diagram SHOULD show a flow, a sequence, or states that a list or a table would make hard to
-  follow.
+- A diagram in a workflow file is a fenced `mermaid` code block, never another diagram language, an
+  image, or an ASCII drawing. _So:_ a new renderer for the app is picked among those that read
+  Mermaid, and no file changes with it.
+- A diagram never runs a script in the app, even when its text holds one. _So:_ a renderer that
+  needs a frame, or returns markup that can hold a script, is not used: the app draws shapes and
+  text.
 
 ## Why
 
-Diagrams let a round of questions compare flows, and Mermaid's source stays readable as plain text,
-as the constitution's principle II asks. The app can commit and start agents, so a diagram must not
-run code there: Mermaid had critical script-injection advisories. Merman drew all 18 diagrams of the
-repository where four other Rust libraries failed, and a Rust library leaves the app no npm package.
-History: [Diagram frames](../done/2026-10-18-diagram-frames.md).
+Mermaid's source reads as text in any editor, and renders on GitHub and GitLab, so a diagram stays
+plain text in git, as the constitution asks. The app commits and starts agents, so nothing a file
+holds may run code there, and Mermaid's own renderer has had script-injection flaws. History:
+[Diagram frames](../done/2026-10-18-diagram-frames.md).
 
 ## Alternatives considered
 
-- Mermaid itself, in a frame: its full syntax, but its frame runs scripts, and it needs a browser.
-- Pele, in the app's JavaScript engine: it drew them too, but kept an npm package, and Node's tools,
-  in a Rust app.
-- `ariel-rs`, `selkie-rs`, `mermaid-rs-renderer`, `mmdflux`: lost colours, scrambled a flowchart,
-  overlapped labels, or could not read entity diagrams.
-
-## Consequences
-
-- Rounds, specs, and plans can show flows and states that a list would bury.
-- A diagram may not look as it does on GitHub, and a newer Mermaid feature may not draw.
-- Merman is a young project, pinned at an exact version: its releases are ours to follow, and it
-  brings about 240 crates.
-- A diagram is a picture: its links cannot be followed.
+- Mermaid's own renderer in a sandboxed frame: the frame is made with the app's origin, so a script
+  in it reaches the app.
 
 ## Applies to
 
-- [`crates/app/`](/crates/app/), its document renderer, and every page that draws a workflow file
 - Workflow files: rounds of questions, specs, plans, data models, and the skill's templates and
   examples
+- [`crates/app/`](/crates/app/), and every page that draws a workflow file

@@ -288,8 +288,8 @@ bold." The spec made it the run map, in the settings and the dialogs as a strip.
   next; steps share a session only where the human joined them; every sub-agent of a workflow run is
   a session Uraeda starts; a reviewer is an agent's own review or a command; findings are committed
   before they are fixed; a feature's options stay out of the repository; one diagram everywhere.
-- [Models](../decisions/models.md), changed: a new session starts on its step's or role's pick, and
-  a session's effort may follow the next step it runs.
+- [Models](../decisions/run-options.md), changed: a new session starts on its step's or role's pick,
+  and a session's effort may follow the next step it runs.
 - [Agents](../decisions/agents.md), changed: a sub-agent's session may run in its task's worktree,
   beside its parent's.
 

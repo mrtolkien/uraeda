@@ -1,8 +1,9 @@
 # Look and feel
 
-The [UI look](../decisions/ui-look.md) decision sets the terminal look: monospace, Catppuccin,
-square corners, and panes titled in their border. This guide is about what the human checks element
-by element: whether it earns its place, and whether it shows what it does.
+The terminal look itself, its square corners, titled panes, glass, and light, is in
+[Its own look](README.md#its-own-look) and the [design language](design-language.md). This guide is
+about what the human checks element by element: whether it earns its place, and whether it shows
+what it does.
 
 ## Every element earns its place
 
@@ -24,6 +25,11 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
   not as a word after the text: "the icons are enough". Every icon-only control keeps a label for
   screen readers. A control that stands alone as a tile, like the phone's bottom bar's, carries a
   small word under its icon, sized to fit its tile: an icon alone there was a guess.
+- **Icons are Lucide's**, and another free set's glyph stands in where it fits a concept better: "We
+  can mix and match a bit, if another set's icon fitsp particularly better or has a very specific
+  glyph." A harness, the program that runs an agent, such as Claude Code or Codex, shows its own
+  mark where the icons have one, and a neutral glyph otherwise. The human chose the marks over
+  neutral glyphs, knowing they are used without their owners' approval.
 - **Empty status panes disappear.** A pane of ongoing work with nothing to show, like Needs you,
   Sessions, or In progress, is not drawn: the human meets it once there is work. What the human
   makes, the inbox and the priorities, is always there, its empty state saying what goes in it.

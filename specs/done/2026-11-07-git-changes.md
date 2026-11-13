@@ -42,7 +42,7 @@ changes than the worktree.
 
 **Approach for the mark**: a new pane tone, `worktree`, in
 [`Pane.tsx`](/packages/web/src/layout/Pane.tsx), beside the double border of a live window: the
-[UI look](/specs/decisions/ui-look.md) keeps every border 1 px, so the border's style and colour
+[UI look](/specs/ui/look-and-feel.md) keeps every border 1 px, so the border's style and colour
 carry the difference, and the word and the icon name it for a reader who does not see colours.
 [`ChangesTree.tsx`](/packages/web/src/git/ChangesTree.tsx) gives it to every group but the main
 checkout's. The guides say it in [look and feel](/specs/ui/look-and-feel.md) and

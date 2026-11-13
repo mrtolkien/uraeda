@@ -4,42 +4,43 @@ icon: cable
 
 # Protocol
 
-Clients reach the server through one versioned protocol, Uraeda's own. A client subscribes to
-records and calls actions; a record arrives whole once, then as changes. It keeps every client, on
-every platform, on the same contract.
+> "No WebSockets? That's pretty much a no-go, right? I want real-time updates and streaming agent
+> responses."
+
+Said while Native Shell was tested, when it seemed to have no WebSockets. The protocol is how a
+client talks to the server: the Linux app, the web build, and later a phone. It is one set of
+messages, Uraeda's own, over a WebSocket and a few HTTP routes. [Stack](stack.md) holds the rule
+that a client reaches the server through nothing else.
 
 ## Rules
 
-- A client MUST reach the server only through the protocol and the HTTP routes it names. Checked by
-  the protocol's contract tests.
-- A record MUST arrive whole once, then only as changes, each numbered. Checked by the live engine's
-  tests.
-- A client and a server of different protocol versions MUST refuse each other, naming the side to
-  update. Checked by the server's tests.
-- The protocol's messages MUST be defined once, in one crate that the server and the client's types
-  both come from.
-- A client MUST treat what it holds as a cache: the server owns every durable fact.
-- A change to a message SHOULD keep older clients working, and raises the version when it cannot.
+- What the server knows reaches every client as it changes, and an agent's reply streams as it is
+  written. _So:_ no page asks again on a timer, and none has a refresh button. A record arrives
+  whole once, then as changes only, so a reply in a long session never sends its transcript again.
+- The protocol has one version at a time. _So:_ a change an older client cannot read raises the
+  version, as two did in the protocol's first three days. A client and a server of different
+  versions refuse each other, and name the side to update. No code keeps the older one working.
 
 ## Why
 
-Several clients share one server: a Linux app, a web build, and later phones. A streamed reply
-resent whole on each word is slow, and loses parts under load. One definition keeps the server and
-every client from drifting apart, and a version check turns a silent mismatch into a clear message.
+The human watches agents work. A reply that arrives whole at its end, or a page that shows an old
+state, hides what is happening. Sending changes, not whole values, is also what keeps a long session
+within the [Performance](performance.md) decision's frame. The project is early, with one user:
+"it's really ok to break compatibility, no one really uses the tool atm". Updating both sides
+together costs less than a second version kept alive. History:
+[the move to Native Shell](../2026-11-10-nsh-migration/spec.md).
 
 ## Alternatives considered
 
-- fate, the earlier data library: bound to React and to Node.
-- Whole values on each update: simpler, but measured as too slow for long sessions.
-- A general protocol such as GraphQL: more machinery than one server and its own clients need.
-
-## Consequences
-
-- A new record or action is declared in the protocol's crate before either side uses it.
-- A client that falls far behind gets a whole value again.
-- An older client must be updated when the version rises.
+- Keeping older clients working when a message changes, the earlier rule: it was never done, and
+  [Compatibility](compatibility.md) asks the opposite of every other format.
 
 ## Applies to
 
 - `crates/protocol/`, `crates/server/`, and `app/store/`, and every feature that adds a record, an
   action, or a route
+
+## Revisit when
+
+Uraeda has users other than its owner, or a client that updates apart from its server, as an app
+from a store does.

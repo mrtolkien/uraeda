@@ -4,61 +4,39 @@ icon: gauge
 
 # Benchmarks
 
-A benchmark runs the whole workflow on real tasks, with an agent playing the human, and costs real
-usage. It runs only when a human says so, loads the skill from a named commit, and records enough to
-compare runs made months apart. The simulated human sees only what a human would, and results are
-kept in git as plain text.
+> "No caps though, but benchmarks are only run on clear human approval (you have my approval to run
+> them for this feature)"
+
+A benchmark runs Uraeda's whole workflow on real software tasks, with an agent playing the human at
+each gate. The human wants it "to validate our development flow". Each run spends the usage of their
+own subscription, which is why they answered a question about budgets this way.
 
 ## Rules
 
-- Agents MUST NOT start a benchmark run without a human's explicit approval, whose giver the run's
-  record names. Checked by the runner's tests.
-- A benchmark MUST reach agents through the server's adapter, reusing its parsing rather than
-  copying it.
-- A run MUST load the skill from a named commit, never from the working tree. Checked by the
-  runner's tests.
-- The simulated human MUST see only what a human would open, never the hidden tests or the reference
-  solution. Checked by the runner's tests.
-- A run MUST be marked invalid when the simulated human's commit touches a file outside the
-  feature's workflow files. Checked by the runner's tests.
-- A run MUST be marked failed when an agent answered with another model than the one asked for.
-  Checked by the runner's tests.
-- A run MUST record what makes it comparable: its versions, models, effort, task, simulated human,
-  and each step's time, cost, and outcome. Checked by the record's schema test.
-- Git MUST hold each run's record, scores, workflow files, and final diff, but not its raw
-  transcripts, which stay local. Checked by `.gitignore` and the runner's tests.
-- Each case SHOULD have one plain-agent baseline run, on the same task, model, and effort as the
-  runs it is compared with.
-- Agents SHOULD NOT read the task's upstream repository. Checked by the audit of the addresses they
-  fetched.
+- An agent never starts a benchmark run without the human's explicit approval of it. _So:_ the
+  approval above covered that feature's runs, and no later one. A benchmark on a schedule changes
+  this decision first.
+- A benchmark measures Uraeda as it ships: it reaches agents the way the server does, never through
+  code of its own. _So:_ the runner that drove the Node server's adapter went with that server. It
+  waits for a port to the Rust server's runtimes, and does not call `claude` itself meanwhile. How a
+  model is passed, by a flag or by a file, is the runner's business, and no rule.
+- Nothing in a run sees what grades it. _So:_ the agent that plays the human knows only the
+  proposal, the task's text word for word. It never sees the hidden tests or the reference solution.
+  The workflow's own questions "should NATURALLY push towards fulfilling hidden requirements".
+- Each run is kept in git as plain text, with what makes it comparable months later: the skill's
+  commit, the models, and the versions of the tools. _So:_ a run loads the skill from a named
+  commit, never from the working tree, which has no commit to name. Raw transcripts weigh megabytes,
+  and stay on the machine.
 
 ## Why
 
-Benchmarks of a workflow with human gates do not exist yet, so this one sets its own protocol. Runs
-spend usage, so a human decides when. A pinned skill and recorded versions make runs comparable over
-months. What the simulated human knows decides what the benchmark measures. Transcripts weigh
-megabytes, so git keeps only plain text. History: [Benchmarks](../done/2026-10-19-benchmarks.md).
-
-## Alternatives considered
-
-- The benchmark making its own `claude -p` calls: a second parser of events and cost.
-- Harbor as the runner: its steps are fixed upfront, and its simulated user talks in a chat, not
-  through files.
-
-## Consequences
-
-- The runner went with the Node server, whose adapter it used: until it is ported to the Rust
-  server's runtimes, nothing runs a benchmark, and no test holds the rules its tests checked. A new
-  agent is then benchmarked by writing its adapter, and the record's fields carry over.
-- Every run needs a human's word first, so a scheduled benchmark needs a change to this decision.
-- A run that touches the wrong model or file is thrown out, not corrected.
-- Transcripts live on one machine: a failure reads in git only through its workflow files and diff.
+A run costs real usage, so the human decides when one starts. A benchmark that reaches agents its
+own way measures that way, not Uraeda: "What matters is that we use the server's adapter and stay as
+close as possible to our code." A simulated human who knows the answers makes any workflow look
+good. Runs are compared over months, models, and versions, so each one says exactly what produced
+it. History: [Benchmarks](../done/2026-10-19-benchmarks.md).
 
 ## Applies to
 
 - [`benchmarks/`](/benchmarks/), its runner once it is ported, and every feature that runs, changes,
   or adds a benchmark
-
-## Revisit when
-
-A benchmark runs on another harness than Claude Code, or without a human's approval at each run.

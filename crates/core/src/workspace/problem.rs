@@ -32,8 +32,8 @@ pub struct Problem {
 /// found, the first four, or an answered round misses a human's answer, `answers.blank`. The
 /// workspace's own problems, which set the step to `none`, block whatever this list holds.
 ///
-/// The [Problems](/specs/decisions/problems.md) decision: "A check result MUST count as a
-/// feature's problem only when its rule stops the workflow; every other result MUST be a note."
+/// The [Feature status](/specs/decisions/feature-status.md) decision: "A check result counts as a
+/// feature's problem only when it stops the workflow. Anything else is a note"
 /// A new rule is a note, left out of this list, unless the workflow cannot go on without a fix.
 pub const BLOCKING: &[&str] = &[
     "frontmatter.status",

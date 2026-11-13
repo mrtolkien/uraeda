@@ -203,8 +203,8 @@ sense to be at the top."
 
 ## Decisions
 
-- [UI layout](../decisions/ui-layout.md): a feature's session may open beside any of the feature's
-  documents, in the right column, at least 400 px wide; its **Why** rewritten as current reasons.
+- [UI layout](../ui/README.md): a feature's session may open beside any of the feature's documents,
+  in the right column, at least 400 px wide; its **Why** rewritten as current reasons.
 
 ## Changes after approval
 

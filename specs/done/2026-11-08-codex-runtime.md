@@ -183,9 +183,9 @@ made it the app's key picker, the model then the effort, opened by `Space a`.
 
 - [Agents](../decisions/agents.md), changed: each agent through its own protocol, never a wrapper
   package, and each action outside the worktree, the network included, reviewed before it runs.
-- [Models](../decisions/models.md), new: a session keeps the agent and model it started with, the
-  agent's defaults apply until the human picks, and the effort, picked among the model's, may change
-  between turns.
+- [Models](../decisions/run-options.md), new: a session keeps the agent and model it started with,
+  the agent's defaults apply until the human picks, and the effort, picked among the model's, may
+  change between turns.
 
 ## Changes after approval
 

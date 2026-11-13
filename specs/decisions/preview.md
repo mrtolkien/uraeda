@@ -4,50 +4,47 @@ icon: eye
 
 # Preview
 
-Uraeda's planned UI and the states of its views are pages of its gallery, an app that shows the real
-components alone, in named states, so a mockup is the code that ships. The gallery draws with the
-real framework, on each platform the app ships on. A user project's Storybook, a tool that shows web
-components the same way, is still embedded live in specs, questions, and sessions.
+> "I AM NOT LOOKING FOR SCREENSHOTS. I want REAL, INTERACTIVE MOCKUPS that PROPERLY show how the
+> feature will BEHAVE. That's where the issues lie usually."
+
+A mockup is how a spec shows planned UI before it is built. Uraeda has two kinds. A gallery page
+shows the app's real components alone, in named states. The gallery is an app of its own, in
+`app/gallery/`, started with `just gallery`. An HTML page in the feature's `mockups/` folder shows a
+layout or a sketch, and the spec's page draws it live. The gallery is a native app, not a page to
+embed, so this decision names no preview command. The [mockups guide](../guides/mockups.md) says
+which kind fits which job.
 
 ## Rules
 
-- A spec's mockups, and the named states of Uraeda's views, MUST be gallery pages written with the
-  real components.
-- The gallery MUST draw with the app's own framework and tokens, on each platform the app ships on.
-- Gallery pages MUST NOT run as tests: the rare UI tests run elsewhere, as [Testing](testing.md)
-  says.
-- The full check, `just ready`, MUST check the gallery, so a page that does not compile fails it.
-  Checked by `just app-check`, which checks the types of every TSX file of `app/`.
-- A project's own preview MUST be the command its `preview-folder` and `preview-command` fields
-  hold. Checked by `ura check`.
-- A native client MUST draw a project's preview in a web view, apart from the app's own views.
-- A page's layout, or a sketch no component holds yet, MAY be an HTML page in the feature's
-  `mockups/` folder, linked from its gallery page.
-- An investigation MAY compare throwaway prototypes in any format, which the spec's approval
-  deletes.
+- A spec's mockup behaves as the feature will: it can be pressed and typed in, and is never a
+  picture of a view. _So:_ a new picker's mockup opens, filters, and closes. Pictures of its states
+  side by side, as review tools show them, settle nothing about its keys.
+- A mockup of what the app's components can draw is a gallery page, written with those components.
+  _So:_ the first mockups of the new session page "look nothing like the actual app, making it
+  extremely hard to decide", and were redone. A mockup made of the real components looks like the
+  app, and the picked one is the first commit of its view.
+- A page's layout, or a sketch no component holds yet, may be an HTML page. _So:_ the Native Shell
+  app's whole look was one HTML page, tuned with the human over several rounds, before any of its
+  components existed.
 
 ## Why
 
-Mockups made of the real components cannot drift from the code. Storybook draws in a browser, with a
-web framework, so it cannot show Native Shell's components: the gallery draws them with the real
-framework, on the real platform, and is what a design review looks at. Users' projects keep their
-Storybooks, which only a web view can draw inside a native app. History:
+The faults of UI an agent built lie in how it behaves: its keys, its focus, what moves. A picture
+shows none of them. A mockup drawn apart from the app drifts from it: "HTML-only mockups end up
+pretty far from the actual results". One made of the real components cannot. A whole layout or a new
+look would cost too much to build that way first, so a page of HTML carries it. History:
 [UI iteration](../done/2026-10-15-ui-iteration.md).
 
 ## Alternatives considered
 
-- Storybook over the app's web build: one platform only, and not the one the Linux app draws with.
-- A task serving the whole app over fixtures: no new dependency, but pages only, and no place for
-  variants.
-
-## Consequences
-
-- Planned UI starts as real code: the picked variant is the first commit of its view.
-- An investigation can compare several looks cheaply, and git keeps its prototypes once deleted.
-- The gallery is Uraeda's to keep: Storybook's controls and add-ons are gone.
-- Uraeda's own repository has no preview command: its gallery is an app, not a page to embed.
+- Storybook, the app's preview until it moved to Native Shell: it draws in a browser, with a web
+  framework, and cannot show the app's components. A user project's Storybook is still embedded.
 
 ## Applies to
 
-- `app/gallery/`, and every feature with UI work
-- `crates/server/`, for the previews of users' projects
+- `app/gallery/`, the `mockups/` folders under `specs/`, and every feature with UI work
+
+## Revisit when
+
+The gallery can be drawn inside a spec's page, as a user project's Storybook is. This decision then
+names its preview folder and command.
