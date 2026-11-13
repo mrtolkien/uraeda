@@ -297,7 +297,7 @@ export const constitutionPane = definePane<{ repo: string }>({
   view: (props) => <ConstitutionReader repo={props.args.repo} />,
 });
 
-/** The way back to the decision in force, from a branch's version or a check. */
+/** The way back to the decision in force, from a branch's version. */
 export function ToDecision(props: { label: string; name: string }) {
   return (
     <View style={{ alignItems: "flex-start" }}>

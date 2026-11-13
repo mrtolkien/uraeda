@@ -1,6 +1,6 @@
 // A round of questions: one component to answer it, wherever a round is asked. A feature's round
-// is its file's page; the inbox's triage and the decisions check draw `Answering` in their own
-// panes, and declare the same list of questions beside it.
+// is its file's page; the inbox's triage draws `Answering` in its own pane, and declares the same
+// list of questions beside it.
 import { definePane, type PaneAction, type PaneRef } from "../../ui/layout";
 import { tabWord } from "../file/read";
 import { roundFileOf as fileOf, WithRound } from "./read";

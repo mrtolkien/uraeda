@@ -1,12 +1,11 @@
-// The decisions: the constitution and every decision of the default branch, each read whole, the
-// decisions check, and a decision as a feature's branch has it. Each page is the reader in the main
-// stack, the widest, where prose keeps its measure, and the ledger's list in the side stack beside
-// it; on a phone, the list's page shows the list first.
+// The decisions: the constitution and every decision of the default branch, each read whole, and a
+// decision as a feature's branch has it. Each page is the reader in the main stack, the widest,
+// where prose keeps its measure, and the ledger's list in the side stack beside it; on a phone, the
+// list's page shows the list first.
 import { route } from "../../store";
 import { definePlace } from "../../ui/layout";
 import { isNarrow } from "../../ui/width";
 import { branchDecisionPane } from "./Branch";
-import { checkPane, checkQuestions } from "./Check";
 import { listPane } from "./List";
 import { constitutionPane, decisionPane } from "./Reader";
 
@@ -38,10 +37,5 @@ definePlace("decision", (shown) => [
 ]);
 definePlace("branch-decision", (shown) => [
   branchDecisionPane({ folder: shown.folder, name: shown.name, repo: repoOf(shown) }),
-  listPane({ repo: repoOf(shown) }),
-]);
-definePlace("decisions-check", (shown) => [
-  checkPane({ repo: repoOf(shown) }),
-  checkQuestions(repoOf(shown)),
   listPane({ repo: repoOf(shown) }),
 ]);

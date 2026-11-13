@@ -8,7 +8,6 @@ pub mod change;
 pub mod changes;
 pub mod clean;
 pub mod commit;
-pub mod default_round;
 pub mod deferred;
 pub mod drop;
 pub mod edited;
@@ -25,6 +24,7 @@ pub mod relink;
 pub mod review;
 pub mod start;
 pub mod text;
+pub mod triage;
 
 use crate::files::clarifications::AnswerError;
 use crate::git::GitError;

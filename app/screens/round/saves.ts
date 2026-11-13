@@ -1,7 +1,6 @@
 // A round's writes, in the order the human made them: its answers, its notes, its settled points'
-// comments, and its submit. A round is a feature's, `<folder>/clarifications-NN.md`, or one of the
-// default branch, the inbox's triage or the decisions check, which take other actions and chain
-// the round's hash. Each save takes what the one before it wrote, not what the record said when
+// comments, and its submit. A round is a feature's, `<folder>/clarifications-NN.md`, or the
+// default branch's, the inbox's triage, which takes other actions and chains the round's hash. Each save takes what the one before it wrote, not what the record said when
 // the human acted: the record catches up a moment later. One queue per round, out of any pane: a
 // pane moved or a tab hidden loses no save on its way. The queue reads the round's file through
 // the pane that draws it now, so a round opened again saves over what it shows; and it goes once
@@ -18,7 +17,7 @@ import { remember } from "../shell/undoStack";
 /** A round, as the record `WorkflowFile` names it: `<folder>/<name>`, or `inbox-triage`. */
 export type RoundArgs = { repo: string; id: string };
 
-/** A round of the default branch has an id, a feature's a folder and a file's name. */
+/** The triage, on the default branch, has an id, a feature's round a folder and a file's name. */
 export type Target =
   | { kind: "feature"; repo: string; folder: string; name: string }
   | { kind: "default"; repo: string; id: string };
@@ -35,7 +34,7 @@ export function targetOf(args: RoundArgs): Target {
       };
 }
 
-/** How a round asks its feature's agent: a round of the default branch has no feature to ask. */
+/** How a round asks its feature's agent: the triage has no feature to ask. */
 export function askOf(args: RoundArgs): () => Ask | undefined {
   const target = targetOf(args);
   return target.kind === "feature" ? useAsk(args.repo, target.folder) : () => undefined;
@@ -174,7 +173,7 @@ function createSaves(target: Target, args: RoundArgs, first: Reader, onIdle: () 
       const saved =
         target.kind === "feature"
           ? await call("answer.save", { ...input, folder: target.folder })
-          : await call("defaultRound.answer", { ...input, base: base(), id: target.id });
+          : await call("triage.answer", { ...input, base: base() });
       written.set(question, saved.answer);
       hash = saved.hash;
       // The comment typed is in the file now: the device lets it go, unless typed on since.
@@ -231,9 +230,8 @@ function createSaves(target: Target, args: RoundArgs, first: Reader, onIdle: () 
             repo: target.repo,
           });
         } else {
-          const saved = await call("defaultRound.notes", {
+          const saved = await call("triage.notes", {
             base: base(),
-            id: target.id,
             notes,
             previous: notesBefore(),
             repo: target.repo,
@@ -292,8 +290,7 @@ function createSaves(target: Target, args: RoundArgs, first: Reader, onIdle: () 
             write: options.write,
           });
         } else {
-          await call("defaultRound.submit", {
-            id: target.id,
+          await call("triage.submit", {
             previous: base(),
             repo: target.repo,
             write: options.write,

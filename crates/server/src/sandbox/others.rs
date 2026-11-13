@@ -199,17 +199,6 @@ pub(super) fn realistic(path: &Path) -> Result<(), String> {
         at("21 11:00"),
         vec![text("specs/INBOX-TRIAGE.md", triage.clone())],
     ));
-    main.push(Commit::new(
-        "chore: propose a decisions check",
-        at("21 11:30"),
-        vec![
-            file("specs/DECISIONS-CHECK.md", "DECISIONS-CHECK.md")?,
-            file(
-                "specs/decisions-check/q1-a/ui-components.md",
-                "decisions-check/q1-a/ui-components.md",
-            )?,
-        ],
-    ));
     repo.commits("main", main)?;
     live_features(&repo)
 }

@@ -1,5 +1,5 @@
-//! The decisions, compared and read: a decision's change on a branch, the candidates of a
-//! decisions check, and the constitution and the decisions of the default branch.
+//! The decisions, compared and read: a decision's change on a branch, and the constitution and the
+//! decisions of the default branch.
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -20,8 +20,6 @@ pub struct Ledger {
     pub decisions: Vec<Decision>,
     /// Every problem `ura check` finds in the decisions.
     pub problems: Vec<ProblemView>,
-    /// The status of `DECISIONS-CHECK.md`: none when there is no check.
-    pub decisions_check: Option<String>,
 }
 
 impl Record for Ledger {
@@ -100,19 +98,6 @@ pub struct PartChange {
 pub struct Run {
     pub kind: String,
     pub text: String,
-}
-
-/// The candidate of one option of a question of a decisions check.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct Candidate {
-    /// The question's folder part, like `q1`.
-    pub question: String,
-    /// The option's letter, lowercase, like `a`.
-    pub option: String,
-    /// The candidate against the active decision of the same name: a new decision when there is
-    /// none.
-    pub change: DecisionChange,
 }
 
 /// A decision as a feature's branch has it, and its change against the merge base of the branch

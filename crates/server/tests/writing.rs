@@ -487,46 +487,42 @@ async fn with_triage() -> Fixture {
 }
 
 #[tokio::test]
-async fn a_round_of_the_default_branch_is_answered_and_committed() {
+async fn the_triage_is_answered_and_committed() {
     let mut fx = with_triage().await;
     let read = fx.read("Buffer", json!({ "path": TRIAGE })).await;
     let answer = |question: &str, base: &str| {
         json!({
-            "id": "inbox-triage", "question": question, "letters": ["A"], "comment": "",
-            "previous": "", "base": base,
+            "question": question, "letters": ["A"], "comment": "", "previous": "", "base": base,
         })
     };
 
     // Each save answers the round's hash, which the next one takes.
     let first = fx
-        .call("defaultRound.answer", answer("Q1", &hash_of(&read)))
+        .call("triage.answer", answer("Q1", &hash_of(&read)))
         .await;
     // It says the answer as written, which the question's next save takes as `previous`.
     assert_eq!(first["answer"], "A");
     let stale = fx
-        .refused("defaultRound.answer", answer("Q2", &hash_of(&read)))
+        .refused("triage.answer", answer("Q2", &hash_of(&read)))
         .await;
     let second = fx
-        .call("defaultRound.answer", answer("Q2", &hash_of(&first)))
+        .call("triage.answer", answer("Q2", &hash_of(&first)))
         .await;
     let third = fx
-        .call("defaultRound.answer", answer("Q3", &hash_of(&second)))
+        .call("triage.answer", answer("Q3", &hash_of(&second)))
         .await;
-    let notes = json!({
-        "id": "inbox-triage", "notes": "Go.", "previous": "", "base": hash_of(&third),
-    });
-    let noted = fx.call("defaultRound.notes", notes).await;
+    let notes = json!({ "notes": "Go.", "previous": "", "base": hash_of(&third) });
+    let noted = fx.call("triage.notes", notes).await;
     let written = fx.read("Buffer", json!({ "path": TRIAGE })).await;
-    // A commit that cannot stage fails, its files left written: `defaultRound.retry` lands it.
+    // A commit that cannot stage fails, its files left written: `triage.retry` lands it.
     let lock = index_lock(&fx, "main");
     fs::write(&lock, "").unwrap();
-    let submit = json!({ "id": "inbox-triage", "previous": hash_of(&noted) });
-    fx.call("defaultRound.submit", submit).await;
+    let submit = json!({ "previous": hash_of(&noted) });
+    fx.call("triage.submit", submit).await;
     let failed = fx.idle().await;
     fs::remove_file(&lock).unwrap();
     let uncommitted = committed(&fx, "main", TRIAGE);
-    fx.call("defaultRound.retry", json!({ "id": "inbox-triage" }))
-        .await;
+    fx.call("triage.retry", json!({})).await;
     let left = fx.idle().await;
 
     assert_eq!(stale.0, ErrorCode::Conflict, "{}", stale.1);
@@ -549,7 +545,7 @@ async fn the_triage_is_dismissed_with_a_commit_of_its_own() {
     let read = fx.read("Buffer", json!({ "path": TRIAGE })).await;
 
     let dismiss = json!({ "previous": hash_of(&read), "write": named("Dismissing") });
-    fx.call("defaultRound.dismiss", dismiss).await;
+    fx.call("triage.dismiss", dismiss).await;
     assert_eq!(fx.idle().await, Vec::<Value>::new());
 
     assert_eq!(fx.try_text(TRIAGE).await, None);

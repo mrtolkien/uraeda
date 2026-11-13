@@ -2,7 +2,7 @@
 //! it is; a proposal file in its editor; the proposal template's guidance; and a decision as a
 //! feature's branch has it.
 
-use uraeda_core::actions::default_round::DefaultRound;
+use uraeda_core::actions::triage;
 use uraeda_core::api;
 use uraeda_protocol::{
     BranchDecision, FileView, ItemArgs, ProposalFile, ProposalFileView, ProposalHints, WorkflowFile,
@@ -29,17 +29,16 @@ fn parts(id: &str) -> (&str, &str) {
     id.split_once('/').unwrap_or((id, ""))
 }
 
-/// The value of the record `WorkflowFile`: a round of the default branch by its id, or a
-/// feature's file by `<folder>/<name>`. None for a file that is not there.
+/// The value of the record `WorkflowFile`: the inbox's triage by its id, or a feature's file by
+/// `<folder>/<name>`. None for a file that is not there.
 fn file(shared: &Shared, args: ItemArgs) -> Result<Option<FileView>, Fault> {
     let repository = repositories::find(shared, &args.repo)?;
-    let read = match DefaultRound::from_id(&args.id) {
-        // A round on the default branch has no feature: none until an agent writes it.
-        Some(round) => api::read_round(&repository.path, round)?,
-        None => {
-            let (folder, name) = parts(&args.id);
-            views::found(api::read_file(&repository.path, folder, name))?
-        }
+    let read = if args.id == triage::ID {
+        // The triage has no feature: none until an agent writes it.
+        api::read_triage(&repository.path)?
+    } else {
+        let (folder, name) = parts(&args.id);
+        views::found(api::read_file(&repository.path, folder, name))?
     };
     read.as_ref().map(views::sent).transpose()
 }

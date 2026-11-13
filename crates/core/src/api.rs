@@ -366,7 +366,6 @@ fn file_view(
         takes_images: true,
         resumable: crate::steps::building(feature),
         decision_changes,
-        candidates: Vec::new(),
         answered,
         since_review,
     })

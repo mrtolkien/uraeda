@@ -4,6 +4,7 @@
 //! placeholder starts with `[Optional` may be left out, and one starting `[Optional, required from
 //! round 02` only in a first round. `settled.*`: a round's settled points sit in groups, each starting with its bold subject.
 
+use crate::actions::triage;
 use crate::embedded;
 use crate::files::document::{self, Block, BlockKind, plain};
 use crate::files::markdown::{Document, Heading};
@@ -25,7 +26,7 @@ fn template_path(kind: Checked) -> Option<&'static str> {
         Checked::Workflow(FileKind::Findings) => "YYYY-MM-DD-feature-slug/findings-01.md",
         Checked::Decision | Checked::PreviewDecision => "decisions/decision-topic.md",
         Checked::Record => "done/YYYY-MM-DD-feature-slug.md",
-        Checked::DefaultRound(round) => round.file_name(),
+        Checked::Triage => triage::FILE_NAME,
         _ => return None,
     };
     Some(path)

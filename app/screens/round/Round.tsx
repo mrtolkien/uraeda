@@ -1,6 +1,6 @@
 // A round of questions, answered one question at a time: its opening, each question asked, then
-// its end, which submits. The one way to answer a question in the app: a feature's round, the
-// inbox's triage, and the decisions check all draw it. Where the human is, is kept on the device;
+// its end, which submits. The one way to answer a question in the app: a feature's round and the
+// inbox's triage both draw it. Where the human is, is kept on the device;
 // each answer is saved as it is made, in order, and the round is submitted only by its end's
 // button. A letter picks and goes on, Shift and a letter adds it, `n` and `p` move, `i` writes a
 // comment.
@@ -14,7 +14,7 @@ import { End } from "./End";
 import { linksOf } from "./links";
 import { Opening } from "./Opening";
 import { answered, askedOf, END, type Position, positionOf, START } from "./position";
-import { LETTERS, type OptionExtra, Question, type QuestionHands } from "./Question";
+import { LETTERS, Question, type QuestionHands } from "./Question";
 import { type RoundArgs, savesOf } from "./saves";
 import { answerWords, followsRecommendation } from "./words";
 
@@ -30,12 +30,7 @@ export const roundPosition = (args: RoundArgs, file: () => FileView | null | und
   positionOf(args, () => file()?.current.items.clarifications);
 
 /** A round waiting for the human's answers: `file` is its record, read. */
-export function Answering(props: {
-  args: RoundArgs;
-  file: () => FileView;
-  /** What the screen adds under an option. */
-  optionExtra?: OptionExtra;
-}) {
+export function Answering(props: { args: RoundArgs; file: () => FileView }) {
   const round = () => props.file().current.items.clarifications;
   const saves = savesOf(props.args, props.file);
   effect(() => saves.read(props.file()));
@@ -145,7 +140,6 @@ export function Answering(props: {
                           hands={hands}
                           links={links}
                           onNext={() => position.step(1)}
-                          optionExtra={props.optionExtra}
                           place={`Question ${index() + 1} of ${asked().length}`}
                           question={question}
                           saves={saves}

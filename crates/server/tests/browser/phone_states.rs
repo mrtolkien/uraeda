@@ -79,7 +79,13 @@ async fn places(phone: &Phone, browser: &mut Browser, shots: &mut Shots) {
         shots.take(browser, "42-pane-menu").await;
     }
     if shots.wants("selector") {
-        open(phone, browser, "/r/realistic/decisions", "Decisions check").await;
+        open(
+            phone,
+            browser,
+            "/r/realistic/decisions",
+            "Above every decision",
+        )
+        .await;
         let done = tap(browser, "Latest change first").await;
         missed(shots, done, "no sort to choose");
         shots.take(browser, "43-selector").await;

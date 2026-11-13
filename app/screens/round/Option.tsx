@@ -2,7 +2,7 @@
 // recommended, its sentence, then its pros and cons, why it is recommended, and what else it holds,
 // a prototype's picture included. Everything needed to weigh it is on the card, in the reading
 // font: the human never opens the file to decide.
-import { type JSX, View } from "nsh";
+import { View } from "nsh";
 import type { Block, Choice, Document as Tree, Span } from "../../store/protocol";
 import { Text } from "../../ui/controls";
 import { Document, type DocumentHands, Phrase } from "../../ui/document";
@@ -47,8 +47,6 @@ export type OptionProps = {
   document: Tree;
   /** How the document's links and images go: the reader's own. */
   hands: DocumentHands;
-  /** What the screen adds under the option: the decisions check's candidate decisions. */
-  extra?: JSX.Element;
   onPick: () => void;
   picked: boolean;
   disabled?: boolean;
@@ -89,7 +87,6 @@ export function Option(props: OptionProps) {
             override={props.hands.override}
           />
         </If>
-        {props.extra}
       </View>
     </SelectableCard>
   );

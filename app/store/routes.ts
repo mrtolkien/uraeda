@@ -24,7 +24,6 @@ type Page =
   | { key: string; page: "note" }
   | { page: "triage" }
   | { page: "decisions" }
-  | { page: "decisions-check" }
   | { name: string; page: "decision" }
   | { page: "constitution" }
   | { page: "git" }
@@ -144,15 +143,12 @@ const jobsPlace: Place = ([name, ...more]) => {
 };
 
 /**
- * `/decisions`, `/decisions/check`, `/decisions/constitution`, one page, or `/decisions/<name>`. An
+ * `/decisions`, `/decisions/constitution`, one page, or `/decisions/<name>`. An
  * old link to a principle, `/decisions/constitution/<slug>`, opens the constitution.
  */
 const decisionsPlace: Place = (rest) => {
   if (rest.length === 0) {
     return { page: "decisions" };
-  }
-  if (rest.length === 1 && rest[0] === "check") {
-    return { page: "decisions-check" };
   }
   if (rest.length <= 2 && rest[0] === "constitution") {
     return { page: "constitution" };
@@ -341,8 +337,6 @@ function localPath(route: Route): string {
       return "/inbox/triage";
     case "decisions":
       return "/decisions";
-    case "decisions-check":
-      return "/decisions/check";
     case "decision":
       return `/decisions/${segment(route.name)}`;
     case "constitution":

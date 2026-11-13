@@ -1,5 +1,5 @@
-// The ledger's list: the decisions check while one waits, the constitution, then every decision in
-// the order chosen on this device, each a card. It is the side stack's pane: beside the reader on a
+// The ledger's list: the constitution, then every decision in the order chosen on this device,
+// each a card. It is the side stack's pane: beside the reader on a
 // wide window, its cursor moves the reader with it, in the same visit; Enter then takes the focus
 // to the reader. On a phone, where one pane shows at a time, Enter or a tap opens the reader.
 import { computed, effect, signal, untracked, View } from "nsh";
@@ -11,11 +11,8 @@ import { definePane, focus, placeOf, sync, usePane } from "../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, VirtualList } from "../../ui/lists";
 import { isNarrow } from "../../ui/width";
 import { branched, changesIt } from "./Branches";
-import { ErrandButton } from "./Errand";
 import {
-  CHECK,
   CONSTITUTION,
-  checkWords,
   chooseSort,
   type DecisionSort,
   decisionId,
@@ -33,7 +30,6 @@ import {
 /** The rows' ids in the list's order. */
 function idsOf(ledger: Ledger, sort: DecisionSort): Array<string> {
   return [
-    ...(ledger.decisionsCheck === null ? [] : [CHECK]),
     CONSTITUTION,
     ...sorted(ledger.decisions, sort).map((decision) => decisionId(decision.name)),
   ];
@@ -111,7 +107,7 @@ function DecisionCard(props: {
   );
 }
 
-/** One row, as its id says: the check's card, the constitution's, or a decision's. */
+/** One row, as its id says: the constitution's card, or a decision's. */
 function Row(props: {
   id: string;
   ledger: Ledger;
@@ -123,16 +119,6 @@ function Row(props: {
   const principles = () => props.ledger.constitution?.principles.length ?? 0;
   return (
     <View style={{ paddingBottom: 8 }}>
-      <If when={props.id === CHECK}>
-        <Card
-          icon="message-circle-question"
-          onPress={props.onPress}
-          selected={props.selected}
-          state={checkWords(props.ledger.decisionsCheck)}
-          title="Decisions check"
-          who="An agent's questions about the decisions"
-        />
-      </If>
       <If when={props.id === CONSTITUTION}>
         <Card
           facts={
@@ -197,7 +183,7 @@ function pickerItems(ledger: Ledger, sort: DecisionSort): Array<PickerItem> {
 }
 
 /** Above the cards: Jump, and the order, on one row: in a narrow pane, Jump is its key and icon. */
-function Tools(props: { count: number; noCheck: boolean; onJump: () => void; repo: string }) {
+function Tools(props: { count: number; onJump: () => void }) {
   const pane = usePane();
   // The order's own key, as Tab draws no focus on GTK: `o` opens its list.
   let order: (() => void) | undefined;
@@ -229,9 +215,6 @@ function Tools(props: { count: number; noCheck: boolean; onJump: () => void; rep
           value={sortChosen()}
         />
       </View>
-      <If when={props.noCheck}>
-        <ErrandButton errand="check-decisions" repo={props.repo} />
-      </If>
       <Text size="under" tone="faint">
         {`${props.count} decision${props.count === 1 ? "" : "s"} on the default branch`}
       </Text>
@@ -311,14 +294,7 @@ function LedgerList(props: { repo: string }) {
               </If>
             }
             framed={false}
-            header={
-              <Tools
-                count={read().decisions.length}
-                noCheck={read().decisionsCheck === null}
-                onJump={() => jumping.set(true)}
-                repo={props.repo}
-              />
-            }
+            header={<Tools count={read().decisions.length} onJump={() => jumping.set(true)} />}
             offset={kept.at(place)}
             onOffset={(offset) => kept.keep(place, offset)}
             onOpen={open}

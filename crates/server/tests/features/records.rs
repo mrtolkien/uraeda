@@ -4,8 +4,8 @@
 use serde_json::{Value, json};
 use uraeda_protocol::SessionStatus;
 use uraeda_protocol::{
-    AllBranchChanges, BranchChanges, BranchDecision, ErrandMessage, Feature, FileView, HistoryView,
-    Inbox, Ledger, Priorities, ProposalFileView, ProposalHints, RecommendedMessage, Trigger,
+    AllBranchChanges, BranchChanges, BranchDecision, Feature, FileView, HistoryView, Inbox, Ledger,
+    PostponeMessage, Priorities, ProposalFileView, ProposalHints, RecommendedMessage, Trigger,
     WorkflowMessage,
 };
 
@@ -226,23 +226,6 @@ async fn ledger_answers_its_shape() {
             .constitution
             .is_some_and(|constitution| !constitution.principles.is_empty())
     );
-    assert_eq!(ledger.decisions_check, None);
-}
-
-#[tokio::test]
-async fn the_ledger_carries_the_decisions_checks_status() {
-    let repo = fixture_repo(REPO);
-    repo.write(
-        "specs/DECISIONS-CHECK.md",
-        &std::fs::read_to_string(super::fixture("DECISIONS-CHECK.md")).unwrap(),
-    );
-    let server = serving(&repo).await;
-
-    let value = of_repo(&server, "Ledger").await;
-
-    let check = of_item(&server, "WorkflowFile", "decisions-check").await;
-    assert!(check["status"].is_string(), "{check}");
-    assert_eq!(value["decisionsCheck"], check["status"]);
 }
 
 #[tokio::test]
@@ -362,26 +345,14 @@ async fn workflow_message_answers_its_shape() {
 }
 
 #[tokio::test]
-async fn errand_message_answers_its_shape() {
+async fn postpone_message_answers_its_shape() {
     let (_repo, server) = served().await;
-    let args = |errand: &str, folder: Option<&str>| json!({ "repo": REPO, "errand": errand, "folder": folder });
 
-    let postpone = read(&server, "ErrandMessage", args("postpone", Some(AGENT))).await;
-    let check = read(&server, "ErrandMessage", args("check-decisions", None)).await;
-    let apply = read(
-        &server,
-        "ErrandMessage",
-        args("apply-decisions-check", None),
-    )
-    .await;
-    let unknown = read(
-        &server,
-        "ErrandMessage",
-        args("postpone", Some("2026-01-01-nothing")),
-    )
-    .await;
+    let postpone = of_item(&server, "PostponeMessage", AGENT).await;
+    let unknown = of_item(&server, "PostponeMessage", "2026-01-01-nothing").await;
 
-    let message: ErrandMessage = typed::<Option<ErrandMessage>>(&postpone).expect("the message");
+    let message: PostponeMessage =
+        typed::<Option<PostponeMessage>>(&postpone).expect("the message");
     assert_eq!(message.refusal, None);
     assert_eq!(
         message.text,
@@ -391,16 +362,6 @@ async fn errand_message_answers_its_shape() {
              its line to Later.\nStop when it is postponed, and earlier only if you need a \
              decision from me.\n"
         )
-    );
-    assert_eq!(
-        check["text"],
-        "/uraeda Check the decisions: write specs/DECISIONS-CHECK.md, following \
-         references/decisions-check.md. Stop when the check waits for my answers."
-    );
-    assert_eq!(
-        apply["text"],
-        "/uraeda Apply my answers in specs/DECISIONS-CHECK.md, following \
-         references/decisions-check.md."
     );
     assert_eq!(unknown, Value::Null);
 }

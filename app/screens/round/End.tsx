@@ -23,11 +23,7 @@ const PAUSE = 1200;
 /** What a submit commits and what follows, by the round. */
 function said(target: Target, file: FileView) {
   if (target.kind === "default") {
-    const after =
-      target.id === "decisions-check"
-        ? "for an agent to apply to the decisions"
-        : "for an agent to apply to the inbox";
-    return `Commits ${file.name} on the default branch, ${after}. Nothing starts before you ask.`;
+    return `Commits ${file.name} on the default branch, for an agent to apply to the inbox. Nothing starts before you ask.`;
   }
   return file.resumable
     ? `Commits ${file.name} on the feature's branch. Continuing keeps the spec as approved and goes on with the implementation; revising sends the answers to the spec first.`
@@ -37,9 +33,7 @@ function said(target: Target, file: FileView) {
 /** Where a write is named in the queue, and the page it opens. */
 function writeOf(target: Target, title: string) {
   if (target.kind === "default") {
-    return target.id === "decisions-check"
-      ? { href: "/decisions/check", label: "Submitting the decisions check" }
-      : { href: "/inbox/triage", label: "Submitting the inbox triage" };
+    return { href: "/inbox/triage", label: "Submitting the inbox triage" };
   }
   return {
     href: `/f/${target.folder}/${target.name}`,

@@ -5,8 +5,8 @@
 // letters, and stays. The pick shows at once and is saved in its turn; the comment is kept on the
 // device as it is typed and saved after a pause, as the field leaves, or with Ctrl+Enter. Nothing
 // is submitted here.
-import { cleanup, type JSX, signal, untracked, View } from "nsh";
-import type { Choice, FileView, QuestionItem } from "../../store/protocol";
+import { cleanup, signal, untracked, View } from "nsh";
+import type { FileView, QuestionItem } from "../../store/protocol";
 import { Button, Heading, Kbd, Refusal, sent, Text } from "../../ui/controls";
 import { Document, type DocumentHands, Phrase } from "../../ui/document";
 import { wholeOverKeyboard } from "../../ui/layout";
@@ -24,9 +24,6 @@ export const LETTERS = ["a", "b", "c", "d", "e", "f"] as const;
 /** How long typing rests before the comment is saved. */
 const PAUSE = 1200;
 
-/** What a screen adds under an option of a question, as the decisions check its candidates. */
-export type OptionExtra = (question: QuestionItem, choice: Choice) => JSX.Element | undefined;
-
 /** What the round's keys do to the question shown: set by the question as it is drawn. */
 export type QuestionHands = {
   ask?: () => false | undefined;
@@ -42,8 +39,6 @@ export type QuestionProps = {
   /** How the document's links, images, and embeds go. */
   links: DocumentHands;
   onNext: () => void;
-  /** What the screen adds under an option. */
-  optionExtra?: OptionExtra;
   question: () => QuestionItem;
   /** Where the question stands among those asked: "Question 3 of 12". */
   place: string;
@@ -165,7 +160,6 @@ export function Question(props: QuestionProps) {
             <Option
               choice={option()}
               document={document()}
-              extra={props.optionExtra?.(q(), option())}
               hands={props.links}
               onPick={() => toggle(option().letter)}
               picked={letters.value().includes(option().letter)}

@@ -86,43 +86,20 @@ impl Record for RecommendedMessage {
     type Value = Option<Self>;
 }
 
-/// An errand an agent is asked to run outside a feature's steps, with the workflow's message.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "kebab-case")]
-pub enum Errand {
-    /// Postpone a feature or a change: its folder leaves, a proposal stays, its line goes to Later.
-    Postpone,
-    /// Write a decisions check, `specs/DECISIONS-CHECK.md`, for the human's answers.
-    CheckDecisions,
-    /// Apply the human's answers to the decisions check.
-    ApplyDecisionsCheck,
-}
-
-/// Which errand's message: a postponement names the feature's or the change's folder.
+/// The workflow's message that postpones a feature or a change, by its folder, which the human
+/// reads before it is sent: its folder leaves, a proposal stays, its line goes to Later. Its value
+/// is `null` when no feature has that folder.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(optional_fields = nullable)]
-pub struct ErrandMessageArgs {
-    /// The repository's name in the list.
-    pub repo: String,
-    pub errand: Errand,
-    /// The feature's or the change's folder, for a postponement.
-    pub folder: Option<String>,
-}
-
-/// The workflow's message for an errand, which the human reads before it is sent. Its value is
-/// `null` for a postponement of a folder that is no feature's.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct ErrandMessage {
-    /// Why it cannot be sent: a postponed feature with no branch left to close.
+pub struct PostponeMessage {
+    /// Why it cannot be sent: a feature with no branch left to close.
     pub refusal: Option<String>,
     /// The message: empty with a refusal.
     pub text: String,
 }
 
-impl Record for ErrandMessage {
-    const NAME: &'static str = "ErrandMessage";
-    type Args = ErrandMessageArgs;
+impl Record for PostponeMessage {
+    const NAME: &'static str = "PostponeMessage";
+    type Args = ItemArgs;
     type Value = Option<Self>;
 }

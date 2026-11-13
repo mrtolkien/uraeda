@@ -61,8 +61,8 @@ the active decision, sending them on the file's view.
   [its banner](/packages/web/src/decisions/DecisionsCheckBanner.tsx), and
   [the candidate cards](/packages/web/src/decisions/Candidates.tsx)
 - [the server's messages and ids](/packages/server/src/runner/round-messages.ts)
-- [the check's reference](/skills/uraeda/references/decisions-check.md), with its template and
-  example
+- [the check's reference](/skills/uraeda/references/spec.md#new-decision-or-change), with its
+  template and example
 
 ## Questions
 
