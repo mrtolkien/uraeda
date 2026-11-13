@@ -8,8 +8,8 @@ use crate::files::frontmatter;
 use crate::files::inbox::{self, Inbox};
 
 use super::commit::Added;
-use super::default_round::DefaultRound;
 use super::place::Place;
+use super::triage;
 use super::{ActionError, Change, Committed, STALE, changes, commit};
 
 mod agent;
@@ -78,7 +78,7 @@ pub fn assembled(
     changes: u32,
     file: impl Fn(&str) -> Option<String>,
 ) -> Inbox {
-    let triage = file(DefaultRound::Triage.path());
+    let triage = file(triage::PATH);
     let files = inbox::note_files(notes, &file);
     with_images(of(text, &files, triage.as_deref(), changes), file)
 }

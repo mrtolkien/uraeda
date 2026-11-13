@@ -60,20 +60,6 @@ export function unreadableWords(
     : undefined;
 }
 
-/** The decisions check's status, as `Ledger.decisionsCheck` and its file say it. */
-export function checkWords(status: string | null): { label: string; tone: Tone } {
-  switch (status) {
-    case "awaiting-human":
-      return { label: "Waits for your answers", tone: "needs" };
-    case "answered":
-      return { label: "Answered: an agent applies it next", tone: "done" };
-    case null:
-      return { label: "No status", tone: "quiet" };
-    default:
-      return { label: status, tone: "quiet" };
-  }
-}
-
 /** What a branch does to a decision, in words: "Adds it", "Changes it", "Removes it". */
 export function changeWords(change: DecisionChange): string {
   switch (change.kind) {
@@ -116,8 +102,7 @@ export function changeCounts(change: DecisionChange): Array<string> {
   return [...words, ...fields];
 }
 
-/** The ids of the list's rows: the check while there is one, the constitution, the decisions. */
-export const CHECK = "check";
+/** The ids of the list's rows: the constitution, then the decisions. */
 export const CONSTITUTION = "constitution";
 export const decisionId = (name: string) => `d:${name}`;
 
@@ -127,8 +112,6 @@ export function rowOf(route: Route): string | undefined {
     case "decisions":
     case "constitution":
       return CONSTITUTION;
-    case "decisions-check":
-      return CHECK;
     case "decision":
     case "branch-decision":
       return decisionId(route.name);
@@ -139,9 +122,6 @@ export function rowOf(route: Route): string | undefined {
 
 /** The page a row opens. */
 export function routeOf(row: string): Route {
-  if (row === CHECK) {
-    return { page: "decisions-check" };
-  }
   if (row === CONSTITUTION) {
     return { page: "constitution" };
   }

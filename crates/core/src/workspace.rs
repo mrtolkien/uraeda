@@ -7,7 +7,7 @@ use std::time::SystemTime;
 
 use serde::Serialize;
 
-use crate::actions::default_round::DefaultRound;
+use crate::actions::triage;
 use crate::files::{frontmatter, markdown, priorities};
 use crate::git::{Git, GitError, ObjectId};
 use crate::steps::{self, PullRequest, Step};
@@ -260,9 +260,6 @@ pub struct Workspace {
     /// The text of `INBOX-TRIAGE.md`, from the default branch, as the priorities are read.
     #[serde(skip)]
     pub triage: Option<String>,
-    /// The text of `DECISIONS-CHECK.md`, from the default branch, as the triage is read.
-    #[serde(skip)]
-    pub decisions_check: Option<String>,
     pub problems: Vec<Problem>,
     /// When `origin` was last fetched: see `fetched_ago`.
     #[serde(skip)]
@@ -395,9 +392,7 @@ impl Workspace {
             features,
             proposals: default_reader.proposals(priorities_from),
             inbox: default_reader.read(priorities_from, "specs/INBOX.md"),
-            triage: default_reader.read(priorities_from, DefaultRound::Triage.path()),
-            decisions_check: default_reader
-                .read(priorities_from, DefaultRound::DecisionsCheck.path()),
+            triage: default_reader.read(priorities_from, triage::PATH),
             problems: Vec::new(),
         };
         workspace.priorities = linked_proposals(&priorities_text, &workspace);

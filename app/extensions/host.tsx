@@ -77,7 +77,6 @@ const OPENED: ReadonlySet<Route["page"]> = new Set<Route["page"]>([
   "note",
   "triage",
   "decisions",
-  "decisions-check",
   "decision",
   "constitution",
   "git",

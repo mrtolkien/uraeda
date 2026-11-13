@@ -80,7 +80,7 @@ pub struct Saved {
 
 /// What an answer's save answers: the answer as the core wrote it, from its letters and comment,
 /// which the next save of that question takes as `previous`, and the round's hash as written,
-/// which the next save of a round of the default branch takes as `base`.
+/// which the next save of the inbox's triage takes as `base`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AnswerSaved {
@@ -280,73 +280,69 @@ pub struct SettledRemove {
 
 action!(SettledRemove, "settled.remove", Recorded);
 
-/// Saves one answer of a round of the default branch, `inbox-triage` or `decisions-check`, over
-/// the answer last read, in the round read with the hash `base`.
+/// Saves one answer of the inbox's triage, over the answer last read, in the triage read with the
+/// hash `base`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-pub struct DefaultRoundAnswer {
+pub struct TriageAnswer {
     pub repo: String,
-    pub id: String,
     pub question: String,
     pub letters: Vec<String>,
     pub comment: String,
     pub previous: String,
-    /// The hash of the round as the page read or wrote it last.
+    /// The hash of the triage as the page read or wrote it last.
     pub base: String,
 }
 
-action!(DefaultRoundAnswer, "defaultRound.answer", AnswerSaved);
+action!(TriageAnswer, "triage.answer", AnswerSaved);
 
-/// Saves the notes of a round of the default branch, as an answer is.
+/// Saves the notes of the inbox's triage, as an answer is.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-pub struct DefaultRoundNotes {
+pub struct TriageNotes {
     pub repo: String,
-    pub id: String,
     pub notes: String,
     pub previous: String,
     pub base: String,
 }
 
-action!(DefaultRoundNotes, "defaultRound.notes", Saved);
+action!(TriageNotes, "triage.notes", Saved);
 
-/// Submits a round of the default branch, read with the hash `previous`, and commits it.
+/// Submits the inbox's triage, read with the hash `previous`, and commits it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(optional_fields)]
-pub struct DefaultRoundSubmit {
+pub struct TriageSubmit {
     pub repo: String,
-    pub id: String,
     pub previous: String,
     pub write: Option<WriteName>,
 }
 
-action!(DefaultRoundSubmit, "defaultRound.submit", ());
+action!(TriageSubmit, "triage.submit", ());
 
-/// Commits an answered round of the default branch again.
+/// Commits the answered triage again.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(optional_fields)]
-pub struct DefaultRoundRetry {
+pub struct TriageRetry {
     pub repo: String,
-    pub id: String,
     pub write: Option<WriteName>,
 }
 
-action!(DefaultRoundRetry, "defaultRound.retry", ());
+action!(TriageRetry, "triage.retry", ());
 
 /// Dismisses the inbox's triage, read with the hash `previous`: deletes it, and commits the
 /// deletion alone.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(optional_fields)]
-pub struct DefaultRoundDismiss {
+pub struct TriageDismiss {
     pub repo: String,
     pub previous: String,
     pub write: Option<WriteName>,
 }
 
-action!(DefaultRoundDismiss, "defaultRound.dismiss", ());
+action!(TriageDismiss, "triage.dismiss", ());
 
 /// Saves a proposal file, a note file, or a feature's proposal as typed, over the text read
 /// with `hash`, without committing.

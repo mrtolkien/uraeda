@@ -34,8 +34,7 @@ pub struct Changes {
     /// Whether the priorities record changed: `PRIORITIES.md`, the proposal files, or the step of a
     /// feature a proposal links.
     pub priorities: bool,
-    /// Whether the default branch's `INBOX.md`, its note files, `INBOX-TRIAGE.md`, or
-    /// `DECISIONS-CHECK.md` changed.
+    /// Whether the default branch's `INBOX.md`, its note files, or `INBOX-TRIAGE.md` changed.
     pub inbox: bool,
     /// The decisions a feature's branch has that changed, as `<folder>/<name>`: its text on the
     /// branch, committed or not, or at the merge base.
@@ -175,8 +174,6 @@ fn snapshot(root: &Path) -> Snapshot {
             &serde_json::to_string(&(
                 &workspace.inbox,
                 &workspace.triage,
-                &workspace.decisions_check,
-                crate::decisions::candidates::on_default(&git, workspace),
                 crate::api::note_texts_on_default(&git, workspace),
             ))
             .unwrap_or_default(),

@@ -111,7 +111,7 @@ export type AnswerSave = { repo: string, folder: string, question: string, lette
 /**
  * What an answer's save answers: the answer as the core wrote it, from its letters and comment,
  * which the next save of that question takes as `previous`, and the round's hash as written,
- * which the next save of a round of the default branch takes as `base`.
+ * which the next save of the inbox's triage takes as `base`.
  */
 export type AnswerSaved = { answer: string, hash: string, };
 
@@ -263,24 +263,6 @@ export type BufferArgs = { repo: string, path: string, };
 export type BufferSave = { repo: string, path: string, text: string, hash: string, };
 
 export type CalloutKind = "note" | "tip" | "important" | "warning" | "caution" | "question";
-
-/**
- * The candidate of one option of a question of a decisions check.
- */
-export type Candidate = { 
-/**
- * The question's folder part, like `q1`.
- */
-question: string, 
-/**
- * The option's letter, lowercase, like `a`.
- */
-option: string, 
-/**
- * The candidate against the active decision of the same name: a new decision when there is
- * none.
- */
-change: DecisionChange, };
 
 /**
  * What an agent can do, which a client offers and nothing more.
@@ -706,37 +688,6 @@ compared: boolean,
 fields: Array<FieldChange>, sections: Array<SectionChange>, };
 
 /**
- * Saves one answer of a round of the default branch, `inbox-triage` or `decisions-check`, over
- * the answer last read, in the round read with the hash `base`.
- */
-export type DefaultRoundAnswer = { repo: string, id: string, question: string, letters: Array<string>, comment: string, previous: string, 
-/**
- * The hash of the round as the page read or wrote it last.
- */
-base: string, };
-
-/**
- * Dismisses the inbox's triage, read with the hash `previous`: deletes it, and commits the
- * deletion alone.
- */
-export type DefaultRoundDismiss = { repo: string, previous: string, write?: WriteName, };
-
-/**
- * Saves the notes of a round of the default branch, as an answer is.
- */
-export type DefaultRoundNotes = { repo: string, id: string, notes: string, previous: string, base: string, };
-
-/**
- * Commits an answered round of the default branch again.
- */
-export type DefaultRoundRetry = { repo: string, id: string, write?: WriteName, };
-
-/**
- * Submits a round of the default branch, read with the hash `previous`, and commits it.
- */
-export type DefaultRoundSubmit = { repo: string, id: string, previous: string, write?: WriteName, };
-
-/**
  * A paired device.
  */
 export type Device = { 
@@ -840,38 +791,6 @@ id: string,
  * How many of its edits completed.
  */
 edits: number, };
-
-/**
- * An errand an agent is asked to run outside a feature's steps, with the workflow's message.
- */
-export type Errand = "postpone" | "check-decisions" | "apply-decisions-check";
-
-/**
- * The workflow's message for an errand, which the human reads before it is sent. Its value is
- * `null` for a postponement of a folder that is no feature's.
- */
-export type ErrandMessage = { 
-/**
- * Why it cannot be sent: a postponed feature with no branch left to close.
- */
-refusal: string | null, 
-/**
- * The message: empty with a refusal.
- */
-text: string, };
-
-/**
- * Which errand's message: a postponement names the feature's or the change's folder.
- */
-export type ErrandMessageArgs = { 
-/**
- * The repository's name in the list.
- */
-repo: string, errand: Errand, 
-/**
- * The feature's or the change's folder, for a postponement.
- */
-folder?: string | null, };
 
 /**
  * What an `error` is about.
@@ -1497,11 +1416,6 @@ resumable: boolean,
  * listed ones first, in the items' order, then the others by name. Empty for other files.
  */
 decisionChanges: Array<DecisionChange>, 
-/**
- * For the decisions check, each option's candidate decision against the active one, by
- * question and option. Empty for other files.
- */
-candidates: Array<Candidate>, 
 /**
  * For `spec.md` at revision 2 or later, the review that requested the revision, as it stood
  * when the revision was first committed: the one `## Your review` answers, whatever the review
@@ -3027,11 +2941,7 @@ decisions: Array<Decision>,
 /**
  * Every problem `ura check` finds in the decisions.
  */
-problems: Array<ProblemView>, 
-/**
- * The status of `DECISIONS-CHECK.md`: none when there is no check.
- */
-decisionsCheck: string | null, };
+problems: Array<ProblemView>, };
 
 /**
  * Lines of a file, 1-based and inclusive.
@@ -3381,6 +3291,21 @@ block: number,
  * says: empty for a label alone.
  */
 text: Array<Span>, };
+
+/**
+ * The workflow's message that postpones a feature or a change, by its folder, which the human
+ * reads before it is sent: its folder leaves, a proposal stays, its line goes to Later. Its value
+ * is `null` when no feature has that folder.
+ */
+export type PostponeMessage = { 
+/**
+ * Why it cannot be sent: a feature with no branch left to close.
+ */
+refusal: string | null, 
+/**
+ * The message: empty with a refusal.
+ */
+text: string, };
 
 /**
  * A checkout's preview. Subscribing to it starts its command, which stops 30 minutes after its
@@ -5828,6 +5753,37 @@ export type ToolKind = "read" | "edit" | "delete" | "move" | "search" | "execute
 export type ToolStatus = "in-progress" | "completed" | "failed";
 
 /**
+ * Saves one answer of the inbox's triage, over the answer last read, in the triage read with the
+ * hash `base`.
+ */
+export type TriageAnswer = { repo: string, question: string, letters: Array<string>, comment: string, previous: string, 
+/**
+ * The hash of the triage as the page read or wrote it last.
+ */
+base: string, };
+
+/**
+ * Dismisses the inbox's triage, read with the hash `previous`: deletes it, and commits the
+ * deletion alone.
+ */
+export type TriageDismiss = { repo: string, previous: string, write?: WriteName, };
+
+/**
+ * Saves the notes of the inbox's triage, as an answer is.
+ */
+export type TriageNotes = { repo: string, notes: string, previous: string, base: string, };
+
+/**
+ * Commits the answered triage again.
+ */
+export type TriageRetry = { repo: string, write?: WriteName, };
+
+/**
+ * Submits the inbox's triage, read with the hash `previous`, and commits it.
+ */
+export type TriageSubmit = { repo: string, previous: string, write?: WriteName, };
+
+/**
  * What started a workflow turn, which its message tells the agent.
  */
 export type Trigger = "answers" | "approval" | "catch-up" | "changes" | "comments" | "proposal" | "start" | "manual" | "next-step";
@@ -6210,7 +6166,6 @@ export type Records = {
   Buffer: { args: BufferArgs; value: Buffer };
   ConflictFile: { args: ConflictFileArgs; value: ConflictFile };
   Devices: { args: null; value: Devices };
-  ErrandMessage: { args: ErrandMessageArgs; value: ErrandMessage | null };
   ExtensionRecord: { args: ExtensionRecordArgs; value: ExtensionRecord };
   Extensions: { args: ExtensionsArgs; value: Extensions };
   Feature: { args: ItemArgs; value: Feature | null };
@@ -6226,6 +6181,7 @@ export type Records = {
   Ledger: { args: RepositoryArgs; value: Ledger };
   Mockup: { args: MockupArgs; value: Mockup };
   NeedsYouList: { args: null; value: NeedsYouList };
+  PostponeMessage: { args: ItemArgs; value: PostponeMessage | null };
   Preview: { args: PreviewArgs; value: Preview };
   Priorities: { args: RepositoryArgs; value: Priorities };
   ProposalFile: { args: ItemArgs; value: ProposalFileView };
@@ -6258,11 +6214,6 @@ export type Actions = {
   "change.start": { input: ChangeStart; output: ChangeStarted };
   "change.startProposal": { input: ChangeStartProposal; output: ChangeStarted };
   "commit.retry": { input: CommitRetry; output: null };
-  "defaultRound.answer": { input: DefaultRoundAnswer; output: AnswerSaved };
-  "defaultRound.dismiss": { input: DefaultRoundDismiss; output: null };
-  "defaultRound.notes": { input: DefaultRoundNotes; output: Saved };
-  "defaultRound.retry": { input: DefaultRoundRetry; output: null };
-  "defaultRound.submit": { input: DefaultRoundSubmit; output: null };
   "devices.rename": { input: DevicesRename; output: null };
   "devices.revoke": { input: DevicesRevoke; output: null };
   "extensions.act": { input: ExtensionsAct; output: ExtensionAction };
@@ -6363,6 +6314,11 @@ export type Actions = {
   "text.commit": { input: TextCommit; output: null };
   "text.discovery": { input: TextDiscovery; output: Saved };
   "text.save": { input: TextSave; output: Saved };
+  "triage.answer": { input: TriageAnswer; output: AnswerSaved };
+  "triage.dismiss": { input: TriageDismiss; output: null };
+  "triage.notes": { input: TriageNotes; output: Saved };
+  "triage.retry": { input: TriageRetry; output: null };
+  "triage.submit": { input: TriageSubmit; output: null };
   "undo.apply": { input: UndoApply; output: UndoApplied };
   "undo.committed": { input: UndoCommitted; output: boolean };
   "writes.dismiss": { input: WritesDismiss; output: null };

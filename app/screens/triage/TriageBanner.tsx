@@ -17,7 +17,7 @@ function Dismiss(props: { onRefused: (words: string | null) => void; repo: strin
     pending.set(true);
     props.onRefused(null);
     try {
-      await call("defaultRound.dismiss", {
+      await call("triage.dismiss", {
         previous: file()?.current.document.hash ?? "",
         repo: props.repo,
         write: { href: "/inbox", label: "Dismissing the inbox triage" },

@@ -1,14 +1,12 @@
 //! Rounds of questions: a feature's latest round, answered, noted, and submitted, and the
-//! default branch's rounds, the inbox's triage and the decisions check.
+//! default branch's round, the inbox's triage.
 
-use uraeda_core::actions::default_round::DefaultRound;
 use uraeda_core::api::{self, undo};
 use uraeda_core::files::document::hash;
 use uraeda_core::view::FileView;
 use uraeda_protocol::{
-    AnswerSave, AnswerSaved, AnswersSubmit, DefaultRoundAnswer, DefaultRoundDismiss,
-    DefaultRoundNotes, DefaultRoundRetry, DefaultRoundSubmit, NotesSave, Saved, SettledAddComment,
-    SettledEdit, SettledRemove,
+    AnswerSave, AnswerSaved, AnswersSubmit, NotesSave, Saved, SettledAddComment, SettledEdit,
+    SettledRemove, TriageAnswer, TriageDismiss, TriageNotes, TriageRetry, TriageSubmit,
 };
 
 use super::undo::recorded;
@@ -16,12 +14,12 @@ use super::{Write, write};
 use crate::live::Registry;
 
 /// Registers the actions `answer.save`, `answers.submit`, `notes.save`, `settled.*`, and
-/// `defaultRound.*`.
+/// `triage.*`.
 pub(super) fn register(registry: &Registry) {
     answers(registry);
     settled(registry);
-    default_saves(registry);
-    default_commits(registry);
+    triage_saves(registry);
+    triage_commits(registry);
 }
 
 /// A feature's round: its answers and notes, saved, and its submit, which commits.
@@ -85,51 +83,48 @@ fn settled(registry: &Registry) {
     });
 }
 
-/// A round of the default branch, saved: each save answers the round's hash, which the next
-/// one takes as its `base`.
-fn default_saves(registry: &Registry) {
-    registry.action::<DefaultRoundAnswer>(|call, input| {
+/// The inbox's triage, saved: each save answers the triage's hash, which the next one takes as
+/// its `base`.
+fn triage_saves(registry: &Registry) {
+    registry.action::<TriageAnswer>(|call, input| {
         write(call.shared(), &input.repo, Write::saving(), |repo| {
-            let round = api::default_round(&input.id)?;
             let (question, letters) = (&input.question, &input.letters);
             let (comment, previous) = (&input.comment, &input.previous);
-            let base = &input.base;
             let saved =
-                api::save_round_answer(repo, round, question, letters, comment, previous, base)?;
+                api::save_triage_answer(repo, question, letters, comment, previous, &input.base)?;
             Ok(answered(&saved, question))
         })
     });
-    registry.action::<DefaultRoundNotes>(|call, input| {
+    registry.action::<TriageNotes>(|call, input| {
         write(call.shared(), &input.repo, Write::saving(), |repo| {
-            let round = api::default_round(&input.id)?;
             let (notes, previous) = (&input.notes, &input.previous);
-            let saved = api::save_round_notes(repo, round, notes, previous, &input.base)?;
+            let saved = api::save_triage_notes(repo, notes, previous, &input.base)?;
             Ok(written(&saved))
         })
     });
 }
 
-/// A round of the default branch, committed with the lists' commits: submitted, committed
-/// again, or, for the triage, dismissed.
-fn default_commits(registry: &Registry) {
-    registry.action::<DefaultRoundSubmit>(|call, input| {
+/// The inbox's triage, committed with the lists' commits: submitted, committed again, or
+/// dismissed.
+fn triage_commits(registry: &Registry) {
+    registry.action::<TriageSubmit>(|call, input| {
         let commit = Write::of_lists().named(input.write);
         write(call.shared(), &input.repo, commit, |repo| {
-            api::submit_round(repo, api::default_round(&input.id)?, &input.previous)?;
+            api::submit_triage(repo, &input.previous)?;
             Ok(())
         })
     });
-    registry.action::<DefaultRoundRetry>(|call, input| {
+    registry.action::<TriageRetry>(|call, input| {
         let commit = Write::of_lists().named(input.write);
         write(call.shared(), &input.repo, commit, |repo| {
-            api::retry_round(repo, api::default_round(&input.id)?)?;
+            api::retry_triage(repo)?;
             Ok(())
         })
     });
-    registry.action::<DefaultRoundDismiss>(|call, input| {
+    registry.action::<TriageDismiss>(|call, input| {
         let commit = Write::of_lists().named(input.write);
         write(call.shared(), &input.repo, commit, |repo| {
-            api::dismiss_round(repo, DefaultRound::Triage, &input.previous)?;
+            api::dismiss_triage(repo, &input.previous)?;
             Ok(())
         })
     });

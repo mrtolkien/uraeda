@@ -1,7 +1,7 @@
 # A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
 name = "decisions"
 title = "Decisions"
-description = "The Decisions place and the decisions check."
+description = "The Decisions place."
 api = 1
 icon = "uraeda:ruler"
 scope = "global"

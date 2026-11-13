@@ -10,11 +10,7 @@ import { Dialog, Well } from "../../ui/surfaces";
 import type { FeatureArgs } from "./read";
 
 export function Postpone(props: { args: FeatureArgs; feature: Feature }) {
-  const message = record("ErrandMessage", {
-    errand: "postpone",
-    folder: props.args.folder,
-    repo: props.args.repo,
-  });
+  const message = record("PostponeMessage", { id: props.args.folder, repo: props.args.repo });
   const asking = signal(false);
   const pending = signal(false);
   const refusal = signal<string | null>(null);

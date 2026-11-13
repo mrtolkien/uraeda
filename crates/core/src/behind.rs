@@ -7,9 +7,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use crate::actions::default_round::DefaultRound;
-use crate::actions::{inbox, priorities};
-use crate::decisions::candidates::CHECK_DIR;
+use crate::actions::{inbox, priorities, triage};
 use crate::git::{Git, ObjectId};
 use crate::steps::CatchUp;
 use crate::target::{NOTES, PROPOSALS};
@@ -95,23 +93,11 @@ fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> Option<bool> {
 }
 
 /// Whether the default branch alone writes the file at `path`, from the top level, so a branch
-/// lacking a change of it needs no catch-up: the priorities, the inbox and its triage, the
-/// decisions check and its candidates, the proposal and note files, and a started folder's
-/// `proposal.md`, a dated feature's or change's, which the start renames from `specs/proposals/`.
+/// lacking a change of it needs no catch-up: the priorities, the inbox and its triage, the proposal
+/// and note files, and a started folder's `proposal.md`, a dated feature's or change's, which the
+/// start renames from `specs/proposals/`.
 pub fn default_branch_own(path: &str) -> bool {
-    let files = [
-        priorities::PATH,
-        inbox::PATH,
-        DefaultRound::Triage.path(),
-        DefaultRound::DecisionsCheck.path(),
-    ];
-    if files.contains(&path) {
-        return true;
-    }
-    let in_check = path
-        .strip_prefix(CHECK_DIR)
-        .is_some_and(|rest| rest.starts_with('/'));
-    if in_check
+    if [priorities::PATH, inbox::PATH, triage::PATH].contains(&path)
         || [PROPOSALS, NOTES]
             .iter()
             .any(|folder| path.starts_with(folder))

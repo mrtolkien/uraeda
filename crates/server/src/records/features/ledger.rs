@@ -1,7 +1,6 @@
 //! The ledger, the constitution and the decisions of the default branch, and a feature's
 //! history, read from git.
 
-use uraeda_core::actions::default_round::DefaultRound;
 use uraeda_core::api;
 use uraeda_protocol::{History, HistoryView, ItemArgs, Ledger, RepositoryArgs};
 
@@ -16,17 +15,14 @@ pub(super) fn register(registry: &Registry) {
     registry.record::<History>(history);
 }
 
-/// The value of the record `Ledger`, with the status of the decisions check, which its page's
-/// "Check decisions" reads.
+/// The value of the record `Ledger`.
 fn ledger(shared: &Shared, args: RepositoryArgs) -> Result<Ledger, Fault> {
     let repository = repositories::find(shared, &args.repo)?;
     let read = api::read_ledger(&repository.path)?;
-    let check = api::read_round(&repository.path, DefaultRound::DecisionsCheck)?;
     Ok(Ledger {
         constitution: views::sent(&read.constitution)?,
         decisions: views::sent(&read.decisions)?,
         problems: views::sent(&read.problems)?,
-        decisions_check: check.and_then(|file| file.status),
     })
 }
 

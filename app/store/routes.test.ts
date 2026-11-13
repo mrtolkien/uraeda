@@ -64,7 +64,6 @@ const ROWS: Array<Row> = [
   // The decisions page, a decision open, and the constitution, one page, which an old principle's
   // address opens too.
   ["/decisions", { page: "decisions" }],
-  ["/decisions/check", { page: "decisions-check" }],
   ["/decisions/ui-behaviour", { name: "ui-behaviour", page: "decision" }],
   ["/decisions/constitution", { page: "constitution" }],
   ["/decisions/constitution/iv", { page: "constitution" }, "/decisions/constitution"],

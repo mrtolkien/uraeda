@@ -1,6 +1,7 @@
 //! What changed, said on the bus: after each burst of file changes the core's watcher reports,
 //! as the Node server's `live.ts` mapped them, and after each write of the server's own.
 
+use uraeda_core::actions::triage;
 use uraeda_core::watch::Changes;
 use uraeda_protocol::{
     AllBranchChanges, BranchChanges, BranchDecision, Feature, History, Inbox, ItemArgs, Ledger,
@@ -9,9 +10,6 @@ use uraeda_protocol::{
 };
 
 use crate::live::Bus;
-
-/// The rounds of the default branch, by their ids among the workflow files.
-const DEFAULT_ROUNDS: [&str; 2] = ["inbox-triage", "decisions-check"];
 
 /// Every trigger a workflow message is read for.
 const TRIGGERS: [Trigger; 9] = [
@@ -66,12 +64,12 @@ pub(super) fn files(bus: &Bus, repo: &str, changes: &Changes) {
     if changes.priorities || changes.inbox {
         bus.changed_where::<ProposalFile>(|args| args.repo == repo);
     }
-    // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
-    if changes.decisions || changes.inbox {
+    if changes.decisions {
         bus.changed::<Ledger>(&of(repo));
     }
+    // The triage is the inbox's.
     if changes.inbox {
-        rounds(bus, repo);
+        bus.changed::<WorkflowFile>(&item(repo, triage::ID));
     }
 }
 
@@ -113,11 +111,4 @@ pub(super) fn feature(bus: &Bus, repo: &str, folder: &str) {
 pub(super) fn lists(bus: &Bus, repo: &str) {
     bus.changed::<Priorities>(&of(repo));
     bus.changed::<Inbox>(&of(repo));
-}
-
-/// The rounds of the default branch changed.
-fn rounds(bus: &Bus, repo: &str) {
-    for round in DEFAULT_ROUNDS {
-        bus.changed::<WorkflowFile>(&item(repo, round));
-    }
 }

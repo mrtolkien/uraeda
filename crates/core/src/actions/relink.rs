@@ -143,13 +143,8 @@ fn rewrites(
         let Ok(before) = fs::read_to_string(root.join(&path)) else {
             continue;
         };
-        // A candidate's links resolve from `specs/decisions/`, as the checker reads them.
-        let folder = crate::decisions::links_folder(&path).unwrap_or_else(|| {
-            path.rsplit_once('/')
-                .map_or("", |(folder, _)| folder)
-                .to_string()
-        });
-        let (after, links) = retarget::relink(&before, &folder, moves);
+        let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+        let (after, links) = retarget::relink(&before, folder, moves);
         if after == before || !wanted(&path, &before) {
             continue;
         }
@@ -267,27 +262,6 @@ mod tests {
 
     fn read(root: &Path, path: &str) -> String {
         fs::read_to_string(root.join(path)).unwrap()
-    }
-
-    /// A decision candidate's relative links resolve from `specs/decisions/`, as the checker reads
-    /// them, so they follow a move.
-    #[test]
-    fn relinks_a_candidate_from_the_decisions_folder() {
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path();
-        let candidate = "specs/decisions-check/q1-a/topic.md";
-        write(root, candidate, b"See [a](../proposals/a.md).\n");
-        let moves = [moved(
-            "specs/proposals/a.md",
-            "specs/2026-11-10-a/proposal.md",
-        )];
-
-        relink(root, "specs", &moves, &[]).unwrap();
-
-        assert_eq!(
-            read(root, candidate),
-            "See [a](../2026-11-10-a/proposal.md).\n"
-        );
     }
 
     /// Every file linking a moved proposal file is rewritten, a frozen record included; one with

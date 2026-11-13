@@ -1,14 +1,12 @@
 //! The workflow's messages: the text a step's run starts with, which the human reads and may
 //! change before sending, and the one message recommended to a feature now.
 
-mod errands;
 mod text;
 
 use uraeda_core::api;
 use uraeda_core::view::{FeatureView, NextView};
 use uraeda_protocol::{
-    Errand, ErrandMessage, ErrandMessageArgs, ItemArgs, RecommendedMessage, Trigger,
-    WorkflowMessage, WorkflowMessageArgs,
+    ItemArgs, PostponeMessage, RecommendedMessage, Trigger, WorkflowMessage, WorkflowMessageArgs,
 };
 
 pub(super) use text::{Run, Subject, run_message};
@@ -33,36 +31,28 @@ const UNKNOWN_PULL_REQUEST: &str = "No recommended message: the pull request's s
 /// The comments message's name.
 const COMMENTS_NAME: &str = "Address the pull request's comments";
 
-/// Registers the records `WorkflowMessage` and `RecommendedMessage`.
+/// Registers the records `WorkflowMessage`, `RecommendedMessage`, and `PostponeMessage`.
 pub(super) fn register(registry: &Registry) {
     registry.record::<WorkflowMessage>(workflow);
     registry.record::<RecommendedMessage>(recommended);
-    registry.record::<ErrandMessage>(errand);
+    registry.record::<PostponeMessage>(postpone);
 }
 
-/// The value of the record `ErrandMessage`: a decisions check's messages, or a feature's
-/// postponement, refused without a branch to close. None for a folder that is no feature's.
-fn errand(shared: &Shared, args: ErrandMessageArgs) -> Result<Option<ErrandMessage>, Fault> {
-    let message = |text: String| ErrandMessage {
-        refusal: None,
-        text,
-    };
-    let folder = match args.errand {
-        Errand::CheckDecisions => return Ok(Some(message(errands::CHECK_DECISIONS.to_owned()))),
-        Errand::ApplyDecisionsCheck => {
-            return Ok(Some(message(errands::APPLY_DECISIONS_CHECK.to_owned())));
-        }
-        Errand::Postpone => args.folder.unwrap_or_default(),
-    };
+/// The value of the record `PostponeMessage`: a feature's postponement, refused without a branch
+/// to close. None for a folder that is no feature's.
+fn postpone(shared: &Shared, args: ItemArgs) -> Result<Option<PostponeMessage>, Fault> {
     let repository = repositories::find(shared, &args.repo)?;
-    let read = api::next_step(&repository.path, &folder)
-        .and_then(|next| Ok((next, api::read_feature(&repository.path, &folder)?)));
+    let read = api::next_step(&repository.path, &args.id)
+        .and_then(|next| Ok((next, api::read_feature(&repository.path, &args.id)?)));
     let Ok((next, feature)) = read else {
         return Ok(None);
     };
     Ok(Some(match &next.branch {
-        Some(branch) => message(errands::postpone(&feature.kind, &feature.path, branch)),
-        None => ErrandMessage {
+        Some(branch) => PostponeMessage {
+            refusal: None,
+            text: text::postpone(&feature.kind, &feature.path, branch),
+        },
+        None => PostponeMessage {
             refusal: Some(NO_BRANCH.to_owned()),
             text: String::new(),
         },

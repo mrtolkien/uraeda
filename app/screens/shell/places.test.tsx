@@ -19,8 +19,8 @@ const PAGES: Record<string, { address: string; words: string }> = {
     address: "/r/sample/f/2026-10-17-redesign-clarifications",
     words: "Follow the session",
   },
-  decisions: { address: "/r/realistic/decisions", words: "Decisions check" },
-  // A decision's list opens on its own card, below the check's: its words, as its reader has them.
+  decisions: { address: "/r/realistic/decisions", words: "Above every decision" },
+  // A decision's list opens on its own card: its words, as its reader has them.
   decision: {
     address: "/r/realistic/decisions/git",
     words: "Rust tools MUST read git with the gix library",
@@ -34,7 +34,6 @@ const PAGES: Record<string, { address: string; words: string }> = {
     words: "As the branch of Due date reminders has it",
   },
   constitution: { address: "/r/realistic/decisions/constitution", words: "Core Principles" },
-  "decisions-check": { address: "/r/realistic/decisions/check", words: "Decisions check" },
   git: { address: "/r/sample/git", words: "README.md" },
   buffer: { address: "/r/realistic/buffer/specs/CONSTITUTION.md", words: "Core Principles" },
   edit: { address: "/r/realistic/edit/specs/CONSTITUTION.md", words: "Core Principles" },

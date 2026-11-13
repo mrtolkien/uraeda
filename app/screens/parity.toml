@@ -31,7 +31,7 @@ inbox = { path = "/inbox", page = "inbox", screen = "app/screens/inbox" }
 note = { path = "/inbox/<key>", page = "note", screen = "app/screens/inbox" }
 triage = { path = "/inbox/triage", page = "triage", screen = "app/screens/triage" }
 decisions = { path = "/decisions", page = "decisions", screen = "app/screens/decisions" }
-decisions-check = { path = "/decisions/check", page = "decisions-check", screen = "app/screens/decisions" }
+decisions-check = { path = "/decisions/check", dropped = "the workflow has no decisions check any more: a pass over the decisions is a change, started as any other, and the address reads as a decision's name" }
 decision = { path = "/decisions/<name>", page = "decision", screen = "app/screens/decisions" }
 constitution = { path = "/decisions/constitution, /decisions/constitution/<slug>", page = "constitution", screen = "app/screens/decisions" }
 git = { path = "/git", page = "git", screen = "app/screens/git" }
@@ -119,14 +119,14 @@ what = "Postpone a feature"
 old = "Feature page (its menu)"
 why = "its message was written in the React UI's TSX: the workflow's words belong to the server, which has none (R287)"
 fate = "brought-back"
-now = "the feature page's foot, beside Drop, far from Next: \"Postpone the feature…\" asks first, with the server's message whole (`ErrandMessage`, `postpone`), then sends it to the feature's latest session and opens it"
+now = "the feature page's foot, beside Drop, far from Next: \"Postpone the feature…\" asks first, with the server's message whole (`PostponeMessage`), then sends it to the feature's latest session and opens it"
 
 [[left]]
 what = "\"Review with AI\" on the decisions check"
 old = "Decisions check page"
-why = "its message was the Node server's (`round-messages`), and the Rust server serves none (R292)"
-fate = "brought-back"
-now = "the decisions check's page and the decisions' list: \"Review with AI\" (`r`) while no check is on the default branch, \"Apply the answers\" (`r`) once it is answered, each through the continue dialog with the server's message whole (`ErrandMessage`), a new chat of the main checkout started only from its Start"
+why = "the workflow has no decisions check any more: a pass over the decisions, when the human asks for one, is a change"
+fate = "replaced"
+now = "a change, started from the New page as any other, whose round asks one question per merge or removal"
 
 [[left]]
 what = "Pick mode and comments on a story or a mockup"
@@ -152,9 +152,9 @@ now = "a settled point's comment: Edit beside Remove, in place, its text kept on
 [[left]]
 what = "Retry a refused write of the triage or the decisions check"
 old = "The commit toast (`defaultRound.retry`)"
-why = "the refused write's card retries a feature's file only; a default round's has Open, whose page submits again"
+why = "the refused write's card retries a feature's file only; the triage's has Open, whose page submits again"
 fate = "brought-back"
-now = "the refused write's card: Retry for a feature's file (`commit.retry`) and for the triage's or the decisions check's submit (`defaultRound.retry`), told by the page it was made on"
+now = "the refused write's card: Retry for a feature's file (`commit.retry`) and for the triage's submit (`triage.retry`), told by the page it was made on; the decisions check is gone"
 
 [[left]]
 what = "A host name edited in place"
@@ -246,7 +246,7 @@ what = "A round as a page of every question"
 old = "Rounds, triage"
 why = "one question at a time, a letter answering and going on (R280, R375)"
 fate = "replaced"
-now = "`app/screens/round/`, for a feature's round, the triage, and the decisions check"
+now = "`app/screens/round/`, for a feature's round and the triage"
 
 [[left]]
 what = "The spec page's groups of cards (stories, replaced behaviour, data model, built parts, history)"

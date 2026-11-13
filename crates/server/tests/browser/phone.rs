@@ -285,7 +285,11 @@ const PAGES: &[(&str, &str, &str)] = &[
         "/r/realistic/f/2026-10-19-leader-key/spec.md",
         "Leader key/shortcut map",
     ),
-    ("decisions", "/r/realistic/decisions", "Decisions check"),
+    (
+        "decisions",
+        "/r/realistic/decisions",
+        "Above every decision",
+    ),
     (
         "decision",
         "/r/realistic/decisions/git",
@@ -300,11 +304,6 @@ const PAGES: &[(&str, &str, &str)] = &[
         "constitution",
         "/r/realistic/decisions/constitution",
         "Core Principles",
-    ),
-    (
-        "decisions-check",
-        "/r/realistic/decisions/check",
-        "Decisions check",
     ),
     ("git", "/r/sample/git", "README.md"),
     (

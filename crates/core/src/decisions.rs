@@ -2,12 +2,10 @@
 //! versions, computed from their texts and never stored, and the changes of a feature's branch.
 
 mod branch;
-pub mod candidates;
 mod change;
 mod strength;
 
 pub use crate::compare::Run;
 pub use branch::{BranchSides, branch_changes, branch_decision};
-pub use candidates::{Candidate, links_folder, option_folder};
 pub use change::{DecisionChange, PartChange, SectionChange, compare};
 pub use strength::{Strength, keywords, strength};

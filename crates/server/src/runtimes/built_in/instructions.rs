@@ -50,7 +50,7 @@ A change or a feature may hold several sessions, all in its worktree, and only o
 
 # A change another session makes
 
-A run that starts a change without making it, as applying an inbox triage or a decisions check does, ends by saying to open `/f/<folder>`, the change's page, where the change's own session runs.
+A run that starts a change without making it, as applying an inbox triage does, ends by saying to open `/f/<folder>`, the change's page, where the change's own session runs.
 
 # What the human sees
 

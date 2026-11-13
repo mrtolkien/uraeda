@@ -2,7 +2,7 @@
 // a chat in the main checkout with its message, on the agent a new session runs on, and opens it.
 import { call, navigate } from "../../store";
 
-/** The round's id, as `WorkflowFile` and `defaultRound.*` name it. */
+/** The round's id, as `WorkflowFile` names it. */
 export const TRIAGE_ID = "inbox-triage";
 
 /** The message that asks an agent to propose a triage of the inbox. */

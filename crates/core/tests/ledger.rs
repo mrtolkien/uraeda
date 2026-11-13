@@ -400,17 +400,3 @@ fn an_unreadable_decision_has_no_rules_and_keeps_its_problem() {
     assert!(git.rules.is_empty());
     assert!(git.problem.is_some());
 }
-
-/// A candidate under `specs/decisions-check/` is not a decision of the ledger.
-#[test]
-fn files_under_decisions_check_are_not_in_the_ledger() {
-    let repo = TestRepo::new();
-    repo.write("specs/decisions/git.md", GIT);
-    repo.write("specs/decisions-check/q1-a/git-extra.md", GIT);
-    repo.commit("docs: git");
-
-    let ledger = api::read_ledger(repo.path()).unwrap();
-
-    let names: Vec<&str> = ledger.decisions.iter().map(|d| d.name.as_str()).collect();
-    assert_eq!(names, ["git"]);
-}

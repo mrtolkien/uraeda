@@ -1,4 +1,5 @@
-//! The text of the workflow's message: the goal of the run, and where it stops.
+//! The text of the workflow's message: the goal of the run, and where it stops; and of the
+//! message that postpones a feature or a change.
 
 /// What a message is about: a feature's or a change's kind, and its folder's path.
 pub(in super::super) struct Subject<'a> {
@@ -98,6 +99,16 @@ pub(in super::super) fn run_message(run: &Run<'_>) -> String {
         "/uraeda Continue the {kind} {path}/ on branch {}: {work}, starting with {}.\n\
          Stop when {stop}, and earlier only if you need a decision from me.\n",
         run.branch, run.reference
+    )
+}
+
+/// The message that postpones the feature or the change of `kind` in `path`, on `branch`, as
+/// "Postpone or block" in `references/projects.md` says: its proposal written, its line in Later.
+pub(super) fn postpone(kind: &str, path: &str, branch: &str) -> String {
+    format!(
+        "/uraeda Postpone the {kind} {path}/ on branch {branch}, following \"Postpone or block\" \
+         in skills/uraeda/references/projects.md: write its proposal, and move its line to \
+         Later.\nStop when it is postponed, and earlier only if you need a decision from me.\n"
     )
 }
 

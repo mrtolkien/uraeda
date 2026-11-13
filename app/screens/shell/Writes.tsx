@@ -197,21 +197,16 @@ function whereWords(write: QueuedWrite): string {
   return "The commit failed: the change is written in the files, not committed. The Git page lists it.";
 }
 
-/** The round of the default branch a write submitted, by the page it was made on, if any. */
-function defaultRoundOf(write: QueuedWrite): string | undefined {
-  if (write.href === "") return undefined;
-  const page = parseRoute(write.href).page;
-  if (page === "triage") return "inbox-triage";
-  return page === "decisions-check" ? "decisions-check" : undefined;
-}
+/** Whether a write submitted the inbox's triage, by the page it was made on. */
+const ofTriage = (write: QueuedWrite) =>
+  write.href !== "" && parseRoute(write.href).page === "triage";
 
 /**
- * Whether Retry commits it again: a feature's file left written (`commit.retry`), or a round of the
- * default branch submitted and left uncommitted (`defaultRound.retry`).
+ * Whether Retry commits it again: a feature's file left written (`commit.retry`), or the inbox's
+ * triage submitted and left uncommitted (`triage.retry`).
  */
 const retries = (write: QueuedWrite) =>
-  write.failure === "failed" &&
-  ((write.folder !== null && write.file !== null) || defaultRoundOf(write) !== undefined);
+  write.failure === "failed" && ((write.folder !== null && write.file !== null) || ofTriage(write));
 
 /**
  * A refused write's card: it stays until retried or dismissed. The first card's ways out have keys,
@@ -229,13 +224,12 @@ function RefusedCard(props: Of & { first: boolean }) {
     );
   const retry = async () => {
     const { file, folder, href, label } = write();
-    const round = defaultRoundOf(write());
-    if ((file === null || folder === null) && round === undefined) return;
+    if ((file === null || folder === null) && !ofTriage(write())) return;
     pending.set(true);
     refusal.set(null);
     try {
       await (file === null || folder === null
-        ? call("defaultRound.retry", { id: round!, repo: props.repo, write: { href, label } })
+        ? call("triage.retry", { repo: props.repo, write: { href, label } })
         : call("commit.retry", { file, folder, repo: props.repo, write: { href, label } }));
       await call("writes.dismiss", { id: write().id, repo: props.repo });
     } catch (error) {

@@ -50,10 +50,10 @@ The app reads the workflow's files as the skill writes them, and draws them:
   or a change's page with its slug. "Add" leaves it uncommitted, and "Add as a file" saves a note
   with images as a file of its own. A note's page adds images with "Add images", or by dropping
   them, and draws them under its text.
-- The banners of the inbox's triage and of the decisions check open their round with "Answer it", in
-  the questions view, where Submit commits it. The triage's Dismiss deletes it, in a commit of its
-  own, so "Organize with AI" asks for a new one. A triage holding changes you have not committed,
-  like answers not submitted, asks first, and one never committed stays: delete it by hand.
+- The banner of the inbox's triage opens its round with "Answer it", in the questions view, where
+  Submit commits it. Its Dismiss deletes it, in a commit of its own, so "Organize with AI" asks for
+  a new one. A triage holding changes you have not committed, like answers not submitted, asks
+  first, and one never committed stays: delete it by hand.
 - A done feature's page repairs links its files lost to a later move with "Fix moved links", as
   `ura check --fix` does.
 
