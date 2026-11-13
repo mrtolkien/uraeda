@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0 - Native Shell + the Mac app
+
+Released on 2026-11-13.
+
+### Features
+
+- **[Native Shell and a Rust server](https://github.com/mrtolkien/uraeda/blob/v2.0.0/specs/2026-11-10-nsh-migration/spec.md)**
+  ([#123](https://github.com/mrtolkien/uraeda/pull/123)): The app is rewritten on Native Shell, one
+  TSX and Rust codebase drawn natively on Linux and in the browser, with a component library of its
+  own: glass surfaces, blur, and neon light, in a terminal style. The Node server is replaced by a
+  Rust one, inside `ura`, as `ura serve`. The Linux app starts it when none runs, and another device
+  pairs with it once, then signs in with a token of its own that the owner can revoke.
+- **The Mac app**: Uraeda runs on Apple silicon Macs, in a window of its own, with `ura` inside it.
+  It starts its background process when none runs and stops it as it quits. It looks like a Mac app:
+  a toolbar on Liquid Glass, the menu bar with the Mac's shortcuts, the system's menus and alerts,
+  and notifications with a count on the Dock's icon. [INSTALL.md](https://github.com/mrtolkien/uraeda/blob/v2.0.0/INSTALL.md)
+  says how to open it, as it is not notarised.
+
+### Breaking changes
+
+- Extensions written for 1.x stop loading: the extension API is rewritten in place.
+- The npm package and the Node binding are gone. Sessions recorded by 1.x are imported once, with
+  `ura import-sessions`.
+
 ## 1.4.0 - last node release
 
 Released on 2026-11-12.

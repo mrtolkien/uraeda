@@ -9215,7 +9215,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "uraeda-app"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.23.1",
  "jiff",
@@ -9252,7 +9252,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-cli"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "clap",
  "clap_complete",
@@ -9268,7 +9268,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-compile"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
@@ -9284,7 +9284,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-core"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "gif",
  "gix",
@@ -9306,7 +9306,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-lsp"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "crossbeam-channel",
  "lsp-server",
@@ -9319,7 +9319,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-protocol"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "flate2",
  "serde",
@@ -9330,7 +9330,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-server"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -9376,7 +9376,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-text"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "gix-imara-diff",
  "pulldown-cmark",
@@ -9386,7 +9386,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-vim"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "serde",
  "toml_edit 0.25.19+spec-1.1.0",
@@ -9396,7 +9396,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-xtask"
-version = "1.4.0"
+version = "2.0.0"
 dependencies = [
  "toml_edit 0.25.19+spec-1.1.0",
 ]
