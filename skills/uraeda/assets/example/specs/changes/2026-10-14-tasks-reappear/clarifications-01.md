@@ -109,12 +109,8 @@ message in the list.
 
 ## Settled without the human
 
-### Behaviour
-
 - **A title typed in the first second** still saves once typing stops, as today, whatever the answer
   to the first question.
-
-### Under the hood
 
 - **The reproduction test** creates a task, completes it 100 ms later, then reopens the store. It
   fails today, and passes with the fix.

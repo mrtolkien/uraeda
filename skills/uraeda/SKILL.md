@@ -88,7 +88,6 @@ specs/
   PRIORITIES.md             # Now, Next, Later
   INBOX.md                  # notes to organize later, by category
   INBOX-TRIAGE.md           # an agent's proposed outcome for each note, as questions
-  DECISIONS-CHECK.md        # questions on the decisions, options in decisions-check/
   proposals/                # upcoming features: <slug>.md, or <slug>/proposal.md with images/
   notes/                    # note files: inbox notes with images, and agents' notes
   decisions/                # one file per topic: due-dates.md
@@ -117,9 +116,11 @@ single files, amended in place: they are the source of truth for the build.
 
 Before any step, read `specs/CONSTITUTION.md`, the decisions whose **Applies to** covers your work,
 and the project's guides for the area you touch. The constitution wins over decisions, and decisions
-win over specs and plans. Templates for every file are in `assets/templates/specs/`, at the same
-paths, and `assets/example/specs/` holds a filled-in project: `2026-10-06-recurring-tasks/` shows
-every file of a feature.
+win over specs and plans. A decision on the default branch is in force. A branch that creates or
+changes one edits it in place: the difference is its proposal, which the human approves with the
+spec, and the merge brings in. Templates for every file are in `assets/templates/specs/`, at the
+same paths, and `assets/example/specs/` holds a filled-in project: `2026-10-06-recurring-tasks/`
+shows every file of a feature.
 
 ## Finding the next step
 
@@ -147,7 +148,6 @@ every feature's step. See [The `ura` CLI](references/cli.md). By hand:
 | No `clarifications-01.md`                                                            | [Discovery](references/discovery.md), round 01                         |
 | Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec](references/spec.md)                                             |
 | `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md#revising), revision                          |
-| `spec.md` is `approved`, and a decision it adds or changes is `proposed`             | [Approval](references/approval.md)                                     |
 | `spec.md` is `approved`, and there is no `plan.md`, or its `spec-revision` is behind | [Plan](references/plan.md)                                             |
 | `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md#revising), revision                          |
 | `plan.md` is `approved` or `auto-approved`, with unchecked steps                     | [Implementation](references/implementation.md)                         |
@@ -223,7 +223,6 @@ When the human talks with you, the same habits hold, in a smaller form:
 
 - [Discovery](references/discovery.md): the research, and a round of questions.
 - [Spec](references/spec.md): the spec and its decisions, and revising them after a review.
-- [Approval](references/approval.md): applying the decisions of an approved spec.
 - [Plan](references/plan.md): the tasks of an approved spec.
 - [Implementation](references/implementation.md): the build, its reviews, the final review, and the
   open pull request: push, catch-up, and comments.
@@ -236,7 +235,6 @@ When the human talks with you, the same habits hold, in a smaller form:
 - [Conventions](references/conventions.md): markdown, status fields, review files, branches, and
   commits. Read it before writing or committing a workflow file.
 - [Inbox](references/inbox.md): notes, the triage, and when an agent writes a note.
-- [The decisions check](references/decisions-check.md): a pass over the decisions, when asked.
 - [Projects](references/projects.md): setting a project up, and starting, postponing, or dropping a
   feature. Read it when the human asks for one of these.
 - [The `ura` CLI](references/cli.md): the commands. Without `ura`, every mechanical step is in

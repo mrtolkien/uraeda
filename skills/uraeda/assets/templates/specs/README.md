@@ -13,8 +13,6 @@ Without it, the file names and their `status` fields still tell where each featu
 - `PRIORITIES.md`: what is worked on now, next, and later
 - `INBOX.md`: notes about the software, by category, waiting to become proposals, changes, or
   nothing; and `INBOX-TRIAGE.md`, an agent's suggested outcome for each, answered like questions
-- `DECISIONS-CHECK.md`: an agent's questions about how the decisions fit together, answered like
-  questions; and `decisions-check/`, holding each option's edited decision until it is applied
 - `proposals/`: proposal files, upcoming features written by humans, free form, usually linked from
   `PRIORITIES.md`. A postponed feature or change is a proposal file too, written by an agent from
   its state when postponed. A folder is a proposal with images, its `proposal.md` next to its
@@ -74,9 +72,9 @@ A spec's `risk-tier`, `low`, `medium`, or `high`, tells how much the feature can
 `plan-review`, `false` by default whatever the tier, says whether its plan waits for a human, who
 decides it when approving the spec.
 
-Decisions are `proposed` or `active`. A feature creates or changes a decision in place, on its
-branch, where it is `proposed` until the feature's spec is approved: `git diff` against the default
-branch shows the change.
+A decision on the default branch is in force. A feature creates or changes a decision in place, on
+its branch: `git diff` against the default branch shows the change, which the human approves with
+the feature's spec, and the merge brings in.
 
 ## Review blocks
 

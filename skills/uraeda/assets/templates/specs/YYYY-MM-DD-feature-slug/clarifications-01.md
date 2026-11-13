@@ -84,18 +84,8 @@ Why it matters: [...].
 
 ## Settled without the human
 
-[Optional: left out when both groups below are empty.]
-
-### Behaviour
-
-[Optional: the points users will notice.]
-
-- **[The point]** [...].
-
-### Under the hood
-
-[Optional, and rare: a code-only choice the human would want to know of. The others stay in the
-discovery.]
+[Optional: what users will notice, that the proposal, the constitution, and the decisions already
+settle. Choices in the code only stay in the discovery.]
 
 - **[The point]** [...].
 

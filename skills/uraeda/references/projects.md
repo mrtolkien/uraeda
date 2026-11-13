@@ -17,7 +17,7 @@ constraints, and propose principles with recommended wording. Keep it to what th
 give up. A principle that names a measure, like "size never goes up", blocks work the first time a
 feature needs the opposite: write the goal it protects instead.
 
-Then propose, each `proposed` until the human approves it:
+Then propose, each committed once the human approves it:
 
 - **A code-quality decision**, `specs/decisions/code-quality.md`, for the project's own linters:
   limits, the stack's shared lint config, and today's offenders marked in place, as
