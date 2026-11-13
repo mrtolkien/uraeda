@@ -27,7 +27,7 @@ import {
   SORTS,
   sorted,
   sortChosen,
-  statusWords,
+  unreadableWords,
 } from "./ledger";
 
 /** The rows' ids in the list's order. */
@@ -60,7 +60,7 @@ function open(row: string) {
   }
 }
 
-/** A decision's card: its icon, its title, its state unless active, its rules, its last change. */
+/** A decision's card: its icon, its title, its rules, its last change, and when it cannot be read. */
 function DecisionCard(props: {
   decision: Decision;
   repo: string;
@@ -92,8 +92,8 @@ function DecisionCard(props: {
     ];
   };
   const state = () => {
-    const status = statusWords(props.decision);
-    return status.label === "Active" ? undefined : { label: status.label, tone: status.tone };
+    const unreadable = unreadableWords(props.decision);
+    return unreadable && { label: unreadable.label, tone: unreadable.tone };
   };
   return (
     <Card

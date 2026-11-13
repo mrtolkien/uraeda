@@ -23,11 +23,8 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
         Checked::Workflow(FileKind::Plan) => Some((&["status", "spec-revision"], &[])),
         Checked::Workflow(FileKind::Review) => Some((&["verdict", "commit"], &[])),
         Checked::Workflow(FileKind::Findings) => Some((&["reviewed", "commits"], &[])),
-        Checked::Decision => Some((&["status", "approved-by"], &["icon"])),
-        Checked::PreviewDecision => Some((
-            &["status", "approved-by"],
-            &["icon", "preview-folder", "preview-command"],
-        )),
+        Checked::Decision => Some((&[], &["icon"])),
+        Checked::PreviewDecision => Some((&[], &["icon", "preview-folder", "preview-command"])),
         Checked::Record => Some((
             &["kind", "finished"],
             &["pull-request", "supersedes", "superseded-by"],
@@ -40,7 +37,6 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
     match (kind, key) {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
         (Checked::DefaultRound(_), "status") => Some(FileKind::Clarifications.statuses()),
-        (Checked::Decision | Checked::PreviewDecision, "status") => Some(&["proposed", "active"]),
         (Checked::Record, "kind") => Some(&["feature", "change"]),
         (_, "resumes") => Some(&["implementation"]),
         (_, "risk-tier" | "discovery") => Some(&["low", "medium", "high"]),

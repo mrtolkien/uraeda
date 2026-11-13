@@ -175,8 +175,6 @@ pub struct Feature {
     pub path: String,
     #[serde(skip)]
     pub proposal_committed: bool,
-    #[serde(skip)]
-    pub decisions_pending: bool,
     /// The tasks, by number and title, with every box checked on a task branch of its branch.
     #[serde(skip)]
     pub task_branch_done: BTreeSet<(u32, String)>,
@@ -489,7 +487,6 @@ impl Feature {
             left_branch: None,
             path,
             proposal_committed: texts.contains_key(first_file(kind)),
-            decisions_pending: false,
             task_branch_done: BTreeSet::new(),
             texts,
             at_tip: None,

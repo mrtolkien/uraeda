@@ -1,15 +1,13 @@
 //! Making a change a feature, in place, as the skill's change section says: on the default branch,
 //! its **Now** proposal links the feature's folder, and the folder the start put there moves from
 //! `specs/changes/` to `specs/`, in one commit; then its branch loses its `change/` prefix, and on
-//! it, its folder moves the same way, and each decision it applied is proposed again, in a second
-//! commit. Its worktree and its commits stay,
-//! and a pushed branch is renamed locally only.
+//! it, its folder moves the same way, in a second commit. Its worktree and its commits stay, and a
+//! pushed branch is renamed locally only.
 
 use std::fs;
 use std::path::Path;
 
-use crate::decisions::{BranchSides, branch_changes};
-use crate::files::{frontmatter, priorities};
+use crate::files::priorities;
 use crate::git::Git;
 use crate::steps::StepName;
 use crate::workspace::{Feature, Kind, Workspace, folder_branch, folder_path, resolve};
@@ -34,8 +32,6 @@ pub struct Promoted {
     pub default_subject: String,
     /// The commit moving the folder, on the branch.
     pub subject: String,
-    /// The decisions the change applied, proposed again for the feature's spec.
-    pub decisions: Vec<String>,
 }
 
 /// Makes the change in `folder` a feature, in place: refused, before anything is written, for a
@@ -165,10 +161,7 @@ impl Move<'_> {
         );
         let rename_left = format!("rename the branch {} to {}", self.from, self.to);
         let move_left = format!("move {old} to {new} on {}", self.to);
-        let commit_left = format!(
-            "set each decision the change applied back to proposed, and commit them with both \
-             folders as \"{subject}\""
-        );
+        let commit_left = format!("commit both folders as \"{subject}\"");
         if edited.is_some() || self.on_default {
             self.relink(
                 at,
@@ -211,12 +204,8 @@ impl Move<'_> {
             partial(&done, vec![left, commit_left.clone()], error)
         })?;
         let on_branch = Git::open(&root)?;
-        let decisions = self
-            .propose_again(&on_branch, &root)
-            .map_err(|error| partial(&done, vec![commit_left.clone()], error))?;
         let mut paths = vec![old, new];
         paths.extend(relink::committed(&relinked));
-        paths.extend(decisions.iter().map(|name| decision_path(name)));
         if let Err(error) = on_branch.commit(&paths, &subject, None, false) {
             let left = vec![format!(
                 "commit {} as \"{subject}\"",
@@ -229,7 +218,6 @@ impl Move<'_> {
             branch: self.to.clone(),
             default_subject,
             subject,
-            decisions,
         })
     }
 
@@ -339,36 +327,6 @@ impl Move<'_> {
         let text = fs::read_to_string(root.join(&path))?;
         fs::write(root.join(&path), with_nested(&text, &path, &self.nested))
     }
-
-    /// Sets each decision the branch changed, and that reads `active`, back to `proposed`, its
-    /// `approved-by` emptied: their names.
-    fn propose_again(&self, on_branch: &Git, root: &Path) -> Result<Vec<String>, StartError> {
-        let sides = BranchSides {
-            git: on_branch,
-            disk: Some(root),
-            tip: on_branch.head(),
-            default: self.git.tip(self.default),
-        };
-        let mut proposed = Vec::new();
-        for change in branch_changes(&sides, &[]) {
-            let path = root.join(decision_path(&change.name));
-            let Ok(text) = fs::read_to_string(&path) else {
-                continue;
-            };
-            let active = frontmatter::parse(&text)
-                .is_ok_and(|fields| fields.text("status") == Some("active"));
-            if !active {
-                continue;
-            }
-            let mut edited = frontmatter::set(&text, "status", "proposed");
-            if frontmatter::parse(&text).is_ok_and(|fields| fields.get("approved-by").is_some()) {
-                edited = frontmatter::set(&edited, "approved-by", "");
-            }
-            fs::write(&path, edited)?;
-            proposed.push(change.name);
-        }
-        Ok(proposed)
-    }
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
@@ -379,10 +337,6 @@ const PRIORITIES: &str = "specs/PRIORITIES.md";
 fn relink_folder(root: &Path, old: &str, new: &str) -> Result<Vec<Relinked>, StartError> {
     relink::relink(root, "specs", &[relink::moved(old, new)], &[PRIORITIES])
         .map_err(|error| StartError::Refused(error.to_string()))
-}
-
-fn decision_path(name: &str) -> String {
-    format!("specs/decisions/{name}.md")
 }
 
 /// The proposal's name, `PRIORITIES.md` with its line linking the change's proposal linking the

@@ -86,8 +86,6 @@ pub struct PromotedView {
     pub folder: String,
     /// The feature's branch, the folder's name.
     pub branch: String,
-    /// The decisions the change applied, proposed again for the feature's spec.
-    pub decisions: Vec<String>,
 }
 
 /// Keeps a feature's own run options, only what differs from the settings': they apply from its

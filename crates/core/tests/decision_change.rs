@@ -86,8 +86,8 @@ const CASES: &[Case] = &[
     ),
     case(
         "a frontmatter change only",
-        "---\nstatus: proposed\n---\n\n# T\n\nTasks stay local.\n\n## Rules\n\n- Tasks MUST stay local.\n",
-        "---\nstatus: active\n---\n\n# T\n\nTasks stay local.\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        "---\nicon: cloud\n---\n\n# T\n\nTasks stay local.\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        "---\nicon: database\n---\n\n# T\n\nTasks stay local.\n\n## Rules\n\n- Tasks MUST stay local.\n",
         &[
             ("", "kept", "=Tasks stay local."),
             ("Rules", "kept", "=Tasks MUST stay local."),
@@ -270,7 +270,7 @@ fn each_case_compares_as_expected() {
 }
 
 const STORAGE: &str = "---
-status: active
+icon: database
 ---
 
 # Task storage
@@ -380,7 +380,7 @@ fn a_strength_has_its_rank_and_name() {
 #[test]
 fn a_rule_merged_into_the_one_before_shows_removed() {
     let merged = "---
-status: active
+icon: database
 ---
 
 # Task storage
@@ -414,7 +414,7 @@ const SPEC: &str = "specs/2026-10-11-web-ui/spec.md";
 /// A decision titled after its name, with an intent and one rule.
 fn decision(name: &str, intent: &str, rule: &str) -> String {
     format!(
-        "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# {name}\n\n{intent}\n\n## Rules\n\n- {rule} Checked by review.\n"
+        "---\nicon: database\n---\n\n# {name}\n\n{intent}\n\n## Rules\n\n- {rule} Checked by review.\n"
     )
 }
 
@@ -655,7 +655,7 @@ fn an_unlisted_change_of_the_title_or_the_frontmatter_shows_its_fields() {
         &[
             (
                 &path("a"),
-                Some(text("a").replace("status: active", "status: proposed")),
+                Some(text("a").replace("icon: database", "icon: cloud")),
             ),
             (
                 &path("b"),
@@ -663,7 +663,7 @@ fn an_unlisted_change_of_the_title_or_the_frontmatter_shows_its_fields() {
             ),
             (
                 &path("c"),
-                Some(text("c").replace("approved-by: mrtolkien\n", "")),
+                Some(text("c").replace("---\nicon: database\n---\n\n", "")),
             ),
         ],
     );
@@ -688,7 +688,7 @@ fn an_unlisted_change_of_the_title_or_the_frontmatter_shows_its_fields() {
     let some = |text: &str| Some(text.to_string());
     assert_eq!(
         fields(&changes[0]),
-        [("status".to_string(), some("active"), some("proposed"))]
+        [("icon".to_string(), some("database"), some("cloud"))]
     );
     assert_eq!(
         fields(&changes[1]),
@@ -696,7 +696,7 @@ fn an_unlisted_change_of_the_title_or_the_frontmatter_shows_its_fields() {
     );
     assert_eq!(
         fields(&changes[2]),
-        [("approved-by".to_string(), some("mrtolkien"), None)]
+        [("icon".to_string(), some("database"), None)]
     );
 }
 
@@ -925,7 +925,7 @@ fn a_decision_reads_as_the_branch_has_it() {
         owned(&[("", "kept"), ("Rules", "changed")])
     );
     let rule = read.document.blocks.last().unwrap();
-    assert_eq!(rule.start_line, 12);
+    assert_eq!(rule.start_line, 11);
     let unchanged = api::read_decision(repo.path(), FOLDER, "c").unwrap();
     assert_eq!(
         part_kinds(&unchanged.change),

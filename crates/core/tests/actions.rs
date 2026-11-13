@@ -509,10 +509,10 @@ fn pending_comments_are_edited_and_removed() {
 const DECISION: &str = "specs/decisions/task-storage.md";
 
 /// Task storage on `main`, its rule merged away on line 12.
-const DECISION_ON_MAIN: &str = "---\nstatus: active\n---\n\n# Task storage\n\nWhere tasks live.\n\n## Rules\n\n- Data MUST be stored in IndexedDB.\n- A rule merged away MUST go.\n\n## Why\n\nBecause.\n";
+const DECISION_ON_MAIN: &str = "---\nicon: database\n---\n\n# Task storage\n\nWhere tasks live.\n\n## Rules\n\n- Data MUST be stored in IndexedDB.\n- A rule merged away MUST go.\n\n## Why\n\nBecause.\n";
 
 /// Task storage on the feature's branch: a new rule on lines 12–13.
-const DECISION_ON_BRANCH: &str = "---\nstatus: proposed\n---\n\n# Task storage\n\nWhere tasks live.\n\n## Rules\n\n- Data MUST be stored in IndexedDB.\n- An upgrade that cannot read a saved value MUST clear it and log it,\n  and MUST NOT delete a task.\n\n## Why\n\nBecause.\n";
+const DECISION_ON_BRANCH: &str = "---\nicon: database\n---\n\n# Task storage\n\nWhere tasks live.\n\n## Rules\n\n- Data MUST be stored in IndexedDB.\n- An upgrade that cannot read a saved value MUST clear it and log it,\n  and MUST NOT delete a task.\n\n## Why\n\nBecause.\n";
 
 /// A feature whose spec waits for a review, its branch changing task storage, and `main` moved on
 /// since, its own task storage rewritten.

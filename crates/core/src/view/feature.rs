@@ -27,7 +27,7 @@ pub struct StepView {
     pub progress: Option<TaskProgress>,
     /// Whether the implementation is over: the final review or after.
     pub implemented: bool,
-    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 14.
+    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 13.
     pub order: u32,
     /// The default branch's commit to catch up with, at `catch-up`.
     pub catch_up: Option<CatchUpView>,
@@ -146,8 +146,6 @@ pub struct PromotedView {
     pub folder: String,
     /// The feature's branch, the folder's name.
     pub branch: String,
-    /// The decisions the change applied, proposed again for the feature's spec.
-    pub decisions: Vec<String>,
 }
 
 impl From<&Step> for StepView {

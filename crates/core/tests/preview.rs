@@ -7,11 +7,8 @@ use uraeda_core::files::preview::Preview;
 const PREVIEW: &str = "specs/decisions/preview.md";
 const BRANCH: &str = "2026-10-20-sidebar-resize";
 
-fn decision(status: &str, command: &str) -> String {
-    format!(
-        "---\nstatus: {status}\napproved-by: me\npreview-folder: packages/web\n\
-         preview-command: {command}\n---\n\n# Preview\n"
-    )
+fn decision(command: &str) -> String {
+    format!("---\npreview-folder: packages/web\npreview-command: {command}\n---\n\n# Preview\n")
 }
 
 fn web(command: &str) -> Option<Preview> {
@@ -21,18 +18,13 @@ fn web(command: &str) -> Option<Preview> {
     })
 }
 
-/// The runner starts only the command of an active decision, with both fields valid.
+/// The runner starts only the command of a decision with both fields valid.
 #[test]
-fn a_checkout_has_a_preview_only_from_its_active_decision() {
+fn a_checkout_has_a_preview_only_from_a_valid_decision() {
     let command = "pnpm exec storybook dev --port {port}";
     let rows: &[(&str, Option<String>, Option<Preview>)] = &[
-        ("active", Some(decision("active", command)), web(command)),
-        ("proposed", Some(decision("proposed", command)), None),
-        (
-            "no {port}",
-            Some(decision("active", "pnpm exec storybook dev")),
-            None,
-        ),
+        ("valid", Some(decision(command)), web(command)),
+        ("no {port}", Some(decision("pnpm exec storybook dev")), None),
         ("no file", None, None),
     ];
     for (case, text, expected) in rows {
@@ -51,7 +43,7 @@ fn a_worktree_reads_its_own_copy() {
     let command = "x --port {port}";
     let repo = TestRepo::new();
     repo.branch(BRANCH);
-    repo.add_on_branch(BRANCH, PREVIEW, &decision("active", command));
+    repo.add_on_branch(BRANCH, PREVIEW, &decision(command));
     let worktree = repo.path().join(".worktrees").join(BRANCH);
     repo.git(&[
         "worktree",

@@ -555,7 +555,7 @@ fn the_preview_decisions_fields() {
     const PREVIEW: &str = "specs/decisions/preview.md";
     let decision = |fields: &str| {
         format!(
-            "---\nstatus: active\napproved-by: me\n{fields}---\n\n# Preview\n\n## Rules\n\n- A rule.\n\n\
+            "---\nicon: eye\n{fields}---\n\n# Preview\n\n## Rules\n\n- A rule.\n\n\
              ## Why\n\nWhy.\n\n## Alternatives considered\n\n- None.\n\n## Consequences\n\n- None.\n\n\
              ## Applies to\n\n- `src/`\n"
         )
@@ -627,13 +627,13 @@ fn preview_fields_belong_to_the_preview_decision() {
     let example = Example::new();
     example.edit(
         "specs/decisions/due-dates.md",
-        "approved-by: mrtolkien\n",
-        "approved-by: mrtolkien\npreview-folder: web\n",
+        "icon: calendar-clock\n",
+        "icon: calendar-clock\npreview-folder: web\n",
     );
 
     assert_eq!(
         summary(&example.problems()),
-        ["specs/decisions/due-dates.md:4: unknown field \"preview-folder\""]
+        ["specs/decisions/due-dates.md:3: unknown field \"preview-folder\""]
     );
 }
 
@@ -642,7 +642,7 @@ fn preview_fields_belong_to_the_preview_decision() {
 fn a_decision_may_have_an_icon() {
     let decision = |title: &str, fields: &str| {
         format!(
-            "---\nstatus: active\napproved-by: me\n{fields}---\n\n# {title}\n\n## Rules\n\n- A rule.\n\n\
+            "---\n{fields}---\n\n# {title}\n\n## Rules\n\n- A rule.\n\n\
              ## Why\n\nWhy.\n\n## Consequences\n\n- None.\n\n## Applies to\n\n- `src/`\n"
         )
     };
@@ -663,7 +663,7 @@ fn a_decision_may_have_an_icon() {
     );
     assert_eq!(
         summary(&example.problems()),
-        ["specs/decisions/topic.md:5: unknown field \"colour\""]
+        ["specs/decisions/topic.md:3: unknown field \"colour\""]
     );
 }
 

@@ -13,7 +13,7 @@ const COMMAND: &str = "preview-command";
 const FOLDER_RULE: &str = "frontmatter.preview-folder";
 const COMMAND_RULE: &str = "frontmatter.preview-command";
 
-/// A checkout's preview, from its active preview decision.
+/// A checkout's preview, from its preview decision.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Preview {
@@ -50,11 +50,10 @@ pub fn field_problems(front: &Frontmatter) -> Vec<(&'static str, String)> {
     problems
 }
 
-/// The preview of a preview decision's text: `None` unless it is `active` and both fields are
-/// valid.
+/// The preview of a preview decision's text: `None` unless both fields are valid.
 pub fn preview_of(text: &str) -> Option<Preview> {
     let front = frontmatter::parse(text).ok()?;
-    if front.text("status") != Some("active") || !field_problems(&front).is_empty() {
+    if !field_problems(&front).is_empty() {
         return None;
     }
     Some(Preview {

@@ -45,7 +45,7 @@ const MOCKUP: &str = r#"<!doctype html>
 pub(super) fn build(repo: &Repo, storybook: &str) -> Result<(), String> {
     repo.branch(FOLDER, "main")?;
     let decision = format!(
-        "---\nstatus: active\napproved-by: Sandbox\npreview-folder: packages/web\n\
+        "---\npreview-folder: packages/web\n\
          preview-command: {storybook} --port {{port}}\n---\n\n# Preview\n\n\
          The sandbox's fake Storybook: a page for each story, and their index.\n"
     );

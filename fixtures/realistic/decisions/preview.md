@@ -1,6 +1,4 @@
 ---
-status: active
-approved-by: human
 icon: eye
 preview-folder: packages/web
 preview-command: pnpm exec storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}

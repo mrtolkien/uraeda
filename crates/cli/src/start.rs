@@ -103,12 +103,6 @@ pub fn promote(target_name: Option<String>) -> Result<ExitCode, String> {
                 "Started {} as a feature, on {}.",
                 promoted.folder, promoted.branch
             );
-            if !promoted.decisions.is_empty() {
-                println!(
-                    "Proposed again: {}.",
-                    uraeda_core::actions::list(&promoted.decisions)
-                );
-            }
             Ok(ExitCode::SUCCESS)
         }
         Err(error) => failed(error),

@@ -70,10 +70,7 @@ pub struct Decision {
     pub name: String,
     /// Its H1, else, or when it is unreadable, its name.
     pub title: String,
-    /// Its frontmatter's fields, when they are text.
-    pub status: Option<String>,
-    pub approved_by: Option<String>,
-    /// A Lucide icon name, like `git-branch`.
+    /// Its frontmatter's `icon`, a Lucide icon name, like `git-branch`.
     pub icon: Option<String>,
     /// The first sentence of its first paragraph, when one comes before its first section.
     pub summary: Option<String>,
@@ -322,8 +319,6 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
         title: heading(&document, 1)
             .filter(|_| !unreadable)
             .unwrap_or_else(|| name.clone()),
-        status: field("status"),
-        approved_by: field("approved-by"),
         icon: field("icon"),
         summary,
         changed,

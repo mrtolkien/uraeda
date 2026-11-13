@@ -182,7 +182,7 @@ fn a_watch_stopped_keeps_nothing() {
 const DECISION: &str = "specs/decisions/git.md";
 
 fn decision_text(title: &str) -> String {
-    format!("---\nstatus: active\n---\n\n# {title}\n\nGit is the store.\n")
+    format!("# {title}\n\nGit is the store.\n")
 }
 
 /// The ledger's decision `git`: its title and the date of its last change.
@@ -200,7 +200,7 @@ fn git_decision(repo: &TestRepo) -> (String, Option<String>) {
 fn ledger_repo() -> TestRepo {
     let repo = repo();
     repo.write(DECISION, &decision_text("Git"));
-    repo.commit_at("decision: git", "2026-10-12T12:00:00+00:00");
+    repo.commit_at("docs: git", "2026-10-12T12:00:00+00:00");
     repo
 }
 
@@ -229,7 +229,7 @@ fn a_decisions_commit_shows_its_date_on_the_next_ledger_read() {
     assert_eq!(git_decision(&repo).1.as_deref(), Some("2026-10-12"));
 
     repo.write(DECISION, &decision_text("Git, again"));
-    repo.commit_at("decision: git again", "2026-10-14T12:00:00+00:00");
+    repo.commit_at("docs: git again", "2026-10-14T12:00:00+00:00");
     next(&receiver);
     assert_eq!(git_decision(&repo).1.as_deref(), Some("2026-10-14"));
 

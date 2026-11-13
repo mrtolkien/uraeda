@@ -32,7 +32,7 @@ const PATIENCE: Duration = Duration::from_secs(10);
 
 const MINUTE: Duration = Duration::from_secs(60);
 
-/// A repository whose main checkout has a stories file and an active preview decision, running
+/// A repository whose main checkout has a stories file and a preview decision, running
 /// the fake Storybook in its preview folder, `packages/web`, with the log of its starts.
 struct Project {
     repo: TestRepo,
@@ -60,7 +60,7 @@ fn project(name: &str, mode: &str) -> Project {
         log.display()
     );
     let decision = format!(
-        "---\nstatus: active\napproved-by: Test\npreview-folder: packages/web\n\
+        "---\npreview-folder: packages/web\n\
          preview-command: {command}\n---\n\n# Preview\n\nThe tests' fake Storybook.\n"
     );
     repo.write("specs/decisions/preview.md", &decision);

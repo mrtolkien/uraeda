@@ -71,7 +71,6 @@ pub(super) fn goal(step: &str, plan_review: Option<bool>, catch_up: Option<&str>
             "Revise the spec from my review",
             "the spec waits for my review again",
         ),
-        "approval" => plan("Record the approved decisions and write the plan"),
         "plan" => plan("Write the plan"),
         "plan-revision" => plan("Revise the plan"),
         "implementation" => to("Implement the plan", "every task of the plan is checked"),

@@ -224,7 +224,6 @@ pub fn promote_change(repo: &Path, folder: &str) -> Result<PromotedView> {
         Ok(promoted) => Ok(PromotedView {
             folder: promoted.folder,
             branch: promoted.branch,
-            decisions: promoted.decisions,
         }),
         Err(error) => Err(refusal(error)),
     }

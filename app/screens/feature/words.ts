@@ -45,7 +45,6 @@ export const STAGES: Readonly<Record<string, string>> = {
 
 /** A step of the workflow, as the core names it, in words. */
 const STEPS: Readonly<Record<string, string>> = {
-  approval: "Approval",
   "catch-up": "Catch up",
   change: "Change",
   discovery: "Discovery",
@@ -68,7 +67,6 @@ export const stepWord = (name: string) => STEPS[name] ?? name;
 
 /** What the agent does at each of its steps. */
 const AGENT_DOES: Readonly<Record<string, string>> = {
-  approval: "The agent applies your approval",
   "catch-up": "The agent catches the branch up with the default branch",
   change: "The agent makes the change",
   discovery: "The agent investigates and asks",

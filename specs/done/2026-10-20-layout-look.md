@@ -178,7 +178,7 @@ colours themselves.
   [`processes.ts`](/packages/server/src/runner/processes.ts), and a session row's agent kind in
   [`fate/views.ts`](/packages/server/src/fate/views.ts).
 - **The skill's prototypes**: [discovery](/skills/uraeda/references/discovery.md#prototypes) allows
-  them, and [approval](/skills/uraeda/references/approval.md#delete-the-prototypes) deletes them and
+  them, and [approval](/skills/uraeda/references/plan.md#delete-the-prototypes) deletes them and
   rewrites their links.
 - **Dev builds** key StyleX's styles as the build does, `debug: false` in
   [`vite.transforms.ts`](/packages/web/vite.transforms.ts), so our overrides of Astryx's styles win

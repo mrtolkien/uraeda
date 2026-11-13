@@ -1,6 +1,6 @@
 // The reader: a decision of the default branch, or the constitution, each one document, drawn by
-// the document renderer at the reading measure, under a head that says what it is and whether it
-// is in force, and why. Each is a pane of the main stack, the widest, beside the list.
+// the document renderer at the reading measure, under a head that says what it is. Each is a pane
+// of the main stack, the widest, beside the list.
 import { effect, type JSX, untracked, View } from "nsh";
 import { navigate, positions, route } from "../../store";
 import type { Block, Decision, Document as Tree } from "../../store/protocol";
@@ -23,7 +23,7 @@ import { Empty } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
 import { isNarrow } from "../../ui/width";
 import { Proposals } from "./Branches";
-import { decisionIn, ledgerOf, ruleCount, shortDate, statusWords } from "./ledger";
+import { decisionIn, ledgerOf, ruleCount, shortDate, unreadableWords } from "./ledger";
 import { follow } from "./links";
 
 /** The blocks of a document's top level, its title aside: the pane's head says it. */
@@ -142,9 +142,8 @@ export function Reading(props: { error: string | undefined }) {
   );
 }
 
-/** A decision's head: its title, its status with its cause, its rules, and its last change. */
+/** A decision's head: its title, its rules, its last change, and why it cannot be read. */
 function Head(props: { decision: Decision }) {
-  const status = () => statusWords(props.decision);
   const facts = () =>
     [
       props.decision.rules.length > 0 ? ruleCount(props.decision.rules.length) : undefined,
@@ -155,7 +154,9 @@ function Head(props: { decision: Decision }) {
   return (
     <View style={{ gap: 6 }}>
       <Title icon={props.decision.icon} title={props.decision.title} />
-      <StatusDot label={`${status().label}: ${status().why}`} tone={status().tone} />
+      <If when={unreadableWords(props.decision)}>
+        {(state) => <StatusDot label={`${state().label}: ${state().why}`} tone={state().tone} />}
+      </If>
       <If when={facts().length > 0}>
         <Text tone="faint">{facts().join(" · ")}</Text>
       </If>

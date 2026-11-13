@@ -13,7 +13,6 @@ pub enum StepName {
     Discovery,
     Spec,
     SpecRevision,
-    Approval,
     Plan,
     PlanRevision,
     Implementation,
@@ -42,7 +41,6 @@ impl StepName {
             StepName::Discovery => "discovery",
             StepName::Spec => "spec",
             StepName::SpecRevision => "spec-revision",
-            StepName::Approval => "approval",
             StepName::Plan => "plan",
             StepName::PlanRevision => "plan-revision",
             StepName::Implementation => "implementation",
@@ -69,7 +67,7 @@ impl StepName {
         match self {
             StepName::Discovery => Some("discovery"),
             StepName::Spec | StepName::SpecRevision => Some("spec"),
-            StepName::Approval | StepName::Plan | StepName::PlanRevision => Some("plan"),
+            StepName::Plan | StepName::PlanRevision => Some("plan"),
             StepName::Implementation | StepName::Change => Some("build"),
             StepName::FinalReview | StepName::Finish | StepName::PullRequestUnknown => {
                 Some("review")
@@ -80,12 +78,11 @@ impl StepName {
     }
 
     /// Every step, in the enum's order.
-    const ALL: [StepName; 18] = [
+    const ALL: [StepName; 17] = [
         StepName::HumanGate,
         StepName::Discovery,
         StepName::Spec,
         StepName::SpecRevision,
-        StepName::Approval,
         StepName::Plan,
         StepName::PlanRevision,
         StepName::Implementation,
@@ -234,30 +231,29 @@ impl Step {
         self.pull_request.is_some()
     }
 
-    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 14: a gate is placed
+    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 13: a gate is placed
     /// by the file it waits on, and a change's agent step with the implementation.
     pub fn order(&self) -> u32 {
         match self.name {
             StepName::HumanGate => match self.file.as_deref().and_then(FileKind::of) {
                 Some((FileKind::Spec, _)) => 4,
-                Some((FileKind::Plan, _)) => 7,
+                Some((FileKind::Plan, _)) => 6,
                 Some((FileKind::Clarifications, _)) => 2,
                 _ => 0,
             },
             StepName::Discovery => 1,
             StepName::Spec | StepName::SpecRevision => 3,
-            StepName::Approval => 5,
-            StepName::Plan | StepName::PlanRevision => 6,
-            StepName::Implementation | StepName::Change => 8,
-            StepName::FinalReview => 9,
-            StepName::Finish => 10,
-            StepName::PullRequestChanges => 11,
+            StepName::Plan | StepName::PlanRevision => 5,
+            StepName::Implementation | StepName::Change => 7,
+            StepName::FinalReview => 8,
+            StepName::Finish => 9,
+            StepName::PullRequestChanges => 10,
             StepName::Push
             | StepName::CatchUp
             | StepName::PullRequest
-            | StepName::PullRequestUnknown => 12,
-            StepName::Done => 13,
-            StepName::None => 14,
+            | StepName::PullRequestUnknown => 11,
+            StepName::Done => 12,
+            StepName::None => 13,
         }
     }
 }
@@ -349,9 +345,6 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         plan_review: Some(plan_review),
         ..Step::agent(name, reference)
     };
-    if feature.decisions_pending {
-        return before_the_plan(StepName::Approval, "approval");
-    }
     let Some(plan_file) = feature.file(FileKind::Plan) else {
         return before_the_plan(StepName::Plan, "plan");
     };

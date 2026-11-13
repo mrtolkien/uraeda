@@ -38,8 +38,8 @@ estimate, and what needs your attention.
 
 High-impact choices, like how dates are stored, become short decision files in `decisions/` that
 every later feature must follow. An agent cannot work around one: a feature that needs to change it
-edits it on its own branch, and lists it in its spec. The change takes effect when you approve the
-spec, and you see it marked in place.
+edits it on its own branch, and lists it in its spec. You approve the change with the spec, where
+you see it marked in place, and the merge brings it in.
 
 ## Review and risk
 
@@ -88,7 +88,7 @@ tasks feature went through the whole workflow:
    [due dates](../skills/uraeda/assets/example/specs/decisions/due-dates.md) and
    [repeating tasks](../skills/uraeda/assets/example/specs/decisions/repeating-tasks.md), the user
    stories with their key scenarios, and the architecture. The build details go to the plan. You
-   approve it, and the decisions become active.
+   approve it, and its decisions with it: the merge brings them in.
 5. **It writes the
    [plan](../skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**, in the style
    of superpowers: tasks with the files they touch, their interfaces, and their failing tests

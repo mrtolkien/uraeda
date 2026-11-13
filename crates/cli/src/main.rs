@@ -94,8 +94,8 @@ enum Command {
         /// .worktrees/
         #[arg(long)]
         switch: bool,
-        /// Make a started change a feature, in place: its branch loses its change/ prefix, its
-        /// folder moves to specs/, and its applied decisions are proposed again
+        /// Make a started change a feature, in place: its branch loses its change/ prefix, and
+        /// its folder moves to specs/
         #[arg(long, conflicts_with_all = ["change", "slug", "switch"])]
         feature: bool,
     },

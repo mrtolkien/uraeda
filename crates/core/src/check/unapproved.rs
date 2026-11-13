@@ -1,16 +1,15 @@
 //! `decision.unapproved`: a decision whose text changed on the branch after its spec's approval.
 //! The approval commit is the branch's first-parent commit whose spec first reads
 //! `status: approved` at the checkout spec's `revision`, so a new approved revision resets the
-//! check; the decision there is compared with the checkout, beyond the two fields the approval
-//! step sets, `status` and `approved-by`. A decision the branch had not touched at the
-//! approval, and that reads as the default branch's now, is the default branch's change, merged in.
+//! check; the decision there is compared with the checkout. A decision the branch had not touched
+//! at the approval, and that reads as the default branch's now, is the default branch's change,
+//! merged in.
 
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::{parse_frontmatter, relative};
-use crate::files::frontmatter;
 use crate::git::{Git, ObjectId};
 use crate::workspace::{Problem, Severity, folder_slug};
 
@@ -148,7 +147,6 @@ fn changed_decisions(
         .filter(|name| {
             let path = format!("{top}/{name}");
             let after = fs::read_to_string(dir.join(name)).ok();
-            let after = after.as_deref().map(approved_text);
             let approved = text_at(git, approval, &path);
             if approved == after {
                 return false;
@@ -160,23 +158,8 @@ fn changed_decisions(
         .collect()
 }
 
-/// A decision's text at a commit, as `approved_text` gives it.
+/// A decision's text at a commit.
 fn text_at(git: &Git, commit: ObjectId, path: &str) -> Option<String> {
     let bytes = git.read_file(commit, path).ok()??;
-    Some(approved_text(&String::from_utf8_lossy(&bytes)))
-}
-
-/// A decision's text without the frontmatter's `status` and `approved-by` lines, which the
-/// approval step sets.
-fn approved_text(text: &str) -> String {
-    let end = frontmatter::block(text).map_or(0, |(_, end)| end);
-    text.split_inclusive('\n')
-        .enumerate()
-        .filter(|(index, line)| {
-            !(*index > 0
-                && *index + 1 < end
-                && (line.starts_with("status:") || line.starts_with("approved-by:")))
-        })
-        .map(|(_, line)| line)
-        .collect()
+    Some(String::from_utf8_lossy(&bytes).into_owned())
 }

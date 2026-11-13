@@ -72,35 +72,6 @@ fn first_feature_of_now_with_work_for_an_agent() {
 }
 
 #[test]
-fn approval_when_a_listed_decision_is_proposed() {
-    let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
-    let approved = spec("approved", 1, 1).replace(
-        "- None.",
-        "- **Changed: [Git](../decisions/git.md)**. Tools run the system git.",
-    );
-    repo.switch_new("2026-10-10-cli-core");
-    repo.write("specs/decisions/git.md", &decision("proposed"));
-    for (name, text) in [
-        ("proposal.md", proposal()),
-        ("clarifications-01.md", answered()),
-        ("spec.md", approved),
-    ] {
-        repo.write(&format!("specs/2026-10-10-cli-core/{name}"), &text);
-    }
-    repo.commit("spec");
-    repo.switch("main");
-
-    let output = ura(&repo, &["next", "2026-10-10-cli-core"]);
-
-    assert!(
-        output.stdout.starts_with("2026-10-10-cli-core: approval\n"),
-        "{}",
-        output.stdout
-    );
-}
-
-#[test]
 fn pull_request_state_unknown_without_gh() {
     let repo = TestRepo::new();
     specs(&repo, PRIORITIES);

@@ -14,11 +14,8 @@ const FOLDER: &str = "2026-10-20-priorities-sections";
 const CHANGE_BRANCH: &str = "change/2026-10-20-priorities-sections";
 const PROPOSAL_FILE: &str = "specs/proposals/priorities-sections.md";
 const DECISION: &str = "specs/decisions/inbox.md";
-/// An active decision the change leaves alone.
-const OTHER_DECISION: &str = "specs/decisions/stack.md";
-const OTHER_TEXT: &str = "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Stack\n\nRust.\n";
 
-/// `main` with the proposal file "Priorities sections", linked from Next, and an active decision,
+/// `main` with the proposal file "Priorities sections", linked from Next, and a decision,
 /// started as `kind` on 2026-10-20 in its worktree.
 fn started(kind: Kind) -> TestRepo {
     let repo = TestRepo::new();
@@ -31,11 +28,7 @@ fn started(kind: Kind) -> TestRepo {
         PROPOSAL_FILE,
         "# Priorities sections\n\n## What\n\nSections.\n",
     );
-    repo.write(
-        DECISION,
-        "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Inbox\n\nA choice.\n",
-    );
-    repo.write(OTHER_DECISION, OTHER_TEXT);
+    repo.write(DECISION, "# Inbox\n\nA choice.\n");
     repo.commit("chore: expand Priorities sections");
     let (git, workspace) = opened(&repo);
     let day = Date::parse("2026-10-20").unwrap();
@@ -233,44 +226,6 @@ fn the_changes_commits_stay_on_the_branch() {
             .contains(&"feat(priorities-sections): sections".to_string())
     );
     assert!(worktree(&repo).join("src/priorities/sections.ts").exists());
-}
-
-/// US4 more 1: a decision the change applied is proposed again, for the feature's spec.
-#[test]
-fn a_decision_the_change_applied_is_proposed_again() {
-    let repo = started(Kind::Change);
-    std::fs::write(
-        worktree(&repo).join(DECISION),
-        "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Inbox\n\nAnother choice.\n",
-    )
-    .unwrap();
-    commit_in_worktree(&repo, "decision(priorities-sections): apply inbox");
-
-    let promoted = promote(&repo).unwrap();
-
-    assert_eq!(promoted.decisions, ["inbox"]);
-    assert_eq!(
-        std::fs::read_to_string(worktree(&repo).join(DECISION)).unwrap(),
-        "---\nstatus: proposed\napproved-by:\n---\n\n# Inbox\n\nAnother choice.\n"
-    );
-    assert!(
-        repo.changed_in(FOLDER).contains(&DECISION.to_string()),
-        "{:?}",
-        repo.changed_in(FOLDER)
-    );
-    assert_eq!(
-        repo.read(DECISION),
-        "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Inbox\n\nA choice.\n"
-    );
-    assert_eq!(
-        std::fs::read_to_string(worktree(&repo).join(OTHER_DECISION)).unwrap(),
-        OTHER_TEXT
-    );
-    assert!(
-        !repo
-            .changed_in(FOLDER)
-            .contains(&OTHER_DECISION.to_string())
-    );
 }
 
 /// US4 more 2: a change with a pull request keeps its branch's name.
@@ -568,11 +523,7 @@ fn untracked_files_the_move_would_commit_are_refused() {
         "specs/decisions/sections.md".to_string(),
     ] {
         let repo = started(Kind::Change);
-        std::fs::write(
-            worktree(&repo).join(&path),
-            "---\nstatus: active\n---\n\n# Notes\n",
-        )
-        .unwrap();
+        std::fs::write(worktree(&repo).join(&path), "# Notes\n").unwrap();
 
         let refused = promote(&repo);
 

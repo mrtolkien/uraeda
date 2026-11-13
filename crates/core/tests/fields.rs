@@ -174,11 +174,7 @@ fn every_kind_lists_the_fields_check_requires() {
         ),
         (
             "specs/decisions/storage.md".into(),
-            vec![
-                ("status", choice(&["proposed", "active"])),
-                ("approved-by", plain(FieldKind::Text)),
-                ("icon", plain(FieldKind::Text)),
-            ],
+            vec![("icon", plain(FieldKind::Text))],
         ),
         (
             "specs/done/2026-10-11-x.md".into(),

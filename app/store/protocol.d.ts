@@ -646,11 +646,7 @@ name: string,
  */
 title: string, 
 /**
- * Its frontmatter's fields, when they are text.
- */
-status: string | null, approvedBy: string | null, 
-/**
- * A Lucide icon name, like `git-branch`.
+ * Its frontmatter's `icon`, a Lucide icon name, like `git-branch`.
  */
 icon: string | null, 
 /**
@@ -3532,11 +3528,7 @@ export type PromotedView = { folder: string,
 /**
  * The feature's branch, the folder's name.
  */
-branch: string, 
-/**
- * The decisions the change applied, proposed again for the feature's spec.
- */
-decisions: Array<string>, };
+branch: string, };
 
 /**
  * A proposal file, a postponed folder's proposal, a note file, or a feature's or a change's

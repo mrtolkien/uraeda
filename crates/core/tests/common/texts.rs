@@ -61,8 +61,8 @@ pub fn plan(status: &str, spec_revision: u32, tasks: &[(&str, usize, usize)]) ->
     text
 }
 
-pub fn decision(status: &str) -> String {
-    format!("---\nstatus: {status}\napproved-by:\n---\n\n# Topic\n\nA choice.\n")
+pub fn decision() -> String {
+    "---\nicon: git-branch\n---\n\n# Topic\n\nA choice.\n".to_string()
 }
 
 /// A valid record of a finished feature or change, `kind` `feature` or `change`: a feature's has

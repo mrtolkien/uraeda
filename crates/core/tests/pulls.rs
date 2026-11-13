@@ -348,7 +348,7 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
         }
         Gain::Decision => {
             repo.write("specs/decisions/x.md", "# X\n");
-            repo.commit("decision: x");
+            repo.commit("docs: x");
         }
         Gain::RenamedIntoNotes => {
             repo.remove("README.md");
@@ -442,7 +442,7 @@ fn behind_rows() -> [BehindRow; 13] {
             false,
             Gain::Decision,
             "{b}",
-            Some(("implementation", "decision: x")),
+            Some(("implementation", "docs: x")),
         ),
         (
             "the branch holds main's tip",
