@@ -185,9 +185,17 @@ export function TextField(props: TextFieldProps) {
   // Who this field is to the key registry, which hints only its keys while it has the focus; a
   // field taken away with the focus gives it back.
   const self = {};
+  // Whether its editor has the platform's focus, and whether the field went.
+  let holding = false;
+  let gone = false;
   cleanup(() => {
+    gone = true;
     if (reported !== null && untracked(vimStatus) === reported) vimStatus.set(NO_FIELD);
     fieldFocused(self, false);
+    // Native Shell frees a view only once the garbage collector takes its last reference, seconds
+    // later at times: until then, the editor it took away keeps the platform's focus, and every
+    // key the page should hear is typed into it. It lets go now.
+    if (holding) editor?.blur();
   });
   const jump = signal<CaretTrail | null>(null);
   const vim = () => vimMode() && props.readOnly !== true;
@@ -294,6 +302,9 @@ export function TextField(props: TextFieldProps) {
             normalFirst={props.normalFirst === true}
             oneLine={oneLine()}
             onBlur={() => {
+              holding = false;
+              // The blur of a field that went: its owner's handler belongs to a field no more there.
+              if (gone) return;
               stop.onBlur();
               fieldFocused(self, false);
               status.set(NO_FIELD);
@@ -306,6 +317,7 @@ export function TextField(props: TextFieldProps) {
               props.onChange?.(value);
             }}
             onFocus={() => {
+              holding = true;
               stop.onFocus();
               fieldFocused(self, true);
               props.onFocus?.();

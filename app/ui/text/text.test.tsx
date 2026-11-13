@@ -110,3 +110,14 @@ test("the status line hints only the keys a field hears while it has the focus",
   await app.keyboard.press("escape");
   expect(app.texts()).toContain("Hints: keys, move");
 });
+
+test("a field that goes while it has the focus gives the page its keys at once", async () => {
+  const app = await page("off");
+  await app.type("id:scratch", "A ");
+  // Saved and taken away with the focus, as a comment once saved: the page's `j` works again,
+  // not only once Native Shell collects the field's view.
+  await app.press("id:drop");
+  await app.waitUntil(() => !app.shows("id:scratch"));
+  await app.keyboard.press("j");
+  expect(app.texts()).toContain("Moved: 1");
+});
