@@ -10647,9 +10647,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   screen would forget one.
 - **Alternatives considered**: the address naming the sheet, so a reload reopens it (`openOverlay`'s
   `to`): each sheet would need a route of its own; the visit alone gives Back.
-- **If wrong**: a sheet whose action opens another page leaves its visit under that page, and Back
-  from there shows the first page with nothing open, a second Back leaving it; dropping the visit as
-  a page opens from it would need the history to replace a visit it cannot see the end of.
+- **If wrong**: a page opened from a sheet still open takes the sheet's visit, so one Back returns
+  under it (T205.1, which removed the dead visit this ruling first left there).
 - **Where**: `app/ui/surfaces/backCloses.ts`, `app/ui/surfaces/Float.tsx`; the history's
   `overlayVisits`, bound by the app's entry, `App.tsx` (the component library imports nothing of the
   store, as an extension's page is built from `app/ui/` alone, and the store nothing of the
@@ -10724,3 +10723,30 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/cli/src/import_sessions.rs`, `crates/server/src/start.rs` (`held`),
   `crates/server/tests/runner_store.rs`, `crates/server/tests/one_server.rs`,
   `crates/cli/tests/import_sessions.rs`.
+## T205.1: A sheet's visit closes at once in the app, and the browser's writes wait for its Back
+
+- **Decision**: closing a sheet's visit (`closeOverlay`, the `close` of `overlayVisits`) shows the
+  page under it at once, with what the visit kept meanwhile, and asks the adapter to go back. Until
+  that Back lands, every write the history asks of the adapter (a push, a replace, another Back)
+  waits in order (`toAdapter`), and the Back's own arrival, already shown, is only counted. A page
+  opened while a sheet's visit is shown takes that visit's place (`replace`) instead of going after
+  it. `back` of `overlayVisits` became `close(label)`, which does nothing unless that visit is
+  shown.
+- **Rationale**: a browser's `history.back()` lands on a later tick: a page pushed right after a
+  sheet closed (the leave sheet's Leave page, the continue sheet's Continue, Postpone) was the entry
+  that Back then left, and the owner was bounced to the page they left; leaving by Back with unsaved
+  text queued two Backs, and the second asked again. The memory history of `nsh test` and GTK goes
+  back at once, and never showed it. Holding the adapter's writes, not the app's state, keeps every
+  caller as it was, and the page shown never waits on the browser. Replacing the sheet's visit as a
+  page opens from it removes R531's leftover: Back from that page returns to the one under the sheet
+  in one press.
+- **Alternatives considered**: holding `navigate`, `open`, and `back` themselves until the Back
+  lands: the page shown would lag the press, and a sheet opened meanwhile would read as closed by
+  its float. Replacing only when a navigation follows a close: the close's Back is already asked by
+  then, and a browser's Back cannot be taken back.
+- **If wrong**: the history counts its own Backs by their arrivals, in order: a Back of the
+  browser's own pressed in the same tick as a sheet closes is counted as the sheet's, and shows
+  nothing until the next. A page opened from a sheet over another sheet replaces only the top one's
+  visit: Back then shows the first sheet's page with nothing open.
+- **Where**: `app/store/history.ts`, `app/ui/surfaces/backCloses.ts`, `app/store/routes.test.ts`,
+  `crates/server/tests/browser/phone_sheets.rs`.

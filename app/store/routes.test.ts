@@ -7,11 +7,14 @@ import {
   back,
   bindHistory,
   entry,
+  type Entry,
   entryAt,
+  type HistoryAdapter,
   keep,
   memoryHistory,
   navigate,
   openOverlay,
+  overlayVisits,
   positions,
   redirect,
   route,
@@ -329,4 +332,82 @@ test("an address kept with a repository opens in that repository, whichever is s
     page: "new",
     repo: "todo-app",
   });
+});
+
+/**
+ * The app's own stack, whose Back arrives on a later tick, as a browser's `popstate` does: a push
+ * made meanwhile is under it when it lands.
+ */
+function browserLike(start: Entry): HistoryAdapter {
+  const stack = memoryHistory(start);
+  return { ...stack, back: () => void setTimeout(() => stack.back(), 0) };
+}
+
+/** A sheet opened over the page, by the label `backCloses` gives it, and closed by its owner. */
+const sheet = (label: string) => ({
+  close: () => overlayVisits.close(label),
+  open: () => overlayVisits.open(label),
+});
+
+test("in a browser, a page opened as a sheet closes is the one shown, and one Back leaves it", async () => {
+  setLeaveGuard(undefined);
+  bindHistory(browserLike(entryAt("/r/uraeda/f/x")));
+  const continueSheet = sheet("float-1");
+  continueSheet.open();
+  // The continue sheet's Continue: the sheet closes, then the session opens.
+  continueSheet.close();
+  navigate({ id: "s-1", page: "session-id" });
+  await settled();
+  await settled();
+  expect(shown()).toBe("/r/uraeda/sessions/s-1");
+  expect(back()).toBe(true);
+  await settled();
+  await settled();
+  expect([shown(), entry().kept.overlay]).toEqual(["/r/uraeda/f/x", undefined]);
+
+  // A sheet whose action opens a page before it closes leaves no visit for a second Back.
+  const postpone = sheet("float-2");
+  postpone.open();
+  navigate({ id: "s-2", page: "session-id" });
+  postpone.close();
+  await settled();
+  expect(shown()).toBe("/r/uraeda/sessions/s-2");
+  expect(back()).toBe(true);
+  await settled();
+  await settled();
+  expect([shown(), entry().kept.overlay]).toEqual(["/r/uraeda/f/x", undefined]);
+});
+
+test("in a browser, the leave sheet's Leave page leaves, by a link and by Back", async () => {
+  setLeaveGuard(undefined);
+  bindHistory(browserLike(entryAt("/r/uraeda/inbox")));
+  let asked = 0;
+  let answer: ((leave: boolean) => void) | undefined;
+  const leave = sheet("float-3");
+  // The guard opens its sheet, and closes it as it is answered, as `LeaveGuard` does.
+  setLeaveGuard(() => {
+    asked += 1;
+    leave.open();
+    return new Promise((resolve) => {
+      answer = (yes) => {
+        resolve(yes);
+        leave.close();
+      };
+    });
+  });
+  navigate({ page: "git" });
+  answer?.(true);
+  await settled();
+  await settled();
+  expect([asked, shown()]).toEqual([1, "/r/uraeda/git"]);
+
+  // Back, answered "Leave page", leaves once: it is not asked again.
+  expect(back()).toBe(true);
+  await settled();
+  expect([asked, shown()]).toEqual([2, "/r/uraeda/git"]);
+  answer?.(true);
+  await settled();
+  await settled();
+  await settled();
+  expect([asked, shown()]).toEqual([2, "/r/uraeda/inbox"]);
 });

@@ -25,6 +25,8 @@ mod persona_errands;
 mod persona_glance;
 #[path = "phone_persona_sizes.rs"]
 mod persona_sizes;
+#[path = "phone_sheets.rs"]
+mod sheets;
 #[path = "phone_shots.rs"]
 mod shots;
 #[path = "phone_states.rs"]

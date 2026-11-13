@@ -117,6 +117,15 @@ const shownEntry = signal(current);
 let guard: LeaveGuard | undefined;
 /** Set once the human chose to leave by Back: the Back that leaves is not asked about again. */
 let leaving = false;
+/**
+ * The Backs asked of the adapter to close a sheet, whose visit the app already shows: a browser's
+ * Back lands on a later tick, and a visit pushed meanwhile would be the one it leaves. Until each
+ * lands, what the app asks of the adapter waits in `after`, in order.
+ */
+let closing = 0;
+const after: Array<() => void> = [];
+/** The overlay each open one was opened over, by its label: shown again as it closes. */
+const beneath = new Map<string, string | undefined>();
 // The app's own stack hears its moves as a bound one does: unbound, a Back popped a visit and
 // showed nothing, so `b` and Back did nothing anywhere the app keeps its own visits.
 adapter.listen(arrive);
@@ -142,9 +151,15 @@ function show(next: Entry) {
   });
 }
 
+/** Runs `write` on the adapter now, or once the sheets' Backs asked before it have landed. */
+function toAdapter(write: () => void) {
+  if (closing > 0) after.push(write);
+  else write();
+}
+
 /** Changes the visit shown, in the adapter too. */
 function change(next: Entry) {
-  adapter.replace(next);
+  toAdapter(() => adapter.replace(next));
   show(next);
 }
 
@@ -180,12 +195,28 @@ export function setLeaveGuard(next: LeaveGuard | undefined) {
 export function bindHistory(next: HistoryAdapter) {
   adapter = next;
   leaving = false;
+  closing = 0;
+  after.length = 0;
+  beneath.clear();
   adapter.listen(arrive);
   change(adapter.start());
 }
 
 /** A visit the adapter moved to: by `back`, or by a button of its own. */
 function arrive(reached: Entry) {
+  if (closing > 0) {
+    // A sheet's Back, whose visit is shown already: what waited for it reaches the adapter.
+    closing -= 1;
+    // A write may be a sheet's Back again, which holds the rest.
+    for (
+      let write = after.shift();
+      write !== undefined;
+      write = closing === 0 ? after.shift() : undefined
+    ) {
+      write();
+    }
+    return;
+  }
   // The same visit is an overlay closing over its page.
   const stays = reached.id === current.id || staysOnPage(current.route, reached.route);
   const asking = leaving || stays ? undefined : guard?.();
@@ -198,16 +229,22 @@ function arrive(reached: Entry) {
   adapter.push(current);
   void asking.then((leave) => {
     if (leave) {
-      leaving = true;
-      adapter.back();
+      toAdapter(() => {
+        leaving = true;
+        adapter.back();
+      });
     }
   });
 }
 
-/** Opens `to` in a visit of its own, after the one shown. */
+/**
+ * Opens `to` in a visit of its own, after the one shown: in place of an overlay's visit, as a
+ * sheet's action opens a page, so Back from that page returns to the one under the sheet.
+ */
 function open(to: Route, kept: Kept) {
   const next: Entry = { from: current.route, id: newId(), kept, positions: {}, route: to };
-  adapter.push(next);
+  const over = current.kept.overlay !== undefined;
+  toAdapter(() => (over ? adapter.replace(next) : adapter.push(next)));
   show(next);
 }
 
@@ -248,7 +285,7 @@ export function back(): boolean {
   if (current.from === undefined && current.kept.overlay === undefined) {
     return false;
   }
-  adapter.back();
+  toAdapter(() => adapter.back());
   return true;
 }
 
@@ -259,8 +296,30 @@ export function back(): boolean {
  */
 export function openOverlay(label: string, to: Route = current.route) {
   const next: Entry = { ...current, kept: { ...current.kept, overlay: label }, route: here(to) };
-  adapter.push(next);
+  beneath.set(label, current.kept.overlay);
+  toAdapter(() => adapter.push(next));
   show(next);
+}
+
+/**
+ * Closes the overlay `label` if its visit is shown: the visit under it is shown at once, with
+ * what the overlay's kept since, and the adapter goes back to it.
+ */
+export function closeOverlay(label: string) {
+  if (current.kept.overlay !== label) return;
+  const { overlay: _closed, ...kept } = current.kept;
+  const under = beneath.get(label);
+  beneath.delete(label);
+  const page: Entry = {
+    ...current,
+    kept: under === undefined ? kept : { ...kept, overlay: under },
+  };
+  toAdapter(() => {
+    closing += 1;
+    adapter.back();
+  });
+  toAdapter(() => adapter.replace(page));
+  show(page);
 }
 
 /**
@@ -288,7 +347,8 @@ export function positions(): {
     keep(name, offset) {
       if (current.id === id) {
         current = { ...current, positions: { ...current.positions, [name]: offset } };
-        adapter.replace(current);
+        const kept = current;
+        toAdapter(() => adapter.replace(kept));
       }
     },
   };
@@ -296,7 +356,7 @@ export function positions(): {
 
 /** The visits a sheet on a phone opens, so Back closes it: for `bindVisits` of `ui/surfaces`. */
 export const overlayVisits = {
-  back: () => void back(),
+  close: closeOverlay,
   open: (label: string) => openOverlay(label),
   shown: () => entry().kept.overlay,
 };

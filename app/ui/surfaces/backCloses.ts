@@ -1,7 +1,8 @@
 // On a phone, a sheet is a visit of its own over its page (the phone guide: "each in the address,
 // so Back closes it"): the browser's Back, or a swipe from the screen's edge, closes the sheet
 // and stays on the page, where it left the page before. Closed any other way, by its Close, its
-// Save, or a tap above it, its visit goes, so the next Back leaves the page as it would have.
+// Save, or a tap above it, its visit goes, so the next Back leaves the page as it would have, and a
+// page its action opens takes its visit's place (the history's `closeOverlay` and `open`).
 //
 // The visits are the app's history's, which its entry binds here (`bindVisits`, `App.tsx`): the
 // component library imports nothing of the app's store, as an extension's page is built from
@@ -13,8 +14,8 @@ import { onChange } from "./presence";
 export type Visits = {
   /** Opens a visit of the page shown, named `label`, over it. */
   open: (label: string) => void;
-  /** Goes back to the visit before. */
-  back: () => void;
+  /** Closes the visit `label`, if it is the one shown: the page under it shows at once. */
+  close: (label: string) => void;
   /** The name of the visit shown, if it is one `open` made: a signal. */
   shown: () => string | undefined;
 };
@@ -53,7 +54,7 @@ export function backCloses(open: () => boolean, wanted: () => boolean, close: ()
     mine = undefined;
     if (was === undefined) return;
     alive.delete(was);
-    if (numberOf(visits?.shown()) === was) visits?.back();
+    visits?.close(`float-${was}`);
   };
   if (untracked(open)) opened();
   onChange(open, (now) => (now ? opened() : closed()));
