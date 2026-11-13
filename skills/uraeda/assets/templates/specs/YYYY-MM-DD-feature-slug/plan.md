@@ -23,7 +23,8 @@ boundaries tasks rely on. Scale the detail to the change. See the
 ## Review focus
 
 The most consequential conditions or sequences the spec implies but does not name, including
-interactions with existing behaviour. Each gets a test in the task that owns the code.
+interactions with existing behaviour. Each names the task whose tests cover it, or says why it has
+none.
 
 1. **[An input or failure mode the spec does not mention]** [the behaviour a reasonable person would
    expect]. Task [N].
@@ -142,7 +143,7 @@ The break each test catches:
 - [ ] **Step 3: Run them to check they fail**
 
 - Run: `[command]`
-- Expected: FAIL, [the first failure the run will hit].
+- Expected: FAIL, [the behaviour that is missing; the exact message only when it is stable].
 
 - [ ] **Step 4: Implement**
 
@@ -157,7 +158,11 @@ to the implementer.]
   [with the checks it defers to the complete validation named, when the project has a fast check:
   the plan names only the expected deferrals, and the commit body names the real ones].
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: [Only when the task builds something a user acts on.] Use it**
+
+[The act to do in the running product, and the effect to see.]
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add [the files of this task]

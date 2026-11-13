@@ -1,100 +1,52 @@
 # Conventions
 
-The conventions shared by all steps: how workflow files are written and track their state, how one
-in an old format is rewritten, and how the human reviews them. Also where each feature's branch
-lives, and how every step commits.
+What every step shares: how workflow files are written and track their state, how the human reviews
+them, where each feature's branch lives, and how every step commits.
 
 ## Markdown
 
-Workflow files must read well as plain text, on GitHub, and in Obsidian, the reference renderer. Use
-GitHub Flavored Markdown, plus these extensions, which stay readable where they do not render:
+Workflow files read well as plain text, on GitHub, and in Obsidian. Use GitHub Flavored Markdown,
+plus these extensions, which stay readable where they do not render:
 
 - **Callouts**: `> [!IMPORTANT]`, `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, `> [!QUESTION]`.
-- **Typed bullets**, with a word or sign that reads on its own: `- [pro]`, `- [con]`, `- [?]`
-  question, `- [!]` important.
-- **List callouts**, a marker after the dash, to highlight one bullet: `- ! warning`,
-  `- ? question`, `- & note`.
+- **Typed bullets**: `- [pro]`, `- [con]`, `- [?]` question, `- [!]` important.
+- **List callouts**, to highlight one bullet: `- ! warning`, `- ? question`, `- & note`.
 - **Links**: markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository
   root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not
-  write them. Link to what a file relies on: decisions, discovery, code.
-- **Story links**: a link to a `*.stories.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, or `.svelte` file,
-  from the repository root or relative, then `#` and the story's export name, an ASCII identifier:
+  write them.
+- **Story links**: a link to a stories file, then `#` and the story's export name:
   `[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)`. With an active preview decision, a
-  story link alone in its paragraph is a mockup: a tool that shows the preview draws it live, and
-  anywhere else it opens in Storybook. A variant's story link is a paragraph of its option.
-- **Diagrams**: a fenced code block whose language is `mermaid`. Use it for a flow, a sequence, or
-  states that a list would make hard to follow: a `flowchart`, a `sequenceDiagram`, or a
-  `stateDiagram-v2`. It reads as text anywhere, and renders on GitHub. Never an image of a diagram,
-  an ASCII drawing, or another diagram language. See
-  [Writing for the human](writing.md#every-document).
-- **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
-  committed with it. Each is re-encoded once as WebP, with no metadata. Its long edge is at most
-  2576 pixels. JPEG and lossy WebP use quality 80, the rest near-lossless. An animated GIF stays a
-  `.gif`, without metadata. A proposal file that gets an image becomes a folder,
-  `<slug>/proposal.md`, and a note file `<slug>/note.md`, and links to them follow. When you commit
-  a human's file, delete the images of its folder that no file there links to; starting a feature
-  moves them all, unchanged.
+  story link alone in its paragraph, with a blank line before and after, is a mockup, drawn live by
+  a tool that shows the preview. Link each story you wrote or changed this way in your reports too.
+- **Diagrams**: a fenced code block whose language is `mermaid`: a `flowchart`, a `sequenceDiagram`,
+  or a `stateDiagram-v2`. Never an image of a diagram, or an ASCII drawing.
+- **Images**: `![alt](images/name.webp)`, in the `images/` folder next to the file, committed with
+  it, re-encoded once as WebP without metadata, at most 2576 pixels on its long edge. An animated
+  GIF stays a GIF. A proposal or note file that gets an image becomes a folder, `<slug>/proposal.md`
+  or `<slug>/note.md`.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 
 - **Frontmatter**: exactly the fields this skill defines.
 - **Headings**: the template's text, level, and order. Leave out an optional section entirely, never
-  rename it.
-- **Optional sections**: in the templates, their placeholder starts with `[Optional`.
-- **Structured items**: fixed patterns, so they can be found and rendered:
-  - questions `## Q1: ...`, numbered from Q1, each with its `**Answer:**` line;
-  - follow-ups `### Q1.B: ...`, on an option of their parent;
+  rename it. In the templates, an optional section's placeholder starts with `[Optional`.
+- **Structured items** follow fixed patterns:
+  - questions `## Q1: ...`, each with its `**Answer:**` line, and follow-ups `### Q1.B: ...`;
   - options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets;
+  - settled points starting with a bold subject, each in one of its groups;
   - user stories `### US1: Title (P1)`, their scenarios in a "Key scenarios:" list and an optional
     "More scenarios:" list, each with **Given**, **When**, **Then**;
   - success criteria `- **SC-001** (<measure>): <outcome>.`, the measure optional;
   - edge cases as a table whose importance is `High`, `Normal`, or `Niche`;
-  - a spec's answers to its last review
-    `- **C2** (<the comment in a few words>): <done or declined>. <what was done, or why not>.`;
-  - a spec's decisions `- **New: [<title>](../decisions/<name>.md)**. <sentence>`, the same with
+  - a spec's answers to its last review, `- **C2** (<the comment>): <done or declined>. <what>.`;
+  - a spec's decisions, `- **New: [<title>](../decisions/<name>.md)**. <rule>`, the same with
     `Changed:`, and ``- **Removed: <title>** (`<name>.md`). <why>``;
-  - plan tasks `## Task 1: ...`;
-  - rulings `## R1: ...`;
-  - review comments `## C1: ...`.
+  - plan tasks `## Task 1: ...`, rulings `## R1: ...`, review comments `## C1: ...`.
 - **Everything else**, inside sections, is free text.
 
-With `ura`, run `ura check` before every commit of workflow files. It verifies the rules of this
-file, and reports each problem with its file and line. It also warns, without failing, when a file
-waiting for the human drifts from the limits of [Writing for the human](writing.md). In short, it
-checks:
-
-- folder names `YYYY-MM-DD-<slug>` with a real date, and rounds with two digits;
-- the frontmatter fields of each file, with the values of the [status table](#workflow-status);
-- `plan-review` is `true` or `false`;
-- a spec's `clarifications` is at most its last round, and a plan's `spec-revision` is at most the
-  spec's `revision`;
-- the template's title, sections, and order;
-- no level-2 section the template does not have, and no `###` heading it does not have in a round's
-  Context or settled points;
-- each settled point in one of its groups;
-- the structured items above;
-- an answer for every question that applies once a round is `answered`;
-- the `> [!IMPORTANT]` block of a file waiting for the human;
-- a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date, its numbered rounds and questions,
-  and its opening `> [!NOTE]` block;
-- a record's `supersedes` and `superseded-by`, each naming a record that names this one back in the
-  other list;
-- `PRIORITIES.md`'s `## Now`, `## Next`, and `## Later`; a section's context is the first callout of
-  any type under its heading, its text in the same callout as its marker (a warning otherwise).
-  `## Blocked` no longer exists: a blocked proposal goes after what it needs, and one left under it
-  warns;
-- no `specs/drafts/` or `specs/backlog/` folder holding files: tools no longer read them, see
-  [moving them](projects.md#moving-drafts-and-the-backlog-to-the-proposals);
-- `specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
-- `specs/INBOX-TRIAGE.md` and `specs/DECISIONS-CHECK.md` as rounds of questions, with their
-  templates' titles and sections, their `status`, their answers, and their blocks;
-- the files of `specs/decisions-check/q<N>-<letter>/` as decisions, each in an option's folder;
-- links and images to markdown files and into `specs/` that resolve, anchors included. Links from
-  `PRIORITIES.md` and `INBOX.md` into a started feature's or change's folder, whose files live on
-  its branch, are exempt;
-- the [review files](#review-files) rules;
-- the preview decision's two fields, both or neither: a `preview-folder` that is `.` or a relative
-  path without `..`, and a `preview-command` holding `{port}`.
+With `ura`, run `ura check` before every commit of workflow files: it verifies these rules, the
+links, and the limits of [Writing for the human](writing.md), and reports each problem with its file
+and line.
 
 ## Workflow status
 
@@ -117,159 +69,97 @@ Workflow files track their state in frontmatter fields.
 | `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                                     |
 | `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                                        |
 | `DECISIONS-CHECK.md`   | `status`          | `awaiting-human`                      | `answered`                                        |
-| `decisions/preview.md` | `preview-folder`  | where Storybook runs: `.`, `web`      |                                                   |
+| `decisions/preview.md` | `preview-folder`  | where the preview runs: `.`, `web`    |                                                   |
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                                   |
 
-`resumes` is optional, and a round asked during the
-[implementation](implementation.md#when-you-must-stop) can have it: the human answered to continue
-the implementation, with the approved spec as it is.
+A decision is `proposed` while a branch creates or changes it: the branch edits it in place, and
+empties its `approved-by`. The default branch keeps the active text until the branch merges.
 
-A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
-See [Change](change.md).
-
-A decision is `proposed` while a branch creates or changes it, an active one included: the branch
-edits it in place, and empties its `approved-by`. The default branch keeps the active text until the
-branch merges. The approval of the spec, or of a change's round, sets it back to `active`.
-
-Only set a human status when the human expressly asks you to in the session, for example "the spec
-is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
-so in its body: "Approved by the human in the session." When the human changes a spec's `risk-tier`
-on approval without naming `plan-review`, set `plan-review` to `false`. With `ura`, pass
-`--no-commit` to `ura answer` or `ura review`, and commit with that message and body. With
-`changes-requested`, the human's feedback is in the file's [review file](#review-files).
+**Set a human status only when the human expressly asks you to in the session**, "the spec is
+approved". Commit with the message a tool would write, `spec(recurring-tasks): approve`, and say so
+in its body: "Approved by the human in the session." A gate the human waived is recorded the same
+way, in their words. With `ura`, pass `--no-commit` to `ura answer` or `ura review`, and commit with
+that message and body.
 
 ## A file in an old format
 
-When a workflow file of the target fails `ura check`, or the rules of [Markdown](#markdown), because
-the skill changed its format, rewrite it from its template first, keeping its content, and the
-human's answers, notes, and comments, word for word. Commit it on its own,
-`chore(<slug>): rewrite <file> in the new format`, then run the step. An answered round stays
-answered: only its form changes.
+When a workflow file of the target fails `ura check` because the skill changed its format, rewrite
+it from its template first, keeping its content and the human's words exactly. Commit it on its own,
+`chore(<slug>): rewrite <file> in the new format`, then run the step.
 
 ## Review files
 
 A review of `spec.md` or `plan.md` writes its comments in `spec-review.md` or `plan-review.md`, next
 to it, from [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec-review.md). The
-file exists only when the latest review has comments: the next review replaces it, and a review
-without comments deletes it. Git keeps the earlier ones. The reviewed file keeps its `status`, the
-source of truth.
+file exists only when the latest review has comments: the next review replaces it, and git keeps the
+earlier ones. The reviewed file keeps its `status`, the source of truth.
 
 - **Frontmatter**: `verdict`, `pending` while the human writes it, then `approved` or
-  `changes-requested`; and `commit`, the short hash of the commit holding the version reviewed.
+  `changes-requested`; and `commit`, the short hash of the version reviewed.
 - **Comments**: `## C1: ...`, numbered from C1. A comment points to
-  `Lines 50–52, under "<heading>"`, `Line 50, under "<heading>"`, or `General`: the line numbers are
-  those of the version at `commit`, and the heading is the nearest one above them. A line comment
-  quotes its lines, as a quote block, then says what it has to say.
+  `Lines 50–52, under "<heading>"`, `Line 50, under "<heading>"`, or `General`, and quotes its lines
+  as a quote block, then says what it has to say.
 - **A comment on a decision** the spec lists points into the decision's file:
-  `## C4: Decision task-storage, lines 20–21, under "Rules"`. The lines are those of the decision's
-  file at `commit`, on the branch. A comment on a part the branch removed points to the default
-  branch's lines, with `removed` after them: `lines 18–19 removed`.
-- **A comment on a story** starts with `Story <file name>#<export>`. When the human picked an
-  element, `, <phone or desktop>, <role> “<name>”` follows. The width is there only while both
-  showed. Without a name, it is `<role> with “<its text's first 40 characters>”`, or the role alone
-  when it has no text either. Then `: ` and the text:
-  `Story RepeatMenu.stories.tsx#Open, phone, button “Weekly”: Too small to tap.` On a question's
-  variant, the same line is added to its answer, and in a session to the human's message.
+  `## C4: Decision task-storage, lines 20–21, under "Rules"`. The lines are the decision file's at
+  `commit`, on the branch. A comment on a part the branch removed points to the default branch's
+  lines, with `removed` after them.
+- **A comment on a story** starts with `Story <file name>#<export>`, then the element picked, when
+  one was: `Story RepeatMenu.stories.tsx#Open, phone, button “Weekly”: Too small to tap.`
 - **Changes requested** need at least one comment.
 - **Approved with comments**: the comments do not change the approved file. The next step carries
-  them out, and says how. For a spec, it is the plan, in its `## Review comments` section. For a
-  plan, it is the implementation, in the pull request's body.
+  them out, and says how: the plan for a spec's, the pull request for a plan's. A comment that
+  answers a block item, or adds a case, does not need a request for changes.
 
-With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"` or
-`--comment general "<text>"`, then records the verdict, `--approve` or `--request-changes`, with the
-status, the block's record, and the commit.
+With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"`, then records the verdict,
+`--approve` or `--request-changes`.
 
 ## Branches
 
 Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`). The
 proposal is committed on the default branch when the feature
 [starts](projects.md#starting-postponing-and-dropping-a-feature), and the branch starts from there.
-The branch holds everything after it: discovery, questions, spec, decisions, plan, and
-implementation, until its folder is [finished](projects.md#finishing-a-feature) into a record. Its
-pull request merges all of it at once. Decisions become active on the branch when its spec is
-approved, and bind the rest of the project once the branch is merged. A branch never writes
-`PRIORITIES.md` or `INBOX.md`, which the human writes on the default branch, so parallel branches
-never conflict there: an agent's note is a note file of its own. A change lives on
-`change/YYYY-MM-DD-<slug>`, named after its folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every
-step on the target's branch: the human answers and approves on it too.
+It holds everything after: discovery, questions, spec, decisions, plan, and code, until its folder
+is [finished](finish.md) into a record. Its pull request merges all of it at once. A change lives on
+`change/YYYY-MM-DD-<slug>`, with its folder in `specs/changes/`. Run every step on the target's
+branch: the human answers and approves on it too.
 
-Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
-checkout itself or a worktree. Else write in a worktree at `.worktrees/<branch>/`, at the root of
-the main checkout, created with `git worktree add`. `ura start` creates a started feature's or
-change's at `.worktrees/<folder>/`. Keep `.worktrees/` out of `git status` through the repository's
+**A branch never writes `PRIORITIES.md` or `INBOX.md`.** The human writes them on the default
+branch, so parallel branches never conflict there. An agent's note is a
+[note file of its own](inbox.md#agents-notes).
+
+**Never switch the human's checkout to reach a branch.** Write where the branch is checked out, the
+checkout itself or a worktree, or else in a new worktree at `.worktrees/<branch>/`, at the root of
+the main checkout, created with `git worktree add`. Keep `.worktrees/` out of `git status` through
 `.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path, commit in a
-worktree with it made absolute from the main checkout, so the same hooks run. Worktrees stay until
-removed with `git worktree remove`. `ura` does all of this.
+worktree with it made absolute from the main checkout, so the same hooks run. A new worktree has
+none of the project's dependencies: set it up as the project asks before running anything in it.
+`ura start` does all of this.
 
 ## Commits
 
-One commit per step, and one per task during the implementation, plus one for a task's structural
-step, containing only its files. Messages follow
-[Conventional Commits](https://www.conventionalcommits.org/), with one extra type per workflow step.
-The scope is the feature's or the change's slug, its folder's name without the date. The description
-is the feature name for a first version, and what changed for later commits.
+One commit per step, holding only its files, and one per task during the implementation, plus one
+for a task's structural step. The description is the feature's name for a first version, and what
+changed after. Messages follow [Conventional Commits](https://www.conventionalcommits.org/), with
+one extra type per workflow step. The scope is the feature's or the change's slug, its folder's name
+without the date.
 
 | Type         | Step                                         | Example                                            |
 | ------------ | -------------------------------------------- | -------------------------------------------------- |
-| `discovery:` | A discovery and questions round              | `discovery(recurring-tasks): recurring tasks`      |
-| `decision:`  | Apply approved decisions                     | `decision(recurring-tasks): apply due dates`       |
+| `discovery:` | A round of questions, and its research       | `discovery(recurring-tasks): recurring tasks`      |
 | `spec:`      | Write or revise a spec and its decisions     | `spec(recurring-tasks): recurring tasks`           |
+| `decision:`  | Apply approved decisions                     | `decision(recurring-tasks): apply due dates`       |
 | `plan:`      | Write or revise a plan                       | `plan(recurring-tasks): split the store migration` |
 | `review:`    | Commit a review's findings, `findings-NN.md` | `review(recurring-tasks): findings 02`             |
 | `finish:`    | Replace the folder with its record           | `finish(recurring-tasks): recurring tasks`         |
 
 Code commits use the plan's messages, with the standard types and the same scope:
-`feat(recurring-tasks): repeat menu`. A change has no plan. Its code commits use `fix(<slug>):` for
-a bug, as in `fix(tasks-reappear): save new tasks as they are`, and `feat(<slug>):` for a change.
-Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
-`decision(<slug>): apply <topic>`.
+`feat(recurring-tasks): repeat menu`. A change's code commits use `fix(<slug>):` for a bug and
+`feat(<slug>):` for a change. A commit that waits for the human has the block's first line as its
+body.
 
-Tools save the human's edits and never commit them on their own. An edit waits until the human
-commits it, or runs an action that says it commits, like submitting a round's answers. Starting a
-feature or a change may commit on its own. A tool commits the files the human staged, with the
-message they typed, in the checkout that holds them.
-
-The human's commits, and the agent's when the human asks, use the step's type for what they answer
-and `chore:` for the rest. `ura` and other tools write the same messages. A message the human typed
-is committed as typed.
-
-| Commit                             | Example                                                                                                                                             |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Answer a round of questions        | `discovery(recurring-tasks): answer round 01`                                                                                                       |
-| Approve, or request changes        | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                                                                          |
-| A proposal file, then its edits    | `chore: expand Recurring tasks`, `chore: edit the proposal Recurring tasks`                                                                         |
-| A started proposal, then its edits | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                                                                     |
-| A note file, then its edits        | `chore: add the note Sort completed tasks`, `chore: edit the note Sort completed tasks`                                                             |
-| Start, postpone, drop              | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks`, `chore(recurring-tasks): drop Recurring tasks` |
-| `PRIORITIES.md` alone              | `chore: move "Recurring tasks" to Next`                                                                                                             |
-| A merged feature's line, cleaned   | `chore(recurring-tasks): remove "Recurring tasks" from the priorities`                                                                              |
-| A note                             | `chore: add "Sort completed tasks" to the inbox`                                                                                                    |
-| `INBOX.md`, and where notes go     | `chore: move "Sort completed tasks" from the inbox to Next`                                                                                         |
-| The inbox triage                   | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage`                                                 |
-| Notes moved into the inbox         | `chore: move the scratchpad to the inbox`                                                                                                           |
-| Drafts moved to the proposals      | `chore: move the drafts and the backlog to the proposals`                                                                                           |
-| A file edited as a buffer          | `chore: edit specs/PRIORITIES.md`, on a feature's branch `chore(recurring-tasks): edit spec.md`                                                     |
-
-A commit of `PRIORITIES.md` alone names its one change: `add "<proposal>" to <section>`,
-`remove "<proposal>"`, `edit "<proposal>"`, `move "<proposal>" to <section>`, or
-`move "<proposal>" within <section>`, with the start of the proposal's text. With more changes, the
-subject names the first one and ends with `, and <count> more`, and the body lists every change, one
-per line: `- Add to Now: <proposal>`.
-
-A commit of `INBOX.md`, with the `PRIORITIES.md` and proposal files its notes went into, names its
-changes the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
-`remove "<note>" from the inbox`, `move "<note>" to <Category> in the inbox`,
-`move "<note>" from the inbox to <Section>`, or
-`move "<note>" from the inbox to the proposal <title>`. See [Inbox](inbox.md).
-
-`ura` and other tools amend the latest commit rather than add one when both are `chore:` commits
-without a scope, of `INBOX.md`, `PRIORITIES.md`, and files under `specs/proposals/` and
-`specs/notes/` alone, on the default branch. The latest commit has one parent, and no other branch,
-remote branch as last fetched or pushed, or tag holds it: a commit pushed and known to be pushed
-stays as it is. Its message is not one the human typed, and neither is the new commit's. Its body
-must be empty or a list of changes, and the amend must not leave it empty. The amended subject names
-the first change and ends with `, and <count> more`, and the body lists every change of both
-commits, a commit's one change given by its subject: `- Add "<note>" to the inbox`. By hand,
-amending is optional.
+A human's status is committed as `discovery(<slug>): answer round 01`, `spec(<slug>): approve`, or
+`plan(<slug>): request changes`. The messages a tool writes for the human's other commits, on the
+priorities, the inbox, and the proposals, are in
+[By hand](by-hand.md#commits-a-human-or-a-tool-makes).
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.

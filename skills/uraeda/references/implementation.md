@@ -1,584 +1,398 @@
 # Implementation
 
-Builds the plan wave by wave, the tasks of a wave at the same time, one commit per task, then
-delivers the branch as a pull request for the human to review.
+Builds the plan wave by wave, one commit per task, reviews it, uses what was built, and delivers the
+branch as a pull request.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
-  checked and the branch has no pull request; or its pull request has changes requested, or the
-  human's message asks to address its comments; or its open pull request is behind the default
-  branch, or lacks the branch's latest commits
+  checked and the branch has no pull request; or its open pull request has changes requested, is
+  behind the default branch, or lacks the branch's latest commits; or the human's message asks to
+  address its comments
 - **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, the reviews'
   `findings-NN.md`, and the draft pull request
-- **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after its comments are
-  addressed; or a new [discovery](discovery.md) round, when blocked
+- **Ends at**: the [finish](finish.md) step; a human gate, the pull request; or a new round of
+  questions, when blocked
 
-Build the plan's tasks within the approved behaviour and required contracts, prove the change and
-preserved guarantees, and leave the record in git. Private implementation choices can improve as the
-code reveals a simpler design: amend the plan and record the reason in `rulings.md`. Nobody waits in
-the session: do not stop to check in between tasks. Git is the only memory: the checked boxes of
+Build the plan's tasks within the approved behaviour, prove them, and use them. Nobody waits in the
+session: do not stop between tasks, waves, or reviews. Git is the only memory: the checked boxes of
 `plan.md` and the commits say how far the work went, so any agent can resume it.
 
 ## Before the first task
 
-1. Read `plan.md` in full. Its **Global constraints** apply to every task, its **Review focus**
-   lists the behaviours the plan adds to the spec, and its **Waves** say which tasks are built at
-   the same time.
-2. Read `spec.md` and, when present, `spec-review.md`: a human's approval comment supersedes the
-   clause it explicitly changes. Check the plan's **Review comments** against them. This approved
-   behaviour wins when the plan disagrees; conflicts with the constitution or active decisions still
-   need the human's explicit resolution.
-3. Read the constitution, and the active decisions that apply to the code you will touch, as they
-   are now. A human may have changed one since the plan was written: if it now conflicts with the
-   spec or the plan, stop and start a new round of questions, following
-   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
-4. If the human reviewed the plan, turn its `> [!IMPORTANT]` block into a record, in the first
-   task's commit: see [Coming back to the human](../SKILL.md#coming-back-to-the-human). When they
-   approved it with comments, `plan-review.md` holds them: carry each one out, and say how in the
-   pull request's body.
-5. Run the project's complete validation once, before any change: formatter, linter, type checker,
-   tests, without the suites the plan leaves [out of validation](#each-task). A failure that is
-   already there is reported in the pull request, not fixed in passing.
+1. Read `plan.md` in full: its **Global constraints** apply to every task.
+2. Read `spec.md` and, when present, `spec-review.md`: an approval comment wins over the clause it
+   changes, and the approved behaviour wins when the plan disagrees with it.
+3. Read the constitution, and the decisions and guides that apply to the code you will touch, as
+   they are now. If one now conflicts with the spec or the plan, [stop](#when-you-must-stop).
+4. If the human reviewed the plan, turn its block into a note, in the first task's commit. Comments
+   of `plan-review.md` are carried out, and the pull request says how.
+5. Run the project's complete validation once, before any change, without the suites the plan leaves
+   out of validation. A failure that is already there is reported in the pull request, not fixed in
+   passing.
 
-**Resuming**: start at the first wave with an unchecked step; with `ura`, `ura next` names its first
-unchecked task. The feature branch is the only progress: a task whose boxes are checked on it is
-done, even if you do not remember doing it. A task branch left by an interrupted session, whose
-commits check all its task's boxes, is merged as if its implementer had just finished; any other
-task branch, and changes left uncommitted, are not trusted: read them, delete them, and redo that
-task from its first step. A wave merged without its review, because the session ended, is reviewed
+**Resuming**: start at the first unchecked step; with `ura`, `ura next` names its task. A task whose
+boxes are checked on the feature branch is done. A task branch whose commits check all its task's
+boxes is merged as if just finished. Any other task branch, and uncommitted changes, are not
+trusted: read them, delete them, and redo that task. A wave merged without its review is reviewed
 now.
 
 ## Implementers and reviewers
 
-When Uraeda runs the workflow, the session has Uraeda's tools, `run_agent` and `review`, and the
-agent's own sub-agents are off. Both run their sub-agents as sessions of the feature, on the agent,
-model, and effort the human set for their role:
+Build the tasks of a wave at the same time when you can hand them out, and have reviews done by a
+fresh agent: a review by the author is weaker.
 
-- **`run_agent`** runs one task as an implementer, in the task's worktree. Give it the task's name
-  as the plan gives it, `Task 4`, the worktree's absolute path, and
-  [the implementer's brief](#the-implementers-brief) as its prompt. It answers with the
-  implementer's last message once it ends. Call it for every task of a wave in the same turn, so
-  they run at once. The same task asked again answers the first call, or runs a stopped task again
-  in its session and worktree.
-- **`review`** runs every reviewer the human set, at once, on the commits `base..head`: `reviewed`
-  says what they are, `wave 2` or `branch`, and `context` what the reviewers should know. It commits
-  their findings as the folder's next `findings-NN.md`, a section per reviewer, and answers with its
-  text. When the human set reviews on the branch only, a wave's call answers that no review runs:
-  that wave has nothing to fix.
-
-Without these tools, use your harness's own sub-agents where it can run them, as the sections below
-say, and write each review's findings yourself in the folder's next `findings-NN.md`, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/findings-01.md), a section per
-reviewer named after its agent and model. `NN` counts the reviews of the branch, the waves'
-included. Commit it alone, `review(<slug>): findings 02`, before fixing any of them. Either way, a
-review's findings are in git before they are fixed, so a run that stops loses none.
+- **With a harness's own tools for the workflow**, `run_agent` and `review`: `run_agent` runs one
+  task as an implementer, in the task's worktree, given the task's name as the plan has it, the
+  worktree's path, and [the brief](#the-implementers-brief). Call it for every task of a wave in the
+  same turn. Asked again for the same task, it answers the first call, or resumes a stopped task:
+  each round of fixes takes a new task name, like `Fixes of wave 2`. `review` runs every reviewer
+  the human set, on the commits `base..head`, and commits their findings as the folder's next
+  `findings-NN.md`. When the human set reviews on the branch only, a wave's call answers that no
+  review runs.
+- **Otherwise**, use your harness's sub-agents, and write each review's findings yourself in the
+  folder's next `findings-NN.md`, from
+  [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/findings-01.md), a section per
+  reviewer. Commit it alone, `review(<slug>): findings 02`, before fixing any of them: a run that
+  stops then loses none.
+- **Without sub-agents**, build the tasks yourself, in the plan's order, and review the branch as a
+  separate pass, saying so in the pull request.
 
 ## For each wave
 
-The plan's **Waves** group the tasks that can be built without seeing each other's code. Each wave
-is built on what the earlier waves made, so it starts once the previous wave is merged, not once it
-is reviewed: the review of a wave runs while the next one is built.
+1. **Build its tasks at the same time**, each by a fresh implementer with
+   [its brief](#the-implementers-brief), in its own worktree, on a task branch made from the feature
+   branch as it is now, `<feature-branch>-task-N`. Task branches stay local.
+2. **Merge them, in the plan's order**: rebase each task branch on the feature branch, fast-forward
+   the feature branch to it, then remove its worktree and branch. The history stays linear, one
+   commit per task. A conflict outside the shared files the plan's **Waves** names means the tasks
+   were not independent. A conflict in `plan.md`'s checkboxes is not one: keep both sides' checked
+   boxes. For a real one: give the later task to a fresh implementer, to rebuild on the merged code.
+3. **Check the merged wave**, in the background: that the project builds, and the tests of the code
+   the wave touched. This is not the complete validation.
+4. **Start the wave's review** in the background, and **start the next wave** without waiting for
+   the check or the review.
 
-1. **Build its tasks at the same time.** When you can hand out tasks, through `run_agent` or your
-   harness's own agents, give each task of the wave to a fresh implementer, with
-   [its brief](#the-implementers-brief) but not your session's history, all at once, as
-   [implementers and reviewers](#implementers-and-reviewers) says. Each works in its own worktree,
-   on a task branch made from the feature branch as it is now, `<feature-branch>-task-N`, and
-   follows [each task](#each-task). Task branches stay local: they are never pushed. Otherwise,
-   build the wave's tasks yourself, one after the other, in the plan's order, on the feature branch.
-2. **Merge them, in the plan's order**, a task that finishes early waiting for those before it:
-   rebase its task branch on the feature branch, fast-forward the feature branch to it, then remove
-   its worktree and branch. The history stays linear, one commit per task, as if the tasks had been
-   built one after the other. A conflict outside the shared files the plan's **Waves** names means
-   the tasks were not independent: give the later task to a fresh implementer, to rebuild on the
-   merged code, and write a ruling. In `plan.md`, keep both sides' checked boxes.
-3. **Check the merged wave**, in the background: that the project builds as a whole, with its
-   compiler or type checker, and the tests of the code the wave touched. This is not the complete
-   validation, which runs once, at the [final review](#final-review): a wave never waits for the
-   slow suites.
-4. **Start the review of the wave** in the background, as [review the waves](#review-the-waves)
-   says, and **start the next wave** without waiting for the check or the review.
+A failed check or a finding does not stop the next wave: it is fixed beside it, on a branch made
+from the feature branch, and merged like a task between two waves. Only what the next wave cannot be
+built on is fixed first: merged code that does not build, or a wrong name it consumes. What is still
+open when the last wave is merged is fixed in one pass, before the final review.
 
-**Fixes run beside the waves.** A failed check, like a review's finding, does not stop the next
-wave. Give it to a fresh implementer, a fixer, on a fixes branch, as
-[review the waves](#review-the-waves) says, while the next wave is built: a fixer and a wave's
-implementers often run together. Only a failure the next wave cannot be built on is fixed before it
-starts: merged code that does not build, or a name or an interface the next wave consumes that is
-wrong. What is still open when the last wave is merged is fixed in one pass, before the final
-review.
-
-You coordinate: you merge, check, and hand out the work. When an implementer stops or is
-interrupted, give its task to a fresh one, in the same worktree, told to resume from its commits and
-checked boxes, rather than building it in your own session. With `run_agent`, ask for the same task
-again.
+When an implementer stops or is interrupted, give its task to a fresh one, in the same worktree,
+told to resume from its commits and checked boxes.
 
 ### The implementer's brief
 
-The plan, the spec, and the rulings grow to tens of thousands of words, and an implementer told to
-read them in full reloads all of them for every task. Give it what its task needs instead, and let
-it open the rest at the sections it needs:
+An implementer told to read the whole plan, spec, and rulings reloads them for every task. Give it
+what its task needs:
 
 - the task's text, all of it, and the plan's **Global constraints**;
 - the **Review focus** items the task owns;
-- links to the spec's sections the task implements, by heading;
-- the rulings that touch the task's files;
-- the discovery's map of the code the task touches: its
-  [important reads](discovery.md#the-discovery-file) and likely changes;
-- what earlier tasks produced that it consumes: names, interfaces, files;
-- the worktree and task branch it works in, when the wave has several tasks: it commits there, and
-  never merges, rebases, or touches the feature branch.
+- links to the spec's sections and mockups the task implements;
+- the guides that apply to what it builds, and the rulings that touch its files;
+- the discovery's map of the code it touches;
+- what earlier tasks produced that it consumes;
+- its worktree and task branch: it commits there, and never touches the feature branch.
 
-Write the parts every task shares once, in a file outside the repository, and give each implementer
-its path with its task's own parts. The brief is not workflow state: a resumed session writes it
-again from the repository.
+Write the parts every task shares once, in a file outside the repository.
 
 ### Each task
 
-1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
-   **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
-   callers and owners of changed rules and state.
-2. **Work its steps in order.** A structural step comes first, and is committed on its own, with its
-   box checked. Write the task's tests first, as [writing one](code-quality.md#writing-one) says.
-   Tests of new behaviour must fail for the intended reason before implementation; checks of
-   preserved behaviour may already pass and must keep passing. Then implement, and run every command
-   the plan gives. Once a new test of a risky guarantee passes, make the break its step names, see
-   the test fail, revert it, and report the failure seen in the task's commit body: see
-   [tests that can fail](code-quality.md#tests-that-can-fail). A problem found outside the task is
-   fixed on the branch when it matters to the feature, dropped when it does not, and noted in the
-   inbox only when it passes the two tests of [agents' notes](inbox.md#agents-notes). Compare each
-   output with the step's **Expected** line:
-   - **It matches**: go to the next step.
-   - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
-     trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
-     a [change](change.md#investigating) does for a bug. For a failing existing test, see
+1. **Read the task**, all of it: its text has the exact values. Check its **Consumes** against what
+   the earlier tasks actually produced.
+2. **Work its steps in order.** A structural step comes first, committed on its own. Write the
+   task's tests first, as [writing one](code-quality.md#writing-one) says: a test of new behaviour
+   fails for the intended reason before the code exists, and a check of behaviour that must stay may
+   already pass. Then implement, and run what the plan gives. When an output differs from what the
+   plan expects:
+   - **The code is wrong**: find the root cause before changing anything, as a
+     [change](change.md#investigating) does for a bug. For a failing existing test, see
      [when a test goes](code-quality.md#when-a-test-goes).
-   - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
-     failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
-     text to describe what was built, so later tasks read the right names, and write a ruling in
-     `rulings.md`.
-   - **A private design can be simpler**: improve it within the approved behaviour, required
-     contracts, and active decisions. Update the plan, its affected task interfaces, and a ruling in
-     the same commit, so later tasks follow what was built. Remove paths made obsolete by the
-     change; keep unrelated refactoring out. Do not weaken tests or change user-visible behaviour to
-     accommodate the new design.
-3. **Run the validation the step needs**, the smallest first:
-   - **While working**: the tests the task adds or touches, by file or project, and the fast checks
-     (formatter, linter, type checker).
-   - **Before each commit**: the project's fast check when an active decision defines one, which
-     selects the checks the change can affect and names the checks it defers. Otherwise the
-     project's validation once: when it is one cached command, run it whole, as its cache skips what
-     the task did not change; else run its slow suites, such as end-to-end tests, only when the task
-     changes what they cover: a UI behaviour, a layout, a route. Write the deferred checks in the
-     commit body.
-   - **At the final review, and before every push**: the project's complete validation, every check
-     it runs locally, slow suites included. It runs once for the feature, not after each wave. A
-     green fast check never stands for it.
-   - **Never**: a suite the plan's **Global constraints** leave out of validation, such as the tests
-     of code the feature replaces. No task, no wave, and no final review runs it.
+   - **The plan is wrong**: a name that does not match its producer, a command that cannot run. Make
+     the smallest change that satisfies the spec. Edit the plan only where a later task reads it: an
+     **Interfaces** block, a file's path, a constraint. The plan is not kept as a mirror of the
+     code.
+   - **A simpler private design exists**: take it, within the approved behaviour and the contracts
+     other tasks rely on. Never weaken a test or change what users get to fit it.
+3. **Use what the task built**, when a user acts on it and the product can run at this point: start
+   it as the project says, do the act, and see its effect. The whole journeys, at every width, wait
+   for the [final review](#use-it). A key that the tests press and no hand has pressed is not done.
+4. **Run the validation the step needs**, the smallest first:
+   - **While working**: the tests the task adds or touches, and the fast checks: formatter, linter,
+     type checker.
+   - **Before each commit**: the project's fast check when a decision defines one. Otherwise its
+     validation, with the slow suites only when the task changes what they cover.
+   - **At the final review, and before each push**: the project's complete validation, slow suites
+     included. A green fast check never stands for it.
+   - **Never**: a suite the plan leaves out of validation.
 
-   A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
-   at most twice. A test that fails while the machine is saturated, by other agents' builds and
-   tests, is rerun once the machine is quiet, at most twice: when it passes then, it passed. Name it
-   in a ruling and go on. Never load the machine, or run a test in a loop, to reproduce a failure of
-   timing. A test that fails intermittently follows the project's rule for flaky tests, when an
-   active decision has one; otherwise name it in the pull request, as a failure that was already
-   there, and go on.
+   A failure unrelated to the task that passes when run again is not hunted: rerun it at most twice,
+   once the machine is quiet, and go on. Never load the machine, or run a test in a loop, to
+   reproduce a failure of timing. A flaky test that guards nothing important is removed, with a
+   ruling, never asked about. One that guards something follows the project's rule for flaky tests,
+   or is named in the pull request.
 
-   Start long work, such as a test suite, a build, or a subagent, as background work your harness
-   tracks and reports on, never with a shell's `&`. Then end your turn and wait for its notice.
-   Never poll it, with sleep loops or by rereading its output file: a run blocked in a loop cannot
-   read the human's messages.
+   Start long work, a test suite, a build, a sub-agent, as background work your harness tracks, then
+   wait for its notice. Never poll it in a loop: a run blocked in a loop cannot read the human's
+   messages.
 
-4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
-   plan's commit message. Check a box only for a step that ran, with the output the plan expects:
-   the next agent trusts it without running it again.
+5. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, with the plan's
+   message. Check a box only for a step that ran: the next agent trusts it.
 
-In the messages that report your work, link each story you wrote or changed, alone in its paragraph,
-with a blank line before and after, as a [story link](conventions.md#markdown).
+A problem found outside the task is fixed on the branch when the feature needs it, and dropped
+otherwise, unless it passes the two tests of [agents' notes](inbox.md#agents-notes).
 
 ### Review the waves
 
-Review each wave once it is merged, with `review`, or a fresh reviewer agent when your harness can
-run one, so its problems are fixed while their context is fresh, not all at the final review.
-Without either, the [review of the branch](#review-the-branch) covers the waves. The review covers
-every task the wave merged, on the diff of their commits, with the fix commits merged since the last
-review; a risky task, one that changes security, the format of stored data or its migration,
-concurrency, or a rule several callers share, gets a reviewer of its own, at the same time; with
-`review`, the context names it for the reviewers to check first. The review runs while the next wave
-is built, in the background, or with `review`, in the same turn as the next wave's `run_agent`
-calls. Give the reviewer the tasks' text, the spec's sections they implement and its approval
-comments, the global constraints, and the diff, or, with `review`, the paths and headings where they
-are. It derives expected behaviour from the approved requirements before checking the implementation
-and tests, then reviews the changed responsibilities and their callers. It gives two verdicts, spec
-compliance first, then quality, with the criteria of [Review the branch](#review-the-branch) scaled
-to the tasks, and flags what the tasks grew, not sizes that were already there
-([extract, don't grow](code-quality.md#extract-dont-grow)).
+Each merged wave is reviewed once, by `review` or a fresh reviewer, while the next wave is built.
+The reviewer gets the tasks' text, the spec's sections they implement with its approval comments,
+the global constraints, and the diff. A risky task gets a reviewer of its own. It works out the
+expected behaviour from the approved requirements before reading the code, and gives two verdicts:
+does it do what the spec says, and is it well built. It grades each finding, and says "none" when
+there is none.
 
-Its findings, in its committed `findings-NN.md`, are [graded](#grade-the-findings) like the final
-review's: the critical and important ones are fixed, with the minor ones worth fixing. Once the
-review ends, give them at once to a fresh implementer, on a branch made from the feature branch and
-named after it, like `<feature-branch>-fixes-2`, in a worktree made like a task's. It works while
-the waves go on, and no wave waits for it: merge it like a task at the next point between two waves,
-after a wave is merged and before the next one starts. Each behaviour fix comes with a test that
-fails first, in its own commit. With `run_agent`, each round of fixes takes a new task name, like
-`Fixes of wave 2`: a name that already ran gets its first answer again. After the last wave, fix
-them as soon as the review ends. The next review checks those fix commits with its wave. Structural
-fixes must keep behavioural tests passing and satisfy explicit architectural constraints. A finding
-still open after two reviews is ruled on, in `rulings.md`.
+Its findings are [graded](#grade-the-findings) and fixed beside the next wave, each behaviour fix
+with a test that fails first. A wave's fixes are not reviewed again as a wave: the review of the
+branch covers them.
 
 ### Rulings
 
 Settle implementation details yourself: the spec with the human's approval comments is the
-authority, the plan argues from it, and your judgement settles what neither answers. Every deviation
-from the plan, and every choice a later reader would want explained, is a ruling: write it in the
-feature's `rulings.md`, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit as
-the code it concerns. It is the feature's small ledger of low-impact decisions, in a fixed format:
-what was decided, why, and, when they help, the alternatives considered and what it costs if it is
-wrong.
+authority, the plan argues from it, and your judgement settles the rest. Most of what you settle
+needs no record: a name, a type, a module's boundary, or a helper is read in the code, and its
+reason in the commit's body.
 
-A ruling is never a [decision](spec.md#what-is-a-decision): it applies inside this feature only. A
-choice that would bind future work, or that only the human can make, is a reason to stop, below.
+A ruling, in the feature's `rulings.md`, from
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), is for a reason that
+would otherwise be lost, in the same commit as the code it concerns:
+
+- a departure from the spec, the plan, or a mockup, or from a decision when the human allowed it;
+- a behaviour users will notice that the spec does not state, in one line, said as what happens to
+  them: the pull request's "Decided without you" is made from these;
+- a test removed or rewritten outside the spec's list;
+- a tempting alternative ruled out, with the evidence;
+- what the human asked in a session that changes the work, in their words, when no other file holds
+  it.
+
+Four things a ruling is not:
+
+- **Not a decision.** It binds nothing outside this feature. When another file would have to cite
+  it, what it says belongs in a decision, a guide, or a comment in the code.
+- **Not a spec change.** When the human redirects the build in a way that changes what users get,
+  amend the spec, and say so in the pull request.
+- **Not a question.** Never write "left to the human" in a ruling: nobody reads it there. It is a
+  question in a round, or a line at the top of the pull request.
+- **Not a diary.** A bug found and fixed, a measurement, or a step done is in the commits.
+
+**Behaviour the spec did not state is shown to the human.** While building, you settle things users
+will see that no spec line covers: a default, a text, what a key does at the edge. Settle them from
+the proposal's intent, the product it names, and the guides, and list each in the pull request's
+"Decided without you", one line each. A new limit, a refusal, a removal, or a change of security
+posture among them is not yours: [stop](#when-you-must-stop).
+
+**A request to go faster removes paperwork, never adds it.** "No gates tonight" or "the implementers
+have freedom" means fewer stops and fewer records, with the same care for what users get. What the
+human waived is still written down once, so another session can resume.
 
 ### When you must stop
 
-Stop, and start a new round of questions, following
-[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions), when a task
-needs:
+Stop, and start a new round of questions, when a task needs:
 
-- Something the spec, the active decisions, or the constitution do not allow, or a choice that would
-  become a [decision](spec.md#what-is-a-decision)
-- A plan so broken that every way forward is a guess
-- A failed check of outside behaviour the spec marked unverified: the stories that rely on it need
-  the human's choice
-- An irreversible or destructive operation, a security-sensitive action, or a side effect outside
-  the branch: deleting real data, pushing to another branch, publishing
+- something the spec, the decisions, or the constitution do not allow, or a new decision;
+- a limit, a refusal, or a removal users would notice, that the spec does not state;
+- a plan so broken that every way forward is a guess;
+- a failed check of outside behaviour the spec marked unverified, or a measured target missed by the
+  first task;
+- an irreversible or destructive operation, a security-sensitive action, or a side effect outside
+  the branch: deleting real data, pushing to another branch, publishing.
 
-Never work around it. Let the other implementers of the wave finish, and merge their tasks: the
-tasks already committed stay checked. Once the human answers, the spec is amended and approved, and
-the plan revised: the unchecked tasks follow the new plan.
+Never work around it. Let the wave's other implementers finish, and merge their tasks. Once the
+human answers, the spec is amended and approved, and the plan revised.
 
-**An answer that continues the implementation.** The human may answer a round asked here to
-continue, which adds `resumes: implementation` to its front matter. Then the spec and the plan stay
-as approved: carry out the answers in the unchecked tasks, and write each choice they made as a
-[ruling](#rulings). An answer that turns out to change the spec's behaviour, a decision, or a task
-already built is not small: stop, and start a new round.
+The human may answer such a round to continue, which adds `resumes: implementation` to it. Then the
+spec and the plan stay as approved: carry the answers out in the unchecked tasks, each as a ruling.
+An answer that turns out to change the spec's behaviour, a decision, or a task already built is not
+small: stop, and start a new round.
 
 ## Final review
 
+Once every step is checked: catch up, use the feature, review the branch, and fix what both found.
+
 ### Catch up with the default branch
 
-Once every step is checked, and before the review, bring in what the default branch gained since the
-branch started: features merged meanwhile, their code, and their decisions. The review and the pull
-request then judge the code as it will be merged. When the branch already contains the default
-branch, there is nothing to do.
+Bring in what the default branch gained since the branch started, so the review judges the code as
+it will merge.
 
-1. **Fetch**, with `git fetch`, and note where the branch started:
-   `git merge-base HEAD origin/<default>`. Without a remote, use the local default branch.
+1. **Fetch**, and note where the branch started: `git merge-base HEAD origin/<default>`. Without a
+   remote, use the local default branch.
 2. **Read the new rules**:
-   `git diff <merge-base> origin/<default> -- specs/decisions/ specs/CONSTITUTION.md`. For each
-   decision added or changed, and each amendment:
-   - **It conflicts** with the spec, the plan, or the code built: stop, and start a new round of
-     questions, as [when you must stop](#when-you-must-stop) says. Principle I leaves that conflict
-     to the human.
-   - **It applies** to the code the branch touches, as its **Applies to** says, without conflict:
-     follow it. Write a ruling saying how the branch meets it, with the fix commits it needs.
-   - **It does not apply**: nothing to do.
-3. **Rebase the branch** on the default branch, so its history stays linear. When the branch is on
-   the remote, someone may have pushed to it: first `git pull --rebase origin <branch>`, so no
-   commit is lost. Then `git rebase origin/<default>`. The next push replaces the remote branch:
-   `git push --force-with-lease`, never `--force`, so a push made meanwhile is refused, not
-   overwritten. Resolve conflicts:
-   - **In code**: keep what both sides need, within the spec and the default branch's decisions. A
-     resolution that needs a choice the spec does not settle is a reason to stop.
-   - **In a record of `specs/done/`**: both sides repaired links in it. Take the default branch's
-     version, then repair the branch's links again in the next step. When the branch's side holds
-     more than link repairs, it is no repair: stop, as for any conflict needing a choice.
-   - **In a file the build generates**, like a binding's typings: take either side, then regenerate
-     it with the build, stage what it writes, and continue the rebase. Never merge it by hand.
-   - **In `PRIORITIES.md` or `INBOX.md`**: a branch started before branches stopped writing them
-     still has its own edit: take the default branch's version. The branch never writes either.
-   - **In a decision or the constitution**: stop, and start a new round of questions.
-4. **Repair the moved links.** The default branch may have moved or deleted a file the branch links:
-   a proposal started, a note filed, a feature finished. Repair every link of `specs/` that no
-   longer resolves, by [the rules below](#where-a-moved-link-points). Commit the repairs alone,
-   `fix(<slug>): repair the links to moved files`. With `ura`, `ura check --fix` rewrites them,
-   without committing, and `ura check` then reports what is left.
+   `git diff <merge-base> origin/<default> -- specs/decisions/ specs/CONSTITUTION.md`, and the
+   project's guides the same way. One that applies to what the branch touches is followed, with the
+   fix commits it needs. One that conflicts with the spec or the code built is a reason to
+   [stop](#when-you-must-stop).
+3. **Rebase the branch** on the default branch. When it is on the remote, first
+   `git pull --rebase origin <branch>`, and push later with `--force-with-lease`, never `--force`.
+   Resolve conflicts within the spec and the default branch's decisions:
+   - in code: keep what both sides need;
+   - in a generated file: take either side, then regenerate it;
+   - in a record of `specs/done/`, or in `PRIORITIES.md` and `INBOX.md`: take the default branch's;
+   - in a decision: when both sides' rules stand together, keep both; when they disagree in meaning,
+     stop.
+4. **Repair the moved links**: the default branch may have moved or deleted a file the branch links.
+   With `ura`, `ura check --fix`; by hand, see
+   [where a moved link points](by-hand.md#where-a-moved-link-points). Commit the repairs alone,
+   `fix(<slug>): repair the links to moved files`.
 5. **Run the project's complete validation.** A failure the default branch brings in is fixed like a
-   final review finding, with a test that fails first, in a commit with the feature's scope.
+   finding. A complete validation holds for the commit it ran on: do not run it again on the same
+   tree.
 
-### Where a moved link points
+### Use it
 
-By hand, `git log -M --name-status -- <path>` lists the commits that removed a missing file. Follow
-its newest removal, then the new path's removals after it, to the end:
+Before reading the diff, use the feature as its user will. This is the review the human would
+otherwise do after the merge, one small request at a time.
 
-- **A rename**, as git detects it, moved the file.
-- **A start** moved it: a commit removing one proposal or note main file, `proposals/<x>.md`,
-  `proposals/<x>/proposal.md`, `notes/<x>.md`, or `notes/<x>/note.md`, that git did not see renamed,
-  pairs it with the one file the same commit added, not by a rename, that is either a dated folder's
-  `proposal.md` or a main file named `<x>` or `<x>-<n>`, as a file made a folder or a note moved to
-  the proposals is. With no such file, or more than one, the commit deleted it. The pair holds even
-  when the file was edited past git's rename detection.
-- **A change made a feature** moved `specs/changes/<folder>/<file>` to `specs/<folder>/<file>`.
-- **A finish**: a commit adding `specs/done/<folder>.md` turned every file it removed from
-  `specs/<folder>/` or `specs/changes/<folder>/` into that record.
-- **Otherwise** the commit deleted the file.
-- **A folder** went where its files went, when the newest commit removing any of them sent all the
-  files it removed to one folder, one record, or one deletion.
+- **Start the product** as the project's instructions say, on its own data, never the human's.
+- **Do each user story**, from where its user starts to where they end. Do every act the feature
+  adds, each key, press, drag, and swipe, and look at what it changes, not at its label.
+- **At each width and input the project serves**: the narrowest screen, the keyboard alone, touch.
+- **With content as it really is**: none, a lot, and too long for its place. Once from a fresh
+  start.
+- **Beside its neighbours**: walk through a page next to the new one. The same thing is drawn,
+  named, and keyed the same way on both.
+- **Against the project's guides and personas**, when it has them, and against the mockups the human
+  approved.
+- **Measure each success criterion** the spec states, on real data, and keep the number.
 
-Then rewrite the link:
-
-- **Moved**: point it at the new path, in its own form. A rooted link, `/specs/...`, stays rooted,
-  and a relative one is written from its file's folder; a decision candidate's, in
-  `specs/decisions-check/`, from `specs/decisions/`, as its links resolve. Its anchor, title, and
-  `<…>` stay, and a link to a folder keeps its trailing `/`.
-- **Became a record**: point it at the record. A question's anchor in a `clarifications-NN.md`,
-  `#q<number>...`, stays; any other anchor is dropped. A file of the folder that is not markdown,
-  like an image, counts as deleted: the finish deleted it.
-- **Deleted**: a link becomes its words, and an image its alt text. A reference definition,
-  `[label]: path`, stays.
-
-A path no commit ever removed, or one back at the tip, is left as it is. So are wikilinks, links in
-code, and links outside `specs/`, in `README.md`, `docs/`, or code comments. `ura check` keeps
-reporting the ones in `specs/`. Its `links.file` message says where each file went:
-`no file <path>: it moved to /<new path>`, `...: it became the record /specs/done/<folder>.md`, or
-`...: deleted in <commit> (<subject>)`.
+Write what you did and what you saw in the review's `findings-NN.md`, as findings like the others.
+Anything the human would have to come back and ask for is a finding. "The product" is whatever its
+user touches: an app, a command, an API, a document. Say in the findings what you ran, on which
+runtime, at which widths and with which input, what you did, and what you saw: a defect often lives
+in one browser or one backend. When a path cannot be exercised, fix what blocks it. When you cannot,
+the feature is not ready: stop, and say what could not be used and what it risks, unless the human
+already accepted that for this feature. Never report as reviewed a feature nobody used.
 
 ### Review the branch
 
-Once the branch is caught up, review the whole branch, even when each wave was reviewed. With
-`review`, call it with `reviewed` `branch` on the commits since the branch started, its context
-naming the spec and its approval comments, the plan, its **Review focus** to check one item at a
-time, and `rulings.md`: the reviewers and their models are the human's choice. Otherwise, give a
-fresh reviewer agent, on the most capable model available, the diff since the branch started and the
-same files, and write its findings in `findings-NN.md`. Without a reviewer agent, review the branch
-yourself as a separate pass, write your findings there the same way, and say so in the pull request:
-a review by the author is weaker.
+Then review the whole branch, even when each wave was reviewed: with `review` on the commits since
+the branch started, or a fresh reviewer on the most capable model available, given the diff, the
+spec and its approval comments, the plan with its **Review focus**, and `rulings.md`. A second
+reviewer from another model family finds different things on a large branch: run one when the
+project has it.
 
-Review the changed subsystem and affected callers, including relevant code outside the diff:
+The review covers the changed code and its callers, outside the diff too:
 
-- **Behaviour**: establish expectations from the approved requirements before reading the proposed
-  solution. Check what changed and what must remain true, including validation, error handling, and
-  compatibility. Trace shared guarantees across every relevant entry point.
-- **Ownership**: check that state transitions and business rules have a clear owner, and callers
-  reach the same enforcement. Where work is asynchronous or shared between processes, verify that
-  local views cannot override authoritative state. Check resource release on failure and
-  cancellation, in tests as well as production code.
-- **Evidence**: ask which plausible incorrect implementation each important test would reject. For
-  risky guarantees, verify this in isolated tests with a focused fault injection or temporary
-  removal of the protection, then restore it. Exercise relevant sequences, failures, retries, and
-  changes made elsewhere; use property-based tests when they provide useful coverage. List the tests
-  the branch removed by the spec's list or by ruling, as
-  [when a test goes](code-quality.md#when-a-test-goes) says: the record keeps them. Check explicit
-  architectural constraints separately from functional outcomes, through existing checks where
-  practical. Report what was actually exercised and any unverified assumptions.
-- **Change cost**: identify duplicated decisions, unnecessary indirection, and obsolete paths. Trace
-  where a likely follow-up change would belong without implementing that feature. Would it need the
-  same rule edited in several places, or unrelated internals understood together? Judge the
-  boundaries by that cost, rather than a preferred style, and against the project's limits.
-- **Size**: list each function and file the branch grew, with its length before and after
-  ([extract, don't grow](code-quality.md#extract-dont-grow)). One past a limit is a point for the
-  pull request's opening block.
+- **Behaviour**: expectations come from the approved requirements, before reading the solution. What
+  changed, and what must remain true: validation, error handling, compatibility.
+- **Ownership**: each state transition and rule has one owner, and callers reach the same
+  enforcement. Local views cannot override authoritative state. Resources are released on failure
+  and cancellation.
+- **Evidence**: which plausible wrong implementation would each important test reject? A test that
+  asserts nothing, or nothing the spec asks, is an important finding. For a risky guarantee, remove
+  the protection for a moment and see its test fail. Say what was exercised, and what stays
+  unverified. The tests removed by the spec's list or by ruling are listed.
+- **Change cost**: duplicated decisions, needless indirection, obsolete paths. Where would a likely
+  follow-up change go?
+- **Size**: each function and file the branch grew past a limit
+  ([extract, don't grow](code-quality.md#extract-dont-grow)).
 
 ### Grade the findings
 
-Read the findings in the committed `findings-NN.md`, every reviewer's section. Grade each finding by
-what a user gets if the branch ships, not by whether the spec names the input that triggers it,
-whatever grade its reviewer gave:
+Read every reviewer's findings, and your own from using the feature. Grade each by what a user gets
+if the branch ships, whatever grade its reviewer gave:
 
-- **Critical and important**: fix them in one pass, behaviour fixes with tests that fail first,
-  structural fixes with behavioural regression checks and any explicit architectural checks. Do not
-  manufacture a failing test that only pins a private implementation shape. Run the full validation.
-  Commit with the feature's scope: `fix(recurring-tasks): keep the undo after a reload`.
-- **Minor**: fix the ones worth fixing in the same pass, and drop the rest. A minor finding is never
-  an [agent's note](inbox.md#agents-notes): the branch either fixes it or leaves it.
+- **Critical and important**: fix them in one pass, behaviour fixes with tests that fail first.
+  Commit with the feature's scope: `fix(recurring-tasks): keep the undo after a reload`. One you
+  decide not to fix is never dropped: it is a ruling, and a line of the pull request's "Look at".
+- **Minor**: fix the ones worth fixing in the same pass, and drop the rest. A finding is fixed on
+  the branch or dropped: it is never an [agent's note](inbox.md#agents-notes), and never a list of
+  leftovers in the pull request.
 
-A maintenance defect can be important before it causes a user-visible failure. Name the likely
-change or failure it makes harder, and the duplicated edits, coupling, or missing ownership behind
-that cost. A preference for different names or formatting alone is minor; a unit the branch grew
-past a limit, or a copy of a rule ([one home per rule](code-quality.md#one-home-per-rule)), is not.
+A maintenance defect can be important before any user sees it: a unit grown past a limit, or a copy
+of a rule. A preference for other names is minor.
 
-A critical or important finding you decide not to fix is a ruling, written in `rulings.md` with the
-others.
+**The review ends.** A finding is a claim until you confirm it: reproduce it, or read the code it
+names, before spending work on it, and decline a wrong one with its reason. After the fixes, one
+further review covers the fix commits only. Its confirmed critical and important findings are fixed
+and checked with focused tests, and the review is over. Never ask a reviewer for a number of
+findings: ask for evidence, and allow none.
 
-With `review`, every reviewer the human set answers in the same file: grade their sections together,
-and the pull request names them. Without it, a second reviewer, such as another tool's review skill,
-can review the branch too, after the first, its findings in a `findings-NN.md` of their own. They
-are graded and fixed the same way, and the pull request names it. It reviews the branch once; after
-its fixes, a second pass reviews only the fix commits. Its critical and important findings are fixed
-once more, without another review, and its minor ones are fixed or dropped.
-
-Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
-replaces the folder with its record, and marks the pull request ready.
+Then run the complete validation, push the branch, open its pull request as a draft, and run the
+[finish](finish.md) step.
 
 ## Pull request
 
 The pull request is opened as a draft after the final review, and marked ready by the
-[finish](finish.md) step, whose last commit replaces the folder with its record. It is the feature's
-last human gate: it merges the record, the decisions, and the code at once. Its body is written when
-it is marked ready: an opening block, then the record's text, then one screenshot per new view, as
-[the finish step](finish.md#mark-the-pull-request-ready) says.
+[finish](finish.md) step, which writes its body. It is the feature's last human gate: it merges the
+record, the decisions, and the code at once. If you cannot open one, push the branch, and put the
+body in the last commit's message.
 
-If you cannot open a pull request, push the branch, and put the body in the last commit's message.
-When the human talks with you in the session, say the same in one or two sentences, with the pull
-request's link.
+**Nothing is written on the forge but the pull request and its body**: no reply to a comment, no
+thread resolved. The one exception is the comment of a [catch-up](#catch-up-an-open-pull-request)
+that stopped.
 
 ## Push
 
-The push runs when the branch holds commits its pull request lacks, and the pull request is open,
-not a draft, with no changes requested: a commit made after the last push, by an agent or by hand.
-The human reviews the pull request's head, so until it holds the branch's latest commit, the pull
-request does not wait for their review. Uraeda names this step `push`.
+Runs when the pull request is open, not a draft, with no changes requested, and the branch holds
+commits it lacks. The human reviews the pull request's head: until it holds the branch's latest
+commit, nothing waits for them.
 
-By hand, read the head with `gh pr view <branch> --json headRefOid`. The branch lacks nothing when
-`git merge-base --is-ancestor <branch> <head>` succeeds, or when the head is not in the repository:
-the branch is then most likely behind it.
-
-1. **Run the project's complete validation**, after the branch's last commit, as
-   [every push](#each-task) requires. A failure is fixed in a commit of its own, with the feature's
-   scope, before the push.
-2. **Push the branch** with `git push`, never `--force`. Only after a rebase, as
-   [the final review](#catch-up-with-the-default-branch) says, push with `--force-with-lease`. A
-   refused push means the remote branch has commits the local one lacks: run
-   `git pull --rebase origin <branch>`, the validation again, and push again, never forcing.
-3. **Leave the pull request as it is.** Once it holds the branch's latest commit, it waits for the
-   human's review again: a human gate.
+1. **Run the project's complete validation**, after the branch's last commit. A failure is fixed in
+   a commit of its own.
+2. **Push** with `git push`, never `--force`; after a rebase, `--force-with-lease`. A refused push
+   means the remote has commits the local branch lacks: `git pull --rebase origin <branch>`,
+   validate, and push again.
+3. **Leave the pull request as it is**: it waits for the human again.
 
 ## Catch up an open pull request
 
-The catch-up runs when the pull request is open, not a draft, with no changes requested, and its
-branch is behind the default branch. Uraeda names this step `catch-up`, and it wins over the
-[push](#push), since the catch-up pushes too. The default branch moves under an open pull request
-when another one merges: the human would then review code that is not what merges.
+Runs when the pull request is open, not a draft, with no changes requested, and its branch is behind
+the default branch, by more than the default branch's own files: `PRIORITIES.md`, the inbox, the
+proposals, and the notes. It wins over the push, since it pushes too. With `ura`, `ura next` names
+it; by hand, see
+[whether a pull request is behind](by-hand.md#whether-a-pull-request-is-behind-or-lacks-commits).
 
-A branch is **behind** when neither it nor `origin/<branch>` holds the tip of `origin/<default>`, or
-of the local default branch without a remote, and the commits it lacks change any file but the
-default branch's own. Those are `PRIORITIES.md`, `INBOX.md`, `INBOX-TRIAGE.md`,
-`DECISIONS-CHECK.md`, `decisions-check/`, `proposals/`, `notes/`, and a started folder's
-`proposal.md`, all under `specs/`: a branch never changes them. With `ura`, `ura next` names the
-step. By hand, after `git fetch`, the branch lacks the tip when
-`git merge-base --is-ancestor origin/<default> <branch>` fails, and fails for `origin/<branch>` too.
-Then `git diff --name-only <merge-base> origin/<default>` lists the files the commits it lacks
-change. A branch the default branch already holds,
-`git merge-base --is-ancestor <branch> origin/<default>` succeeding, is merged, not behind. When one
-of `<branch>` and `origin/<branch>` holds the other, only the newer one counts. Without a remote,
-use `<default>` for `origin/<default>`.
+1. **Sync with the remote branch**, `git pull --rebase origin <branch>`, and note the tip.
+2. **Catch up** as [the final review](#catch-up-with-the-default-branch) does.
+3. **Push**, with `--force-with-lease`, and leave the pull request as it is.
 
-1. **Sync with the remote branch**: `git fetch`, then `git pull --rebase origin <branch>`, so no
-   commit pushed to it is lost.
-2. **Note the tip**, `git rev-parse HEAD`: a stop goes back to it.
-3. **Catch up** as [the final review](#catch-up-with-the-default-branch) does, its steps 1 to 5: the
-   new rules, the rebase, the moved links, and the complete validation.
-4. **Push** as [the push](#push) does, with `--force-with-lease` after the rebase.
-5. **Leave the pull request as it is.** Once it holds the caught-up branch, it waits for the human's
-   review again: a human gate.
+The folder is most likely a record by now. What the catch-up changes in behaviour updates the
+record's **Behaviour** or **Design** in place, with a line under **Changes after approval**, and the
+pull request's body is written again from it.
 
-The pull request is open, so the [finish](finish.md) step has most likely replaced the folder with
-its record, `specs/done/<folder>.md`: `rulings.md` and the plan are gone. A ruling the catch-up
-needs, such as how the branch meets a new decision, is a line under the record's **Changes after
-approval**. A fix that changes behaviour also updates the record's **Behaviour** or **Design** in
-place, in the same commit, as [the comments pass](#comments-on-the-pull-request) does. When the
-record changed, write the pull request's body from it again, as
-[finish](finish.md#changes-asked-on-the-pull-request) says: the body is the record's text.
-
-Three cases stop the catch-up differently from the final review, without a round of questions. One
-is a decision or an amendment on the default branch that conflicts with the branch. Another is a
-conflict whose resolution needs a choice the spec and the decisions do not settle. The last is a
-complete validation that fails, at step 5, in a way you cannot fix within the spec and the
-decisions: the branch and the default branch conflict there too, without a conflicting line. Any of
-them can come at the final review's steps 2 to 5: before the rebase, during it, or after it. The
-session then reads "The catch-up stopped on a conflict.". The human reviews the pull request, so the
-question goes there:
-
-1. **Leave the branch as it was**: abort a rebase in progress with `git rebase --abort`, then go
-   back to the noted tip with `git reset --keep <tip>`, which drops the commits the catch-up made.
-   Push nothing, so the branch's local and remote tips stay where they were.
-2. **Comment on the pull request** with `gh pr comment <number>`: the conflicting files, the
-   decision, or the failing checks, the choice it needs, and your recommendation with its reason.
-3. **End the run.** The step stays `catch-up`. The human answers by requesting changes, which
-   [the comments pass](#comments-on-the-pull-request) handles.
-
-Nothing else is written on GitHub, as for the comments pass: no reply, and no thread resolved.
+**When the catch-up needs a choice** the spec and the decisions do not settle, a conflicting
+decision, a conflict in code, or a validation that fails for the two branches together: leave the
+branch as it was (`git rebase --abort`, then `git reset --keep <tip>`), push nothing, and comment on
+the pull request with what conflicts, the choice it needs, and your recommendation. The human
+answers by requesting changes.
 
 ## Comments on the pull request
 
-The comments pass runs when the human's message asks to address the pull request's comments,
-whatever the step table says, and when the pull request has changes requested. The human chose when
-to send the agent: the pass handles the comments there at that moment.
+Runs when the pull request has changes requested, or when the human's message asks to address its
+comments. Read every unresolved review thread that is not outdated, and every review or comment
+posted after the branch's last push: see
+[read a pull request's comments](by-hand.md#read-a-pull-requests-comments). A reviewer bot's comment
+counts like a person's: the human chose when to send you.
 
-**What to read**: every unresolved review thread, and every review or comment posted after the
-branch's last push. Resolved threads are settled, and outdated ones are about code that changed
-since: both are left out.
+A branch behind the default branch is caught up first. When that catch-up needs a choice, it stops
+as a catch-up does: the branch is left as it was, the question goes to the pull request, and the
+other comments wait for the next pass. The catch-up's own comment is context, never a comment to
+handle, and the human's comment settling its choice is followed as its resolution. Then, for each
+comment:
 
-- **Review threads** come from `gh api graphql`, on the pull request's `reviewThreads`: each
-  thread's `isResolved` and `isOutdated`, and each comment's `author`, `path`, `line`, `body`, and
-  `createdAt`.
-- **Reviews and comments** come from `gh pr view <number> --json reviews,comments`, and count when
-  posted after the last push. Fetch first, then take the remote branch's last commit date as the
-  last push's: `git log -1 --format=%cI origin/<branch>`. A commit pushed later than it was made
-  only counts more comments, never fewer.
-
-```bash
-gh api graphql -f owner=<owner> -f repo=<repo> -F number=<number> -f query='
-  query($owner: String!, $repo: String!, $number: Int!) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        reviewThreads(first: 100) {
-          nodes {
-            isResolved
-            isOutdated
-            comments(first: 100) { nodes { author { login } path line body createdAt } }
-          }
-        }
-      }
-    }
-  }'
-```
-
-A pull request with more than 100 threads, or a thread with more than 100 comments, is read page by
-page, with `pageInfo { hasNextPage endCursor }` and `after:`.
-
-A reviewer bot's comment is handled like a person's: the human chose when to send the agent, so what
-the bot wrote is part of what they asked.
-
-**A branch behind the default branch is caught up first**, as
-[the catch-up](#catch-up-an-open-pull-request) says, before the comments are handled. When that
-catch-up needs a choice, the catch-up's stop wins over bringing the folder back for a round: it
-leaves the branch as it was, comments on the pull request, and ends the run, the other comments left
-for the next pass. A comment settling a conflict's choice, asked by a catch-up that stopped, is
-followed as its resolution. The catch-up's own comment asking it is context for that pass, not a
-comment to handle.
-
-**What to do with each comment**:
-
-- **A change**: apply it in a commit of its own, with the feature's scope, a change of behaviour
-  with a test that fails first. Once the folder is replaced by its record, when a change goes
-  against what it says, update its **Behaviour** or **Design** in place in the same commit, and add
-  a line under **Changes after approval**, so the merged record describes the merged code.
+- **A change**: apply it in a commit of its own, a change of behaviour with a test that fails first.
+  Once the folder is a record, update its **Behaviour** or **Design** in place in the same commit,
+  with a line under **Changes after approval**.
 - **A choice the spec does not settle**, or a new decision: bring the folder back and start a new
-  round of questions instead of a guess, as [finish](finish.md#changes-asked-on-the-pull-request)
-  describes.
-- **Nothing to do**: a comment already handled, or one the code answers, gets no commit. The last
-  message says why.
+  round, as [finish](finish.md#changes-asked-on-the-pull-request) describes.
+- **Nothing to do**: a comment already handled, or one the code answers. Your last message says why.
 
-**Nothing is written on GitHub**: the agent does not reply to a comment or resolve a thread. Its
-last message lists each comment with what it did, one line each, and the commits say the rest.
-
-**The pass ends** when the pull request is ready for review again: the project's complete validation
-run after the pass's last commit (see [each task](#each-task)), the branch pushed, and the pull
-request not a draft, with `gh pr ready`. A new round of questions ends it earlier, at that round's
-gate. A file waiting for the human, `status: awaiting-human`, ends it at that gate too, once the
-comments are handled: the pull request stays a draft, and nothing is finished before the human
-answers. Otherwise, a pull request still in draft ends the pass by running the [finish](finish.md)
-step, which writes the record when it is not there yet and marks the pull request ready: a draft
-opened before finishing, or one whose folder came back for a round now answered and built.
-
-A pull request opened before the finish step existed still has its folder: amend the spec in place
-in the same commit, increase its `revision`, and update the plan and its `spec-revision`. The spec
-stays `approved`: the human asked for the change.
+The pass ends when the pull request is ready again: the complete validation run after the last
+commit, the branch pushed, and the pull request marked ready. A round of questions, or any file
+waiting for the human, ends it earlier, at that gate: the pull request stays a draft, and nothing is
+finished before they answer. A pull request still in draft with nothing waiting ends the pass with
+the [finish](finish.md) step, which writes the record when it is not there. Your last message lists
+each comment with what you did, one line each.
 
 ## Commit
 
 One commit per task, with the plan's message, following [Commits](conventions.md#commits): its code,
-its tests, and its checked boxes in `plan.md`. A structural step is a commit of its own, before. The
-tasks of a wave are rebased onto the feature branch in the plan's order, so its history reads as if
-they were built one after the other. Fixes from reviews are separate commits with the same scope.
+its tests, and its checked boxes. A structural step is a commit of its own, before. Fixes from
+reviews are separate commits with the same scope.

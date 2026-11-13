@@ -1,368 +1,226 @@
 # Discovery and questions
 
-Investigates a human proposal in depth, in the code and outside it, then asks the human, in one
-file, the questions only they can answer.
+Researches a proposal in depth, in the code and outside it, settles what the human's goals already
+settle, and asks the human, in one file, what only they can answer.
 
-- **Runs when**: a spec folder has a `proposal.md` and no `clarifications-01.md` (round 01), or
-  another step needs the human to decide something new (the next round, see
+- **Runs when**: a folder has a `proposal.md` and no `clarifications-01.md` (round 01), or another
+  step needs the human to decide something new (the next round, see
   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions))
-- **Writes**: `discovery-NN.md` and `clarifications-NN.md`, with the round's number: `01`, `02`, ...
+- **Writes**: `discovery-NN.md` and `clarifications-NN.md`, with the round's number
 - **Ends at**: a human gate, `clarifications-NN.md` with `status: awaiting-human`
 
-Read this file in full before starting. This step explores the project context and understands the
-intent behind the proposal. It then finds two or three approaches with their tradeoffs, and asks the
-human what only they can answer. The human is not in a conversation with you: you explore alone.
-Then you ask everything at once, in a file they read when they have time.
+Two files come out of this step, for two readers:
 
-**Take the time.** A design conversation can go straight to the point, because the human is there to
-fill the gaps as it goes. An asynchronous workflow does the opposite: the whole point is to give the
-agent as much time as it needs to research. This happens before the human is involved at all. Nobody
-is waiting on you. Your discovery must be **much deeper and broader** than a design conversation:
-broad, complete, leaving no stone unturned. Keep going until you understand the problem better than
-the proposal does.
+- **`discovery-NN.md` is the feature's knowledge base, for agents**: what this kind of feature
+  usually looks like, how established products and standards handle it, what the code has today, and
+  the approaches to each topic, every fact with its source. The spec builds on it and the plan
+  reuses its map of the code. The human opens it only through a question's link.
+- **`clarifications-NN.md` is the round, for the human**: how you read their proposal, the few
+  questions only they can answer, and what you settled that they may object to.
 
-## Overview
-
-Two files come out of this step, for two different readers:
-
-- **`discovery-NN.md` is the feature's knowledge base, for agents.** It holds what this kind of
-  feature usually looks like, how established products and standards handle it, and what the code
-  has today. It also holds the approaches to each topic, every fact with its source. The questions
-  link to its sections, the spec builds its behaviour and design on it, and the plan reuses its map
-  of the code. The human does not read it by default: they follow a question's links when they want
-  more.
-- **`clarifications-NN.md` is the questions, for the human.** Only what only they can decide, each
-  question self-contained, with options, pros and cons, and a recommendation, read once, top to
-  bottom. The points you settled without them come with it, so they can object: those to check
-  before the questions, the others after.
-
-The goal is an understanding the human can recognize and correct, grounded in what they want to
-accomplish. Find the intent behind the proposal: the outcome, who it is for, and what success looks
-like. Keep what the human said apart from what you assume. Then turn the gap between the two into
-the fewest, clearest questions.
-
-Discovery is the cheapest moment to find the right approach: a shallow discovery turns into bad
-questions, a weak spec, and rework. Nobody will ask you to go deeper, and nobody will notice what
-you skipped until it is expensive. A question you could have answered yourself, or a capability you
-did not know users expect, costs the human far more than a longer discovery. Spend the time, as far
-as the proposal's [discovery effort](#discovery-effort) asks.
-
-YAGNI still applies to the feature, not to the research: depth and breadth go into understanding the
-problem. The human can then choose a small scope knowingly, not by accident.
+Nobody waits on you, and nobody will notice what you skipped until it is expensive: a shallow
+discovery turns into wrong questions, a spec sent back, and fixes after the merge. Spend the time on
+understanding the problem better than the proposal does. Then spend the human's time on almost none
+of it.
 
 ## Discovery effort
 
-The proposal's `discovery` frontmatter field tells how far the human wants the research to go, for
-every round of the feature. Without the field, or with another value, the effort is `high`.
+The proposal's `discovery` field says how far the human wants the research to go. Without the field,
+the effort is `high`.
 
-- **`low`**: the feature is small and its direction clear. Read the code, the project's decisions
-  and docs, and the documentation of the dependencies involved, to verify how they behave. Do not
-  compare products or look for alternatives online. Each topic has one or two approaches, often
-  "reuse what exists".
-- **`medium`**: also look online for how two or three established products or libraries solve the
-  problem, from their official documentation. Use a source or two per topic. Stop at what the
-  approaches need: no community sentiment, no benchmarks.
-- **`high`**: everything this file describes, until new sources stop adding: products, standards,
-  libraries, community sentiment and known pitfalls, and benchmarks where performance is a
-  criterion.
+- **`low`**: the feature is small and its direction clear. Read the code, the decisions, the guides,
+  and the documentation of the dependencies involved. Do not compare products or search for
+  alternatives: a topic has one or two approaches, often "reuse what exists".
+- **`medium`**: also read how two or three established products or libraries solve the problem, from
+  their official documentation.
+- **`high`**: everything this file describes: products, standards, libraries, known pitfalls, and
+  benchmarks where performance is a criterion.
 
-The level is the human's expectation of how much new work the feature holds, not a cap. It scales
-the research, never the rules. Every fact still has its source, every gap in the proposal is still a
-question, and every question still has a recommendation. When the feature turns out bigger than the
-level suggests, raise the effort for that topic or the whole feature. An example is a topic that
-could become a decision. Say so in the `> [!IMPORTANT]` block. Leave the proposal's field as the
-human wrote it.
+The level scales the research, never the rules: every fact still has its source, and every question
+still has a recommendation. When a topic turns out bigger than the level suggests, go deeper on it,
+and say so in the block. Leave the proposal's field as the human wrote it.
 
 ## Read first
 
-1. `proposal.md`: the human's words. Read it for its intent as much as for its requests.
-2. Earlier rounds, if any: their discovery files, questions, and answers. Build on them, and never
-   edit them: a round is a record of what the human was asked and answered.
-3. The review file of `spec.md`, `spec-review.md`, when the spec's changes requested led here. If
-   the plan or implementation step sent the workflow back here, the reason it gave.
-4. The constitution, and the active decisions whose **Applies to** covers the feature.
-5. Other features in flight: list the open feature branches (`git branch -a`). Read the specs,
-   proposed decisions, and data changes of those that touch the same code, stored data, or decisions
-   (`git show <branch>:specs/...`). Two features upgrading the same database, or one changing a
-   decision the other relies on, is a finding.
+1. `proposal.md`: the human's words. Read it for its intent as much as for its requests, note any
+   product it names as its model, and open every image it links.
+2. Earlier rounds, if any, and what sent the workflow back here: a review file, or a step's reason.
+3. The constitution, the decisions whose **Applies to** covers the feature, and the project's guides
+   for the area. The records in `specs/done/` of the features this one touches.
+4. Other features in flight: list the open feature branches, and read the specs, mockups, proposed
+   decisions, and data changes of those that touch the same code, views, or decisions
+   (`git show <branch>:specs/...`). Two features changing the same data or the same decision is a
+   finding. So are two that draw the same thing in two ways.
 
 ## Scope check
 
-Before investigating details, assess the proposal's scope, and again whenever the investigation
-shows more. Propose a split only when building one part changes how the next is designed, as
-[the split rule](writing.md#a-spec) says: say, an offline mode whose design depends on how the sync
-protocol it builds on turns out. Then make the split the first question of the round, with the
-recommended split as option A. It covers the pieces, how the first shapes the next, and the order to
-build them. Investigate the first piece in depth, and leave the others for their own features.
+A feature is the whole proposal. Propose a split only when building one part changes how the next is
+designed, as [the split rule](writing.md#a-spec) says: an offline mode whose design depends on how
+the sync it builds on turns out. Then the split is the first question of the round, with the
+recommended split as option A, and you research the first piece in depth.
 
-Several independent pieces ("reminders, sharing, and a calendar view") stay in one feature.
+Several independent pieces, "reminders, sharing, and a calendar view", stay in one feature. When
+they share a look or components, say in the discovery which piece builds the shared parts first:
+views built side by side, each on its own, drift apart.
 
 ## Investigate in depth
 
-Build a full understanding of the problem, beyond the current project and beyond what you already
-know:
+- **Beyond the project.** The code shows what exists, not what the feature should be. How
+  established products solve the problem, what standards say, and what went wrong for others are not
+  in the repository.
+- **Beyond your own knowledge.** What you know about a product, a library, or a browser is a lead to
+  verify. Every fact in the discovery comes from a source you read in this session, with its link.
+- **Broad before deep.** First list every part of the feature, every product worth comparing, every
+  dependency involved, and every existing action the feature meets. A topic you never listed is one
+  you never researched.
+- **Until another source would not change a choice.** One source per topic is a lead. Stop when the
+  last ones only confirmed what you had.
+- **The dimensions the proposal does not mention**, when they apply: the narrowest screen, the
+  keyboard, accessibility, languages, time zones, scale, security, offline and errors, the data
+  users already have, and how the feature is turned off.
 
-- **Beyond the project.** The codebase shows what exists, not what the feature should be. How
-  established products solve the problem, what standards say, what users of those products complain
-  about, what went wrong for others. None of it is in the repository.
-- **Beyond your own knowledge.** Treat what you know about a product, a library, a browser, or a
-  standard as a lead to verify, not a fact. It may be outdated, incomplete, or wrong. Every fact in
-  the discovery comes from a source you read in this session, with its link.
-- **Broad before deep.** First map the whole problem: every part of the feature, every product worth
-  comparing, every standard and dependency involved, every existing action the feature meets. Then
-  go deep on each part. A topic you never listed is a topic you never researched.
-- **Until new sources stop adding.** Keep researching a topic until the last sources you read only
-  confirmed what you already had. One source per topic is a lead, not research.
-- **Cover the dimensions the proposal does not mention**, when they apply: accessibility, languages
-  and locales, time zones and dates, performance at scale. Also security and privacy, offline and
-  errors, data that users already have, migration, and how the feature is removed or turned off.
-
-If your harness can run agents in parallel, use them. Give each topic, product, or dimension its own
-agent, have each read its sources in full, and merge their findings into one file. Go deep on all
-three sides below.
+If your harness can run agents in parallel, give each topic or product its own, and merge their
+findings.
 
 **The code**
 
-- Read the code the feature touches, and follow it to the data it stores and the interfaces it
-  exposes. List every place that reads or writes data the feature may change.
-- Trace the proposal's user path through the code, step by step. Then trace every existing action
-  that meets the new feature: undo, delete, uncheck, edit, empty fields. Each one that behaves
-  differently with the feature is a finding. A problem you meet outside the feature, like a slow
-  page, is not a finding: drop it, unless it passes the two tests of
-  [agents' notes](inbox.md#agents-notes). When it changes what the feature should be, ask about it
-  in the round instead.
-- List who owns each rule the feature touches, and where it is copied: see
+- Read the code the feature touches, down to the data it stores and the interfaces it exposes. List
+  every place that reads or writes data the feature may change.
+- Trace the proposal's path through the code, step by step. Then trace every existing action that
+  meets the feature: undo, delete, edit, an empty field, a narrow screen. Each one that behaves
+  differently with the feature is a finding.
+- List who owns each rule the feature touches, and where it is copied:
   [one home per rule](code-quality.md#one-home-per-rule).
-- Find the existing patterns the feature should follow, and the problems in the way. Examples are a
-  function or file over the project's limits, which a task must split first
-  ([extract, don't grow](code-quality.md#extract-dont-grow)), and a responsibility tangled with
-  another.
-- List the files the feature will likely change or add, under every option: never assume an option
-  the human has not chosen. With them, list the tests that guard behaviour the feature changes, by
-  file and test name, for the spec's [replaced behaviour](spec.md#replaced-behaviour).
-- Check recent commits on the files you read (`git log`): they explain choices the code does not.
+- Find the patterns the feature should follow, and what is in the way, like a unit over the
+  project's limits, which a task must split first
+  ([extract, don't grow](code-quality.md#extract-dont-grow)).
+- List the files the feature will likely change, under every option, and the tests that guard
+  behaviour it changes, by file and name, for the spec's
+  [replaced behaviour](spec.md#replaced-behaviour).
+- Check recent commits on the files you read: they explain choices the code does not.
+
+A problem you meet outside the feature is dropped, unless it passes the two tests of
+[agents' notes](inbox.md#agents-notes).
 
 **Outside the code**
 
-- Learn what this kind of feature usually looks like: how established products implement it. Read
-  their official documentation and help pages first, and third-party guides only where those are
-  silent. Look for the capabilities users of those products expect. Look especially for the ones the
-  proposal does not mention: editing one occurrence of a recurring event, undoing a bulk action,
-  ending a subscription. The proposal describes what the human thought of, not everything the
-  feature involves.
+- Learn what this kind of feature usually looks like, from the official documentation of established
+  products. Look for what their users expect that the proposal does not mention: editing one
+  occurrence of a recurring event, undoing a bulk action.
+- **When the proposal names a product as its model, study that one first and closest.** The human
+  will review the spec against it.
 - Read the standards and the documentation of the dependencies involved, for the versions the
-  project uses: local docs, then official online docs.
-- Search the web for libraries that could do the work, and for known pitfalls.
-- From all this, find two or three genuinely different approaches per topic, not variations of one.
-  Include "do nothing" or "reuse what exists" when they are real options.
-
-**The proposal itself**
-
-Check the proposal against what you found: constraints that cannot be met as written, ambiguous
-wording, gaps. A proposal is a human's first take, not a specification. Do not interpret it
-silently. Each point becomes a finding, then a question for the human, or a settled point when the
-constitution and active decisions already answer it. A gap about scope, what the feature includes or
-leaves out, is always a question.
+  project uses.
+- From all this, find two or three genuinely different approaches per topic. Include "do nothing"
+  and "reuse what exists" when they are real.
 
 **Is it worth it, and can it work?**
 
-- **Worth it**: weigh what the feature gives against what it costs, from what you found. Count the
-  work, the dependencies, the maintenance, and what existing features already cover. When the
-  evidence says the cost outweighs the gain, say so, and make dropping or shrinking the feature the
-  first question's recommended option. Never recommend going ahead only because the proposal asks
-  for it.
-- **Outside behaviour it relies on**: a feature may depend on how a library, a browser, a protocol,
-  or another tool behaves. When its documentation does not settle it (embedding a page in a
-  sandboxed frame, a protocol's undocumented messages), check it now: read the dependency's source,
-  run its tests, or write a small throwaway experiment, run outside the repository and never
-  committed. Do the work in full: an experiment that takes an hour is cheaper than a human answering
-  a question built on a guess, and than a plan that changes when its first task fails. Unverified is
-  a last resort, only for what no experiment in reach can settle, such as a paid service without an
-  account, a device you do not have, or a production system. Say then why it could not be checked:
-  it becomes an unverified assumption, which the spec names and the plan's first task checks.
-- **Guards it relaxes**: an option that loosens a security rule, an origin check, a permission, a
-  sandbox, says what an attacker could then do. Say it in one sentence a non-specialist understands,
-  not as a mechanism. Write "any website open in your browser could read the project's code", not
-  "the `Origin` rule is laxer on those paths".
+- **Worth it**: weigh what the feature gives against what the human must then read, learn, and keep:
+  concepts, settings, dependencies, maintenance. Your own effort is not a cost: never recommend the
+  smaller build because it is less work for you. A deadline or a budget the human stated is theirs,
+  and counts. When the evidence says the feature costs them more than it gives, say so, and make
+  dropping or shrinking it the first question's recommended option.
+- **Outside behaviour it relies on**: when a feature depends on how a library, a browser, or another
+  tool behaves, and its documentation does not settle it, check it now. Read the dependency's
+  source, run its tests, or write a throwaway experiment outside the repository. An experiment that
+  takes an hour is cheaper than a question built on a guess. "Unverified" is a last resort, for what
+  no experiment in reach can settle, like a paid service without an account. It then says why, the
+  spec names it, and the plan's first task checks it.
+- **Guards it relaxes**: an option that loosens a security rule, a permission, or a sandbox says
+  what an attacker could then do, in a sentence a non-specialist understands: "any website open in
+  your browser could read the project's code".
 
-**Depth and sources**
+**Sources**: cite only pages you read. A fact seen only in a search result's summary is marked as
+such where it is used. What you could not find or reach goes under **Not checked**, which is never
+for work skipped.
 
-- Scale the depth to the impact: a topic that could become a [decision](spec.md#what-is-a-decision)
-  deserves several sources, a minor topic a quick check. Every topic still gets both the code and an
-  outside source, a dependency's documentation at least, whatever the
-  [discovery effort](#discovery-effort).
-- Cite only pages you actually read. A fact seen only in a search result's snippet or summary is
-  marked as such where it is used. Its page goes in **Not checked**.
-- If you cannot search the web or read a source, say so in **Not checked** rather than writing from
-  memory. **Not checked** is for what could not be found or reached, never for work skipped.
-
-**Later rounds** start from what triggered them: an answer that raised a new unknown, a spec review
-asking for options, a blocked plan. They research new information, for example the UI patterns an
-answer calls for, and link to earlier rounds' sections rather than repeating them.
+**Later rounds** start from what triggered them, research only what is new, and link to earlier
+rounds rather than repeating them.
 
 ## The discovery file
 
 Write a new file for the round, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md). Knowledge comes
-first, approaches last, in this order:
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md), with its sections
+in the template's order: knowledge first, approaches last.
 
-```markdown
-# Discovery, round [NN]: [Feature name]
-
-## Why this round
-
-[Later rounds only: what triggered this round, with a link to it.]
-
-## Summary
-
-[What this kind of feature usually looks like, where products differ, what the proposal asks for
-within that range, and what the code has today.]
-
-## How other products do it
-
-### [Product]
-
-### What they have in common
-
-## Standards and libraries
-
-### [Standard, library, or documentation]
-
-## The code
-
-### Important reads
-
-### The proposal's path and existing actions
-
-### Rules and their owners
-
-### Likely changes
-
-## The proposal
-
-### [Constraint, ambiguity, or gap]
-
-## Worth it and feasibility
-
-## Approaches
-
-### [Topic]
-
-### Needs no choice
-
-## Not checked
-```
-
-What goes in each section:
-
+- **Why this round**: later rounds only.
 - **Summary**: the feature in a few sentences, for an agent who reads nothing else.
-- **How other products do it**: one section per product, each fact with its source. Then **What they
-  have in common**: the capabilities users may expect, whether or not the proposal mentions them.
+- **How other products do it**: one section per product, then **What they have in common**: what
+  users may expect, whether or not the proposal mentions it.
 - **Standards and libraries**: what matters for this feature, and the pitfalls, with versions.
-- **The code**: the important reads, each with what it showed and what is in the way. Then the
-  proposal's path and the existing actions that meet the feature, and the overlaps with other
-  features in flight. Then each rule the feature touches, with the code that owns it and every copy,
-  when it touches one. Last, the likely changes, each with the options it depends on, and the tests
-  that guard behaviour they change.
+- **The code**: the important reads, the proposal's path and the existing actions it meets, the
+  rules and their owners, and the likely changes with the tests that guard them.
 - **The proposal**: one section per constraint that cannot be met as written, ambiguity, or gap.
-- **Worth it and feasibility**, left out when the feature is small and relies on nothing new: the
-  feature's cost against its gain. Then the outside behaviour it relies on, each checked or named as
-  unverified. Then what each relaxed guard would let an attacker do, as
-  [investigate in depth](#investigate-in-depth) asks.
-- **Approaches**: one section per topic the feature has to settle. Each says what the topic is about
-  in one sentence and links to the knowledge above it relies on. It compares its options against the
-  same criteria for every option. Criteria come from the proposal, the constitution, active
-  decisions, and the standards the project must meet, such as an accessibility guideline, marked as
-  such. When a topic only matters with one option of another topic, say so on its first line: "Only
-  with option A of [generating occurrences](#generating-occurrences)". Every capability from **What
-  they have in common** gets a topic, or a line in **Needs no choice** saying why it leaves nothing
-  to decide.
-- **Not checked**: what you searched for and could not find or reach.
+- **Worth it and feasibility**: left out when the feature is small and relies on nothing new.
+- **Approaches**: one section per topic the feature has to settle, comparing its options against the
+  same criteria. Every capability of **What they have in common** gets a topic, or a line in **Needs
+  no choice**, which also holds the code-only choices.
+- **Not checked**.
 
-Rules for the whole file:
-
-- Give a heading to anything the questions may link to: in Markdown, only headings can be linked to.
-- Every fact links to its source: a file, a documentation page, a URL. Mark your own judgements as
-  judgements.
-- Do not recommend, and do not choose, in the discovery file. Recommendations go with the questions,
-  and choices you settle go under **Check these** or **Settled without the human** in the questions
-  file.
+Give a heading to anything a question may link to. Every fact links to its source, and your own
+judgements are marked as such. Do not recommend or choose here: recommendations go with the
+questions, and what you settle goes in the round.
 
 ## What to ask, and what to settle
 
-Ask only what only the human can decide:
+A question costs the human a card to read and weigh. A point under **Check these** costs them a
+line, and only if they object. So settle, and ask little.
 
-- Product direction, and what success looks like.
-- Scope boundaries: what the feature includes, and what it leaves out.
-- Tradeoffs between their goals, like simplicity against coverage.
-- Visual direction.
-- Any choice that would become a [decision](spec.md#what-is-a-decision), which states the human's
-  intent and not a value the code holds, including adding a dependency, or a change to an active
-  one. The spec step creates or changes a decision only from an answer, so a choice not asked here
-  cannot become one.
-- A conflict with an active decision or with the constitution.
-- Loosening a security guard, said as what an attacker could then do.
-- Dropping or shrinking the feature, when the evidence says its cost outweighs its gain.
+**Always ask for authority the human has not given**, however sure you are of the answer:
 
-Settle everything else yourself, within the constitution and active decisions. Examples: reusing
-what exists, writing a small module rather than adding a dependency, the behaviour of an edge case
-the proposal's intent already decides. List each settled point in the questions file: what you
-chose, and why. A point the human would want to object to goes under **Check these**, before the
-questions; the others under **Settled without the human**, at the end. The human sees it when
-answering, and can object. The spec copies it into its assumptions.
+- a change to what an active decision says, or a conflict with the constitution;
+- a relaxed guard, a new dependency the human must then trust, or a change to data users already
+  have;
+- a limit, a refusal, or a gate the proposal does not ask for;
+- dropping or shrinking the feature, or cutting part of what the proposal asks.
 
-**A project without code-quality checks.** When the project has no
-`specs/decisions/code-quality.md`, the round asks whether to adopt one. The recommended option names
-the limits for the project's own linters, as [setting up checks](code-quality.md#setting-up-checks)
-describes. It is asked once: a "no" becomes that decision, saying the project has no limits, with a
-date in its **Revisit when**. Before that date, no round asks again.
+**Within what they asked for, ask only when the answer changes what the human will see or live with,
+and their goals do not choose between the options.** That is usually:
 
-**A project with a UI and no preview decision.** When a round is about UI work and the project has
-no `specs/decisions/preview.md`, the round asks once whether to adopt one, from
-[the template](../assets/templates/specs/decisions/preview.md), as
-[setting up a project](projects.md#setting-up-a-project) describes. A "no" becomes that decision,
-saying the project has no preview, without its two preview fields, and with a date in its **Revisit
-when**. Its mockups stay HTML, and no round asks again before that date.
+- what the feature is for, and where its scope ends, when the proposal leaves it open;
+- a tradeoff between two things the human wants;
+- a look, shown as variants: see [visual questions](#visual-questions);
+- a default the user meets every day, where both ways are reasonable: what is on unless turned off,
+  what happens when something was missed.
 
-**A project without a testing decision.** When the project has no `specs/decisions/testing.md`, the
-round asks once whether to adopt one, from
-[the template](../assets/templates/specs/decisions/testing.md), as
-[how many](code-quality.md#how-many) describes. The recommended option for a new project is the
-`early` stage. A "no" becomes that decision, saying the project follows the skill's defaults, with a
-date in its **Revisit when**, and no round asks again before that date.
+**Settle everything else**, within the constitution, the decisions, and the guides, and from the
+product the proposal names as its model. Mechanisms the user never sees are yours: which library
+call, where a value is stored, how a process restarts. So is where a rule is written down: an
+existing decision first, as [the spec step](spec.md#new-decision-or-change) says. Put each settled
+point in the round, as [settled without the human](writing.md#settled-without-the-human) describes:
+what the human may object to under **Check these**, said as what happens to them.
 
-Ask everything at once: anticipate the questions their answers would raise, and ask them now, as
-follow-ups, so the human answers once. There is no limit on the number of questions: early in a
-project, dozens are normal.
+Four limits on settling:
+
+- **Never add a limit, a refusal, or a gate nobody asked for.** "`start` refuses a proposal without
+  a Why" is not a detail: it is a question, or it is left out.
+- **Being sure is not being allowed.** What needs the human's authority is asked, with your
+  recommendation first.
+- **Never settle against the human's words.** Where the proposal, a note, or an earlier answer
+  speaks, it holds.
+- **Never ask two rounds where one would do.** Anticipate what an answer would raise, and ask it
+  now, as a follow-up.
+
+If nothing needs an answer, the round has a single question confirming your reading: "A
+(recommended). Go ahead with the scope above".
+
+A project without a code-quality, a testing, or, for UI work, a preview decision is asked once
+whether to adopt one: see [setting up a project](projects.md#setting-up-a-project).
 
 ## The questions file
 
-Write a new file for the round, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md), and set
-`status: awaiting-human`. The human answers every question in a single commit: the workflow does not
-move on until they have.
+Write it from
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md), with
+`status: awaiting-human`, as [a round of questions](writing.md#a-round-of-questions) describes: the
+block with its verdict, the Context with your reading of the proposal first, **Check these**, the
+questions sorted by impact, the other settled points, and `**Notes:**`.
 
-The human reads the file once, from top to bottom, without the discovery open next to it. Write it
-as [Writing for the human](writing.md) says. Its rules for every document, and for a round of
-questions, set the block, the Context's parts, and each question's card. They also set the settled
-groups and the time estimate. In order:
-
-1. **The `> [!IMPORTANT]` block**, as [the block](writing.md#the-block) describes. Its verdict comes
-   from the discovery's **Worth it and feasibility**: "not as proposed" when the evidence says the
-   cost outweighs the gain. It is "worth building, with changes" when the proposal cannot be met as
-   written. Its time follows [the time estimate](writing.md#the-time-estimate).
-2. **The Context section**, its four parts as [the Context](writing.md#the-context) describes. In a
-   later round, `### Since the last round` first.
-3. **Check these**, the settled points the human would want to object to, as
-   [settled without the human](writing.md#settled-without-the-human) describes, left out when empty.
-4. **The questions**, sorted by impact, most important first, each followed by its follow-ups.
-5. **Settled without the human**, its points in the groups Behaviour and Under the hood, left out
-   when both are empty, then the line `**Notes:**`, left empty for the human's notes on the settled
-   points.
+The verdict comes from the discovery's **Worth it and feasibility**: "not as proposed" when the
+feature costs more than it gives, "worth building, with changes" when the proposal cannot be met as
+written.
 
 ## Question structure
-
-Every question follows this structure:
 
 ```markdown
 ## Q2: When does the next occurrence appear?
@@ -387,11 +245,6 @@ whether the app needs a notion of series.
   - [pro] users can plan ahead.
   - [con] four times more repeating tasks in the list, and editing one occurrence needs the
     follow-up question below.
-- **C. Keep a single task, and move its due date to the next occurrence when it is completed, like
-  Todoist. Editing the task changes the whole repetition.**
-  - Example: the same "Water the plants" now shows Monday 12 October, and 5 October leaves no trace.
-  - [pro] the list never grows.
-  - [con] completed occurrences disappear, and one occurrence can never differ from the others.
 
 **Answer:**
 
@@ -400,48 +253,30 @@ whether the app needs a notion of series.
 Only if you picked B in Q2. [...]
 ```
 
-The card's parts, its example when it needs one, its context, "Why it matters", and its options with
-their outcomes, follow [questions](writing.md#questions) and [options](writing.md#options). They ask
-for as much context as deciding needs, self-contained option sentences, and the recommended one
-first. The asking rules:
+[Questions](writing.md#questions) and [options](writing.md#options) say how each part is written.
+Number questions from Q1 in each round, and leave each `**Answer:**` empty.
 
-- **Options exclude each other**, unless the question says which ones combine, before the options:
-  "C can come on top of A or B". When the best answer is a combination, the "Why recommended" line
-  names it: "A, with C on top".
-- **Questions that depend on each other say so**, in the context of both. For example, "Where the
-  choice appears is Q6", "With a due date counted from the previous one (A in Q3), ...".
-- **A question that only matters for one answer is a follow-up**, right after its parent. Number it
-  by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". Ask it under
-  every option that needs one, each its own follow-up: `Q1.B` and `Q1.C`, never one shared by both.
-  Never ask a separate question that an earlier answer already decides.
-- **Number questions from Q1 in each round.** Refer to an earlier round's question by file and
-  number: "Q2 of [round 01](clarifications-01.md)".
-- **Conflicts**: when the proposal conflicts with an active decision, say so. Ask whether to change
-  the proposal or the decision. The decision can be narrowed, softened from a MUST into a SHOULD, or
-  given a case where it does not apply. When it conflicts with the constitution, say which
-  principle, and recommend changing the proposal. An exception is possible only if the human
-  explicitly accepts it in their answer. It is then spelled out in the plan, and the plan waits for
-  their review.
-- **Leave each `**Answer:**` empty.** The human answers with one or more option letters, or their
-  own words. An answer without a letter answers the question, and its follow-ups then do not apply.
-- **Settled points** say what was chosen and why, with a link to their discovery section, in their
-  group. A point that depends on an answer goes into that answer's option instead.
-
-If nothing needs a human answer, write a file with a single question confirming the scope: "A
-(recommended). Go ahead with the scope above". The human still sets `answered`.
+**A conflict** with an active decision is a question: change the proposal, or change the decision,
+which can be narrowed, softened from a MUST into a SHOULD, or given a case where it does not apply.
+A conflict with the constitution names the principle and recommends changing the proposal. An
+exception holds only if the human accepts it in their answer: it is then spelled out in the plan,
+which waits for their review.
 
 ## Visual questions
 
-With an active preview decision, a question about a look or a behaviour can offer its options as
-stories. The human then tries each one live before picking. Ask one only when seeing helps more than
-reading: a layout, a control, a motion, not a label's wording.
+**A question whose options differ in how something looks or moves shows each option.** The human
+cannot pick a layout, a control, or a motion from words, and will ask to see it. When the project's
+preview cannot show it, use a [prototype](#prototypes). A small visual detail you cannot show is
+settled, and the spec's mockup carries it; a direction for a whole view is never settled unseen. A
+label's wording stays in words.
 
-- **Two to four variants**, each a story export written where the decision puts stories, all made by
-  the session that writes the round.
-- **Distinct**: if two could swap their text unnoticed, they are too alike. Drop one, or make it
-  differ.
+- **Two to four variants**, distinct: if two could swap their text unnoticed, drop one.
+- **Drawn in the project's own look**, with its components, after reading its guides. A variant in
+  another style is judged on its style.
+- **For a view that exists, the variant is the real view, changed**, not a drawing of it: what the
+  human picks is then what gets built.
 - **Each option links its variant** in a paragraph of its own, under the option's sentence, then
-  gives a one-line tradeoff as its `[pro]` and `[con]`. The recommended one comes first, as A.
+  gives its `[pro]` and `[con]`.
 
 ```markdown
 - **A (recommended). A thin line, which thickens under the pointer.**
@@ -453,81 +288,40 @@ reading: a layout, a control, a motion, not a label's wording.
   - Why recommended: it keeps the sidebar quiet.
 ```
 
-Before linking a story, set the worktree up as the project's git decision asks, like its install. A
-new worktree has none of its dependencies, and its Storybook does not start without them. Then check
-that each story you link renders, with the decision's `preview-command`.
-
-The human may answer with a mix, "A, with B's grip". Commit the variants with the round. The spec
-keeps the picked one, as [mockups](spec.md#mockups) describes.
+With an active preview decision, variants are stories, written where the decision puts them. Before
+linking one, set the worktree up as the project asks, start the preview with the decision's
+`preview-command`, and look at each variant, at the narrowest and the widest width the project
+serves: a story that renders can still read badly. The human may answer with a mix, "A, with B's
+grip". Commit the variants with the round. The spec keeps the picked one, as
+[mockups](spec.md#mockups) describes.
 
 ### Prototypes
 
-A round may also compare looks as throwaway prototypes, in any format: HTML pages, SVGs, or
-generated images. Use them when building each look with the real components costs too much, like a
-whole layout or a colour scheme. They need no preview decision.
-
-- **In the feature's `mockups/` folder**, each prototype with the files it loads.
-- **Linked from the round**: each option links its prototype in a paragraph of its own, as a variant
-  does.
-- **Throwaway**: they are not the spec's mockups. The [approval](approval.md#delete-the-prototypes)
-  of the spec deletes them, and git keeps them.
-
-```markdown
-- **A (recommended). Panes with their titles in the border, like a terminal.**
-
-  [Terminal panes](mockups/terminal-panes.html)
-```
+A round may also compare looks as throwaway prototypes, in any format: HTML pages, SVGs, generated
+images. Use them when building each look with the real components costs too much, like a whole
+layout or a colour scheme. They go in the feature's `mockups/` folder, each option linking its own.
+They are not the spec's mockups: the spec's [approval](approval.md#delete-the-prototypes) deletes
+them, and git keeps them.
 
 ## Self-review
 
-Before committing, read both files again with fresh eyes, and fix what you find inline:
+Before committing, read both files again, and fix what you find:
 
-1. **Breadth and depth**: every part of the feature, every product worth comparing, and every
-   standard and dependency involved was researched as far as the
-   [discovery effort](#discovery-effort) asks. At `high`, each was researched until new sources
-   stopped adding. So was every dimension that applies (accessibility, locales, time, scale,
-   security, offline, existing data, removal). Every fact comes from a source read in this session,
-   not from memory.
-2. **Coverage**: every topic of the discovery's **Approaches** and **The proposal** sections ends up
-   in exactly one question or settled point.
-3. **Sources**: every claim in the questions is backed by the discovery or a linked source, and
-   every link resolves to an existing heading.
-4. **Each card alone**: the [writing self-review](writing.md#self-review): each question's card read
-   alone can be answered, and the sentences, the block, and the parts hold to their rules.
-5. **Options**: the recommended one is first, and combinations and dependencies are stated. No
-   question is decided by an earlier answer, and a follow-up sits under every option that needs one.
-6. **What is asked**: no question you could have settled. No settled point is one that only the
-   human can decide, like a scope boundary or a new dependency.
-7. **Worth it and feasible**: the cost of the feature is weighed against its gain. The outside
-   behaviour it relies on is checked, with how. Each one left unverified says why no experiment in
-   reach could settle it: if one could, run it now. Each relaxed guard says what an attacker could
-   do.
-8. **The block**: its verdict follows the discovery's **Worth it and feasibility**.
+1. **Your reading**: `### Goal` says what the human asked, in their words, with the product they
+   named. Nothing in the round goes against the proposal.
+2. **Each question**: the answer changes what the human sees or lives with, and you would not bet on
+   your recommendation. Otherwise it is a settled point. A look is shown.
+3. **Each settled point**: it adds no limit or refusal nobody asked for, and one the human may
+   object to is under **Check these**, said as what happens to them.
+4. **Coverage**: every topic of the discovery's **Approaches** and **The proposal** ends up in one
+   question or one settled point, or stays in **Needs no choice**.
+5. **Evidence**: every claim rests on a source you read. Outside behaviour the feature relies on is
+   checked, or says why no experiment in reach could check it.
+6. **The writing**: the [writing self-review](writing.md#self-review).
 
-## Red flags
-
-| Thought                                                   | Reality                                                                                           |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| "I know this kind of feature, I can skip the research"    | Products differ exactly where the proposal is silent. Read how they do it, and cite them.         |
-| "I remember how this library or browser behaves"          | Your knowledge may be outdated. Verify it in today's documentation, and cite it.                  |
-| "Two products and one standard is enough research"        | Keep going until new sources stop adding. Breadth first: list every part before going deep.       |
-| "This would take a long time, the human is waiting"       | Nobody is waiting: the workflow is asynchronous. Depth now saves rounds of questions later.       |
-| "I'll ask, the human knows the codebase better"           | The code is there to read. Ask only what the code, the docs, and the decisions cannot answer.     |
-| "The proposal says X, so X it is"                         | A proposal is a first take. Check it against what you found, and turn each gap into a question.   |
-| "The proposal asks for it, so I'll recommend it"          | Weigh its cost against its gain. Recommending a drop is a valid answer when the evidence says so. |
-| "The library surely supports this"                        | Check it with a small experiment, or name it as unverified so the plan checks it first.           |
-| "I'll mark it unverified, the plan will check it"         | Unverified is for what you cannot check, not for what takes time. Read the source, run the test.  |
-| "I'll ask this one now and the follow-up in a next round" | Every round costs the human a context switch. Anticipate, and ask the follow-up now.              |
-| "The options are clear enough as short labels"            | The human reads each option without the context. Write each as a full sentence.                   |
-| "Three sentences of context will do"                      | Context has no length limit: give the card what deciding needs, and cut what weighs no option.    |
-| "I'll recommend in the discovery, it saves time"          | Discovery holds evidence. Recommendations go with the questions, where the human weighs them.     |
-| "Nobody will notice I didn't read that page"              | The next agent builds on your sources. Cite what you read; list the rest under **Not checked**.   |
-
-With `ura`, run `ura check` on the feature's folder last: it verifies the files' structure, the
-questions' numbering and answer lines, and their links.
+With `ura`, run `ura check` on the folder last.
 
 ## Commit
 
-Commit both files: `discovery(<slug>): <feature name>`, or what the new round is about. The commit
-message body is the first line of the block, for example "12 questions, about 30 minutes." Then stop
-at the gate.
+Commit both files: `discovery(<slug>): <feature name>`, or what the new round is about, with the
+block's first line as the body. Then stop at the gate.

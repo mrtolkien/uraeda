@@ -1,198 +1,157 @@
 # Finish
 
-Replaces a feature's or a change's folder with one record, the last commit of its branch, so the
-default branch keeps what later readers need and git keeps the rest. Then marks the pull request
-ready for the human.
+Replaces a feature's or a change's folder with one record, the last commit of its branch, then
+writes the pull request's body and marks it ready for the human.
 
 - **Runs when**: the final review of a feature, or the review of a change, is done and its pull
   request is a draft; or the branch has the record, and its pull request is not ready yet
 - **Writes**: `specs/done/YYYY-MM-DD-<slug>.md`, the deletion of the folder, the links into it, the
-  records it supersedes, and the pull request's body, made from the record
+  records it supersedes, and the pull request's body
 - **Ends at**: a human gate, the pull request
 
 A merged folder is mostly process: discovery notes, questions with their options, a plan with every
-box checked. Kept on the default branch, it clutters the file tree and every search, and a finished
-plan reads like instructions to an agent that finds it. The record keeps what a reader of the
-project needs later, what the feature does and why each choice was made, in one dense file. Git
-keeps every file of the folder, and `git log -- specs/<folder>/` finds them, or
-`git log -- specs/changes/<folder>/` for a change.
+box checked. The record keeps what a later reader needs, what the feature does and why each choice
+was made, in one dense file. Git keeps every file of the folder: `git log -- specs/<folder>/`.
+
+**A feature is not finished until this step ran.** A pull request merged while still a draft leaves
+its folder in the tree and no record: when you find one, tell the human, and finish it on a new
+branch when they ask.
 
 ## Where you are
 
-Find the state of the branch in this table, and start at its step:
-
-| State of the branch                                                               | Start at                                                                                         |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Every step is checked, and there is no pull request                               | The [final review](implementation.md#final-review), then the next row                            |
-| A change's folder came back, and a round answered since is not made yet           | [Make it](change.md#making-the-change), and [review it](change.md#the-review), then the next row |
-| Every step is checked, or the change is reviewed, and the pull request is a draft | [Write the record](#write-the-record): the final review is done                                  |
-| The record, and the pull request is a draft                                       | [Mark the pull request ready](#mark-the-pull-request-ready)                                      |
-| The record, and no pull request                                                   | [Open the pull request](#open-the-draft-pull-request), then mark it ready                        |
-
-For a change, the first row is [the review](change.md#the-review), and the third its draft pull
-request. A change's folder came back when the branch reverts its finishing commit, for
-[changes asked on the pull request](#changes-asked-on-the-pull-request): `git log` shows whether a
-round was answered after that revert. With `ura`, `ura next` names the step, `finish` for every row
-but the first. Without `gh`, it cannot see the pull request, and names `pull-request` once the
-record is there: check the pull request yourself.
+| State of the branch                                                               | Start at                                                                           |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Every step is checked, and there is no pull request                               | The [final review](implementation.md#final-review)                                 |
+| A change's folder came back, and a round answered since is not made yet           | [Make it](change.md#making-the-change) and [review it](change.md#the-review) first |
+| Every step is checked, or the change is reviewed, and the pull request is a draft | [Write the record](#write-the-record)                                              |
+| The record, and the pull request is a draft                                       | [Mark the pull request ready](#mark-the-pull-request-ready)                        |
+| The record, and no pull request                                                   | [Open the pull request](#open-the-draft-pull-request)                              |
 
 ## Open the draft pull request
 
 After the final review, push the branch and open its pull request as a draft, with
-`gh pr create --draft`, so the record can link it. The draft also tells the next agent that the
-final review is done. Its description can wait: it is written when the pull request is marked ready.
-
-A forge without draft pull requests: write the record first, then open the pull request, and add its
-link to the record in a second commit, `finish(<slug>): link the pull request`. When no pull request
-can be opened, leave `pull-request` out of the record, and push the branch.
+`gh pr create --draft`, so the record can link it. Its body is written when it is marked ready.
+Without `gh`, `ura next` cannot see the pull request: check it yourself. A forge without draft pull
+requests is covered [by hand](by-hand.md#a-forge-without-draft-pull-requests).
 
 ## Write the record
 
 Write `specs/done/YYYY-MM-DD-<slug>.md`, named after the folder, from
 [the template](../assets/templates/specs/done/YYYY-MM-DD-feature-slug.md). The
-[example's record](../assets/example/specs/done/2026-10-06-recurring-tasks.md) shows a finished
-feature. Read the whole folder first: the proposal, every round of questions and answers, the spec,
-the plan, the rulings, and the review files.
+[example's record](../assets/example/specs/done/2026-10-06-recurring-tasks.md) shows one. Read the
+whole folder first.
 
-- **Frontmatter**: `kind`, `feature` or `change`, as its branch is; `finished`, today's date;
-  `pull-request`, its URL; `supersedes`, each older record whose behaviour this one replaces, in
-  whole or in part, a list of record names, left out when none is
-  ([below](#point-to-the-records-it-replaces)).
-- **The `> [!NOTE]` block**: it says the file is a record, not instructions, with the start date,
-  the date of the folder's name, the finish date, the pull request, and
-  `git log -- specs/<folder>/`, or `git log -- specs/changes/<folder>/` for a change.
+**The record's reader is the next agent to touch this code**, and the human months later. Neither
+saw the folder. Write what they could not get from the code:
+
+- **Frontmatter**: `kind`, `finished`, `pull-request`, and `supersedes` when it replaces the
+  behaviour of older records.
+- **The `> [!NOTE]` block**: that the file is a record, not instructions, with its dates, its pull
+  request, and the `git log` command that finds its files.
 - **What and why**: the proposal's intent, in the human's terms.
 - **Behaviour**: one line per user story, with the rules a later feature must keep, as the code does
-  them, not as the spec first said. For a change, what was fixed or changed.
-- **Design**: the spec's architecture, and the main components, each with a link to its code. For a
-  change, the root cause or the approach, and the code it touched.
-- **Replaced behaviour**: the spec's list of behaviour it replaces, one line each, with the tests
-  that guarded it and the tests the branch removed, then the tests removed by ruling, each with its
-  file. Left out when nothing was replaced.
-- **Gotchas**: what the code and the tests do not show, such as a library's behaviour that forced a
-  choice, one line each, beginning with the choice it shaped and linking its code. A routine
-  debugging step is not one. Left out when there is none.
-- **Questions**: every round, `### Round 01`, then every question under its exact heading at level
-  4, `#### Q2: When does the next occurrence appear?`, so its anchor stays the questions file's. Its
-  answer in a sentence: the letters and what they chose, or the human's words, shortened, quoted
-  where they are the decision. A follow-up, `#### Q2.B: ...`, only when it applied. The human's
-  notes on the settled points, under `#### Notes`. When the record quotes a round's Context or its
-  settled points, they go under `#### Context`, `#### Check these`, or
-  `#### Settled without the human`, their sub-headings at level 5: `##### Goal`, `##### Behaviour`.
-  A level-3 or level-4 sub-heading there would read as a round or a question. A change's record
-  keeps its rounds' questions the same way, and has none when it asked nothing.
-- **Decisions**: each decision the feature made or changed, linked, in a line.
+  them, not as the spec first said. For a change, what was fixed.
+- **Design**: the approach, and the main components, each linked to its code. For a change, the root
+  cause.
+- **Replaced behaviour**: what it replaced, with the tests that guarded it and the tests removed.
+- **Gotchas**: what the code and tests do not show, like a library's behaviour that forced a choice.
+  These are the most useful lines of a record: a routine debugging step is not one.
+- **Questions**: every round, `### Round 01`, then each question under its exact heading at level 4,
+  so its anchor stays, with its answer in a sentence: the letters and what they chose, or the
+  human's words, quoted where they are the decision. A follow-up shows only when it applied. The
+  human's notes go under `#### Notes`. A round's Context or settled points, when quoted, go under
+  `#### Context`, `#### Check these`, or `#### Settled without the human`, their sub-headings at
+  level 5: a level-3 or level-4 heading there would read as a round or a question. A change that
+  asked nothing has no Questions.
+- **Decisions**: each decision the feature made or changed, linked.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
-  approval, and the changes asked on the pull request. Say each change in words, never by its
-  ruling's number: the folder and its `rulings.md` are gone for the record's reader.
-- **Follow-ups**: the agents' notes the feature added to the inbox, and the work left.
+  approval, and the changes asked on the pull request, each in words, never by a ruling's number.
+- **Follow-ups**: the agents' notes the feature added, and work the human chose to leave.
 
-The record links no image: the folder's `images/` is deleted with it, and git keeps them. Describe
-in words what an image showed, when the record needs it.
-
-Write it for a reader who never saw the folder: dense, with no line count to reach or to stay under.
-A section with nothing to say is left out, if the template marks it optional.
+A section with nothing to say is left out, when the template marks it optional. The record links no
+image: the folder's `images/` is deleted with it. Say in words what an image showed, when the record
+needs it.
 
 ## Point to the records it replaces
 
 A feature or a change that replaces the behaviour of older records names them on both sides, in the
-finishing commit. They come from the spec's replaced behaviour and from the **Behaviour** of the
-records the code's history leads to.
+finishing commit:
 
-- **The new record's `supersedes`** lists each older record, by name.
-- **Each older record** gains `superseded-by`, listing the new record by name, and one line, the
-  last paragraph of its opening `> [!NOTE]` block, since `ura check` wants the record to open with
-  that block:
-  `> Superseded in part by [2026-10-26-testing-communication](2026-10-26-testing-communication.md).`
-  The line says "Superseded by" when the new record replaces all of the older one's behaviour.
-  Nothing else in the older record changes.
-- **A record superseded again** lists every newer record in `superseded-by`, and has one line for
-  each.
-
-With `ura`, `ura check` warns about a `supersedes` or a `superseded-by` whose partner does not name
-this record back, and about one that names no record.
+- **The new record's `supersedes`** lists each older record, by name. They come from the spec's
+  replaced behaviour, and from the records the code's history leads to.
+- **Each older record** gains `superseded-by`, and one line, the last paragraph of its opening
+  block:
+  `> Superseded in part by [2026-10-26-testing-communication](2026-10-26-testing-communication.md).`,
+  or "Superseded by" when all its behaviour is replaced. Nothing else in it changes. A record
+  superseded again lists every newer record, with a line for each.
 
 ## Rewrite the links
 
-Every link into the folder, in any file of the branch, now points to the record: decisions, proposal
-files, other records, the code's documentation.
+Every link into the folder, in any file of the branch, now points to the record. A link to a
+question keeps its anchor. A link to any other file or section points to the first question whose
+text links that same place, or else to the record without an anchor.
 
-- A link to a question, `../<folder>/clarifications-01.md#q6-how-does-ura-run-git`, keeps its
-  anchor: `../done/<folder>.md#q6-how-does-ura-run-git`.
-- A link to any other file or section, like a discovery topic, points to the first question, by
-  round then number, whose text links that same file and section; otherwise to the record, without
-  an anchor.
-
-Then repair every other link of `specs/` that no longer resolves, as
-[the catch-up](implementation.md#where-a-moved-link-points) does: the default branch may have moved
-a file since. With `ura`, `ura check --fix` repairs them, without committing. It leaves the links
-into this folder, which no commit has removed yet: the rules above rewrite those. `ura check` then
-reports every link left that does not resolve.
-
-Links from other branches are theirs to fix, once this one is merged: their catch-up repairs them.
+Then repair every other link of `specs/` that no longer resolves: with `ura`, `ura check --fix`; by
+hand, see [where a moved link points](by-hand.md#where-a-moved-link-points).
 
 ## The finishing commit
 
-In one commit: the record, the deletion of the whole folder, its images included, the rewritten
-links, and the older records' `superseded-by` and line. Its message:
-`finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
-
-The commit never touches `PRIORITIES.md` or `INBOX.md`: a branch writes neither, so parallel
-branches never conflict there. The feature's line stays in **Now** after the merge, shown as merged,
-until the human cleans it, as [after the merge](#after-the-merge) says. Its link into the deleted
-folder is no problem for `ura check`.
+One commit: the record, the deletion of the whole folder, the rewritten links, and the older
+records' `superseded-by`. Its message is `finish(<slug>): <feature name>`, and its body the pull
+request's first line. It never touches `PRIORITIES.md` or `INBOX.md`: a branch writes neither, so
+parallel branches never conflict there.
 
 ## Mark the pull request ready
 
-Write the pull request's body from the record, in three parts, then mark it ready with
-`gh pr ready`. Each paragraph and list item of the body sits on one line: a forge shows every line
-break of a body, where a file's wrapped lines read as one. Tables and code blocks stay as they are.
-It is the feature's last human gate. If the default branch moved since the
-[catch-up](implementation.md#catch-up-with-the-default-branch), catch up again first. Its link
-repairs go into the finishing commit, with `git commit --amend`, so the record stays the last
-commit.
+The human often has three features in flight when a pull request lands. Its body tells them, in this
+order, what was done, what to look at, and what you decided for them. Each paragraph and list item
+sits on one line: a forge shows every line break of a body.
 
-1. **The opening block**, a `> [!IMPORTANT]` block as
-   [Coming back to the human](../SKILL.md#coming-back-to-the-human) describes. Its first line is
-   what is asked, and an honest time: "Pull request to review, about 20 minutes." Then the points
-   needing attention, one line each: a ruling that changes behaviour, the plan's text edited during
-   the work, a test removed by ruling, a new dependency, a function or file past a limit, a failure
-   that was already there, a final review done without a fresh reviewer, the reviewers when there
-   were several, how a review comment was carried out, and, for a change, the points settled without
-   asking, where the human checks the reading of the proposal. Its last line: "Once merged, run
-   `ura clean` to remove the worktree, the branch, and the line in the priorities."
-2. **The record's text**, from its title, without its frontmatter, and with its links made absolute
-   at the finishing commit: a relative link or one from the repository root becomes
-   `https://<forge>/<owner>/<repo>/blob/<finishing commit>/<path>`, its anchor kept. The body
-   repeats no section of the folder and adds none: no size table, no list of tests changed, no
-   rulings section. What a later agent needs is in the record, with the tests removed.
-3. **One screenshot per new view**, in the record's text, after the line of **Behaviour** that
-   describes the view, as `![<view>](<path>)`. Take it of the running app, into a file outside the
-   repository, and attach it by the same path, from the branch's worktree:
-   `gh pr edit <number> --body-file <body> --attach '<path>#<view>'`. The forge keeps the image, and
-   the reference now points to it. Never commit the image. When `gh` cannot attach it, a forge or a
-   `gh` without `--attach`, leave the image out and add the line "No screenshot: the forge could not
-   attach one. Run `<the command that starts the sandbox>` to see the view." A change that adds no
-   view has no screenshot.
+If the default branch moved since the catch-up, catch up again first, and amend its link repairs
+into the finishing commit.
 
-Advise a rebase merge, which keeps the default branch's history linear, or else a merge commit: a
-squash merge leaves the folder's files only in the pull request, out of
+1. **The opening block**, a `> [!IMPORTANT]` block. Its first line is what is asked and the time:
+   "Pull request to review, about 15 minutes." Then:
+   - **What was done**, in two or three sentences, in the product's words: what the user can now do,
+     or what no longer happens. Never a list of files or tasks.
+   - **Look at**: where the human's eyes are needed, most important first: a view to try, with how
+     to start the product; a goal the feature missed, with its number; an important finding left
+     unfixed; a test removed by ruling; a new dependency; a function or file grown past a limit; a
+     spec amended during the build; how a review comment was carried out; a failure that was already
+     there; what could not be reproduced or started; a review done without a fresh reviewer.
+   - **Decided without you**: every behaviour users will notice that the approved request left open,
+     and every departure from what was approved, one line each, said as what happens to them and
+     why. This is where the human checks your reading. Nothing they would be surprised by is
+     anywhere else. A choice that needed their authority was asked before this point: this list
+     never stands for permission.
+   - **Measured**: each success criterion with its number, when the spec has some.
+   - its last line: "Once merged, run `ura clean` to remove the worktree, the branch, and the line
+     in the priorities."
+2. **One screenshot per new or changed view**, taken of the running product while
+   [using it](implementation.md#use-it), into a file outside the repository, attached with
+   `gh pr edit <number> --body-file <body> --attach '<path>#<view>'`. Never commit the image. When
+   the forge cannot attach one, give the command that starts the product on that view instead.
+3. **The record's "What and why" and "Behaviour"**, with their links made absolute at the finishing
+   commit, `https://<forge>/<owner>/<repo>/blob/<finishing commit>/<path>`, then a link to the
+   record there for the rest. The body repeats nothing else of the folder: no size table, no list of
+   tests, no rulings, no review history.
+
+Advise a rebase merge, or else a merge commit: a squash merge leaves the folder's files out of
 `git log -- specs/<folder>/`.
 
 ## Changes asked on the pull request
 
-Apply them as the [implementation step](implementation.md#comments-on-the-pull-request) says, with
-the record in place of the spec: update its **Behaviour** or **Design** in place, so it stays true
-to the code, and add a line under **Changes after approval**. Then write the body from the record
-again, keeping the links of the screenshots already in it, so the body stays the record's text.
+Apply them as [the comments pass](implementation.md#comments-on-the-pull-request) says, with the
+record in place of the spec: update its **Behaviour** or **Design** in place, add a line under
+**Changes after approval**, and write the body's record part again, keeping the links of the
+screenshots already in it.
 
 A change that needs a new round of questions brings the folder back:
 
-1. Note the record's **Changes after approval** made since finishing: the revert deletes them with
-   it.
+1. Note the record's **Changes after approval** made since finishing: the revert deletes them.
 2. `git revert` the finishing commit. When later commits changed the record, git stops on a conflict
    over it: delete the record, and continue the revert.
-3. In the next commit, carry the changes you noted into the spec and the plan; for a change, see
+3. Carry the changes you noted into the spec and the plan; for a change, see
    [its pull request](change.md#the-pull-request).
 4. Turn the pull request back into a draft, with `gh pr ready --undo`.
 5. Start the round, following
@@ -203,41 +162,13 @@ Once the feature is built again, it is finished again, from this file's first st
 ## After the merge
 
 Records are frozen once merged: edit one only to fix a broken link, or to add `superseded-by` and
-its line, as [pointing to the records it replaces](#point-to-the-records-it-replaces) says. A later
-feature that changes the behaviour says so in its own record. A link broken by a later move is
-repaired as [the catch-up](implementation.md#where-a-moved-link-points) says: with `ura`,
-`ura check --fix`.
+its line. A later feature that changes the behaviour says so in its own record.
 
 The branch, its worktree, and its line in `PRIORITIES.md` stay until the human cleans them. When you
-find a merged feature with a worktree, a local branch, or a line in the priorities left, tell the
-human to run `ura clean`. A feature merged with its folder and no record shows as merged only once
-its branch is gone: remove its branch by hand, as below. By hand, from the main checkout, never
-forced:
-
-1. `git worktree remove .worktrees/<folder>`: git refuses a worktree with uncommitted or untracked
-   files, and they stay until the human deals with them. `git worktree prune` drops the record of a
-   worktree folder already deleted.
-2. `git branch -D <branch>`, only when every commit of the branch is on the default branch:
-   `git log --cherry-pick --right-only --format=%H <default>...<branch>` lists the commits it lacks.
-   When the merge is only on the forge yet, run it with `origin/<default>` too: a commit counts as
-   merged when either list leaves it out. `-D`, because `-d` refuses a rebased branch.
-3. On the default branch, remove the line of `PRIORITIES.md` linking the folder's `proposal.md`,
-   with the blank line after it when it was the last started proposal, and commit it alone,
-   `chore(<slug>): remove "<name>" from the priorities`, `<name>` the line's text. When
-   `PRIORITIES.md` has other uncommitted changes, remove the line without committing: they are
-   someone's work in progress. A line already gone needs nothing.
-
-Remote branches are the forge's: GitHub's "Automatically delete head branches" setting removes them.
-
-## Finishing a feature merged before this step
-
-A feature merged with its folder stays as it is, listed as done once its branch is gone, locally and
-on `origin`: while the branch is there, the folder is the branch's, as for a feature just started.
-When a human asks to finish it, do it on a new branch, with the same record, links, and commit,
-through a pull request: the `finished` date is the day of that commit.
+find a merged feature with one of them left, tell the human to run `ura clean`; by hand, see
+[clean up after a merge](by-hand.md#clean-up-after-a-merge).
 
 ## Commit
 
-One commit, `finish(<slug>): <feature name>`, then the pull request marked ready. The commit's body
-is the pull request's first line, "Pull request to review, about 20 minutes.", as
-[its body](#mark-the-pull-request-ready) opens.
+One commit, `finish(<slug>): <feature name>`, then the pull request marked ready, with
+`gh pr ready`.

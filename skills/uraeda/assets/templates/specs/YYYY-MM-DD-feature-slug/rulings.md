@@ -1,7 +1,9 @@
 # Rulings: [Feature name]
 
-The low-impact choices made while planning and building [the plan](plan.md), inside the limits of
-[the spec](spec.md) and the decisions. None binds future work: those are decisions.
+The choices made while planning and building [the plan](plan.md) whose reason would otherwise be
+lost: a departure from [the spec](spec.md), the plan, a mockup, or a decision, a behaviour users
+will notice that the spec does not state, a test removed, an alternative ruled out, what the human
+asked in a session. None binds future work: those are decisions.
 
 ## R1: [The choice, as a short title]
 
