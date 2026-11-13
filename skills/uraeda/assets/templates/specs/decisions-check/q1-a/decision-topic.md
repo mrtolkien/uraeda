@@ -11,9 +11,10 @@ protects, in at most three plain sentences. The goal or approach, not a value th
 
 ## Rules
 
-- [One sentence with a single MUST or MUST NOT: the strongest rules first.] Checked by [a lint, a
-  test, or `ura check`, when one does; nothing when only review does].
-- [Then the rules with SHOULD or SHOULD NOT, then MAY, at most 10 in all.]
+- [One sentence, one keyword. SHOULD by default: MUST only for an always or a never the human said,
+  or when breaking the rule loses work or opens the system. MUST rules first, then SHOULD, then
+  MAY.] [Optional: Checked by a lint, a test, or `ura check`, when one does.]
+- [Few rules: only those the human would miss. What any agent would do anyway is not one.]
 
 ## Why
 

@@ -1,292 +1,239 @@
 # Writing for the human
 
-The writing rules of every document written for the human. They cover a round of questions, the
-inbox triage, the decisions check, a spec, a decision, a plan to review, and a pull request. Each
-rule says why it exists, and the limit it sets. The steps link here instead of repeating the rules.
+How every file the human reads is written: a round of questions, the inbox triage, the decisions
+check, a spec, a decision, a plan to review, and a pull request. The steps link here instead of
+repeating it.
 
-The human reads a document once, top to bottom, when they have time, often days after the step that
-wrote it. They have not read the discovery, the code, or the agent's session. Every rule below
-serves that reader: their time goes into deciding, not into searching or decoding.
+The human reads a file once, top to bottom, when they have time, often days after the step that
+wrote it, and often with three other features in their head. They have not read the discovery, the
+code, or your session. Their time goes into deciding, not into searching or decoding.
 
-With `ura`, `ura check` measures some of these rules as warnings:
-
-- on a file waiting for the human (`status: awaiting-human`): `block.count`, `block.items`, and
-  `writing.sentence`, and on a spec, `spec.length`;
-- on every decision: `decision.intent`, `decision.rules`, `decision.keywords`, `decision.order`,
-  `decision.why`, `decision.alternatives`, and `decision.consequences`;
-- on a decision edited on a branch after its spec's approval: `decision.unapproved`.
-
-Warnings do not fail the check, but a waiting file should have none. The parts are errors:
-
-- `sections.missing` for a missing Context part, `sections.unknown` for a heading the template does
-  not have, and `sections.order` for one out of order;
-- `settled.group` for a settled point outside a group, and `settled.subject` for one that does not
-  start with its bold subject;
-- `edges.importance` for an edge case's importance other than high, normal, or niche;
-- `review.answer` for an item of `## Your review` that is not a bold `**C<n>**`, its comment in
-  parentheses, and `done` or `declined`;
-- `decisions.item` for an item of `## Decisions` that is not a bold `New:` or `Changed:` with a link
-  to the decision's file, or a bold `Removed:` with its file's name in code.
-
-See [The `ura` CLI](cli.md).
+With `ura`, `ura check` measures what this file can count: it reports a missing or misplaced part as
+an error, and a limit passed as a warning. A file waiting for the human should have neither.
 
 ## Every document
 
 1. **Write in the order the reader reads.** Never refer to something before it is introduced, and
-   give each part the context it needs where it is needed. The reader cannot go back to a part they
-   have not read yet.
-2. **Sentences of at most 25 words.** A longer sentence holds two ideas, and the reader keeps the
-   first in mind while parsing the second. Split it, or turn it into a list. `writing.sentence`
-   warns on a sentence over 25 words, outside quotes, tables, and code; a link's text and inline
-   code do not count.
-3. **Define a term at its first use.** A term the proposal, the project's UI, or a common dictionary
-   does not use gets a definition in the sentence that first uses it. A name from the code is linked
-   to it. The reader learns the term once, where it appears, instead of guessing.
-4. **Never an ID from a file the reader has not seen.** A ruling "R7", a discovery topic, a comment
-   "C3" of an old review, or an approach's code name means nothing. The reader never opened that
-   file. Name the subject instead, and link the file for more.
-5. **Never cite an answer by its number alone.** "With B in Q2" makes the reader scroll back to find
-   what B was. Say what it chose: "with a single task whose due date moves (B in Q2)".
-6. **One way to show each kind of content.** Tables carry comparisons, across products or options.
-   Quotes carry what a source says, in its words, with its link. Diagrams carry flows, sequences,
-   and states. Prose carries the rest. The reader recognizes the kind at a glance.
-7. **Diagrams are Mermaid code blocks.** Draw a flow, a sequence, or states that a list would make
-   hard to follow in a fenced code block whose language is `mermaid`. Use a `flowchart`, a
-   `sequenceDiagram`, or a `stateDiagram-v2`. It reads as text in any editor, and renders on GitHub.
-   A diagram never repeats as a list what the text around it says. See
-   [Markdown](conventions.md#markdown).
-8. **No padding.** A sentence that changes nothing the reader decides or checks is cut: restating
-   the heading, announcing what follows, thanking, or hedging. Length comes from content, never from
-   filler.
+   give each part the context it needs where it is needed.
+2. **Short sentences.** A sentence holds one idea. Past 25 words it usually holds two: split it, or
+   make it a list. `ura check` warns on a longer one, outside quotes, tables, and code.
+3. **Plain words, and the human's own.** Use the words of the proposal and of the product. A word
+   you coined, for a mechanism, an option, or a state, is replaced by plain words, or defined with
+   an example where it first appears. A name from the code is linked to it.
+4. **Never an ID the reader has not seen.** A ruling "R7", a comment "C3" of an old review, or
+   "option B of Q2" means nothing days later. Say the subject: "with a single task whose due date
+   moves (B in Q2)".
+5. **One way to show each kind of content.** Tables carry comparisons. Quotes carry what a source
+   says, with its link. Mermaid diagrams carry flows, sequences, and states that a list would make
+   hard to follow. Prose carries the rest.
+6. **No padding.** A sentence that changes nothing the reader decides or checks is cut: restating
+   the heading, announcing what follows, thanking, hedging. Length comes from content.
+7. **Each thing said once.** A rule or a behaviour lives in one place of the file, and the rest
+   links to it. When you change it, search the file for its old wording: a stale sentence left
+   behind is read as the truth.
+
+## The block
+
+Every file waiting for the human opens with a `> [!IMPORTANT]` block, right after its title. It
+orients them: the details stay in the file.
+
+- **The first line says what is asked, and the time it takes**: "7 questions and 1 follow-up, about
+  20 minutes.", "Spec to review, about 15 minutes." Counts are in digits, and `ura check` compares
+  them with the file.
+- **Then what most needs their attention, one line each, most important first**, each named by its
+  subject, never by a number the reader has not met. First come the choices you made for them that
+  change what they get. Then what lasts beyond the feature, a risk, a cost, and what is not verified
+  yet. A guard you relaxed is said as what an attacker could then do.
+- **A handful of items.** Past 7, the reader skims and misses the line that mattered, and
+  `ura check` warns. The number is there to keep the block sharp, never to hide a choice: group
+  related items, and when more than 7 still deserve a line, keep them all and let the warning stand.
+- **No chores.** A rewritten file, a merge, or a rebase is no choice to weigh.
+- **On a revision**: what changed since their last review.
+
+**The time is computed, not guessed**, so the human can trust it. Count the words the human reviews
+at 250 a minute, for a spec everything but the "More scenarios" lists and `## History`, add a minute
+per question, follow-up, mockup, or changed decision, and round up to the next 5 minutes. A round of
+2,400 words with 7 questions and 1 follow-up is 9.6 plus 8, about 20 minutes. On a revision, count
+only what changed, and `## Your review`. A round without follow-ups leaves them out of its first
+line.
+
+**Once the human has answered or reviewed, the block becomes a note**: `> [!NOTE]`, its first line
+the outcome and its date, "Answered on 2026-10-08", "Approved on 2026-10-09", "Changes requested on
+2026-10-09" with their feedback in one line. Its items stay as they were. An answered round keeps
+the human's answers and notes word for word: this note, a format rewrite, and a repaired link are
+the only edits it takes. A revised spec moves it to the top of its `## History`, and a revised plan
+keeps it under the new block.
 
 ## A round of questions
 
 A round, `clarifications-NN.md`, is written from
 [its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md). The
-[example's round](../assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md) shows a
-first round, kept as a record once answered. The
+[example's round](../assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md) shows
+one, and the
 [example change's round](../assets/example/specs/changes/2026-10-14-tasks-reappear/clarifications-01.md)
-shows a change's round waiting for the human. In order, a round holds:
+a change's. In order, a round holds:
 
-- the `> [!IMPORTANT]` block, right after the title;
+- the block;
 - `## Context`, with its parts under `###` sub-headings;
-- `## Check these`, the settled points to check, without sub-headings, left out when empty;
+- `## Check these`, the points you settled that the human may object to, left out when empty;
 - the questions, `## Q1: ...`, each followed by its follow-ups, `### Q1.B: ...`;
-- `## Settled without the human`, with its points under `###` groups, left out when empty;
+- `## Settled without the human`, the other settled points, left out when empty;
 - the line `**Notes:**`, left empty for the human.
 
-The inbox triage and [the decisions check](decisions-check.md) follow the same rules, with two
-exceptions. Their Context is free text without parts. They have no settled points.
+The inbox triage and the decisions check follow the same rules, with a free Context and no settled
+points.
 
-### Answers
+### The round's block
 
-The workflow only moves on when every question is answered. A follow-up `Q2.B` needs an answer only
-when its parent's answer starts with its letter: "B", "B and C: ...", "A, B". A parent answered
-without a letter, in the human's own words, closes its follow-ups: they need no answer. If a
-clarifications file is `answered` with questions left blank, set its status back to
-`awaiting-human`, name the blank questions in the first line of its block, as "2 questions still
-need an answer: Q3 and Q5", and commit.
-
-### The notes
-
-A comment on one settled point, of Check these or of the settled section, is a bullet at the end of
-the notes, starting with that point's bold subject:
-`- **Undoing a completion**: Keep the undo, but say what it restored.` Its further lines are
-indented by two spaces.
-
-```markdown
-- **Undoing a completion**: Keep the undo, but say what it restored.
-```
-
-### The block
-
-9. **The first line counts, in digits, and gives the time.** "7 questions and 1 follow-up, about 35
-   minutes." The human decides from it whether to start now. Digits are what `block.count` reads: it
-   warns when the counts differ from the round's questions and follow-ups. A round without
-   follow-ups leaves them out: "2 questions, about 5 minutes."
-10. **The verdict is the first item.** It starts "Verdict:", then one of three phrases: "worth
-    building as proposed", "worth building, with changes", or "not as proposed". Then, in a
-    sentence, why. The human learns first whether their proposal holds, before any question. It
-    comes from the discovery's **Worth it and feasibility**, and for a change from the
-    investigation. The verdict stays when the block becomes a record.
-11. **Then what matters most, by subject.** One line each, most important first:
-    - the choices that last beyond the feature;
-    - the questions that work together;
-    - the gaps in the proposal;
-    - a risk;
-    - a relaxed guard, said as what an attacker could do;
-    - the settled points to check.
-
-    Each names a subject, never a question number: the reader has not seen "Q4" yet.
-
-12. **At most 7 items, the verdict included.** A longer block stops orienting: the reader skims it,
-    and misses the line that mattered. The details stay in the file. `block.items` warns on an
-    eighth item.
-
-### The time estimate
-
-13. **The time is computed, not guessed.** Count the words of the file, the block to the notes, at
-    250 a minute. Add a minute per question and per follow-up. Round up to the next 5 minutes. A
-    round of 2,400 words with 7 questions and 1 follow-up is 9.6 plus 8, about 20 minutes. The same
-    formula gives the same time to every agent, so the human can trust it.
+Its first item is the verdict on the proposal. It starts "Verdict:", then "worth building as
+proposed", "worth building, with changes", or "not as proposed", then why, in a sentence. A change's
+verdict comes from its investigation. The human learns whether their proposal holds before any
+question. Then the items: the choices that last beyond the feature, the questions that work
+together, the gaps in the proposal, a risk, and the points to check.
 
 ### The Context
 
-14. **The Context has four parts, under fixed sub-headings, in this order.** The human finds each
-    fact where every round puts it. A missing part fails `ura check`.
-    - `### Goal`: what the proposal asks for, and for whom, in a sentence or two, in the human's
-      terms. The human sees at once whether you read their intent right.
-    - `### Today`: what exists today, with links to the code. A table when products or approaches
-      compare.
-    - `### Scope`: what the feature or change covers, and what it leaves out.
-    - `### Sources`: the code, the products, and the documentation read. In a feature's round, a
-      last bullet links the discovery file, whose topics each question links. A change has no
-      discovery file: its Sources link the code and documentation directly.
-15. **From round 02, "Since the last round" comes first.** `### Since the last round` says what
-    happened since the last round, and why new questions came up, with a link to that round. The
-    human returns to a feature after days away, and needs the thread before the goal.
+Four parts, under fixed sub-headings, in this order: a missing one fails `ura check`.
+
+- `### Goal`: how you read the proposal, in the human's own words, in a sentence or two: what it
+  asks for, for whom, and what success looks like. **This is the first thing they check.** When the
+  proposal names a product as its model, "pretty much web lazygit", say so here: that product's
+  behaviour, in the area the proposal is about, is the default for what the round does not ask, and
+  each place you depart from it is named. A wrong reading caught here costs one line. Caught after
+  nine questions built on it, it costs the round.
+- `### Today`: what exists today, with links to the code. A table when products or approaches
+  compare.
+- `### Scope`: what the feature covers, and what you left out.
+- `### Sources`: the code, the products, and the documentation read, and a link to the discovery
+  file. A change has no discovery file: its Sources link the code and documentation directly.
+
+From round 02, `### Since the last round` comes first: what happened since, and why new questions
+came up. The human returns after days away, and needs the thread before the goal.
 
 ### Questions
 
-16. **Each question is a card the human decides from alone.** Its heading is the question, as a full
-    sentence ending with a question mark. Then its example when it has one, its context, a paragraph
-    starting "Why it matters:", its options, and `**Answer:**`, left empty.
-17. **An abstract choice opens with an example, and each option gives its outcome.** When the
-    options are rules or behaviours that are hard to picture, a line starting "Example:" sets one
-    concrete case, with real names and values: "'Water the plants' repeats every Monday. You
-    complete it on Monday 5 October." Each option then says, in one line, what happens in that case.
-    The human compares outcomes they can picture, instead of abstract rules. A question whose
-    options are already concrete, such as a library or a name, needs no example.
-18. **"Why it matters" says what the choice decides, and what it costs later.** One or two
-    sentences, after the context and before the options. It tells the human how much thought the
-    question deserves.
-19. **Short, adequate context.** A question's context holds what deciding it needs, without the
-    discovery open. That is what exists today, how others do it, the sources linked or quoted, and
-    what each answer leads to. The human answers from the card, and opens a link only to dig deeper.
-    - It stays short: the example carries the stakes, so the context adds only what the example does
-      not show. A comparison gets a table, a flow a diagram, and the rest stays in the discovery,
-      linked.
-    - It has no padding: a sentence that changes no option's weight is cut.
-    - Dependencies on other questions are said in both: "Where the choice appears is Q6".
-    - It links the discovery topic it relies on, for a reader who wants more.
+- **Each question is a card the human decides from alone.** Its heading is the question, as a full
+  sentence. Then its context, a paragraph starting "Why it matters:", its options, and
+  `**Answer:**`, left empty.
+- **The context holds what deciding needs**, without the discovery open: what exists today, how
+  others do it, the sources linked or quoted, and what each answer leads to. Give it as much as
+  deciding needs, and nothing that weighs on no option. A comparison gets a table.
+- **A choice that is hard to picture opens with an example.** A line starting "Example:" sets one
+  concrete case with real names and values: "'Water the plants' repeats every Monday. You complete
+  it on Monday 5 October." Each option then says what happens in that case. A question whose options
+  are already concrete, a library or a name, needs none.
+- **A choice about a look is shown**, each option with its variant or prototype: see
+  [visual questions](discovery.md#visual-questions).
+- **"Why it matters" says what the choice decides, and what it costs later**, in a sentence or two.
+  It tells the human how much thought the question deserves.
+- **Questions that depend on each other say so**, in both: "Where the choice appears is Q6".
+- **A question that only matters for one answer is a follow-up**, `### Q2.B: ...`, right after its
+  parent, starting "Only if you picked B in Q2". Never a separate question an earlier answer
+  decides. Each option that needs one gets its own, `Q1.B` and `Q1.C`, never one shared by both. An
+  earlier round's question is cited by file and number.
 
 ### Options
 
-20. **Each option is a self-contained sentence, in bold.** "Create the next occurrence as a new task
-    when the current one is completed", not "On completion". The human reads options side by side,
-    without the context above. Name every detail that matters, like the field a rule is typed in.
-21. **The recommended option comes first, as A.** It is labelled "A (recommended)", with a "Why
-    recommended:" line under its pros and cons. The human sees the agent's reading of the evidence
-    first, and can disagree with it.
-22. **Under each option, a `[pro]` line and a `[con]` line.** One fact each, short enough to compare
-    across options at a glance.
-23. **A point that depends on an answer goes into that option.** "Undo restores the previous due
-    date" belongs under the option that moves due dates, not among the settled points. The human
-    weighs it with the choice it follows from.
+- **Each option is a full sentence, in bold**, that reads without the context above: "Create the
+  next occurrence as a new task when the current one is completed", not "On completion".
+- **The recommended option comes first, as A**, labelled "A (recommended)", with a "Why
+  recommended:" line. The human reads your view of the evidence first, and argues with it.
+- **Each option has a `[pro]` and a `[con]` line**, one fact each, short enough to compare.
+- **A consequence the human will meet is said as what happens to them**, not as a property of the
+  option. "Opening an old project starts every run it missed" is weighed. "Missed runs are caught
+  up" is skimmed, and reversed at the spec.
+- **Options exclude each other**, unless the question says which combine. When the best answer is a
+  combination, the "Why recommended" line names it: "A, with C on top".
+- **When the options are ways to build something the proposal did not ask for, one option is not to
+  build it.**
+
+### Answers
+
+The human answers with one or more option letters, their own words, or both. Their words win over
+the option's wording. An answer without a letter answers the question, and closes its follow-ups. A
+follow-up needs an answer only when its parent's answer starts with its letter. Letters of options
+that exclude each other, "A and C", are ambiguous: ask again in a new round.
+
+The workflow moves on only when every question that applies is answered. If a round is `answered`
+with questions left blank, set its status back to `awaiting-human`, name the blank questions in the
+block's first line, "2 questions still need an answer: Q3 and Q5", and commit.
 
 ### Settled without the human
 
-24. **Settled points sit in three groups, each left out when empty.** The human checks the first
-    group closely, before the questions, reads the second, and skims the third, at the end. Every
-    point sits in one group: a point outside a group fails `ura check`.
-    - `## Check these`, its own section between the Context and Q1: what the human would want to
-      object to. A scope cut, a choice beyond the proposal, an assumption that could be wrong.
-    - `### Behaviour`, under `## Settled without the human`: what users will notice, settled within
-      the constitution and the decisions.
-    - `### Under the hood`, under `## Settled without the human`: choices in the code only, which
-      users never see. The section is left out when both groups are empty.
-25. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
-    link to its source: `- **Undoing a completion** puts back what completing changed. See ...`.
-    Subjects are unique in the round, the points to check included: the human comments on a point by
-    its subject. A point without its bold subject fails `ura check` (`settled.subject`): the human
-    could not comment on it.
+A settled point starts with its bold subject, then what was chosen and why, then a link to its
+source: `- **Undoing a completion** puts back what completing changed. See ...`. Subjects are unique
+in the round: the human comments on a point by its subject. A point that depends on an answer goes
+into that answer's option instead.
+
+- `## Check these`, between the Context and Q1: what the human may want to object to. A choice
+  beyond the proposal, a default they will meet every day, an assumption that could be wrong, each
+  said as what happens to them. This is where their objections land, at the cost of one line each.
+- `### Behaviour`, under `## Settled without the human`: what users will notice, that the proposal,
+  the constitution, and the decisions already settle.
+- `### Under the hood`, under the same heading: rare. A code-only choice the human would want to
+  know of. The rest of the code's choices stay in the discovery: the human does not read them here.
+
+### The notes
+
+Under `**Notes:**`, the human writes what no question asked. A comment on a settled point is a
+bullet starting with that point's bold subject:
+`- **Undoing a completion**: Keep the undo, but say what it restored.` Notes are read like answers:
+they often carry a requirement, and a spec that misses one is sent back.
 
 ## A spec
 
-A spec, `spec.md`, is written from
-[its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec.md), in the order
-[Spec and decisions](spec.md#spec-document) gives. The human approves it in one sitting, without
-opening anything else, so each rule below keeps it short and whole.
+A spec is written from [its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec.md), in
+the order [Spec](spec.md#spec-document) gives. The human approves it in one sitting, with nothing
+else open.
 
-26. **The block's first item starts "You approve".** It says in one sentence what approving commits
-    to. The human knows what is at stake before any detail. The first line still gives the time.
-27. **At most 7 items, "You approve" included.** Then what most needs attention, most important
-    first, as for a round. `block.items` warns on an eighth item.
-28. **The time counts the reviewed part.** The reviewed part is every section but the "More
-    scenarios" lists and `## History`. Count its words at 250 a minute. Add a minute per mockup and
-    per changed decision. Round up to the next 5 minutes. A reviewed part of 1,800 words with 2
-    mockups and 1 changed decision is 7.2 plus 3, about 15 minutes. On a revision, count only what
-    changed since the last review, and `## Your review`: the human reads the rest again only if they
-    want to.
-29. **Answers paraphrased, never cited by number.** The block and the spec say what the human chose,
-    in words: "the due date moves", not "A in Q2". A review comment is named by its subject, never
-    "C1" alone. The human reads the spec days after the round, without it open.
-30. **Git chores stay out of the block.** A rewritten file, a merge, or a rebase is no choice to
-    approve: the commits record it. An item spent on one hides an item that mattered.
-31. **Each rule stated once.** A rule lives in one part of the spec, or in a decision, and every
-    other mention links to it. Two copies drift, and the human reviews the same rule twice.
-32. **The reviewed part aims at 2,000 words.** Length goes to what the human decides. The build's
-    details are the plan's, and the rarer scenarios go under "More scenarios". `spec.length` warns
-    past 2,500 words on a spec waiting for review.
-33. **The split rule: the discovery proposes a split only when building one part changes how the
-    next is designed.** The next part is then specified once the first is built. Size is never a
-    reason: no count of stories, scenarios, or decisions makes a spec too large. A spec past rule
-    32's length moves the build's details to the plan and the rarer scenarios under "More
-    scenarios", and keeps the rest. The split is a question of the round, with the recommended split
-    as option A.
+- **The block's first item starts "You approve"**, and says in one sentence what approving commits
+  to.
+- **Then what you chose for them**: each answer you read one way among several, and each default or
+  assumption that changes what users get. Write each so one word flips it: "Read as X. The other
+  reading, Y, would [cost]."
+- **Answers are paraphrased, never cited by number**: "the due date moves", not "A in Q2".
+- **Length goes to what the human decides.** The part they review, everything but the "More
+  scenarios" lists and `## History`, aims at 2,000 words, and `ura check` warns past 2,500. A longer
+  spec moves the build's details to the plan and the rarer scenarios under "More scenarios".
+- **The split rule: a feature is split only when building one part changes how the next is
+  designed.** The next part is then specified once the first is built. Size is never a reason: no
+  count of stories, scenarios, or decisions makes a spec too large. A split is a question of the
+  round, with the recommended split as option A.
 
 ## A decision
 
-A decision, in `specs/decisions/`, is written from
-[its template](../assets/templates/specs/decisions/decision-topic.md), as
-[writing a decision](spec.md#writing-a-decision) describes. Agents often read it alone, before a
-task, without the record of the feature that made it. The human approves each of its lines. Each
-rule below keeps it whole and short: length lowers how well an agent follows each line.
+A decision is written from [its template](../assets/templates/specs/decisions/decision-topic.md), as
+[writing a decision](spec.md#writing-a-decision) describes. An agent reads it alone, before a task,
+without the feature that made it. The human approves each of its lines.
 
-34. **The intent first, in 3 sentences at most.** Before `## Rules`: the choice and what it
-    protects. A reader who stops there knows what the decision is for. A decision states intent, not
-    mechanism: see [what is a decision](spec.md#what-is-a-decision). `decision.intent` warns on a
-    fourth sentence.
-35. **One keyword per rule**, then how a tool checks it, "Checked by `ura check`.", or nothing when
-    only review does. A rule holding two MUST, SHOULD, or MAY is two rules, or one too detailed.
-    MUST NOT counts as one keyword, and neither a keyword in inline code nor one after "Checked by"
-    counts. `decision.keywords` warns on a rule with two.
-36. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come
-    first, then SHOULD and SHOULD NOT, then MAY, the most important first within a strength.
-    `decision.order` warns on a rule stronger than the one before it.
-37. **At most 10 rules.** Past 10, merge rules by concept, or split the topic into two decisions.
-    `decision.rules` warns on an eleventh rule.
-38. **The Why gives the reason, in 80 words at most.** The problem and what the choice protects, in
-    the present tense: an agent applies a rule to a case it does not name from its reason. A link's
-    text counts as words, its target does not. `decision.why` warns past 80 words.
-39. **No history in the Why.** It says what holds now, never who asked what, or when, and cites no
-    question or review comment. It quotes the human only when their words are the reason, like
-    "we're a todo app, not a calendar". It ends with at most one link, to the feature's record:
-    `History: [Recurring tasks](../done/2026-10-06-recurring-tasks.md).` The record keeps how the
-    choice came about.
-40. **At most 3 alternatives and 4 consequences.** Alternatives list only the options an agent could
-    propose again, one line each with why they lose. Consequences list only the costs the human
-    accepted and what a later feature must do, with no code facts. `decision.alternatives` and
-    `decision.consequences` warn past their limits.
-41. **Terms defined at their first use**, in a few words: "fate, its data library". The decision is
-    read alone, so a term defined in another decision, or in a record, is not defined.
-42. **Applies to names folders and kinds of features**, not the files inside a folder: agents find
-    the decision from what they touch, and a file's name changes without the human.
+- **The intent first**, in two or three sentences before `## Rules`: the choice, and what it
+  protects.
+- **Few rules.** Each added rule lowers how well the others are followed. A decision that needs many
+  is holding a feature's spec: cut what any agent would do anyway, and what the code already holds.
+  `ura check` warns past 10 rules, and its message offers a split: cut or merge rules first. The
+  room under that number is not there to be filled, and a second decision is the last resort.
+- **One keyword per rule, and SHOULD by default.** A rule is a MUST only when the human said always
+  or never, or when breaking it loses work or opens the system. What the human prefers is a SHOULD.
+  MUST rules come first, then SHOULD, then MAY.
+- **The Why gives the reason, in the present tense, in a few sentences.** An agent applies a rule to
+  a case it does not name from its reason. No history: who asked what, and when, is the record's. It
+  quotes the human only when their words are the reason. It ends with at most one link, to the
+  feature's record. `ura check` warns past 80 words.
+- **Alternatives and consequences are short lists**: the options an agent could propose again, with
+  why they lose, and the costs the human accepted, with no code facts. `ura check` warns past 3
+  alternatives and 4 consequences.
+- **Terms are defined in the decision**, since it is read alone.
+- **Applies to names folders and kinds of features**, never the files inside a folder.
 
 ## Self-review
 
-Before committing a document for the human, read it again as its reader, and fix what you find:
+Before committing a file for the human, read it again as they will, and fix what you find:
 
-1. **Each question's card alone.** Read each question, its context, "Why it matters", and its
-   options, as if nothing else were on the page. Can it be answered from that card? If not, the
-   missing fact goes into the card, not into a link.
-2. **The block.** The counts match the round, and the time follows the formula. The verdict comes
-   first with one of its three phrases, and every item names a subject. At most 7 items.
-3. **Sentences.** None over 25 words, no term undefined at its first use, no ID from an unseen file,
-   no answer cited by its number alone.
-4. **Padding.** Every sentence changes how the reader decides or what they check.
-5. **The parts.** The Context has its four parts, "Since the last round" first from round 02, and
-   every settled point sits in its group, the points to check before the questions.
+1. **The Goal, or "You approve"**: would the human recognise their request in it, in their words?
+2. **Each question alone**: can it be answered from its card? Is it theirs to answer?
+3. **The block**: the counts match, the time follows the formula, and everything you chose for them
+   that changes what they get is there.
+4. **The words**: no term of yours undefined, no ID from a file they have not seen, no sentence that
+   decides nothing, no old wording left from an earlier draft.
 
-With `ura`, run `ura check` last: it reports the parts that are missing as errors, and what drifts
-from the limits as warnings.
+With `ura`, run `ura check` last.

@@ -1,262 +1,159 @@
 # Spec and decisions
 
-Turns the human's answers into a spec, the feature's behaviour and the big picture of its build. The
-human approves it with the decisions the answers ask for.
+Turns the human's answers into a spec: what the feature does, and the big picture of how it is
+built. The human approves it, with the decisions it changes.
 
-- **Runs when**: the latest round, `clarifications-NN.md`, is `answered`, and there is no `spec.md`
-  or the spec's `clarifications` field is lower than `NN`; or `spec.md` is `changes-requested`
+- **Runs when**: the latest round is `answered`, and there is no `spec.md` or its `clarifications`
+  field is lower than the round; or `spec.md` is `changes-requested`
 - **Writes**: `spec.md`; `data-model.md` when the feature changes stored data or a file format; and
   decisions in `specs/decisions/`, new or edited in place on the branch
 - **Ends at**: a human gate, `spec.md` with `status: awaiting-human`, or a new
   [discovery](discovery.md) round
 
-Read this file in full before writing. In a design conversation, the agent would present the design
-section by section, and the human would approve each one as it goes. Here, the human approves once,
-in a file: the spec must be complete enough to approve with confidence, and fast to check.
+The spec is the main review of the workflow. Once it is approved, most features reach the pull
+request without the human. Anything it leaves vague, a later agent decides alone. Anything it gets
+wrong, the human finds in the built feature, when it costs the most.
 
-## Overview
+Decide the design: do not list possibilities. The round settled what needed the human, and the rest
+is yours to settle and to state, so they can object. Every part of the design serves a user story or
+an answer.
 
-The spec says what the feature does and how it will be built, for a technical human to approve
-before any code. It is the main review of the workflow. Once it is approved, most features reach the
-pull request without the human, since the plan follows the spec. Only the plans the human chose to
-review when approving it wait for them. Anything the spec leaves vague, a later agent decides alone.
+## Read the human's words
 
-The spec is a page the human approves in one sitting, without opening anything else. In order:
+The spec is built on everything the human wrote for this feature, not on the answers alone:
 
-- **What they approve**: the block, with the time it takes, a "You approve" sentence, and what most
-  needs their attention.
-- **Their last review, answered**: on a revision, each comment with what was done about it.
-- **The decisions**: the new, changed, and removed ones, then those the spec relies on. They come
-  first because they outlive the feature.
-- **The user stories**: what users get, each with its mockup and its key scenarios, exact values
-  included.
-- **The behaviour it replaces**: optional, the behaviour that goes, with the tests that guard it.
-- **How it is built, and its limits**: the architecture's units, the edge cases, the success
-  criteria, and the assumptions.
-- **What the human weighs last**: the constitution check and the risk tier, then the history of
-  earlier reviews.
+- **The proposal**, and the product it names as its model, if any.
+- **Every round**: its answers, the latest last, since later answers win, and its **Notes:**, which
+  often carry requirements no question asked. A note starting with a settled point's bold subject
+  answers that point. See [answers](writing.md#answers) for letters, own words, and follow-ups.
+- **Review comments** on this feature, from this review and the earlier ones.
+- **What they wrote in the session**, when there was one.
 
-The data the feature stores, or a file format it changes, goes to `data-model.md`, reviewed with the
-spec. Components, error handling, and the tests are the plan's: the spec says what users get, and
-the architecture's units. File-by-file changes and implementation steps belong in the plan.
+When an answer can be read more than one way and the readings differ a lot, start a new round, with
+your reading as the recommended option. When they differ little, pick one, and give the block an
+item the human flips in a word: "Read as X. The other reading, Y, would [cost]."
 
-Decide the design: do not list possibilities. The questions already settled what needed the human;
-everything else is yours to settle, and to state as an assumption the human can object to. YAGNI
-ruthlessly: every part of the design serves a user story or an answer.
-
-## Read the answers
-
-Read every round's questions, answers, settled points, and **Notes:**, the latest last: later
-answers win. A settled point the human objected to in an answer or a note follows them. A bullet of
-the notes starting with a settled point's bold subject, `- **<subject>**: <comment>`, is the human's
-answer to that point. An answer can be:
-
-- **One or more option letters**, at the answer's start, joined by `, `, `and`, or `, and `, and
-  ended by `:`, `,`, `.`, or the end: "B", "A and C: ...". "C but with napi-rs" names no letter.
-  Letters from options that exclude each other, when the question does not say they combine, are
-  ambiguous: ask again in a new round.
-- **Free text, alone or after letters**: the human's own answer, which wins over the option's
-  wording. When it can be read more than one way, either ask again in a new round, with your reading
-  as the recommended answer. Or, when the readings differ little, pick one and say so in the spec's
-  `> [!IMPORTANT]` block. An answer without a letter closes the question's follow-ups.
-
-A follow-up like `Q2.B` only needs an answer if the human picked that letter in its parent: ignore
-it otherwise. The workflow only moves on once every other question is answered: see
-[Coming back to the human](../SKILL.md#coming-back-to-the-human) for blank answers.
-
-Turn the answered round's `> [!IMPORTANT]` block into a record, as described in
-[Coming back to the human](../SKILL.md#coming-back-to-the-human), in the same commit as the spec.
+Turn the answered round's block into a note, as [the block](writing.md#the-block) says, in the
+spec's commit.
 
 ## Is the scope clear?
 
-Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown or is
-ambiguous in a way that matters. Start one too when the human asked for more options. A folder from
-a [change made a feature](change.md#upgrading) has rounds with no discovery file, that settled the
-change, not the feature's scope: start a new round for it, at the proposal's discovery effort.
-Otherwise, write the decisions the answers ask for, then the spec.
+Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown that
+only the human can settle, or when they asked for more options. A folder that came from a
+[change made a feature](change.md#upgrading) has rounds that settled the change, not the feature:
+start a new round for it. Otherwise, write the decisions the answers ask for, then the spec.
 
 ## Propose decisions
 
 ### What is a decision
 
-A decision records a choice a human made that agents must follow across the codebase, but would not
-reliably make on their own. The ledger is the current state of what the human wants. It grows as the
-project grows, and decisions change when the human changes their mind.
+**Most features produce no decision.** A decision is a boundary or a direction the human set, that
+work outside this feature must respect: what the code is built on, what a tool may never do, how the
+product should feel. "Tools never lose the user's work." "One kind of information is drawn by one
+shared component on every page." Each is a sentence the human would repeat to every future agent.
 
-An answer becomes a decision only if it passes all five tests:
+Everything else has another home:
 
-1. **An agent would not guess it.** A capable agent, reading the code and the constitution, could
-   reasonably do something else. If any agent would do it anyway, it is noise.
-2. **It outlives the feature.** It shapes future work, not only this feature. Behaviour inside one
-   feature goes in the spec. A rule that the code already enforces, with types, a schema, or a lint
-   rule, is recorded by the code.
-3. **Getting it wrong is costly**: inconsistent code, a hard migration, a rewrite, a look and feel
-   that drifts.
-4. **Intent, not mechanism.** It states the human's goal or approach, not a value the code holds: a
-   flag, a timeout, a file name, a size, a version, an exit code. The code, its configuration, and
-   its checks hold those, and change them without the human. A rule keeps a value only when the
-   human chose that value.
-5. **The human judges each line from their goals.** They can approve or refuse every line of the
-   decision without opening the code. Names of components, hooks, functions, CSS classes, and files
-   inside a folder, and lists of fields or keys, stay in the code, its comments and tests, or the
-   project's guides. A value stays when the human chose it and would check a plan against it.
+- **What this feature does**, however long it lasts, is its spec, then its record.
+- **How an area is designed**, its keys, its layouts, its formats, its wording, is the project's
+  guide for that area, like `specs/ui/`. Guides are free form, and you edit them with the feature.
+- **What only the code needs to know**, and enforces with a type, a schema, a lint, or a test, is
+  the code's. A boundary the human set stays a decision when a test also guards it.
+- **A choice made while building** is a ruling.
 
-Examples:
+Test a rule before writing it:
 
-- An answer "harnesses must not use CLI flags" names a mechanism. It is an assumption of the spec,
-  not a decision.
-- An answer "agents never run with permissions skipped" is a boundary. It is a decision, and its
-  rule is written without the flag's name.
-- An answer "a session lasts 30 days" is a value the human chose, and one they would check a plan
-  against. The rule keeps the 30 days.
-- An answer allowing a stylesheet for one component's rows names the code. The rule reads "A raw
-  element or a plain style MAY stand in where the design system cannot do the job", and the
-  component is named in the code's comment.
-- An answer picking the base keymap's keys is a list the human approved once, not one they check a
-  plan against. The rule says the keys follow Vim's habits, and the keys go to the project's guide.
+1. **Would it still be true, word for word, if the code it governs were rewritten?** A flag, a
+   timeout, a file name, a component's name, a list of keys: those are the code's, and change
+   without the human. A value stays only when it is the human's own, like "a session lasts 30 days".
+2. **Would the human check a plan against it?** If any agent would do it anyway, it is noise.
+3. **Did the human say it?** Every rule comes from their words: an answer, a note, a comment, the
+   proposal. It says no more than they said. A rule drawn from your own reading, or from a point you
+   settled, is an assumption of the spec, not a rule of the project.
 
-Typical decisions: how the code is organized, dependencies, the technical approach to a problem, and
-visual direction. Others are cross-cutting conventions (errors, dates, logging), and transitions,
-like two implementations kept side by side during a trial.
+The reverse also holds: an answer that forbids something across the product, "no commit without the
+commit page", is a decision even when its question was narrower. Lose it, and the next feature
+proposes it again.
 
-A decision is created, changed, or removed only from a question the human answered, or a review
-comment asking for it. The human approves every line of the ledger, so no decision starts from your
-own judgment. A choice you think deserves one goes back to the human as a question in a new round,
-following [Discovery](discovery.md). A low-impact choice made inside the feature is not a decision.
-It is an assumption in the spec, or a ruling in `rulings.md` during the plan and the implementation.
-
-A decision is never edited to describe the code, unless the human asks. When the code and a decision
-disagree, the code changes, or the question goes to the human. A decision rewritten to match the
-code takes on the code's detail.
+A decision is never edited to describe the code. When the code and a decision disagree, the code
+changes, or the question goes to the human.
 
 ### New decision or change
 
+**Extend an existing decision before writing a new one**, and cut or merge its weakest rules to make
+room. A new file is the last resort, for a topic no decision covers. Which file holds a rule is
+yours to settle: do not ask the human where a rule lives.
+
 Decisions are named after the question they answer, not the answer: `due-dates.md`, not
-`due-dates-are-calendar-days.md`. A name built from the answer becomes wrong at the first change.
+`due-dates-are-calendar-days.md`.
 
-First, look for an existing decision on the same topic.
+- **A new one**: write it from
+  [the template](../assets/templates/specs/decisions/decision-topic.md), with `status: proposed` and
+  an empty `approved-by`.
+- **One that exists**: edit it in place, on the feature's branch, as it should read after the
+  change, with `status: proposed` and an empty `approved-by`. The default branch keeps the active
+  text until this branch merges. A change that reverses an earlier choice lists that choice under
+  **Alternatives considered**, with why it was abandoned.
+- **To remove one**: delete its file on the branch.
 
-- **None**: write a new file from
-  [the template](../assets/templates/specs/decisions/decision-topic.md), with `status: proposed`, an
-  empty `approved-by`, and consequences in the future tense.
-- **One exists**: edit it in place, on the feature's branch, as it should read after the change. Set
-  `status: proposed` and empty `approved-by`. The default branch and every other branch keep the
-  active text until this one merges. A change that reverses an earlier choice lists that choice
-  under **Alternatives considered**, with why it was abandoned, so no agent proposes it again. Past
-  [the limit](writing.md#a-decision), the alternative an agent is least likely to propose again
-  goes: the record still says why it lost.
-- **To remove one**: delete its file on the branch. Its item in the spec names it without a link,
-  since the file is gone.
-
-The human sees each change as the difference between the decision on the branch and at the merge
-base with the default branch, as `git diff` shows it. The approval step activates each listed
-decision: see [Approval](approval.md).
+The human sees each change as the difference between the decision on the branch and on the default
+branch, and approves it with the spec. The [approval](approval.md) step then activates it.
 
 ### Writing a decision
 
-Write for a reviewer who has not read the discovery, and for an agent that reads the decision alone,
-without the record of the feature that made it. [A decision](writing.md#a-decision) in Writing for
-the human gives the limits of each section, and how a **Why** reads.
+Write for an agent that reads the decision alone, before a task, and for a human who approves each
+line. [A decision](writing.md#a-decision) gives the shape: the intent first, few rules, SHOULD by
+default, a short Why in the present tense.
 
-- **Title**: the topic.
-- **Icon**: in the frontmatter, the name of a [Lucide](https://lucide.dev/icons/) icon that shows
-  the topic, like `git-branch`. It is optional.
-- **Intent**: before `## Rules`: the choice and what it protects. Specifics appear only where they
-  are hard constraints.
-- **Rules**: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY rules that a spec, a plan, or code can be
-  checked against. Each rule is the human's goal or approach, judged from their goals (the fourth
-  and fifth tests of [what is a decision](#what-is-a-decision)). Each rule stands on its own, since
-  plans copy it word for word. A rule a tool checks ends with how, "Checked by" a lint, a test, or
-  `ura check`; a rule with nothing after it is checked by review. A check a tool could run but does
-  not yet becomes a line of the plan's test map, and a task. See
-  [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
-- **Why**: the reason, so an agent can apply a rule to a case it does not name, and a reader can
-  tell whether the decision still holds. The history and the investigation stay in the record. Until
-  the feature is [finished](finish.md#rewrite-the-links), its one link points to the feature's spec,
-  then to its record.
-- **Consequences**: the costs the human accepted, and what a later feature must do.
-- **Applies to**: the folders and the kinds of features it governs, so agents find the decisions
-  relevant to what they touch.
-
-Two sections are optional, at their place in the template. Leave them out unless they apply:
-
-- **Alternatives considered**: only the rejected options an agent could propose again, one line
-  each, with why they lose. When a change reverses an earlier choice, list the earlier choice and
-  why it was abandoned.
-- **Revisit when**: a condition or a date that ends a temporary decision. For example, "when the new
-  solver matches the old one on the benchmark for 4 weeks".
+- **Rules** are sentences a spec, a plan, or code can be checked against. Each stands on its own,
+  since plans copy it word for word. A rule a tool already checks may end with how, "Checked by" a
+  lint or a test: see [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
+- **Why**: the reason, so an agent can apply a rule to a case it does not name. Until the feature is
+  [finished](finish.md#rewrite-the-links), its one link points to the spec, then to the record.
+- **Consequences**: the costs the human accepted, and what a later feature must do, in the future
+  tense while the decision is proposed.
+- **Applies to**: the folders and kinds of features it governs.
+- **Alternatives considered** and **Revisit when** are optional: the rejected options an agent could
+  propose again, and the condition or date that ends a temporary decision.
 
 ## Spec document
 
-Use [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec.md). Every spec has this
-frontmatter and these sections, in this order:
+Use [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec.md): its frontmatter and
+its sections, in its order. `## Your review` is left out at revision 1, and `## History` until a
+revision has an earlier review to keep. Write it as [Writing for the human](writing.md) says, and as
+[a spec](writing.md#a-spec) adds.
 
-```markdown
----
-status: awaiting-human
-revision: 1
-clarifications: [the latest round included]
-risk-tier: [low | medium | high]
-plan-review: false
----
+In order, the human reads:
 
-# Spec: [Feature name]
+- **The block**: the time it takes, "You approve", and what you chose for them.
+- **Their last review, answered**, on a revision.
+- **The decisions**: they outlive the feature, so they come first.
+- **The user stories**: what users get, each with its mockup and its key scenarios.
+- **The behaviour it replaces**, when it replaces some.
+- **How it is built, and its limits**: the architecture's units, the edge cases, the success
+  criteria, and the assumptions.
+- **The constitution check and the risk tier**, then the history of earlier reviews.
 
-> [!IMPORTANT]
->
-> Spec to review, about [M] minutes.
->
-> - You approve [what the feature does, in one sentence].
-> - [What most needs attention]
+Components, error handling, tests, and file-by-file changes are the plan's.
 
-[One paragraph: what the feature does, for whom, and why, with links to the proposal, discovery, and
-clarifications.]
+## The block
 
-## Your review
+[The block](writing.md#the-block) opens with the review's time, then "You approve" and what
+approving commits to. Then, most important first:
 
-## Decisions
-
-## User stories
-
-### US1: [Title] (P1)
-
-## Architecture
-
-## Edge cases
-
-## Success criteria
-
-## Assumptions
-
-## Constitution check
-
-## Risk tier
-
-## History
-```
-
-`## Your review` is left out at revision 1. `## History` is left out until a revision has an earlier
-review's record. `ura check` reports a section out of this order as `sections.order`, and a section
-the template does not have as `sections.unknown`.
-
-Write the spec as [Writing for the human](writing.md#every-document) says for every document, and as
-[a spec](writing.md#a-spec) adds: the block's items, its time, and the spec's length.
-
-## What the human approves
-
-The `> [!IMPORTANT]` block, as described in
-[Coming back to the human](../SKILL.md#coming-back-to-the-human), opens with how long the review
-takes. Its first item starts "You approve", and says in one sentence what approving commits to. Then
-what most needs attention, one line each:
-
+- every answer you read one way among several, written to be flipped in a word;
+- **every default and assumption that changes what users get**, said as what happens to them: what
+  is on unless turned off, what happens when something was missed, what a save does;
+- each difference from the product the proposal names as its model;
 - the new, changed, and removed decisions;
-- the answers you read one way among several;
-- the riskiest assumptions, and outside behaviour not verified yet;
-- a relaxed guard, as what an attacker could do;
-- the risk tier, whether the plan waits for a review, and a tension with the constitution;
-- any cost or migration.
+- outside behaviour not verified yet, with what the plan's first task checks and what happens to the
+  story if the check fails;
+- a relaxed guard, as what an attacker could then do;
+- the risk tier, and whether the plan waits for their review;
+- a tension with the constitution, a cost, or a migration.
 
-On a revision, what changed since the last review. At most 7 items in all.
+A behaviour the human did not ask for is never left to the scenarios or the assumptions alone.
+There, they find it on the third read, or in the product.
 
 ## The spec's decisions
 
@@ -268,128 +165,100 @@ On a revision, what changed since the last review. At most 7 items in all.
 - **Removed: Sync** (`sync.md`). The app stays local-only, as you chose.
 ```
 
-The sentence says the rule for a new decision, what changed for a changed one, and why for a removed
-one. Only these items count as listed: the approval step activates the decisions they name.
+The sentence gives the rule itself, in the decision's words, for a new or changed one, and why for a
+removed one: the human approves rules, not a summary of them. Only these items count as listed: the
+approval step activates the decisions they name.
 
-Then the paragraph "Relied on:", and a table of the active decisions the spec follows. It has two
-columns: the decision, linked, and what it means for this spec. Only the decisions that apply to the
-feature, not the whole ledger.
+Then the paragraph "Relied on:", and a two-column table of the active decisions the spec follows:
+the decision, linked, and what it means for this spec.
 
 ## User stories
 
-Stories are ranked by priority (P1, P2, ...). Each is a slice of the feature that can be shipped and
-tested on its own: a user could get value from P1 alone. A story holds, in order:
+Stories are ranked by priority (P1, P2, ...). Each is a slice a user gets value from on its own. A
+story holds, in order:
 
 - **Its journey**: the user's path, in plain language, in one or two sentences.
-- **Its mockup**: a story link alone in its paragraph, for a story with UI work. See
-  [Mockups](#mockups).
-- **"Why this priority:"**: only when the order is not obvious from the journeys.
-- **"Key scenarios:"**: a numbered list of two or three scenarios, the ones that show the story
-  best.
-- **"More scenarios:"**: optional, the other scenarios. They do not count in the spec's reviewed
-  part.
+- **Its mockup**: for a story with UI work, alone in its paragraph. See [Mockups](#mockups).
+- **"Why this priority:"**: only when the order is not obvious.
+- **"Key scenarios:"**: the two or three scenarios that show the story best.
+- **"More scenarios:"**: optional, the others. They do not count in the reviewed part.
 
-Scenarios are written as **Given** / **When** / **Then**, with exact values. Write "a weekly task
-due Monday the 5th", "it is due Monday the 12th", never "the next week". Each has at most 4 steps.
-The plan's tests use them as written, for the scenarios the [testing](code-quality.md#testing)
-section asks to test. Every answer of the questions that changes behaviour shows up in a scenario.
+Scenarios are **Given** / **When** / **Then**, with exact values: "a weekly task due Monday the
+5th", never "the next week", in at most 4 steps. **A scenario's Then is what the user came for**:
+the text is selected, the field takes the next key, the column is wider. A label, a count, or a
+mode's name is a sign of it, and a feature can show the sign without working. Every answer that
+changes behaviour shows up in a scenario.
 
 ## Mockups
 
-Any UI work requires mockups: a new screen, a new control, or a visible change to an existing one.
-The human approves what users will see, not a description of it, and the implementation follows it.
-Each mockup sits in the story it illustrates, alone in its paragraph after the journey.
+Any UI work requires mockups: a new screen, a new control, or a visible change to one. The human
+approves what users will see, and looks at mockups before anything else in the spec.
 
-Show every state the user stories name, like an open menu, an empty list, or an error, with the
-exact text the spec fixes. A mockup shows what users see: the spec's text stays the reference for
-behaviour, and wins when the two disagree.
+- **Read first**: the project's guides and look decisions, and what the human said about earlier
+  mockups, in the records of `specs/done/`. A taste they already stated is not taught twice.
+- **Draw in the project's own look**, with its components. For a view that exists, the mockup is the
+  real view, changed.
+- **Show each view as its user meets it, not only at its best**: at the narrowest width the project
+  serves, with nothing in it, and with more than fits. A state without a mockup is still described,
+  in the edge cases.
+- **Look at each one, as a picture, at each width**, before linking it. A mockup that renders can
+  still be one grey block with no hierarchy.
+- **Check each answer against the mockup that shows it.** The human reads the mockup, and a mockup
+  that contradicts their answer is what they remember.
 
-**With an active preview decision**, `specs/decisions/preview.md`, mockups are Storybook stories,
-written where the decision says: one export per state. Embed each one by a
-[story link](conventions.md#markdown) alone in its paragraph, where a tool that shows the preview
-draws it live.
+The spec's text stays the reference for behaviour, and wins when the two disagree.
+
+**With an active preview decision**, `specs/decisions/preview.md`, mockups are stories, written
+where the decision says, one export per state, each embedded by a
+[story link](conventions.md#markdown) alone in its paragraph:
 
 ```markdown
 [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
 ```
 
-Before linking a story, set the worktree up as the project's git decision asks, like its install. A
-new worktree has none of its dependencies, and its Storybook does not start without them. Then check
-that each story you link renders, with the decision's `preview-command`.
+Set the worktree up as the project asks, and start the preview with the decision's
+`preview-command`, to look at them. After a [visual question](discovery.md#visual-questions), the
+spec's commit keeps the picked variant's export and deletes the others. A discovery's
+[prototypes](discovery.md#prototypes) are not mockups: rebuild a picked one as stories.
 
-Story links need Storybook's Vite builder, which the decision requires. After a
-[visual question](discovery.md#visual-questions), the spec's commit keeps the picked variant's
-export and deletes the others, so the spec embeds the picked one.
-
-A discovery's [prototypes](discovery.md#prototypes) are not mockups. With a preview decision, the
-spec's mockups stay stories, even when the human picked a prototype: rebuild its look as stories.
-
-**Without one**, put the mockups in `mockups/`, next to the spec, and link each one from its story.
-The spec's links name its mockups: a picked prototype it links is a mockup, and the approval deletes
-the other files.
-
-The format is yours: use whatever shows the change best, and is quickest for the human to check. For
-example:
-
-- a static HTML page when layout or interaction matters
-- an SVG for a single screen or component
-- a generated image when the look matters more than the exact layout
-- code, when the UI is simple to build: a small component in the project's own stack, that the human
-  can run or read
+**Without one**, put the mockups in `mockups/`, next to the spec, in the format that shows the
+change best: an HTML page, an SVG, an image, or a small component in the project's own stack. The
+spec's links name its mockups: the approval deletes the other files.
 
 ## Replaced behaviour
 
-Optional, between the stories and the architecture: leave it out when the feature replaces nothing.
-It lists the behaviour of today that the feature removes or changes, and the tests that guard it,
-which discovery's map of the code found. Each replaced behaviour is an item, its name in bold, then
-the tests that guard it:
+Optional, between the stories and the architecture. It lists the behaviour of today that the feature
+removes or changes, each with the tests that guard it, which the discovery found:
 
 ```markdown
 - **A completed task gets no next date.** Guarded by `tests/tasks/complete-a-task.test.tsx`.
 ```
 
-The human's approval of the spec covers removing or rewriting these tests: see
+The human's approval covers removing or rewriting these tests: see
 [when a test goes](code-quality.md#when-a-test-goes). A test that guards replaced behaviour and is
-not listed here costs a ruling, so read the discovery's list again before submitting.
+not listed here costs a ruling later: read the discovery's list again.
 
 ## Architecture
 
-The architecture is what the human approves of the build: the big picture, never the components'
-details. It opens with the chosen approach and why, in a few sentences, linking to the decisions and
-discovery topics behind it. Then one item per unit, its name in bold, saying what it does and the
-rules it owns ([one home per rule](code-quality.md#one-home-per-rule)):
+What the human approves of the build: the big picture, never the components' details. It opens with
+the chosen approach and why, in a few sentences. Then one item per unit, its name in bold, saying
+what it does and the rules it owns ([one home per rule](code-quality.md#one-home-per-rule)):
 
 ```markdown
 - **The repeat rule** computes the next due date from a pattern. It owns the month-end rule.
 ```
 
-Then the paragraph "Tradeoffs:", and one item per cost the approach accepts.
-
-Design for isolation and clarity:
-
-- Break the feature into smaller units that each have one clear purpose, communicate through
-  well-defined interfaces, and can be understood and tested independently.
-- Can someone understand what a unit does without reading its internals? Can its internals change
-  without breaking its consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for agents to work with. They reason better about code
-  they can hold in context at once, and their edits are more reliable when files are focused.
-
-Working in the existing codebase:
-
-- Follow the patterns the discovery found.
-- Existing code may have problems that affect the feature, like a unit over the project's limits,
-  unclear boundaries, or tangled responsibilities. Include targeted improvements in the design, the
-  way a good developer improves code they work in
-  ([extract, don't grow](code-quality.md#extract-dont-grow)).
-- Do not propose unrelated refactoring. Stay focused on what serves the feature.
+Then the paragraph "Tradeoffs:", and one item per cost the approach accepts. Follow the patterns the
+discovery found, and include the targeted improvement a unit in the way needs
+([extract, don't grow](code-quality.md#extract-dont-grow)), never unrelated refactoring.
 
 ## Edge cases and success criteria
 
-**Edge cases** are the inputs and situations at the boundary, each with what happens. For example,
-an empty field, a month end, a failed save, or an existing action that meets the feature (undo,
-delete, edit). An error the user sees is an edge case, with its exact text. The discovery's **The
-proposal's path and existing actions** section is a starting list. They form a table, most important
-first:
+**Edge cases** are the situations at the boundary, each with what happens, in a table, most
+important first. They are not only data: an empty list, a text too long for its place, the narrowest
+screen, where the focus goes after an act, how the user backs out, a failed save, an existing action
+that meets the feature. An error the user sees comes with its exact text. Rate each one `High` when
+it can lose data or mislead the user, `Niche` when few users meet it, `Normal` otherwise.
 
 ```markdown
 | Importance | Situation                  | What happens                         |
@@ -397,164 +266,87 @@ first:
 | High       | A save fails on completion | the task keeps its previous due date |
 ```
 
-Rate each one: high when it can lose data or mislead the user, niche when few users meet it, normal
-otherwise. `ura check` reports any other importance as `edges.importance`.
-
-**Success criteria** are measurable outcomes, each one checkable by a test or a benchmark. Write
-"Setting a preset repeat takes two clicks from the open task", not "Setting a repeat is easy". Each
-is an item, its id in bold, then its measure in a few words in parentheses, optional:
+**Success criteria** are measurable outcomes: "Setting a preset repeat takes two clicks from the
+open task", not "Setting a repeat is easy". A criterion on speed or size is measured on real data
+from the project, and says which: made-up data hides the real case.
 
 ```markdown
 - **SC-001** (two clicks): Setting a preset repeat takes two clicks from the open task.
 ```
 
-## What the human weighs
+## What the human weighs last
 
-- **Assumptions**: a sentence linking the points settled in the clarifications, which hold as
-  written there: the round's `## Check these` and `## Settled without the human`, each when the
-  round has it, since a link to a section left out breaks. It names only those an answer or a note
-  changed. Then "Settled while writing this spec:", and what you settled yourself, so the human can
-  object. An assumption that changes what users get is also an item of the `> [!IMPORTANT]` block.
-- **Unverified**: a story that relies on outside behaviour nobody has checked yet, as the
-  [discovery](discovery.md#investigate-in-depth) found it, is marked unverified in the block. The
-  block gives what the plan's first task checks and what happens to the story if the check fails.
-- **Relaxed guards**: a design that loosens a security rule, an origin check, a permission, or a
-  sandbox says so in the block. The block says what an attacker could then do, in one sentence, not
-  as a mechanism.
-- **Constitution check**: a one-row table, one column per principle, all of them: principles always
-  apply. Each cell is ✅, or ⚠️ for a tension. Then one line per tension, saying what it costs.
-  Decisions are not part of it. A conflict goes back to the human as a new round of questions,
-  following [Discovery](discovery.md). A decision that must give way changes on the branch once the
-  human answered for it. A constitution exception the human accepted is named here and spelled out
-  in the plan.
-- **Risk tier**: see below.
-- **History**: on a revision, the records of the earlier reviews, newest first. See
-  [Revising](#revising).
+- **Assumptions**: a sentence linking the points settled in the round, which hold as written there,
+  naming only those an answer or a note changed. Then "Settled while writing this spec:", and what
+  you settled yourself. One that changes what users get is also an item of the block.
+- **Constitution check**: a one-row table, one column per principle, each ✅ or ⚠️, then one line
+  per tension. A conflict goes back to the human as a new round.
+- **Risk tier**: `low` with no data format change and no new interface, `medium` for small data
+  changes, `high` for security changes or new data structures and services. When unsure, the higher
+  one: a change to the format of data users already have is at least `medium`, and converting every
+  saved record is `high`. Propose it in the frontmatter, with its reason in a line. `plan-review` is
+  `false` unless the human turns it on when approving.
+- **History**: on a revision, the notes of the earlier reviews, newest first.
 
-```markdown
-| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional |
-| -------------------- | -------------- | ---------- | ----------------- | ----------------- |
-| ✅                   | ✅             | ✅         | ✅                | ⚠️                |
-```
-
-## Risk tier
-
-The tier tells the human how much the feature can break. Propose it in the frontmatter, with a
-one-line reason for it in the spec. The human decides it when approving the spec.
-
-| Tier     | Typical features                                          |
-| -------- | --------------------------------------------------------- |
-| `low`    | No data format change, no new table, no new interface     |
-| `medium` | Small data format changes, minimal UI, low impact         |
-| `high`   | Security changes, new complex data structures or services |
-
-`plan-review` says whether the plan waits for the human's review before the implementation. It is
-`false` by default, whatever the tier: propose `false`. The plan waits only when the human turns
-plan review on when approving the spec, or when the plan lists a constitution exception. A spec with
-no `plan-review` has `false`.
-
-- When unsure between two tiers, propose the higher one. A change to the format of data users
-  already have is at least `medium`; converting every saved record is `high`.
-
-## Data model
-
-Write `data-model.md` next to the spec, from
-[its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/data-model.md), whenever the
-feature adds or changes stored data or a file format, at any size. The human reviews it with the
-spec. Types internal to the code are the plan's.
-
-- **One section per entity, file, or format**, `## <Entity>`.
-- **A table of its fields**: the field, its type, its meaning, and its change: new, changed,
-  removed, or empty when unchanged.
-- **A Mermaid diagram** only for relationships between three or more entities, or for state
-  transitions.
-
-## Tests
-
-The spec names no new test: its scenarios, edge cases, and success criteria are what the tests
-check. It names only the existing tests of the behaviour it replaces, in `## Replaced behaviour`.
-The plan's `## Test map` maps each of them to its test: see [Plan](plan.md). How the tests are
-written, and when one goes, is the [testing](code-quality.md#testing) section.
-
-## Spec frontmatter
-
-- `status`: `awaiting-human` when you submit it.
-- `revision`: `1` for the first spec, then one more at every change, by you or by the human.
-- `clarifications`: the number of the latest round the spec includes, so the next agent knows
-  whether a newer round is answered.
-- `risk-tier` and `plan-review`: see above.
+`data-model.md` is written from
+[its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/data-model.md) whenever the feature
+adds or changes stored data or a file format: one section per entity, a table of its fields, and a
+diagram only for relationships between three or more entities. The human reviews it with the spec.
 
 ## Self-review
 
-Before committing, read the spec again with fresh eyes, and fix what you find inline:
+Before committing, read the spec again, and fix what you find:
 
-1. **Placeholders**: no `TBD`, `TODO`, `[NEEDS CLARIFICATION]`, empty section, or vague requirement.
-   Open questions go back to [discovery](discovery.md).
-2. **Answers**: every answer and settled point shows up in the spec, the human's own words included,
-   and nothing in the spec contradicts one.
-3. **Consistency**: no section contradicts another, and every UI change has a mockup. The
-   architecture's units deliver every user story. The data model supports every edge case, over two
-   consecutive occurrences when it repeats.
-4. **Scope**: building no part of the spec changes how another is designed, as
-   [the split rule](writing.md#a-spec) says. If one does, start a new round, following
-   [Discovery](discovery.md), with a question proposing the split, the recommended split as option
-   A. Answered rounds are never edited.
-5. **Ambiguity**: a requirement that can be read two ways is rewritten to say one.
-6. **Linear reading**: nothing is referred to before it is introduced, the block names subjects, and
-   each rule is stated once.
-7. **Decisions**: each one listed comes from an answer or a review comment, and a new one passes the
-   five tests. Each reads alone, within [the limits](writing.md#a-decision): intent first, its rules
-   strongest first, one keyword each, with the tool that checks it, if one does.
-8. **Risks**: every unverified outside behaviour and every relaxed guard is in the block, a guard as
-   what an attacker could do.
+1. **The human's words**: read the proposal, every answer and note, the review comments, and the
+   session again. Nothing in the spec contradicts one, mockups included. Where the proposal names a
+   product as its model, each difference from it is in the block.
+2. **What you chose for them**: every default, limit, and behaviour they did not ask for is in the
+   block, said as what happens to them.
+3. **Acts and states**: every act a story adds has a scenario whose Then is its effect. Every view
+   is shown or described at its narrowest, empty, and overfull.
+4. **Decisions**: none, unless a rule passes the three tests. Each rule says no more than the human
+   said, and is a MUST only as [a decision](writing.md#a-decision) allows.
+5. **One reading**: no placeholder, no requirement that reads two ways, no section that contradicts
+   another, each thing said once.
+6. **Risks**: every unverified outside behaviour and every relaxed guard is in the block.
 
-## Red flags
-
-| Thought                                                       | Reality                                                                                              |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| "I'll list the options, the human picks during review"        | The questions are over. Decide the design, and state what you settled as assumptions.                |
-| "The plan will figure out the behaviour"                      | The plan argues from the spec. A behaviour the spec leaves vague, a later agent decides alone.       |
-| "Next week is close enough for a scenario"                    | Scenarios carry exact values: the plan's tests copy them as written.                                 |
-| "This answer could mean two things, I'll take the likely one" | Pick it only if the readings differ little, and say so in the block. Otherwise, ask in a new round.  |
-| "This choice deserves a decision"                             | Only an answer or a review comment creates one. Ask the human in a new round.                        |
-| "The spec should list the components and tests"               | Those are the plan's. The spec keeps the units, the data model, and what users get.                  |
-| "The decision should say how we got here"                     | The decision states its intent and rules. The history stays in the feature's record.                 |
-| "The decision should name the flag, the timeout, the file"    | Those are values the code holds. The rule states the intent, unless the human chose the value.       |
-| "The decision should describe what the code does"             | The code changes to follow it: see [the bar](#what-is-a-decision). Names and lists stay in the code. |
+With `ura`, run `ura check` on the folder.
 
 ## Revising
 
-The spec is amended in place: it stays the single source of truth for the implementation.
+The spec is amended in place: it stays the single source of truth.
 
-- **`changes-requested`**: read `spec-review.md`, its comments and its summary; each line comment
-  quotes the lines it is about, as they were at the review's `commit`. A comment can point into a
-  decision the spec lists, by its file and lines: see [Review files](conventions.md#review-files).
-  If the feedback asks for more options or raises a new question, start a new round, following
-  [Discovery](discovery.md). Otherwise, apply the feedback, and edit the decisions it affects on the
-  branch. Leave the review file as it is: the next review replaces it.
-- **A newer round is answered**: read its answers, write the decisions they ask for, and amend the
-  spec.
+- **`changes-requested`**: read `spec-review.md`: each comment quotes the lines it is about, as they
+  were at the review's `commit`, and can point into a decision. If the feedback raises a question
+  only the human can settle, start a new round. Otherwise:
+  - **Make the smallest change that satisfies each comment.** A comment on one view changes that
+    view. When a comment could reach further than the lines it is on, say in the block how far you
+    took it.
+  - **Then remove the old behaviour everywhere**: search the block, the stories, the scenarios, the
+    mockups, the assumptions, and the decisions for what you replaced. One stale sentence is read as
+    "the opposite of what I asked".
+  - **A comment that states a taste beyond this view**, "nothing round", "no layout shift", goes
+    into the project's guide for that area in the same commit. A review file is replaced by the next
+    one, and the taste would be taught again.
+- **A newer round is answered**: read its answers, and amend the spec and its decisions.
 
-On a revision after a review, `## Your review` answers each comment of that review, one item each:
+`## Your review` answers each comment of the last review, one item each, the comment named in a few
+words:
 
 ```markdown
 - **C2** (undo too short): done. The undo stays 5 seconds.
 - **C3** (a sync option): declined. The app stays local-only, as you chose.
 ```
 
-The parentheses name the comment in a few words, so the reader never needs its number alone. Then
-"done" or "declined", and what was done, or why not. The previous block becomes a record of the
-request, as described in [Coming back to the human](../SKILL.md#coming-back-to-the-human). It moves
-to the top of `## History`, above the earlier records. The new `> [!IMPORTANT]` block says what
-changed since the last review.
+The previous block becomes a note of the request and moves to the top of `## History`. The new block
+says what changed since the last review. Increase `revision`, set `clarifications` to the latest
+round, and set `status: awaiting-human` again.
 
-Increase `revision`, set `clarifications` to the latest round, and set `status: awaiting-human`
-again.
-
-With `ura`, run `ura check` on the feature's folder before committing.
+**Approved with comments**: the approved spec is not changed. The plan carries each comment out, and
+the comment wins over the clause it changes: see [Plan](plan.md#read-first).
 
 ## Commit
 
-Commit the spec, its data model, and its decisions together: `spec(<slug>): <feature name>`, or what
-changed when revising. The commit message body is the first line of the block, for example "Spec to
-review, about 15 minutes." Then stop at the gate.
+Commit the spec, its data model, its mockups, and its decisions together:
+`spec(<slug>): <feature name>`, or what changed when revising, with the block's first line as the
+body. Then stop at the gate.

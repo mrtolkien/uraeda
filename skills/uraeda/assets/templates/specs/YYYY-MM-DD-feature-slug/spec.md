@@ -13,9 +13,10 @@ plan-review: false
 > Spec to review, about [M] minutes.
 >
 > - You approve [what users get, and the choices that outlive this feature, in one sentence].
-> - [Where your attention matters most, one line each, at most 7 items in all: new and changed
->   decisions, risky assumptions, outside behaviour not verified yet, a relaxed guard as what an
->   attacker could do, the risk tier, costs or migrations]
+> - [What you chose for them, first: each answer read one way among several, as "Read as X. The
+>   other reading, Y, would [cost].", and each default or assumption that changes what users get]
+> - [Then, one line each, at most 7 items in all: new and changed decisions, outside behaviour not
+>   verified yet, a relaxed guard as what an attacker could do, costs or migrations]
 
 [One paragraph: what the feature does, for whom, and why. Links to the [proposal](proposal.md),
 [discovery](discovery-01.md), and [clarifications](clarifications-01.md).]

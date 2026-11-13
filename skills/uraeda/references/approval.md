@@ -4,8 +4,8 @@ Activates the decisions of an approved spec, and records the human's review.
 
 - **Runs when**: `spec.md` is `approved`, and a decision named by an item of its `## Decisions`
   section is `proposed`
-- **Writes**: the frontmatter of those decisions, the record of the spec's review, and the deletion
-  of the investigation's prototypes
+- **Writes**: the frontmatter of those decisions, the note of the spec's review, and the deletion of
+  the investigation's prototypes
 - **Ends at**: the [plan](plan.md) step
 
 The human's approval of the spec is the explicit request to activate its decisions. The spec step
@@ -35,12 +35,12 @@ branch needs the human's approval again, and `ura check` warns `decision.unappro
 step's own two fields, `status` and `approved-by`, do not count as an edit. A new revision the human
 approves resets the check: its approval commit is the new one.
 
-## Record the review
+## Note the review
 
-Turn the spec's `> [!IMPORTANT]` block into a record, if the human or a tool did not already, as
+Turn the spec's `> [!IMPORTANT]` block into a note, if the human or a tool did not already, as
 `ura review --approve` does: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
 When an approved spec lists no decision to activate, this step does not run. The plan step then
-records the review, and deletes the prototypes still there.
+notes the review, and deletes the prototypes still there.
 
 ## Check the review settings
 
@@ -66,5 +66,5 @@ the file at the commit before.
 
 ## Commit
 
-Commit the decisions, the spec's record, and the deleted prototypes together:
+Commit the decisions, the spec's note, and the deleted prototypes together:
 `decision(<slug>): apply <summary>`. Then run the [plan](plan.md) step.

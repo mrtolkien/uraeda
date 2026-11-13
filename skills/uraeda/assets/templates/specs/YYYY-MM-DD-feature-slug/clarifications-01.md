@@ -22,7 +22,8 @@ up.]
 
 ### Goal
 
-[What the proposal asks for, and for whom, in a sentence or two.]
+[How you read the proposal, in the human's own words, in a sentence or two. What it asks for, for
+whom, and what success looks like. The product it names as its model, if any.]
 
 ### Today
 
@@ -39,7 +40,8 @@ up.]
 
 ## Check these
 
-[Optional: the points to check, like a scope cut or a choice beyond the proposal.]
+[Optional: the points the human may object to, each said as what happens to them. A choice beyond
+the proposal, or a default they will meet every day.]
 
 - **[The point]** [what you chose, as a sentence that continues the point, and why]. See
   [discovery](discovery-01.md#topic).
@@ -92,7 +94,8 @@ Why it matters: [...].
 
 ### Under the hood
 
-[Optional: the points of the code only.]
+[Optional, and rare: a code-only choice the human would want to know of. The others stay in the
+discovery.]
 
 - **[The point]** [...].
 

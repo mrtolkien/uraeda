@@ -41,7 +41,7 @@ is deleted when the check is applied.
    - The `> [!IMPORTANT]` block, as in
      [Coming back to the human](../SKILL.md#coming-back-to-the-human): its first line gives the
      questions, the decisions the check read, and the time, computed as
-     [the time estimate](writing.md#the-time-estimate) says: "3 questions on 12 decisions, about 10
+     [the time estimate](writing.md#the-block) says: "3 questions on 12 decisions, about 10
      minutes". The items name the findings by subject, never by question number.
    - **Context**: how many decisions the ledger holds, what you read, and that the others hold no
      finding.

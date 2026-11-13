@@ -15,57 +15,69 @@ metadata:
 # Uraeda
 
 Uraeda is an asynchronous design and development workflow: every step is checkpointed as plain text
-in git. Humans write proposals, answer questions, and approve specs. Agents do the rest, and the
-hard work upfront: an in-depth investigation, the questions only the human can answer, a complete
-design to approve, then the plan, the code, and a pull request. The human never waits in a session:
-they answer when they have time, in files built so their time goes into thinking, not searching.
-Assume a technical user, who reads code and designs.
+in git. The human writes a proposal, answers questions, and approves a spec. An agent does the rest:
+the research, the questions only the human can answer, the design, the plan, the code, and a pull
+request. The human never waits in a session. Assume a technical user, who reads code and designs.
 
-This file tells you which step to run, and how to come back to the human. Each step has its own
-instructions in `references/`, and the conventions shared by all steps are in
-[Conventions](references/conventions.md): read the [references](#references) each step names.
-
-The `ura` command-line tool performs the mechanical parts of the steps: finding the next step,
-checking files, recording answers and reviews, starting features. It is optional: every step below
-says what to do by hand, and names the command that does it, to use when `ura` is installed. See
-[The `ura` CLI](references/cli.md).
+This file says what the work is judged on, which step to run, and when to stop. Each step has its
+own file in `references/`: read a step's file before running it.
 
 > **A human's request stands above everything.** A direct request from the human stands higher than
-> any test, decision, rule, or the constitution. Never refuse it, and never silently overrule it,
-> whether by reverting it, skipping it, or bending it to fit. When it conflicts with a test, a
-> decision, or the constitution, tell the human in the same response what conflicts and what each
-> way out costs, and let them arbitrate. A test that fails because of a requested change is the test
-> to change, after telling them, never the request.
+> any test, decision, rule of this skill, or the constitution. Never refuse it, and never silently
+> overrule it, whether by reverting it, skipping it, or bending it to fit. When it conflicts with a
+> test, a decision, or the constitution, tell the human in the same response what conflicts and what
+> each way out costs, and let them arbitrate. A test that fails because of a requested change is the
+> test to change, after telling them, never the request. A request can also waive a gate, like "no
+> review of the plan, build it tonight": follow it, and write it down in the file the gate was on.
 
-## Rules for agents
+## What the work is judged on
 
-1. **Humans make the decisions.** Stay within the approved scope and decisions. Never activate a
-   decision unless a human asked for it, for example by approving the spec that lists it.
-2. **Work autonomously, in depth.** The workflow is asynchronous so that you have the time to
-   research before the human is involved: use it. Read the code, the documentation, and online
-   sources, broadly and completely, beyond the project and beyond what you already know. Never ask
-   the human for something you could find out or settle yourself. When a human's file links an
-   image, open it.
-3. **Ask only what only the human can decide**: product direction, tradeoffs between their goals,
-   choices that become decisions, and conflicts with the constitution or an active decision. Settle
-   everything else within the constitution and active decisions, and record it as an assumption the
-   human can object to. Every question comes with a recommended answer and its reason.
-4. **Ask everything in one round.** Anticipate follow-up questions, so the human answers once. A new
-   round is only for unknowns their answers created.
-5. **Write for a human reading top to bottom.** Humans read a document once, in order: never refer
-   to something before it is introduced, and give the context each part needs where it is needed,
-   with links to the code, documentation, and web pages it relies on. Follow
-   [Writing for the human](references/writing.md) in every file the human reads.
-6. **Come back with a clear message.** Every file waiting for the human opens with what is asked of
-   them, how long it takes, and where their attention matters most: see
-   [Coming back to the human](#coming-back-to-the-human).
-7. **End every step with a commit.** The next step may be run by a different agent, in a different
-   session, days later: everything it needs must be in the repository.
-8. **In a session, offer a change for a code change.** When the human asks a session on the main
-   checkout for a fix or a small change to the code, offer to start it as a
-   [change](references/change.md#starting-a-change), with its own branch and pull request, rather
-   than committing to the default branch. Start nothing without their yes. Typos, formatting, and
-   comments stay in the session.
+The feature lands right, with as little of the human's time as possible. Their time goes to the big
+picture: what to build, how it should feel, and what they will not accept. Every small question they
+answer, every point they must send back, and every fix they ask for after the merge is a cost this
+workflow exists to remove.
+
+Five habits follow, and every step applies them:
+
+1. **Research, then decide.** You have the time the human does not: read the code, the
+   documentation, and what others built, and try things. Then settle everything the human's goals
+   already settle. Never ask what you could find out, and never offer a list where a recommendation
+   is due.
+2. **Ask early, ask little, then run.** Ask only what changes what the human will see or live with,
+   all of it at once, each question with a recommended answer. Once they have answered, run to the
+   next [human gate](#words) without checking in.
+3. **Keep their words.** The proposal, every answer and note, every review comment, and what they
+   wrote in a session are the human's words, the images they attached included: open them. Nothing
+   you write contradicts one, the latest winning over the earlier. Whatever you chose for them that
+   changes what they get is said first, where they read, never buried.
+4. **Use what you built.** Before handing work over, use it as its user will: every act, at every
+   width the project serves, with real content. A feature the human must send back for something one
+   use would have shown is not done.
+5. **Write for one read.** The human reads a file once, top to bottom, days later, with nothing else
+   open. Follow [Writing for the human](references/writing.md) in every file they read.
+
+## Words
+
+- **Proposal**: the human's request, in their own words, in `proposal.md`. Never rewritten.
+- **Round**: one set of questions for the human, in `clarifications-NN.md`. A feature's round comes
+  with the research behind it, `discovery-NN.md`. An answered round keeps the human's words as they
+  wrote them.
+- **Spec**: `spec.md`, what the feature does and how it is built. The human approves it.
+- **Plan**: `plan.md`, the tasks that build the spec, checked off as they are built.
+- **Decision**: a boundary or a direction the human set for the whole project, in
+  `specs/decisions/`. See [what is a decision](references/spec.md#what-is-a-decision).
+- **Guide**: a free-form file of the project that says how an area is designed, like `specs/ui/`.
+- **Ruling**: a choice made while planning or building, whose reason would otherwise be lost, in
+  `rulings.md`. It binds nothing outside its feature.
+- **Finding**: a problem a review reports, in `findings-NN.md`, committed before it is fixed.
+- **Change**: the light flow, for a bug fix or a small change: a proposal, then the code, then a
+  pull request. See [Change](references/change.md).
+- **Record**: the one file that replaces a feature's or a change's folder when it is finished, in
+  `specs/done/`.
+- **Block**: the `> [!IMPORTANT]` callout that opens a file waiting for the human. It says what is
+  asked, how long it takes, and what needs their attention.
+- **Human gate**: a point where only the human can move the work on: a proposal to write, a round to
+  answer, a spec or a plan to review, a pull request to merge.
 
 ## The `specs/` folder
 
@@ -77,192 +89,155 @@ specs/
   INBOX.md                  # notes to organize later, by category
   INBOX-TRIAGE.md           # an agent's proposed outcome for each note, as questions
   DECISIONS-CHECK.md        # questions on the decisions, options in decisions-check/
-  proposals/                # proposal files: upcoming features, human-written, free form:
-                            # <slug>.md, or an agent's, for a postponed feature or change; a
-                            # folder is a proposal with images: <slug>/proposal.md, images/, ...
+  proposals/                # upcoming features: <slug>.md, or <slug>/proposal.md with images/
   notes/                    # note files: inbox notes with images, and agents' notes
-  decisions/                # decision ledger, one file per topic: due-dates.md
-  ui/                       # the project's UI guides, free form: read before designing a view
-  done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
-  changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
-                            # clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/
+  decisions/                # one file per topic: due-dates.md
+  ui/                       # the project's guides, free form: read before designing in their area
+  done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change
+  changes/YYYY-MM-DD-<slug>/ # one folder per change: proposal.md, clarifications-NN.md,
+                            # rulings.md, findings-NN.md, images/, mockups/
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
-    proposal.md             # human: what and why, in their own words
+    proposal.md             # human: what and why
     discovery-01.md         # agent: findings and options, never decisions
-    clarifications-01.md    # agent questions, human answers and notes
-    discovery-02.md         # a later round, when one is needed
-    clarifications-02.md
-    spec.md                 # agent: what you approve, decisions, stories, architecture; amended
-    spec-review.md          # human: comments on the spec, with the verdict, when there are any
-    plan.md                 # agent: tasks with files and steps, checked off as built
-    plan-review.md          # human: comments on the plan, when it is reviewed with comments
-    rulings.md              # agent: low-impact choices made while planning and building
-    findings-NN.md          # reviewers: a review's findings, before its fixes
-    data-model.md           # agent, with the spec: the stored data or file formats it changes
-    contracts/              # agent, when needed
-    mockups/                # agent: HTML mockups, or the stories of a mockups Storybook;
-                            # a discovery's prototypes, until the spec's approval
-    images/                 # images a human attached, linked from their files
+    clarifications-01.md    # agent: questions; human: answers and notes
+    spec.md                 # agent: what the human approves; amended in place
+    spec-review.md          # human: comments on the spec, with the verdict
+    data-model.md           # agent, with the spec: stored data and file formats it changes
+    plan.md                 # agent: tasks, checked off as built
+    plan-review.md          # human: comments on the plan, when it is reviewed
+    rulings.md              # agent: choices whose reason would otherwise be lost
+    findings-NN.md          # reviewers: a review's findings, before their fixes
+    contracts/              # agent, when the feature exposes an interface
+    mockups/                # agent: mockups, and a round's prototypes until the spec's approval
+    images/                 # images the human attached
 ```
 
-Discovery and questions come in numbered rounds: each round is a new pair of files, and earlier
-rounds are never edited. The spec and the plan are single files, amended in place: they are the
-source of truth for the implementation.
+Later rounds are new files, `discovery-02.md` and `clarifications-02.md`. The spec and the plan are
+single files, amended in place: they are the source of truth for the build.
 
-Before any step, read `specs/CONSTITUTION.md` and the `active` decisions in `specs/decisions/` that
-apply to your work: their **Applies to** section says where. The constitution wins over decisions,
-and decisions win over specs and plans. Decisions are high-impact choices made by the human, and
-they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
-
-A decision changes only on the branch that asks for it, edited in place, and stays `proposed` until
-the human approves the spec that lists it, or a change's round. See
-[new decision or change](references/spec.md#new-decision-or-change) and
-[Change](references/change.md#decisions).
-
-Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
-for a todo app, is in `assets/example/specs/`: `2026-10-06-recurring-tasks/` is the model of every
-file, from the proposal to a fully checked plan. Other files show work waiting for the human.
+Before any step, read `specs/CONSTITUTION.md`, the decisions whose **Applies to** covers your work,
+and the project's guides for the area you touch. The constitution wins over decisions, and decisions
+win over specs and plans. Templates for every file are in `assets/templates/specs/`, at the same
+paths, and `assets/example/specs/` holds a filled-in project: `2026-10-06-recurring-tasks/` shows
+every file of a feature.
 
 ## Finding the next step
 
-With `ura`, `ura next` runs this section's two steps and prints the target, its step, and the
-reference to follow, or `ura next <feature>` for one feature; `ura status` shows every feature's
-step. By hand:
+With `ura`, `ura next` prints the target, its step, and the file to follow, and `ura status` shows
+every feature's step. See [The `ura` CLI](references/cli.md). By hand:
 
-1. **Pick the target.** Use the feature or change the human named. Otherwise, read
-   `specs/PRIORITIES.md` on the default branch, list the feature and change branches
-   (`git branch -a`), and take the first branch with work for an agent, in the order of the **Now**
-   section. A proposal matches the branch whose slug matches its file's name. Starting a feature or
-   a change is a human action: see
+1. **Pick the target.** Use the feature or change the human named. Otherwise read
+   `specs/PRIORITIES.md` on the default branch, and take the first started proposal of **Now** whose
+   branch has work for an agent. Starting a feature or a change is the human's call: see
    [Projects](references/projects.md#starting-postponing-and-dropping-a-feature).
-2. **Find the step.** Read the target's branch where it is checked out, or in its worktree (see
-   [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest
-   clarifications round. Go down this table and run the first row that matches.
+2. **Find the step.** Read the target's branch where it is checked out, or in its worktree, never by
+   switching the human's checkout (see [Branches](references/conventions.md#branches)). `NN` is the
+   highest round. Go down the table and run the first row that matches. A change has its own table,
+   in [Change](references/change.md#finding-the-step).
 
-| State of the spec folder                                                             | Step                                                                   |
+| State of the feature's branch                                                        | Step                                                                   |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `proposal.md` is not committed, and the branch has no record in `specs/done/`        | **Human gate**: the human writes it, then commits it                   |
-| The record is in `specs/done/`, and no pull request is ready                         | [Finish](references/finish.md)                                         |
-| The record, and the pull request has changes requested                               | [Implementation](references/implementation.md), comments               |
-| The record, and an open pull request is behind the default branch                    | [Catch up](references/implementation.md#catch-up-an-open-pull-request) |
-| The record, and an open pull request lacks the branch's latest commits               | [Implementation](references/implementation.md#push), push              |
-| The record, and the pull request is ready for review                                 | **Human gate**: the review happens on the pull request                 |
+| `proposal.md` is not committed, and there is no record                               | **Human gate**: the human writes it                                    |
+| The record is there, and no pull request is ready                                    | [Finish](references/finish.md)                                         |
+| The record, and the pull request has changes requested                               | [Comments](references/implementation.md#comments-on-the-pull-request)  |
+| The record, and the open pull request is behind the default branch                   | [Catch up](references/implementation.md#catch-up-an-open-pull-request) |
+| The record, and the open pull request lacks the branch's latest commits              | [Push](references/implementation.md#push)                              |
+| The record, and the pull request is ready                                            | **Human gate**: the review happens on the pull request                 |
 | A file has `status: awaiting-human`                                                  | **Human gate**: stop                                                   |
 | No `clarifications-01.md`                                                            | [Discovery](references/discovery.md), round 01                         |
-| Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                               |
-| `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md), revision                                   |
+| Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec](references/spec.md)                                             |
+| `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md#revising), revision                          |
 | `spec.md` is `approved`, and a decision it adds or changes is `proposed`             | [Approval](references/approval.md)                                     |
-| `spec.md` is `approved`, and there is no `plan.md`                                   | [Plan](references/plan.md)                                             |
-| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`      | [Plan](references/plan.md), revision                                   |
-| `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md), revision                                   |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                     | [Implementation](references/implementation.md), next wave              |
-| Every step of `plan.md` is checked, and the pull request is a draft                  | [Finish](references/finish.md)                                         |
-| Every step of `plan.md` is checked, and the branch has no pull request               | [Implementation](references/implementation.md), final review           |
-| The branch's pull request has changes requested                                      | [Implementation](references/implementation.md), comments               |
-| The branch has an open pull request behind the default branch                        | [Catch up](references/implementation.md#catch-up-an-open-pull-request) |
-| The branch has an open pull request that lacks its latest commits                    | [Implementation](references/implementation.md#push), push              |
-| The branch has an open pull request                                                  | **Human gate**: the review happens on the pull request                 |
+| `spec.md` is `approved`, and there is no `plan.md`, or its `spec-revision` is behind | [Plan](references/plan.md)                                             |
+| `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md#revising), revision                          |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                     | [Implementation](references/implementation.md)                         |
+| Every step is checked, and the branch has no pull request                            | [Final review](references/implementation.md#final-review)              |
+| Every step is checked, and the pull request is a draft                               | [Finish](references/finish.md)                                         |
 
-For a change branch, see [Change](references/change.md). The last four rows are for pull requests
-opened before [Finish](references/finish.md) existed.
+A feature whose pull request was opened before its record follows the same rows without the record.
+Without `gh`, `ura next` cannot see the pull request, and says so: check it yourself.
 
-3. **Run the step**, following its reference file, and commit. A message asking to address the pull
-   request's comments runs
-   [Implementation](references/implementation.md#comments-on-the-pull-request)'s comments pass,
+3. **Run the step**, following its file, and commit. A message asking to address a pull request's
+   comments runs the [comments pass](references/implementation.md#comments-on-the-pull-request),
    whatever the table says.
-4. **Continue to the next human gate.** A run stops at a human gate, where its message says to stop,
-   or for a reason its step's reference names, like a new round of questions. Otherwise, run the
-   next step in the same session without reporting: an auto-approved plan goes on to the
-   implementation. If you cannot go on, say why in your last message. Uraeda's runs start the next
-   step themselves.
+4. **Run to the next human gate**, step after step, in the same session, without reporting between
+   steps. An auto-approved plan goes straight on to the build, and a finished build to its review,
+   its pull request, and its record.
 
-**A file in an old format** is rewritten from its template before the step runs: see
-[Conventions](references/conventions.md#a-file-in-an-old-format).
+### What is not a gate
+
+Agents stopping early cost the human more than any other habit: they come back to work that waited
+for nothing. A step is over when its file says so, and the run is over at a human gate. None of
+these is one: a task or a review that just ended, a fix you just made, a failing test, a merge
+conflict you can resolve within the spec, a long build, an answer the human gave in the session, or
+doubt about a detail the spec lets you settle. Go on.
+
+Stop before a gate only for what a step's file names: a choice only the human can make, or an action
+that cannot be undone. Then say why in your last message, in a sentence. When a harness runs each
+step as its own session, its message says where that session ends: stop there.
 
 ### Going back to the human with new questions
 
-Any step can find something only the human can decide: an answer that raised a new unknown, spec
-feedback asking for options, a plan or implementation blocked by something the spec and decisions do
-not allow. Never work around it, and never leave it as a note only: start a new round. Write
-`discovery-NN.md` and `clarifications-NN.md` with the next number, following
-[Discovery](references/discovery.md), in the same commit. The new questions wait for the human like
-the first ones, and the spec is amended once they are answered, unless the human answers to continue
-the implementation. A change's round differs: it has no discovery file, and a new decision there is
-an offer to upgrade: see [Change](references/change.md#asking).
+Any step can find something only the human can decide: an answer that raised a new unknown, a review
+asking for options, a build blocked by something the spec and the decisions do not allow. Never work
+around it, and never leave it as a note: start a new round, with the next number, following
+[Discovery](references/discovery.md). Ask everything the rest of the work needs, so it is the last
+round. A change's round has no discovery file: see [Change](references/change.md#asking).
 
 ### Coming back to the human
 
 A step that ends at a human gate stops there: do not start the next step early, even partly. It
-comes back to the human the same way every time, so they see at once what is asked of them.
+comes back the same way every time:
 
-1. **The file waiting for them opens with a `> [!IMPORTANT]` block**, right after the title:
-   - First line: what is asked, and an honest estimate of the time it takes to think it through. "12
-     questions, about 30 minutes."
-   - Then what most needs their attention, most important first, one line each, named by subject,
-     not by a number the reader has not seen yet: choices that last beyond the feature, questions
-     that work together, points settled without them, a changed decision, a risky assumption,
-     outside behaviour not verified yet, a relaxed security guard said as what an attacker could do,
-     a cost. The block orients the human: the details stay in the file.
-   - On a revision: what changed since their last review.
-
-   A round of questions adds a count in digits and a verdict first, as
-   [the block](references/writing.md#the-block) describes. A spec's first item starts "You approve",
-   as [a spec](references/writing.md#a-spec) describes.
-
-2. **The commit message body repeats the block's first line**, so `git log` and any git listener
-   show what is waiting, and for how long.
+1. **The file waiting for them opens with [the block](references/writing.md#the-block)**: what is
+   asked, the time it takes, and what most needs their attention, most important first.
+2. **The commit message's body is the block's first line**, so `git log` shows what waits.
 3. **In a session the human follows**, say the same in one or two sentences, with the file's path.
-   In a run nobody follows, the commit is the message: say nothing else.
+   In a run nobody follows, the commit is the message.
 
-A pull request's body opens the same way, as
-[the finish step](references/finish.md#mark-the-pull-request-ready) describes.
+Once the human has answered or reviewed, the block becomes a note of what they were asked: its
+callout turns to `> [!NOTE]`, and its first line to the outcome and its date, "Answered on
+2026-10-08". If the human or a tool did not do it, the next step does, in its own commit.
+[The block](references/writing.md#the-block) has the details.
 
-**Once the human has answered or approved, the block becomes a record**, kept for later agents and
-readers: it says what the human was asked to weigh. Its callout becomes `> [!NOTE]`, and its first
-line becomes the outcome and its date: "Answered on 2026-10-08", "Approved on 2026-10-09". The items
-stay as they were. If the human or a tool did not do it, the next step does it, in that step's
-commit: it is the only edit allowed in an answered round of questions. `ura answer --submit` and
-`ura review` do it.
+Never bury something the human must decide in prose: it is a question in a round, or an item of the
+block. Never explain how the workflow works in a file for the human: tools and this skill do.
 
-**When the human requests changes, the block becomes a record too**: `> [!NOTE]`, with "Changes
-requested on <date>" and their feedback in one line, the review's summary. A plan keeps it under the
-new `> [!IMPORTANT]` block of the revision. A spec moves it to the top of its `## History` section,
-and answers each comment of the review file in `## Your review`:
-`- **C2** (undo too short): done. The undo stays 5 seconds.` See
-[Revising](references/spec.md#revising).
+## In a session
 
-Documents never explain how to use the workflow ("set `status: approved` and commit"): tools and
-this skill do. Never bury something the human must decide in prose: it is a question in a
-clarifications file, or an item in the block.
+When the human talks with you, the same habits hold, in a smaller form:
 
-The workflow only moves on when every question is answered: see
-[answers](references/writing.md#answers) for follow-ups and blank answers. The human may also write
-under **Notes:**, at the end of the questions, about the points settled without them: the spec step
-reads them like answers, as [the notes](references/writing.md#the-notes) describe.
+- **Answer short.** What changed, what they must decide, and the next action. One recommendation,
+  backed by the work behind it, never "X or Y" for them to sort out.
+- **A code change is offered as a change.** When the human asks a session on the main checkout for a
+  fix or a small change to the code, offer to start it as a
+  [change](references/change.md#starting-a-change), with its own branch and pull request. Start
+  nothing without their yes. Typos, formatting, and comments stay in the session.
+- **A file reviewed live is one revision.** When the human works through a round, a spec, or a plan
+  with you in the session, edit it in place as they speak, and commit once, when they say it is
+  done.
+- **Set a human status only when they say so**: "the spec is approved". See
+  [Workflow status](references/conventions.md#workflow-status).
 
 ## References
 
-Read a step's reference before running it, and the others when the step needs them:
-
-- [Discovery](references/discovery.md): a round of findings and questions, the first or a new one.
-- [Spec](references/spec.md): writing or revising a spec and its decisions, once the answers are in.
+- [Discovery](references/discovery.md): the research, and a round of questions.
+- [Spec](references/spec.md): the spec and its decisions, and revising them after a review.
 - [Approval](references/approval.md): applying the decisions of an approved spec.
-- [Plan](references/plan.md): writing or revising the plan of an approved spec.
-- [Implementation](references/implementation.md): the plan's tasks, the final review, the pull
-  request, and the changes it requests.
-- [Finish](references/finish.md): replacing a folder with its record, and cleaning up after merge.
-- [Change](references/change.md): the light flow, for a bug fix or a small change, from its proposal
-  to its pull request.
-- [Code quality](references/code-quality.md): the four code-quality concepts each step links to, and
-  how a project sets up its checks.
-- [Writing for the human](references/writing.md): the writing rules of every file the human reads,
-  and the shape of a round of questions; read it before writing one.
-- [Conventions](references/conventions.md): markdown, the status table, review files, branches and
-  worktrees, and commits; read it before writing or committing a workflow file.
-- [Inbox](references/inbox.md): the inbox's format, writing notes, organizing them by hand or with a
-  triage, and noting a problem found outside your task.
-- [The decisions check](references/decisions-check.md): asking how to keep the ledger clean.
-- [Projects](references/projects.md): setting up a project, starting, postponing, or dropping a
-  feature, and finishing one; read it when the human asks for one of these.
-- [The `ura` CLI](references/cli.md): every command and what it refuses; read it before running
-  `ura`.
+- [Plan](references/plan.md): the tasks of an approved spec.
+- [Implementation](references/implementation.md): the build, its reviews, the final review, and the
+  open pull request: push, catch-up, and comments.
+- [Finish](references/finish.md): the record, the pull request's body, and after the merge.
+- [Change](references/change.md): the light flow, from its proposal to its pull request.
+- [Code quality](references/code-quality.md): one home per rule, structure before behaviour, rules
+  that tools check, and testing.
+- [Writing for the human](references/writing.md): every file the human reads, and the shape of a
+  round. Read it before writing one.
+- [Conventions](references/conventions.md): markdown, status fields, review files, branches, and
+  commits. Read it before writing or committing a workflow file.
+- [Inbox](references/inbox.md): notes, the triage, and when an agent writes a note.
+- [The decisions check](references/decisions-check.md): a pass over the decisions, when asked.
+- [Projects](references/projects.md): setting a project up, and starting, postponing, or dropping a
+  feature. Read it when the human asks for one of these.
+- [The `ura` CLI](references/cli.md): the commands. Without `ura`, every mechanical step is in
+  [By hand](references/by-hand.md).
