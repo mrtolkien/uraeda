@@ -4143,8 +4143,8 @@ verdict: RoundVerdict | null,
  */
 context: Array<ContextPart>, questions: Array<QuestionItem>, 
 /**
- * The groups of the points settled without the human: the `## Check these` section, then the
- * `###` groups of `## Settled without the human`, up to the `**Notes:**` line.
+ * The groups of the points settled without the human: the `## Check these` section, then
+ * `## Settled without the human`, up to the `**Notes:**` line.
  */
 settledGroups: Array<SettledGroup>, 
 /**
@@ -4979,12 +4979,12 @@ text: string, };
 export type SettledEdit = { repo: string, folder: string, number: number, subject: string, text: string, previous: string, };
 
 /**
- * A group of the points settled without the human: the `## Check these` section, or a `###`
- * sub-heading of the settled section, and its blocks.
+ * A group of the points settled without the human: the `## Check these` section, or
+ * `## Settled without the human`, and its blocks.
  */
 export type SettledGroup = { 
 /**
- * Its heading's block: the `##` heading of the points to check, a `###` heading otherwise.
+ * Its `##` heading's block.
  */
 heading: number, 
 /**
@@ -4992,7 +4992,7 @@ heading: number,
  */
 kind: SettledKind, 
 /**
- * Its top-level blocks, before the `**Notes:**` line.
+ * Its top-level blocks, before any sub-heading and the `**Notes:**` line.
  */
 blocks: Array<number>, 
 /**
@@ -5002,10 +5002,10 @@ blocks: Array<number>,
 points: number, };
 
 /**
- * The kind of a settled group: `## Check these`, or the settled section's `### Behaviour` or
- * `### Under the hood`.
+ * The kind of a settled group: `## Check these`, the points the human may object to, or
+ * `## Settled without the human`, the others.
  */
-export type SettledKind = "check" | "behaviour" | "hood";
+export type SettledKind = "check" | "settled";
 
 /**
  * A point settled without the human, by its bold start.

@@ -65,8 +65,6 @@ Why it matters: the handle is always on screen.
 
 ## Settled without the human
 
-### Behaviour
-
 - **The handle's colour** is the sidebar's border colour.
 
 **Notes:**

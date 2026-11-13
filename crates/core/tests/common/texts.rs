@@ -34,9 +34,7 @@ pub fn clarifications(status: &str, first_line: &str, answers: &[&str]) -> Strin
             index + 1
         ));
     }
-    text.push_str(
-        "\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n",
-    );
+    text.push_str("\n## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n");
     text
 }
 

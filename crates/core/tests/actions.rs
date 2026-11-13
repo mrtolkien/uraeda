@@ -30,7 +30,7 @@ fn round(q1: &str, q1b: &str, q2: &str) -> String {
         }
     };
     format!(
-        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Web UI\n\n> [!IMPORTANT]\n>\n> 2 questions and 1 follow-up, about 9 minutes.\n>\n> - A point.\n\n## Context\n\n### Goal\n\nA goal.\n\n### Today\n\nToday.\n\n### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n\n## Q1: Which one?\n\nContext.\n\nWhy it matters: it is the main choice.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n- **C. Three.**\n  - [pro] p\n  - [con] c\n\n{}\n\n### Q1.B: Then what?\n\nOnly if you picked B in Q1.\n\nWhy it matters: it follows the choice.\n\n- **A (recommended). Yes.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. No.**\n  - [pro] p\n  - [con] c\n\n{}\n\n## Q2: And this?\n\nContext.\n\nWhy it matters: it is the other choice.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n{}\n\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n",
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Web UI\n\n> [!IMPORTANT]\n>\n> 2 questions and 1 follow-up, about 9 minutes.\n>\n> - A point.\n\n## Context\n\n### Goal\n\nA goal.\n\n### Today\n\nToday.\n\n### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n\n## Q1: Which one?\n\nContext.\n\nWhy it matters: it is the main choice.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n- **C. Three.**\n  - [pro] p\n  - [con] c\n\n{}\n\n### Q1.B: Then what?\n\nOnly if you picked B in Q1.\n\nWhy it matters: it follows the choice.\n\n- **A (recommended). Yes.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. No.**\n  - [pro] p\n  - [con] c\n\n{}\n\n## Q2: And this?\n\nContext.\n\nWhy it matters: it is the other choice.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n{}\n\n## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n",
         answer(q1),
         answer(q1b),
         answer(q2)
@@ -2509,7 +2509,7 @@ fn a_text_with_no_written_line_is_refused() {
 #[test]
 fn a_rounds_last_answer_ends_at_the_notes() {
     let unsettled = round("B", "A", "").replace(
-        "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n",
+        "## Settled without the human\n\n- **A point** settled.\n\n",
         "",
     );
     let repo = repo_with(&unsettled);

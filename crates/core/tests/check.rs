@@ -155,16 +155,20 @@ fn a_spec_with_details_or_mockups_has_an_unknown_section() {
 #[test]
 fn a_deeper_heading_in_a_round_is_an_unknown_section() {
     let rows = [
-        ("Goal", "#### Detail\n\nA detail.\n\n", true),
-        ("Goal", "> #### Quoted\n\n", false),
-        ("Behaviour", "#### Detail\n\nA detail.\n\n", true),
+        ("### Goal", "#### Detail\n\nA detail.\n\n", true),
+        ("### Goal", "> #### Quoted\n\n", false),
+        (
+            "## Settled without the human",
+            "#### Detail\n\nA detail.\n\n",
+            true,
+        ),
     ];
     for (after, heading, reported) in rows {
         let example = Example::new();
         example.edit(
             ROUND,
-            &format!("### {after}\n\n"),
-            &format!("### {after}\n\n{heading}"),
+            &format!("{after}\n\n"),
+            &format!("{after}\n\n{heading}"),
         );
 
         let unknown: Vec<String> = example
@@ -1304,18 +1308,18 @@ fn the_rounds_parts() {
             |_| vec![format!("{ROUND}: missing section \"### Sources\"")],
         ),
         (
-            "a point outside a group",
+            "a group of settled points, as the old format had them",
             |text| {
                 text.replacen(
                     "## Settled without the human\n\n",
-                    "## Settled without the human\n\n- **A loose point** settled.\n\n",
+                    "## Settled without the human\n\n### Behaviour\n\n",
                     1,
                 )
             },
             |text| {
                 vec![format!(
-                    "{ROUND}:{}: a settled point outside a group: put it under \"### Behaviour\" or \"### Under the hood\"",
-                    line_in(text, "- **A loose point** settled.")
+                    "{ROUND}:{}: unknown section \"### Behaviour\"",
+                    line_in(text, "### Behaviour")
                 )]
             },
         ),
@@ -1330,7 +1334,7 @@ fn the_rounds_parts() {
             },
         ),
         (
-            "an unknown group of settled points",
+            "a heading among the settled points",
             |text| {
                 text.replacen(
                     "**Notes:**",
@@ -1354,8 +1358,8 @@ fn the_rounds_parts() {
                     1,
                 )
                 .replacen(
-                    "### Behaviour\n\n",
-                    "### Behaviour\n\n> ### Risks\n>\n> A quoted source.\n\n",
+                    "## Settled without the human\n\n",
+                    "## Settled without the human\n\n> ### Risks\n>\n> A quoted source.\n\n",
                     1,
                 )
             },
@@ -1398,8 +1402,8 @@ fn check_these_under_settled_is_unknown() {
     let example = Example::new();
     example.edit(
         ROUND,
-        "### Behaviour\n",
-        "### Check these\n\n- **An old point** to check.\n\n### Behaviour\n",
+        "## Settled without the human\n",
+        "## Settled without the human\n\n### Check these\n\n- **An old point** to check.\n",
     );
     let text = example.read(ROUND);
 
@@ -1413,7 +1417,7 @@ fn check_these_under_settled_is_unknown() {
 }
 
 /// The points to check are list items with no sub-heading: any heading under `## Check these` is
-/// unknown. A `### Behaviour` there is out of order as well, as any fixed heading out of its place.
+/// unknown.
 #[test]
 fn a_heading_under_check_these_is_unknown() {
     let example = Example::new();
@@ -1470,74 +1474,9 @@ fn check_these_alone() {
     assert_eq!(summary(&problems), Vec::<String>::new());
 }
 
-/// `settled.group` reads the settled section's top-level list items before its first group, up to
-/// the notes in either form: one row per round, with the lines of the problems it causes.
-#[test]
-fn settled_points_outside_a_group() {
-    type Edit = fn(&str) -> String;
-    type Expected = fn(&str) -> Vec<usize>;
-    fn settled(text: &str, section: &str) -> String {
-        let start = text.find("## Settled without the human").unwrap();
-        format!("{}{section}", &text[..start])
-    }
-    let rows: Vec<(&str, Edit, Expected)> = vec![
-        (
-            "notes in the other form after a group",
-            |text| text.replacen("**Notes:**", "**Notes**:", 1),
-            |_| vec![],
-        ),
-        (
-            "notes in the other form and no group",
-            |text| {
-                settled(
-                    text,
-                    "## Settled without the human\n\n**Notes**:\n\n- A note.\n- **Another**: one.\n",
-                )
-            },
-            |_| vec![],
-        ),
-        (
-            "a tilde fence before the first group",
-            |text| {
-                text.replacen(
-                    "## Settled without the human\n\n",
-                    "## Settled without the human\n\n~~~\n- not a point\n~~~\n\n",
-                    1,
-                )
-            },
-            |_| vec![],
-        ),
-        (
-            "an ordered item before the first group",
-            |text| {
-                text.replacen(
-                    "## Settled without the human\n\n",
-                    "## Settled without the human\n\n1. **A loose point** settled.\n\n",
-                    1,
-                )
-            },
-            |text| vec![line_in(text, "1. **A loose point** settled.")],
-        ),
-    ];
-    for (name, edit, expected) in rows {
-        let example = Example::new();
-        let text = edit(&example.read(ROUND));
-        example.write(ROUND, &text);
-
-        let lines: Vec<usize> = example
-            .problems()
-            .into_iter()
-            .filter(|p| p.rule == "settled.group")
-            .filter_map(|p| p.line)
-            .collect();
-
-        assert_eq!(lines, expected(&text), "{name}");
-    }
-}
-
-/// `settled.subject`: every top-level list item of `## Check these`, `### Behaviour`, and `### Under
-/// the hood` starts with its bold subject, or the page draws no point for it. Items nested in a
-/// point, a quote's items, and the notes' are not points.
+/// `settled.subject`: every top-level list item of `## Check these` and `## Settled without the
+/// human` starts with its bold subject, or the page draws no point for it. Items nested in a point,
+/// a quote's items, and the notes' are not points.
 #[test]
 fn a_settled_point_without_its_bold_subject() {
     type Edit = fn(&str) -> String;
@@ -1566,7 +1505,7 @@ fn a_settled_point_without_its_bold_subject() {
             |text| vec![line_starting(text, "- Skipping one occurrence gets")],
         ),
         (
-            "a behaviour point bold only after its start",
+            "a settled point bold only after its start",
             |text| {
                 text.replacen(
                     "- **Monthly repeats on the 29th to 31st** fall",
@@ -1577,11 +1516,11 @@ fn a_settled_point_without_its_bold_subject() {
             |text| vec![line_starting(text, "- Then **monthly repeats")],
         ),
         (
-            "an under-the-hood point in plain text, a nested item, and a quote's item",
+            "a settled point in plain text, a nested item, and a quote's item",
             |text| {
                 text.replacen(
                     "\n**Notes:**",
-                    "### Under the hood\n\n- **Dates** are stored as ISO strings.\n  - a nested line\n\n> - a quoted item\n\n- plain point.\n\n**Notes:**",
+                    "- **Dates** are stored as ISO strings.\n  - a nested line\n\n> - a quoted item\n\n- plain point.\n\n**Notes:**",
                     1,
                 )
             },
@@ -1683,7 +1622,7 @@ fn a_record_keeps_a_rounds_parts() {
     let text = record("feature", "Recurring tasks").replacen(
         "### Round 01\n\n",
         "### Round 01\n\n#### Context\n\n##### Goal\n\nA goal.\n\n##### Sources\n\n- The code.\n\n\
-         #### Settled without the human\n\n##### Behaviour\n\n- **A point** settled.\n\n",
+         #### Settled without the human\n\n- **A point** settled.\n\n",
         1,
     );
     example.write("specs/done/2026-10-20-recurring-tasks.md", &text);

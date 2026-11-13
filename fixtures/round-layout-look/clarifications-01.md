@@ -140,8 +140,6 @@ active decision, and every view's tests follow the classes you pick.
 
 ## Settled without the human
 
-### Behaviour
-
 - **The shell shows the same things at every width.** The inbox draft, New, running sessions,
   features in progress, the 5 h limit, and the settings stay one tap away. At half screen the shell
   folds to icons and counts, and it never hides them.
@@ -156,9 +154,6 @@ active decision, and every view's tests follow the classes you pick.
 - **Decisions come first in a spec**, with their changes marked. A live preview is always framed and
   labelled, so it cannot be mistaken for the document.
 - **Priorities and the inbox** get menu actions to move a line, beside dragging.
-
-### Under the hood
-
 - **Tokens** go through Astryx's theme levers where they exist. What they cannot hold, like a
   texture or a tree drawing, is listed in the plan's complexity tracking.
 - **The prototypes** stay in this feature's `mockups/` folder until the spec, where Q6's answer

@@ -82,9 +82,14 @@ export function End(props: EndProps) {
     props.saves.holds(question.id);
   const asked = () => askedOf(props.round());
   const blank = () => asked().filter((question) => !answered(question) && !typed(question));
-  const others = () => props.round().settledGroups.filter((group) => group.kind !== "check");
+  // The points settled after the questions, under this page's own heading: the file's is not drawn.
+  const settled = () =>
+    props
+      .round()
+      .settledGroups.filter((group) => group.kind === "settled")
+      .flatMap((group) => group.blocks);
   settledCursor(props.args, () =>
-    pointsIn(props.round(), props.file().current.document, (group) => group.kind !== "check"),
+    pointsIn(props.round(), props.file().current.document, (group) => group.kind === "settled"),
   );
 
   const submit = async (resumes: boolean) => {
@@ -140,7 +145,7 @@ export function End(props: EndProps) {
   ]);
   return (
     <View style={{ gap: 16 }}>
-      <If when={others().length > 0}>
+      <If when={settled().length > 0}>
         <View style={{ gap: 8 }}>
           <Heading level={2}>Settled without you</Heading>
           <Text tone="quiet">
@@ -149,7 +154,7 @@ export function End(props: EndProps) {
           <Document
             align="start"
             document={props.file().current.document}
-            ids={others().flatMap((group) => [group.heading].concat(group.blocks))}
+            ids={settled()}
             image={props.links.image}
             mark={settledMark({
               args: props.args,

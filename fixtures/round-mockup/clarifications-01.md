@@ -144,14 +144,9 @@ Why it matters: an end date adds two fields to the repeat setting.
 
 ## Settled without the human
 
-### Behaviour
-
 - **Undoing a completion** puts back what completing changed.
 - **Monthly repeats on the 29th to 31st** fall on the last day of shorter months.
 - **Repeating tasks show a repeat icon** in the list, next to the due date.
-
-### Under the hood
-
 - **Next dates are computed by date-fns**, in the date helpers, which every feature with dates uses.
 - **Tests set the clock**, to cover daylight saving changes and month ends.
 

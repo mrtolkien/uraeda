@@ -30,8 +30,8 @@ pub struct RoundItems {
     /// The parts of the round's context section, in file order.
     pub context: Vec<ContextPart>,
     pub questions: Vec<QuestionItem>,
-    /// The groups of the points settled without the human: the `## Check these` section, then the
-    /// `###` groups of `## Settled without the human`, up to the `**Notes:**` line.
+    /// The groups of the points settled without the human: the `## Check these` section, then
+    /// `## Settled without the human`, up to the `**Notes:**` line.
     pub settled_groups: Vec<SettledGroup>,
     /// The settled points that start in bold, which take comments, the points to check included.
     pub settled_points: Vec<SettledPoint>,
@@ -134,30 +134,29 @@ pub struct Choice {
     pub block: u32,
 }
 
-/// A group of the points settled without the human: the `## Check these` section, or a `###`
-/// sub-heading of the settled section, and its blocks.
+/// A group of the points settled without the human: the `## Check these` section, or
+/// `## Settled without the human`, and its blocks.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SettledGroup {
-    /// Its heading's block: the `##` heading of the points to check, a `###` heading otherwise.
+    /// Its `##` heading's block.
     pub heading: u32,
     /// Its kind, from its heading.
     pub kind: SettledKind,
-    /// Its top-level blocks, before the `**Notes:**` line.
+    /// Its top-level blocks, before any sub-heading and the `**Notes:**` line.
     pub blocks: Vec<u32>,
     /// How many points it holds: the items of its lists that start in bold, as `settled_points`
     /// gives them.
     pub points: u32,
 }
 
-/// The kind of a settled group: `## Check these`, or the settled section's `### Behaviour` or
-/// `### Under the hood`.
+/// The kind of a settled group: `## Check these`, the points the human may object to, or
+/// `## Settled without the human`, the others.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
 pub enum SettledKind {
     Check,
-    Behaviour,
-    Hood,
+    Settled,
 }
 
 /// A point settled without the human, by its bold start.

@@ -100,8 +100,6 @@ Why it matters: it amends an active decision, which every later server feature f
 
 ## Settled without the human
 
-### Under the hood
-
 - **The actions' commits move into the core**: answering and reviewing commit in the core, shared
   by `ura` and the server, with the same messages.
 - **An answer is written** as the letters you pick, in order, then ": " and your comment; a comment
