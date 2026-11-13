@@ -10766,3 +10766,15 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   while the job kept its old value.
 - **Where**: `app/screens/jobs/Typed.tsx`, `app/screens/settings/Server.tsx`,
   `app/screens/jobs/__checks__/leave.tsx`, `app/screens/jobs/jobs.test.tsx`.
+
+## T205.3: A pane that loses the keys lets go of its control's focus
+
+- **Decision**: as a pane stops having the keys, `PaneBody` calls the ledger's `paneLeft` with its
+  stops: the control of that pane that holds the focus lets go of it, as Escape does (R522). Enter
+  then goes to the pane that has the keys.
+- **Rationale**: a press on what takes no focus in another pane gave that pane the keys, but the
+  ledger kept the first pane's button, and the next Enter pressed it, out of sight of the pane the
+  human had just chosen. Releasing as the pane goes is one rule in the ledger; checking the pane at
+  each Enter would need the ledger to know the layout's focused pane.
+- **Where**: `app/ui/surfaces/focus.ts` (`paneLeft`), `app/ui/layout/Stack.tsx`,
+  `app/ui/layout/focus.test.tsx`.

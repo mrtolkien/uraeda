@@ -2,7 +2,17 @@
 // body is the pane shown, or split, a pane each, one under the other. A pane hidden behind its tab
 // is not drawn at all: it keeps what it shows in the visit (`usePane`, `PaneScroll`), so it comes
 // back as it was left.
-import { type JSX, type StyleProp, signal, Text, View, type ViewRef, type ViewStyle } from "nsh";
+import {
+  effect,
+  type JSX,
+  type StyleProp,
+  signal,
+  Text,
+  untracked,
+  View,
+  type ViewRef,
+  type ViewStyle,
+} from "nsh";
 import { ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { Arriving, type Landing } from "./arrival";
 import type { PaneRef, Stack } from "./layout";
@@ -10,7 +20,7 @@ import { kindOf, type PaneHere, PaneContext, type PaneMark, titleOf } from "./pa
 import { Kbd } from "../controls";
 import { KeyScope, registerKey } from "../keys/registry";
 import { Pane, type PaneTab } from "../surfaces";
-import { focusNext, paneStops, type Stops, StopsContext } from "../surfaces/focus";
+import { focusNext, paneLeft, paneStops, type Stops, StopsContext } from "../surfaces/focus";
 import { alpha, tokens } from "../tokens";
 import { type WidthClass, widthClass } from "../width";
 
@@ -83,6 +93,9 @@ function PaneBody(props: { focused: boolean; pane: PaneRef; width: WidthClass })
   }
   const Drawn = spec.view;
   const stops = paneStops();
+  effect(() => {
+    if (!props.focused) untracked(() => paneLeft(stops));
+  });
   return (
     <PaneContext.Provider value={here}>
       <KeyScope kind="pane" name={titleOf(props.pane)} on={() => props.focused}>

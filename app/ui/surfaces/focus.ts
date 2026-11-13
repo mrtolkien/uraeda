@@ -246,3 +246,13 @@ export function releaseFocused(): boolean {
   holder.set(null);
   return true;
 }
+
+/**
+ * Says the pane whose stops are `stops` no longer has the keys, as a press in another pane gives
+ * them there: its control lets go of the focus, so Enter goes to the pane that has the keys, never
+ * to a ring in one that has not.
+ */
+export function paneLeft(stops: Stops) {
+  const held = paneControl();
+  if (held !== null && held.list === stops) releaseFocused();
+}

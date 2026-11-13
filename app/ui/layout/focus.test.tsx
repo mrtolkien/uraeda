@@ -79,3 +79,12 @@ test("Tab reaches a document's links, and Enter follows the one it reached", asy
   await andEnter(app, "tab");
   expect(said(app)).toBe("Said: followed #guide, aside");
 });
+
+test("a pointer that gives another pane the keys takes the focus off the first pane's control", async () => {
+  const app = await page();
+  await app.keyboard.press("tab");
+  // The side pane's words, which take no focus: the side pane has the keys then.
+  await app.press("text:See the guide, then press Aside.");
+  await app.keyboard.press("enter");
+  expect(said(app)).toBe("Said: nothing");
+});
