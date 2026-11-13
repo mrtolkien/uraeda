@@ -10692,7 +10692,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/status.rs` (`Lock`), `crates/server/src/start.rs` (`hold`),
   `crates/server/tests/one_server.rs`.
 
-## T204.1: A start waits up to 10 seconds for a held lock, whether or not a status file names its server
+## R534: A start waits up to 10 seconds for a held lock, whether or not a status file names its server
 
 - **Decision**: a start that finds the data folder's lock held asks again every 25 ms until it gets
   it, hands over as soon as the server its status file names answers, and is refused only after 10
@@ -10708,7 +10708,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   same refusal: lower `LOCK_WAIT`.
 - **Where**: `crates/server/src/start.rs` (`hold`), `crates/server/tests/one_server.rs`.
 
-## T204.2: `ura import-sessions` holds the data folder's lock, as a server does
+## R535: `ura import-sessions` holds the data folder's lock, as a server does
 
 - **Decision**: the import opens its store as a `runner::Importing`, which takes the data folder's
   lock (`status::lock`, R529's) before the store opens and lets it go after the store closes. Held,
@@ -10716,7 +10716,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   otherwise "an Uraeda server is starting on …, or another import runs there", each with "stop it
   first, then import again". `runner::import` takes an `Importing`, so no import runs without the
   lock, and it no longer reads the status file itself. A start that finds the lock held without a
-  status file now says it may be an import of sessions, and waits for it (T204.1).
+  status file now says it may be an import of sessions, and waits for it (R534).
 - **Rationale**: the import checked the status file, then opened the store: a server started in
   between opened the same store, and `--replace` deleted sessions under it. The status file is
   written after the port is taken; the lock is the one guard taken first.
