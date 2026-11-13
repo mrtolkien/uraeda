@@ -66,8 +66,10 @@ Without one, test what is costly to get wrong and rarely changes: stored formats
 writes, security, contracts between the project's parts, pure logic with many cases, and the
 reproduction of each bug fixed. Within that:
 
-- **The spec's key scenarios and high edge cases set the ceiling.** Each gets one test at most. A
-  rarer scenario, a lower edge case, or a review-focus item joins one of those tests, or has none.
+- **Each test catches a failure worth catching.** Name the plausible mistake it would catch. If you
+  cannot, or the mistake would cost little, do not write it. Start from the spec's key scenarios and
+  its high edge cases: a rarer case joins one of their tests, as a row or an assertion, or goes
+  untested.
 - **The existing tests first.** Of each new test, ask which test would already fail if this
   behaviour broke. When one would, add nothing. A new case of a tested behaviour goes into that
   test, and a new test that proves all an old one proves replaces it.

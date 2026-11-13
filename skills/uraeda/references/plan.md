@@ -15,6 +15,10 @@ required behaviour and interfaces. Write what it cannot infer: the approved cons
 each responsibility, the contracts between tasks, and the tests that prove the change. Leave what it
 can decide from the code: private helpers, function bodies, internal structure.
 
+The plan is an inner document, short and technical: no human reads it unless they asked to. Its
+second job is resuming: an agent that picks up stopped work finds in it what is done, and what each
+remaining task needs.
+
 A plan is the set of decisions the implementer cannot make alone. A plan longer than the code it
 describes has written the code instead, and the build will then diverge from it line by line.
 
@@ -112,28 +116,28 @@ wave order. A task the next ones all build on is a wave on its own.
 ## Plan document
 
 Use [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/plan.md): its frontmatter and
-its sections, in its order.
+its sections, in its order. A section the template marks optional is left out when it has nothing to
+say.
 
 - **Goal**, **Architecture**, **Spec**: one sentence, the approach with who owns what, and the link.
-- **Review focus**: the most consequential conditions the spec implies but no task's tests would
-  otherwise exercise, including what existing behaviour the feature meets: the condition, the
-  expected behaviour, and the task whose tests cover it. A review-focus item never narrows a rule of
-  the spec. A new limit, like a maximum length, is a question for the human.
-- **Global constraints**: the rules every task must follow, with their sources. Copy an approved
-  rule word for word, and only the rules a task could break: link the rest. When the feature
-  replaces code, add **Out of validation**: the suites of the replaced code, which nothing runs from
-  the task that freezes that code to the one that removes it.
-- **Code read**: the code the plan relies on, with links and what each showed: the test setup, the
-  validation commands, the readers and writers of the data that changes.
-- **Constitution check**: the one-row table, as in the spec, then one line per tension.
-- **Complexity tracking**: a row for each new abstraction shared by several parts, each unit a task
-  grows past the project's limits, and each constitution exception. Each says why it is needed and
-  the simpler alternative rejected. "None." when there is none.
-- **Review comments**: only when the spec was approved with comments: each comment, named by its
+- **Review focus**, when there is one: the conditions the spec implies but does not name, which the
+  build must still get right, each with the task that covers it. An item never narrows a rule of the
+  spec. A new limit, like a maximum length, is a question for the human.
+- **Global constraints**: what every task must keep, each with its source. Copy an approved rule
+  word for word, and only the rules a task could break: link the rest. When the feature replaces
+  code, add **Out of validation**: the suites of the replaced code, which nothing runs from the task
+  that freezes that code to the one that removes it.
+- **Code read**, when it saves the next agent a search: the test setup, the validation commands, the
+  readers and writers of the data that changes.
+- **Constitution check**, only for a tension: the principle, and what it costs.
+- **Complexity tracking**, only when there is one: each new abstraction shared by several parts,
+  each unit a task grows past the project's limits or marks, and each constitution exception, with
+  why it is needed and the simpler alternative rejected.
+- **Review comments**, only when the spec was approved with comments: each comment, named by its
   subject, and the task that carries it out.
 - **Test map**: each scenario, edge case, and success criterion of the spec, with the task and the
-  test that own it. It opens with a sentence on how the tests run. A row may name an existing test,
-  or say "none" and why: [how many](code-quality.md#how-many) decides.
+  test that own it, or "none" and why: [how many](code-quality.md#how-many) decides. It opens with
+  how the tests run.
 - **Waves**: one line per wave: its tasks, and the shared files they each add to.
 
 Add `contracts/` when the feature exposes an interface to users or other systems, in the format the
@@ -148,20 +152,17 @@ them in the task's commit, which is how any agent knows how far the work went.
 - **Interfaces**: **Consumes**, what it uses from earlier tasks, and **Produces**, what later tasks
   rely on, with exact names and signatures. This block is how an implementer learns what its
   neighbours use, and the part of the plan the build keeps true.
-- **The steps**, one action each, with a result that can be checked:
-  - **A structural step**, first in a task that touches a unit over the project's limit: it only
-    restructures, the tests pass before and after, and it is committed on its own.
-  - **A test step**: the tests [testing](code-quality.md#testing) asks for, their names and
-    assertions, with the spec's exact values. Each names the break it catches. It also creates the
-    helpers the tests use, so the first failure is about the feature.
-  - **A run step**: the command, and the behaviour that must fail or pass. Predict an exact message
-    only when the command's contract makes it stable.
-  - **A code step**: the responsibility, the files, and the values the spec pins. Exact signatures
-    go where other tasks rely on them. Explain an algorithm only when correctness depends on it,
-    like date arithmetic.
-  - **A use step**, last before the commit in a task that builds something a user acts on: do the
-    act in the running product, and see its effect.
-  - **A commit step**: the message, following [Commits](conventions.md#commits).
+- **Split first**, only in a task that touches a unit over the project's limit: it only
+  restructures, the tests pass before and after, and it is committed on its own.
+- **Tests**: the tests [testing](code-quality.md#testing) asks for, each by name, with the values
+  the spec pins and the break it catches. Write code only where an assertion is not obvious from
+  that. Name the helpers the tests need, so the first failure is about the feature.
+- **Implement**: the responsibility, and the values the spec pins. Explain an algorithm only when
+  correctness depends on it, like date arithmetic. Private structure is the implementer's.
+- **Use it**, in a task that builds something a user acts on: the act to do in the running product,
+  and the effect to see.
+- **Validate and commit**: the task's validation command, and the commit's message, following
+  [Commits](conventions.md#commits).
 
 Lines that decide nothing are the opposite failure of a plan that writes the code: "handle edge
 cases", "add appropriate validation", a type no task defines.

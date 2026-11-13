@@ -30,9 +30,9 @@ the effort is `high`.
 
 - **`low`**: the feature is small and its direction clear. Read the code, the decisions, the guides,
   and the documentation of the dependencies involved. Do not compare products or search for
-  alternatives: a topic has one or two approaches, often "reuse what exists".
-- **`medium`**: also read how two or three established products or libraries solve the problem, from
-  their official documentation.
+  alternatives: a topic's approach is often "reuse what exists".
+- **`medium`**: also read how a few established products or libraries solve the problem, from their
+  official documentation.
 - **`high`**: everything this file describes: products, standards, libraries, known pitfalls, and
   benchmarks where performance is a criterion.
 
@@ -111,8 +111,8 @@ A problem you meet outside the feature is dropped, unless it passes the two test
   will review the spec against it.
 - Read the standards and the documentation of the dependencies involved, for the versions the
   project uses.
-- From all this, find two or three genuinely different approaches per topic. Include "do nothing"
-  and "reuse what exists" when they are real.
+- From all this, find the genuinely different approaches to each topic. Include "do nothing" and
+  "reuse what exists" when they are real.
 
 **Is it worth it, and can it work?**
 
@@ -270,7 +270,7 @@ preview cannot show it, use a [prototype](#prototypes). A small visual detail yo
 settled, and the spec's mockup carries it; a direction for a whole view is never settled unseen. A
 label's wording stays in words.
 
-- **Two to four variants**, distinct: if two could swap their text unnoticed, drop one.
+- **A few variants**, distinct: if two could swap their text unnoticed, drop one.
 - **Drawn in the project's own look**, with its components, after reading its guides. A variant in
   another style is judged on its style.
 - **For a view that exists, the variant is the real view, changed**, not a drawing of it: what the

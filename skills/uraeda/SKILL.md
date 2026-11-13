@@ -50,9 +50,9 @@ Five habits follow, and every step applies them:
    wrote in a session are the human's words, the images they attached included: open them. Nothing
    you write contradicts one, the latest winning over the earlier. Whatever you chose for them that
    changes what they get is said first, where they read, never buried.
-4. **Use what you built.** Before handing work over, use it as its user will: every act, at every
-   width the project serves, with real content. A feature the human must send back for something one
-   use would have shown is not done.
+4. **Use what you built.** Before handing work over, drive it yourself as its user will: every act,
+   at every width the project serves, with real content. A feature the human must send back for
+   something one use would have shown is not done.
 5. **Write for one read.** The human reads a file once, top to bottom, days later, with nothing else
    open. Follow [Writing for the human](references/writing.md) in every file they read.
 

@@ -124,11 +124,11 @@ Write the parts every task shares once, in a file outside the repository.
      included. A green fast check never stands for it.
    - **Never**: a suite the plan leaves out of validation.
 
-   A failure unrelated to the task that passes when run again is not hunted: rerun it at most twice,
-   once the machine is quiet, and go on. Never load the machine, or run a test in a loop, to
-   reproduce a failure of timing. A flaky test that guards nothing important is removed, with a
-   ruling, never asked about. One that guards something follows the project's rule for flaky tests,
-   or is named in the pull request.
+   A failure unrelated to the task that passes when run again is not hunted: rerun it once the
+   machine is quiet, and go on. Never load the machine, or run a test in a loop, to reproduce a
+   failure of timing. A flaky test that guards nothing important is removed, with a ruling, never
+   asked about. One that guards something follows the project's rule for flaky tests, or is named in
+   the pull request.
 
    Start long work, a test suite, a build, a sub-agent, as background work your harness tracks, then
    wait for its notice. Never poll it in a loop: a run blocked in a loop cannot read the human's
@@ -246,8 +246,10 @@ it will merge.
 
 ### Use it
 
-Before reading the diff, use the feature as its user will. This is the review the human would
-otherwise do after the merge, one small request at a time.
+Before reading the diff, use the feature as its user will. This is your own pass, not a review by
+the human: you drive the product yourself, as each of the project's personas when it has them, and
+as a first-time user otherwise. It replaces the review the human would otherwise do after the merge,
+one small request at a time.
 
 - **Start the product** as the project's instructions say, on its own data, never the human's.
 - **Do each user story**, from where its user starts to where they end. Do every act the feature

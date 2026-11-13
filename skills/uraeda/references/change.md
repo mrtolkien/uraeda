@@ -91,14 +91,14 @@ reproduces it. A fix guessed from the symptom hides the bug and adds new ones.
    bug's one test. If it does not fail every time, find what makes it fail: timing, order, data.
 2. **Trace the root cause.** Follow the wrong value back to where it first goes wrong, not where it
    shows. Check the recent changes to that code, and compare with similar code that works. For a
-   look, a size, or a delay, measure in the running product before changing anything: three guesses
-   cost more than one measure.
+   look, a size, or a delay, measure in the running product before changing anything: guesses cost
+   more than one measure.
 3. **Confirm it.** One hypothesis at a time, tested with the smallest change. A hypothesis that
    fails is replaced, not stacked with another change.
 
 When the bug does not reproduce, fix what the evidence supports in the simplest way, and say in the
-pull request what was not reproduced. After three fixes that each failed the reproduction test, the
-approach is wrong, not the details: offer the [upgrade](#upgrading), naming what you tried.
+pull request what was not reproduced. When fix after fix fails the reproduction test, the approach
+is wrong, not the details: offer the [upgrade](#upgrading), naming what you tried.
 
 **A change.** Read the code it touches, the decisions and guides, and the documentation of the
 dependencies involved. Do not compare products: this is the `low`
@@ -148,7 +148,7 @@ Offer to make the change a feature when it needs:
 - approved behaviour changed beyond what the proposal names;
 - a new view;
 - a constitution exception, or a new lint marker, since only a plan can carry its approval;
-- a fourth fix, after three failed the reproduction test.
+- another fix, after several failed the reproduction test.
 
 The size of the diff is never a reason. When one item of a batch needs it, offer to split that item
 out, as a proposal of its own: on yes, write the item's text as `specs/proposals/<item-slug>.md` on
