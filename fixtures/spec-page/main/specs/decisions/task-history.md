@@ -4,9 +4,9 @@ icon: history
 
 # Task history
 
-Completed tasks stay in a history that users can browse and restore from, so nothing done is lost.
+> "Nothing I did is lost."
 
 ## Rules
 
-- Completing a task MUST keep it, marked done, in the history. Checked by the store's tests.
-- The history MUST be browsable by day. Checked by the UI tests.
+- A completed task stays, marked done, in a history. _So:_ completing a task never deletes it.
+- The history is browsed by day. _So:_ yesterday's tasks are one page.

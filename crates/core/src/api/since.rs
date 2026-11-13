@@ -2,8 +2,8 @@
 //! revision answers, against the version the page shows, part by part as a decision's change
 //! matches them, a heading of level 3 or deeper a part too. The frontmatter is not a part, nor is
 //! the opening callout, rewritten at every revision, nor `## History`, where the revision moves
-//! the reviewed callout (R19), and no rule's strength or check is read. A
-//! section renamed is its heading's change, its parts compared with the ones it had.
+//! the reviewed callout (R19), and no rule's case is read apart. A section renamed is its
+//! heading's change, its parts compared with the ones it had.
 
 use super::answered::revision_of;
 use crate::compare::{Part, Version, diff, matched, section_titles, version_with_headings};

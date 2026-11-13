@@ -230,7 +230,7 @@ async fn first_message(server: &TestServer, path: &str, protocol: Option<&str>) 
     }
 }
 
-// The stack decision: the server MUST stop every preview command it runs when it stops. The
+// The stack decision: the server stops every preview command it runs when it stops. The
 // command's shell, the preview it runs, and the child that one started are one process group:
 // all three go.
 #[tokio::test]

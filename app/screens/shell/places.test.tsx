@@ -23,7 +23,7 @@ const PAGES: Record<string, { address: string; words: string }> = {
   // A decision's list opens on its own card: its words, as its reader has them.
   decision: {
     address: "/r/realistic/decisions/git",
-    words: "Rust tools MUST read git with the gix library",
+    words: "Rust tools read git with the gix library",
   },
   file: {
     address: "/r/realistic/f/2026-10-19-leader-key/spec.md",

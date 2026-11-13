@@ -44,9 +44,12 @@ likely newer than the branch.
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
 [Writing for the human](writing.md): `block.count`, `block.items`, `writing.sentence`, and
-`spec.length` on files waiting for the human, and the length of a decision's parts. It exits with an
-error when it found a problem, and with success when it found only warnings. `ura lsp` sends
-warnings to editors with the Warning severity.
+`spec.length` on files waiting for the human, and [a decision](writing.md#a-decision)'s shape:
+`decision.rules`, `decision.why`, and `decision.alternatives` when it grows long, and
+`decision.example` on a rule with no case after "_So:_". `decision.unapproved` warns on a decision
+whose text changed on the branch after its spec's approval. It exits with an error when it found a
+problem, and with success when it found only warnings. `ura lsp` sends warnings to editors with the
+Warning severity.
 
 `ura check` reads git's history at the first link to a missing file, and its `links.file` message
 says where the file went: `no file <path>: it moved to /<new path>`,

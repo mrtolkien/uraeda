@@ -4,22 +4,20 @@ icon: layers
 
 # Stack
 
-Uraeda's workflow logic is written once, in Rust, in a core crate. The server is a TypeScript
-program on Node that calls the same core through a napi-rs binding.
+> "The workflow's rules are written once."
+
+The workflow logic lives in a Rust core crate. The server is a TypeScript program on Node that calls
+the same core through a napi-rs binding.
 
 ## Rules
 
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core. Checked by
-  review.
-- TypeScript code MUST reach the core only through the binding. Checked by review.
+- Workflow logic, parsing, validation, and workflow states live in the Rust core. _So:_ the server
+  never parses a spec's frontmatter itself.
+- TypeScript reaches the core only through the binding. _So:_ no second parser in TypeScript.
 
 ## Why
 
 One implementation of the workflow's rules, for every tool.
-
-## Consequences
-
-- A change to the rules is made once, in Rust.
 
 ## Applies to
 

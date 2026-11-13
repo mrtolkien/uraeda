@@ -62,7 +62,7 @@ const STEPS: ReadonlyArray<Step> = [
     from: `${REALISTIC}decisions`,
     go: "/r/realistic/decisions/git",
     name: "open a decision",
-    words: "Rust tools MUST read git with the gix library",
+    words: "Rust tools read git with the gix library",
   },
   { from: `${SAMPLE}git`, key: "Enter", name: "open a diff (Enter on Git's changes)" },
   { from: FEATURE, key: "l", name: "cross to the side stack (l)" },

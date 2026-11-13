@@ -21,11 +21,19 @@ const FIXED_CONSTITUTION: &str = "# Uraeda Constitution\n\n\
     ## Governance\n\n- Only humans amend this constitution.\n\n\
     **Version**: 1.3.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14\n";
 
-/// A decision with every field, its summary two sentences long.
+/// A decision with every field: its quote, and a context of two sentences under it.
 const GIT: &str = "---\nicon: git-branch\n---\n\n# Git\n\n\
+    > \"My hooks run on every commit,\n> whoever makes it.\"\n\n\
     Tools read git with gix, and write with the system binary. Commits run the user's hooks.\n\n\
-    ## Rules\n\n- Tools MUST NOT bypass hooks. Checked by review.\n\n## Why\n\nHooks.\n\n\
-    ## Consequences\n\n- None.\n\n## Applies to\n\n- `crates/`\n";
+    ## Rules\n\n- Tools never bypass hooks. _So:_ no `--no-verify`.\n\n## Why\n\nHooks.\n\n\
+    ## Applies to\n\n- `crates/`\n";
+
+/// The quote of `GIT`, its lines joined.
+const QUOTE: &str = "\"My hooks run on every commit, whoever makes it.\"";
+
+/// The context of `GIT`.
+const CONTEXT: &str =
+    "Tools read git with gix, and write with the system binary. Commits run the user's hooks.";
 
 /// Commits every change, as committed on `date`.
 fn commit_on(repo: &TestRepo, message: &str, date: &str) {
@@ -127,10 +135,8 @@ fn the_ledger_reads_each_decision() {
     let git = decision(&ledger.decisions, "git");
     assert_eq!(git.title, "Git");
     assert_eq!(git.icon.as_deref(), Some("git-branch"));
-    assert_eq!(
-        git.summary.as_deref(),
-        Some("Tools read git with gix, and write with the system binary.")
-    );
+    assert_eq!(git.quote.as_deref(), Some(QUOTE));
+    assert_eq!(git.context.as_deref(), Some(CONTEXT));
     assert_eq!(git.changed.as_deref(), Some("2026-10-12"));
     assert_eq!(git.problem, None);
     assert_eq!(git.document.blocks[0].kind.as_str(), "heading");
@@ -140,26 +146,31 @@ fn the_ledger_reads_each_decision() {
     assert!(ledger.problems.is_empty(), "{:?}", ledger.problems);
 }
 
-/// Edge case: a decision without an H1 or a summary stands under its file name, without subtitle.
+/// Edge case: a decision without an H1, a quote, or a context stands under its file name, without
+/// subtitle.
 #[test]
 fn a_decision_without_a_title_uses_its_file_name() {
     let repo = TestRepo::new();
-    repo.write("specs/decisions/git.md", "## Rules\n\n- A rule.\n");
+    repo.write(
+        "specs/decisions/git.md",
+        "## Rules\n\n- A rule. _So:_ a case.\n",
+    );
     repo.commit("docs: git");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
     let git = decision(&ledger.decisions, "git");
     assert_eq!(git.title, "git");
-    assert_eq!(git.summary, None);
+    assert_eq!(git.quote, None);
+    assert_eq!(git.context, None);
     assert_eq!(git.problem.as_deref(), Some("no title"));
     assert!(!git.unreadable);
 }
 
 /// A readable decision with a problem `ura check` finds, like a broken link, keeps its title and
-/// its summary: only a decision that cannot be parsed is unreadable.
+/// its quote: only a decision that cannot be parsed is unreadable.
 #[test]
-fn a_decision_with_a_broken_link_keeps_its_summary() {
+fn a_decision_with_a_broken_link_keeps_its_quote() {
     let repo = TestRepo::new();
     repo.write(
         "specs/decisions/git.md",
@@ -173,10 +184,28 @@ fn a_decision_with_a_broken_link_keeps_its_summary() {
     assert!(git.problem.is_some(), "{:?}", ledger.problems);
     assert!(!git.unreadable);
     assert_eq!(git.title, "Git");
-    assert_eq!(
-        git.summary.as_deref(),
-        Some("Tools read git with gix, and write with the system binary.")
+    assert_eq!(git.quote.as_deref(), Some(QUOTE));
+}
+
+/// A decision that opens with no quote has none, and its opening paragraph is its context.
+#[test]
+fn a_decision_without_a_quote_has_its_context_alone() {
+    let repo = TestRepo::new();
+    repo.write(
+        "specs/decisions/git.md",
+        &GIT.replace(
+            "> \"My hooks run on every commit,\n> whoever makes it.\"\n\n",
+            "",
+        ),
     );
+    repo.commit("docs: git");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    let git = decision(&ledger.decisions, "git");
+    assert_eq!(git.quote, None);
+    assert_eq!(git.context.as_deref(), Some(CONTEXT));
+    assert!(ledger.problems.is_empty(), "{:?}", ledger.problems);
 }
 
 /// Review focus 7: a decision that cannot be parsed is listed, unreadable, by its file name, with
@@ -361,10 +390,10 @@ fn a_decision_with_a_non_ascii_name_has_its_date() {
     );
 }
 
-/// US2: a decision's rules are the kept parts of its `## Rules` section, each with its strength,
-/// its words, and its check.
+/// US2: a decision's rules are the kept parts of its `## Rules` section, each with its words and
+/// its case.
 #[test]
-fn rules_of_a_decision_are_its_kept_parts_with_strength_and_check() {
+fn rules_of_a_decision_are_its_kept_parts_with_their_case() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
     repo.commit("docs: git");
@@ -374,15 +403,14 @@ fn rules_of_a_decision_are_its_kept_parts_with_strength_and_check() {
     let rules = &decision(&ledger.decisions, "git").rules;
     assert_eq!(rules.len(), 1, "{rules:?}");
     assert_eq!(rules[0].kind, "kept");
-    assert_eq!(rules[0].strength.as_deref(), Some("must-not"));
     let words = |runs: &[uraeda_core::decisions::Run]| {
         runs.iter()
             .map(|run| run.text.as_str())
             .collect::<Vec<_>>()
             .join(" ")
     };
-    assert_eq!(words(&rules[0].runs), "Tools MUST NOT bypass hooks.");
-    assert_eq!(words(&rules[0].check), "Checked by review.");
+    assert_eq!(words(&rules[0].runs), "Tools never bypass hooks.");
+    assert_eq!(words(&rules[0].example), "no --no-verify.");
 }
 
 /// Edge case: a decision that cannot be parsed has no rules, and keeps its problem.

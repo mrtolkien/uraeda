@@ -1,18 +1,16 @@
-//! A decision's shape, as warnings: how long its sections run, how many rules it holds, how many
-//! keywords each rule holds, and their order by strength.
+//! A decision's shape, as warnings: how many rules it holds, how long its Why runs, how many
+//! alternatives it lists, and each rule's case. A decision that grows long is holding a feature's
+//! spec or an area's guide: each warning says to cut, or to move the rest to a guide.
 
 use super::File;
-use super::writing::{is_word, sentences};
-use crate::decisions::{Strength, keywords, strength};
+use super::writing::is_word;
+use crate::decisions::CASE;
 use crate::files::document::{Block, BlockKind, Document, Span, parse, plain};
 use crate::workspace::Problem;
 
 /// The most rules a decision holds before `decision.rules` warns. Every `pub` item of this module
 /// is a limit, exported from `check` as it is.
-pub const DECISION_RULES: usize = 10;
-
-/// The most sentences of its intent before `decision.intent` warns.
-pub const DECISION_INTENT_SENTENCES: usize = 3;
+pub const DECISION_RULES: usize = 5;
 
 /// The most words of its Why before `decision.why` warns.
 pub const DECISION_WHY_WORDS: usize = 80;
@@ -20,35 +18,17 @@ pub const DECISION_WHY_WORDS: usize = 80;
 /// The most alternatives it lists before `decision.alternatives` warns.
 pub const DECISION_ALTERNATIVES: usize = 3;
 
-/// The most consequences it lists before `decision.consequences` warns.
-pub const DECISION_CONSEQUENCES: usize = 4;
-
-/// Warns where a decision drifts from the limits of the writing reference: an intent past
-/// `DECISION_INTENT_SENTENCES` sentences, on the title (`decision.intent`); a Why past
-/// `DECISION_WHY_WORDS` words (`decision.why`); more than `DECISION_ALTERNATIVES` alternatives
-/// (`decision.alternatives`) or `DECISION_CONSEQUENCES` consequences (`decision.consequences`), on
-/// their headings; and the rules, as `check_rules` says. A section it lacks measures nothing.
+/// Warns where a decision drifts from the shape of the writing reference: a Why past
+/// `DECISION_WHY_WORDS` words (`decision.why`), more than `DECISION_ALTERNATIVES` alternatives
+/// (`decision.alternatives`), on their headings, and the rules, as `check_rules` says. A section it
+/// lacks measures nothing, and a decision that opens with no quote is not a problem: the human may
+/// never have said it in one sentence.
 pub(super) fn check_decision(file: &File<'_>, problems: &mut Vec<Problem>) {
     let document = parse(file.text, "");
     let mut warn = |block: &Block, rule: &str, message: String| {
         problems.push(file.warning(Some(block.start_line as usize), rule, message));
     };
-    if let Some(title) = top_heading(&document, 1, None) {
-        let intent: usize = section(&document, title)
-            .filter(|b| b.parent.is_none() && b.kind == BlockKind::Paragraph)
-            .map(|b| sentences(&counted_text(&b.spans)).len())
-            .sum();
-        if intent > DECISION_INTENT_SENTENCES {
-            warn(
-                title,
-                "decision.intent",
-                format!(
-                    "{intent} sentences: keep the intent to at most {DECISION_INTENT_SENTENCES}"
-                ),
-            );
-        }
-    }
-    if let Some(why) = top_heading(&document, 2, Some("Why")) {
+    if let Some(why) = top_heading(&document, Some("Why")) {
         let words: usize = section(&document, why)
             .filter(|b| matches!(b.kind, BlockKind::Paragraph | BlockKind::Item))
             .map(|b| {
@@ -62,48 +42,34 @@ pub(super) fn check_decision(file: &File<'_>, problems: &mut Vec<Problem>) {
             warn(
                 why,
                 "decision.why",
-                format!("{words} words: keep the reason under {DECISION_WHY_WORDS}"),
+                format!(
+                    "{words} words: keep the reason under {DECISION_WHY_WORDS}, and cut the rest \
+                     or move it to a guide"
+                ),
             );
         }
     }
-    let listed = [
-        (
-            "Alternatives considered",
-            DECISION_ALTERNATIVES,
-            "decision.alternatives",
-            "alternatives",
-            "the ones an agent could propose again",
-        ),
-        (
-            "Consequences",
-            DECISION_CONSEQUENCES,
-            "decision.consequences",
-            "consequences",
-            "the costs and what a later feature must do",
-        ),
-    ];
-    for (name, limit, rule, noun, keep) in listed {
-        if let Some(heading) = top_heading(&document, 2, Some(name)) {
-            let count = items(&document, heading).len();
-            if count > limit {
-                warn(
-                    heading,
-                    rule,
-                    format!("{count} {noun}: keep at most {limit}, {keep}"),
-                );
-            }
+    if let Some(heading) = top_heading(&document, Some("Alternatives considered")) {
+        let count = items(&document, heading).len();
+        if count > DECISION_ALTERNATIVES {
+            warn(
+                heading,
+                "decision.alternatives",
+                format!(
+                    "{count} alternatives: keep at most {DECISION_ALTERNATIVES}, the ones an agent \
+                     could propose again, and cut the rest"
+                ),
+            );
         }
     }
-    if let Some(heading) = top_heading(&document, 2, Some("Rules")) {
+    if let Some(heading) = top_heading(&document, Some("Rules")) {
         check_rules(file, &document, heading, problems);
     }
 }
 
 /// Warns on a decision of more than `DECISION_RULES` rules (`decision.rules`), on its `## Rules`
-/// heading; on each rule holding more than one keyword before its check, outside code
-/// (`decision.keywords`); and on its first rule stronger than the one before it
-/// (`decision.order`). A rule is a top-level item of `## Rules`' lists; one without a keyword is
-/// not ordered.
+/// heading, and on each rule with no case, no emphasized `So:` (`decision.example`), on its line.
+/// A rule is a top-level item of `## Rules`' lists.
 fn check_rules(file: &File<'_>, document: &Document, heading: &Block, problems: &mut Vec<Problem>) {
     let rules = items(document, heading);
     if rules.len() > DECISION_RULES {
@@ -111,51 +77,35 @@ fn check_rules(file: &File<'_>, document: &Document, heading: &Block, problems: 
             Some(heading.start_line as usize),
             "decision.rules",
             format!(
-                "{} rules: keep at most {DECISION_RULES}, or split the topic",
+                "{} rules: keep at most {DECISION_RULES}, and cut the rest or move them to a guide",
                 rules.len()
             ),
         ));
     }
-    for rule in &rules {
-        let text = counted_text(&rule.spans);
-        let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
-        let own = text.split("Checked by").next().unwrap_or_default();
-        let count = keywords(own);
-        if count > 1 {
-            problems.push(file.warning(
-                Some(rule.start_line as usize),
-                "decision.keywords",
-                format!("{count} keywords: one rule holds one MUST, SHOULD, or MAY"),
-            ));
-        }
-    }
-    let mut before: Option<Strength> = None;
     for rule in rules {
-        let Some(found) = strength(&plain(&rule.spans)) else {
-            continue;
-        };
-        if let Some(weaker) = before.filter(|b| b.rank() > found.rank()) {
+        if !has_case(&rule.spans) {
             problems.push(file.warning(
                 Some(rule.start_line as usize),
-                "decision.order",
-                format!(
-                    "a {} rule after a {} one: put the strongest first",
-                    keyword(found),
-                    keyword(weaker)
-                ),
+                "decision.example",
+                format!("a rule with no case: add one after _{CASE}_, as an agent would meet it"),
             ));
-            break;
         }
-        before = Some(found);
     }
 }
 
-/// The first top-level heading of `level`, named `name` when one is given.
-fn top_heading<'a>(document: &'a Document, level: u32, name: Option<&str>) -> Option<&'a Block> {
+/// Whether a rule's spans hold its case: `So:` in emphasis.
+fn has_case(spans: &[Span]) -> bool {
+    spans
+        .iter()
+        .any(|span| span.emphasis && !span.code && span.text.trim() == CASE)
+}
+
+/// The first top-level `##` heading, named `name` when one is given.
+fn top_heading<'a>(document: &'a Document, name: Option<&str>) -> Option<&'a Block> {
     document.blocks.iter().find(|b| {
         b.parent.is_none()
             && b.kind == BlockKind::Heading
-            && b.level == Some(level)
+            && b.level == Some(2)
             && name.is_none_or(|name| plain(&b.spans).trim() == name)
     })
 }
@@ -195,9 +145,4 @@ fn counted_text(spans: &[Span]) -> String {
             }
         })
         .collect()
-}
-
-/// A strength as the rule writes it, `MUST NOT`.
-fn keyword(strength: Strength) -> String {
-    strength.as_str().to_uppercase().replace('-', " ")
 }

@@ -6,6 +6,7 @@ import { computed, effect, signal, untracked, View } from "nsh";
 import { entry, keep, navigate, positions, redirect, route } from "../../store";
 import type { Decision, Ledger } from "../../store/protocol";
 import { Banner, Button, iconNamed, Select, Spinner, Text } from "../../ui/controls";
+import { Quote } from "../../ui/document";
 import { KeyPicker, type PickerItem, registerKey } from "../../ui/keys";
 import { definePane, focus, placeOf, sync, usePane } from "../../ui/layout";
 import { Card, type CardFact, createCursor, Empty, VirtualList } from "../../ui/lists";
@@ -56,7 +57,10 @@ function open(row: string) {
   }
 }
 
-/** A decision's card: its icon, its title, its rules, its last change, and when it cannot be read. */
+/**
+ * A decision's card: its icon, its title, the human's words as a quote, or its context without
+ * one, its rules, its last change, and when it cannot be read.
+ */
 function DecisionCard(props: {
   decision: Decision;
   repo: string;
@@ -94,7 +98,26 @@ function DecisionCard(props: {
   return (
     <Card
       body={
-        <If when={props.decision.summary}>{(summary) => <Text tone="quiet">{summary()}</Text>}</If>
+        <If
+          when={props.decision.quote}
+          else={
+            <If when={props.decision.context}>
+              {(context) => (
+                <Text lines={2} tone="quiet">
+                  {context()}
+                </Text>
+              )}
+            </If>
+          }
+        >
+          {(quote) => (
+            <Quote>
+              <Text lines={3} tone="quiet">
+                {quote()}
+              </Text>
+            </Quote>
+          )}
+        </If>
       }
       facts={facts()}
       icon={iconNamed(props.decision.icon)}
@@ -176,7 +199,7 @@ function pickerItems(ledger: Ledger, sort: DecisionSort): Array<PickerItem> {
     ...principles,
     ...sorted(ledger.decisions, sort).map((decision) => ({
       id: decisionId(decision.name),
-      summary: decision.summary,
+      summary: decision.quote ?? decision.context,
       title: decision.title,
     })),
   ];

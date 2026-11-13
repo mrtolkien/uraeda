@@ -117,9 +117,10 @@ const STEPS: [Step; 11] = [
 /// A new decision the spec of the decision's feature lists, on its branch: the human approved it
 /// with the spec.
 const NEW_DECISION: &str = "---\nicon: repeat\n---\n\n# \
-     Repeating tasks\n\nA repeating task is one task, whose due date moves when it is \
-     completed.\n\n## Rules\n\n- A repeating task MUST stay one task. Checked by review.\n\n## \
-     Why\n\nOne task keeps its history in one place.\n";
+     Repeating tasks\n\n> \"We're a todo app, not a calendar.\"\n\nA repeating task is one \
+     task, whose due date moves when it is completed.\n\n## Rules\n\n- A repeating task stays \
+     one task. _So:_ completing it never adds a second one.\n\n## Why\n\nOne task keeps its \
+     history in one place.\n";
 
 /// The changes, one at each state: at work, a round waiting, and four with pull requests.
 const CHANGES: [(&str, &str); 6] = [

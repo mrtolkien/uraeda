@@ -4,23 +4,21 @@ icon: bot
 
 # Agents
 
-Uraeda's server runs coding agents by starting the agent's own command-line tool, installed on the
-machine and signed in by the user. Every agent is reached through one adapter, as sessions of turns
-and items.
+> "Use the agent I already have installed and signed in."
+
+The server runs coding agents through their own command-line tools, each reached through one
+adapter.
 
 ## Rules
 
-- The server MUST run Claude Code by spawning the `claude` binary found on the machine's `PATH`.
-  Checked by review.
-- Every agent MUST be reached through one adapter interface. Checked by review.
+- The server runs Claude Code by spawning the `claude` binary on the machine's `PATH`. _So:_ no
+  copy of the agent ships with Uraeda.
+- Every agent is reached through one adapter interface. _So:_ a new agent adds an adapter, never a
+  path of its own through the server.
 
 ## Why
 
 The agent's own tool keeps its sign-in, its updates, and its settings.
-
-## Consequences
-
-- An agent that is not installed shows as missing, with how to install it.
 
 ## Applies to
 

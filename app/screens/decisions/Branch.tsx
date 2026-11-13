@@ -33,8 +33,11 @@ function partAt(parts: ReadonlyArray<PartChange>, block: Block) {
   );
 }
 
-/** Its words, as one line. */
-const words = (part: PartChange) => [...part.runs, ...part.check].map((run) => run.text).join(" ");
+/** Its words, as one line: a rule's case after "So:", as the decision writes it. */
+const words = (part: PartChange) =>
+  [...part.runs, ...(part.example.length > 0 ? [{ text: "So:" }, ...part.example] : [])]
+    .map((run) => run.text)
+    .join(" ");
 
 /** The mark under a block the branch added or changed: what a review reads first. */
 function Changed(props: { kind: string }) {

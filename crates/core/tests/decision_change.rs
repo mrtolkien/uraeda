@@ -3,7 +3,7 @@ mod common;
 use common::repo::TestRepo;
 use common::texts::spec;
 use uraeda_core::api;
-use uraeda_core::decisions::{DecisionChange, PartChange, Strength, compare, strength};
+use uraeda_core::decisions::{DecisionChange, PartChange, compare};
 use uraeda_core::files::document::LineRange;
 
 /// A before text, an after text, and the parts expected, each `(section, kind, runs)` with the
@@ -32,12 +32,12 @@ const fn case(
 const CASES: &[Case] = &[
     case(
         "a reworded rule",
-        "# T\n\n## Rules\n\n- Saving MUST keep the previous version. Checked by the store's tests.\n",
-        "# T\n\n## Rules\n\n- Saving MUST keep every earlier version. Checked by the store's tests.\n",
+        "# T\n\n## Rules\n\n- Saving keeps the previous version. _So:_ no reset of the store.\n",
+        "# T\n\n## Rules\n\n- Saving keeps every earlier version. _So:_ no reset of the store.\n",
         &[(
             "Rules",
             "changed",
-            "=Saving MUST keep -the previous +every earlier =version.",
+            "=Saving keeps -the previous +every earlier =version.",
         )],
     ),
     case(
@@ -280,8 +280,8 @@ behind the store.
 
 ## Rules
 
-- Data MUST NOT be sent to a server. Checked by review.
-- Components SHOULD read through `src/store/`.
+- Data is never sent to a server. _So:_ no sync.
+- Components read through `src/store/`.
 ";
 
 #[test]
@@ -329,52 +329,16 @@ fn a_part_counts_its_lines_from_the_first_line_of_the_file() {
 }
 
 #[test]
-fn a_rule_has_its_strength_and_the_intent_none() {
+fn a_rule_has_its_case_and_the_context_none() {
     let change = compare("task-storage", None, Some(STORAGE));
 
-    let strengths: Vec<Option<&str>> = change
+    let examples: Vec<String> = change
         .sections
         .iter()
         .flat_map(|s| &s.parts)
-        .map(|part| part.strength.as_deref())
+        .map(|part| runs_of(&part.example))
         .collect();
-    assert_eq!(strengths, [None, Some("must-not"), Some("should")]);
-}
-
-#[test]
-fn a_rules_strength_is_its_first_keyword() {
-    let cases = [
-        ("Data MUST NOT be sent.", Some(Strength::MustNot)),
-        (
-            "Data MUST be kept, and MAY be copied.",
-            Some(Strength::Must),
-        ),
-        (
-            "Lists MAY be shared, and MUST be named.",
-            Some(Strength::May),
-        ),
-        ("A test SHOULD NOT sleep.", Some(Strength::ShouldNot)),
-        ("A test SHOULD run (SHOULD).", Some(Strength::Should)),
-        ("Mustard must be yellow, MUSTARD.", None),
-        ("It MUST, NOT always.", Some(Strength::Must)),
-    ];
-    for (text, expected) in cases {
-        assert_eq!(strength(text), expected, "{text}");
-    }
-}
-
-#[test]
-fn a_strength_has_its_rank_and_name() {
-    let all = [
-        (Strength::Must, 0, "must"),
-        (Strength::MustNot, 0, "must-not"),
-        (Strength::Should, 1, "should"),
-        (Strength::ShouldNot, 1, "should-not"),
-        (Strength::May, 2, "may"),
-    ];
-    for (strength, rank, name) in all {
-        assert_eq!((strength.rank(), strength.as_str()), (rank, name));
-    }
+    assert_eq!(examples, ["", "+no sync.", ""]);
 }
 
 #[test]
@@ -390,8 +354,8 @@ behind the store.
 
 ## Rules
 
-- Data MUST NOT be sent to a server, and components SHOULD read through `src/store/`. Checked by
-  review.
+- Data is never sent to a server, and components read through `src/store/`. _So:_ no
+  sync.
 ";
     let change = compare("task-storage", Some(STORAGE), Some(merged));
 
@@ -414,7 +378,7 @@ const SPEC: &str = "specs/2026-10-11-web-ui/spec.md";
 /// A decision titled after its name, with an intent and one rule.
 fn decision(name: &str, intent: &str, rule: &str) -> String {
     format!(
-        "---\nicon: database\n---\n\n# {name}\n\n{intent}\n\n## Rules\n\n- {rule} Checked by review.\n"
+        "---\nicon: database\n---\n\n# {name}\n\n{intent}\n\n## Rules\n\n- {rule} _So:_ a case.\n"
     )
 }
 
@@ -700,15 +664,15 @@ fn an_unlisted_change_of_the_title_or_the_frontmatter_shows_its_fields() {
     );
 }
 
-/// A rule's words and its check, each as `=kept +added -removed` runs.
-fn rule_and_check(before: &str, after: &str) -> (String, String) {
+/// A rule's words and its case, each as `=kept +added -removed` runs.
+fn rule_and_case(before: &str, after: &str) -> (String, String) {
     let change = compare(
         "t",
         Some(&format!("# T\n\n## Rules\n\n{before}\n")),
         Some(&format!("# T\n\n## Rules\n\n{after}\n")),
     );
     let part = &change.sections[0].parts[0];
-    (runs(part), runs_of(&part.check))
+    (runs(part), runs_of(&part.example))
 }
 
 fn runs_of(runs: &[uraeda_core::decisions::Run]) -> String {
@@ -726,57 +690,62 @@ fn runs_of(runs: &[uraeda_core::decisions::Run]) -> String {
 }
 
 #[test]
-fn a_rules_check_is_split_from_its_words() {
-    let (rule, check) = rule_and_check(
-        "- Saving MUST keep it. Checked by review.",
-        "- Saving MUST keep it. Checked by review.",
+fn a_rules_case_is_split_from_its_words() {
+    let (rule, case) = rule_and_case(
+        "- Saving keeps it. _So:_ no reset.",
+        "- Saving keeps it. _So:_ no reset.",
     );
 
-    assert_eq!(rule, "=Saving MUST keep it.");
-    assert_eq!(check, "=Checked by review.");
+    assert_eq!(rule, "=Saving keeps it.");
+    assert_eq!(case, "=no reset.");
 }
 
 #[test]
-fn a_reworded_check_shows_its_words_changed() {
-    let (rule, check) = rule_and_check(
-        "- Saving MUST keep it. Checked by the store's tests.",
-        "- Saving MUST keep it. Checked by review.",
+fn a_reworded_case_shows_its_words_changed() {
+    let (rule, case) = rule_and_case(
+        "- Saving keeps it. _So:_ no reset of the store.",
+        "- Saving keeps it. _So:_ no revert.",
     );
 
-    assert_eq!(rule, "=Saving MUST keep it.");
-    assert_eq!(check, "=Checked by -the store's tests. +review.");
+    assert_eq!(rule, "=Saving keeps it.");
+    assert_eq!(case, "=no -reset of the store. +revert.");
 }
 
 #[test]
-fn a_rule_whose_words_and_check_are_one_run_is_cut_in_two_of_its_kind() {
+fn a_case_added_to_a_rule_is_added() {
+    let (rule, case) = rule_and_case("- Saving keeps it.", "- Saving keeps it. _So:_ no reset.");
+
+    assert_eq!(rule, "=Saving keeps it.");
+    assert_eq!(case, "+no reset.");
+}
+
+#[test]
+fn a_rule_whose_words_and_case_are_one_run_is_cut_in_two_of_its_kind() {
     let change = compare(
         "t",
         None,
-        Some("# T\n\n## Rules\n\n- A rule MUST hold. Checked by tests.\n"),
+        Some("# T\n\n## Rules\n\n- A rule holds. _So:_ a case.\n"),
     );
     let part = &change.sections[0].parts[0];
 
-    assert_eq!(runs(part), "+A rule MUST hold.");
-    assert_eq!(runs_of(&part.check), "+Checked by tests.");
+    assert_eq!(runs(part), "+A rule holds.");
+    assert_eq!(runs_of(&part.example), "+a case.");
 }
 
 #[test]
-fn a_rule_with_no_check_or_a_look_alike_has_none() {
-    for text in [
-        "- A rule MUST hold.",
-        "- A rule MUST hold. Unchecked by anyone.",
-    ] {
-        let (_, check) = rule_and_check(text, text);
+fn a_rule_with_no_case_or_a_look_alike_has_none() {
+    for text in ["- A rule holds.", "- A rule holds. Also:So: not one."] {
+        let (_, case) = rule_and_case(text, text);
 
-        assert_eq!(check, "", "{text}");
+        assert_eq!(case, "", "{text}");
     }
 }
 
 #[test]
-fn a_paragraph_is_not_split_at_checked_by() {
-    let change = compare("t", None, Some("# T\n\nIt is Checked by review.\n"));
+fn a_paragraph_is_not_split_at_its_case() {
+    let change = compare("t", None, Some("# T\n\nIt is so. _So:_ a case.\n"));
 
-    assert!(change.sections[0].parts[0].check.is_empty());
+    assert!(change.sections[0].parts[0].example.is_empty());
 }
 
 #[test]

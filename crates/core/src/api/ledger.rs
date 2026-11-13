@@ -72,15 +72,19 @@ pub struct Decision {
     pub title: String,
     /// Its frontmatter's `icon`, a Lucide icon name, like `git-branch`.
     pub icon: Option<String>,
-    /// The first sentence of its first paragraph, when one comes before its first section.
-    pub summary: Option<String>,
+    /// The principle in the human's words: the text of the quote before its first section, its
+    /// paragraphs joined, when it opens with one.
+    pub quote: Option<String>,
+    /// What the quote needs to be understood alone: the paragraphs before its first section,
+    /// outside the quote, joined, when it has some.
+    pub context: Option<String>,
     /// The date of the last commit of the default branch touching it, `YYYY-MM-DD`.
     pub changed: Option<String>,
     /// Its file as read, frontmatter included: what a preview shows.
     pub text: String,
     pub document: Document,
-    /// The kept parts of its `## Rules` section, each with its strength and its check; empty for
-    /// an unreadable file or one without the section.
+    /// The kept parts of its `## Rules` section, each rule with its case; empty for an unreadable
+    /// file or one without the section.
     pub rules: Vec<PartChange>,
     /// The first problem `ura check` finds in it.
     pub problem: Option<String>,
@@ -264,16 +268,43 @@ fn heading(document: &Document, level: u32) -> Option<String> {
         .filter(|text| !text.is_empty())
 }
 
-/// A text up to the end of its first sentence: a `.`, `!`, or `?` before a space or the end.
-fn first_sentence(text: &str) -> &str {
-    let mut chars = text.char_indices().peekable();
-    while let Some((index, char)) = chars.next() {
-        let ends = chars.peek().is_none_or(|(_, next)| next.is_whitespace());
-        if matches!(char, '.' | '!' | '?') && ends {
-            return &text[..index + char.len_utf8()];
-        }
-    }
-    text
+/// Text with every run of whitespace made one space, `None` when nothing is left.
+fn joined(texts: impl IntoIterator<Item = String>) -> Option<String> {
+    let texts: Vec<String> = texts.into_iter().collect();
+    let text = texts
+        .iter()
+        .flat_map(|text| text.split_whitespace())
+        .collect::<Vec<_>>()
+        .join(" ");
+    (!text.is_empty()).then_some(text)
+}
+
+/// A decision's opening, before its first section: the text of its first quote, and of its
+/// paragraphs outside it.
+fn opening(document: &Document) -> (Option<String>, Option<String>) {
+    let top: Vec<&document::Block> = document
+        .blocks
+        .iter()
+        .filter(|block| block.parent.is_none())
+        .take_while(|block| block.kind != BlockKind::Heading || block.level == Some(1))
+        .collect();
+    let quote = top
+        .iter()
+        .find(|block| block.kind == BlockKind::Quote)
+        .and_then(|quote| {
+            joined(
+                document
+                    .children(quote.id)
+                    .filter(|child| child.kind == BlockKind::Paragraph)
+                    .map(|child| document.text(child.id)),
+            )
+        });
+    let context = joined(
+        top.iter()
+            .filter(|block| block.kind == BlockKind::Paragraph)
+            .map(|block| document.text(block.id)),
+    );
+    (quote, context)
 }
 
 /// The parts of the `## Rules` section, as the spec page's comparison reads them: the decision
@@ -303,13 +334,11 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
             .and_then(|front| front.text(key))
             .map(str::to_string)
     };
-    let summary = document
-        .blocks
-        .iter()
-        .filter(|block| block.parent.is_none())
-        .take_while(|block| block.kind != BlockKind::Heading || block.level == Some(1))
-        .find(|block| block.kind == BlockKind::Paragraph)
-        .map(|block| first_sentence(&document.text(block.id)).to_string());
+    let (quote, context) = if unreadable {
+        (None, None)
+    } else {
+        opening(&document)
+    };
     let rules = if unreadable {
         Vec::new()
     } else {
@@ -320,7 +349,8 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
             .filter(|_| !unreadable)
             .unwrap_or_else(|| name.clone()),
         icon: field("icon"),
-        summary,
+        quote,
+        context,
         changed,
         problem: problems.first().map(|problem| problem.message.clone()),
         unreadable,

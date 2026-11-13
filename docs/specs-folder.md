@@ -36,10 +36,16 @@ estimate, and what needs your attention.
 
 ## Decisions
 
-High-impact choices, like how dates are stored, become short decision files in `decisions/` that
-every later feature must follow. An agent cannot work around one: a feature that needs to change it
-edits it on its own branch, and lists it in its spec. You approve the change with the spec, where
-you see it marked in place, and the merge brings it in.
+A boundary you set, that every later feature must respect, like "a task due Monday stays due
+Monday", becomes a short decision file in `decisions/`. It opens with your words, as a quote, then
+holds a few rules, each a plain sentence followed by "_So:_" and a case it settles, and why. An
+agent cannot work around one: a feature that needs to change it edits it on its own branch, and
+lists it in its spec. You approve the change with the spec, where you see it marked in place, and
+the merge brings it in.
+
+How an area should feel and behave, its layouts, its keys, its wording, is not a decision but a
+guide: a free-form file, edited with each feature that learns something about it, in `ui/` for a UI
+and in `guides/` for any other area.
 
 ## Review and risk
 
@@ -140,6 +146,8 @@ specs/
                                # by an agent
   notes/                       # inbox notes with images, and agents' notes: their files
   decisions/                   # decision ledger, one file per topic
+  ui/                          # the UI's guides, free form
+  guides/                      # the guides of other areas, free form
   done/                        # one record per merged feature or change, in place of its folder
   changes/YYYY-MM-DD-<slug>/   # a change: your proposal, and the questions it needed
   2026-10-06-recurring-tasks/  # one folder per feature, dated the day it starts

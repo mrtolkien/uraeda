@@ -37,8 +37,9 @@ agent" opens a session with the setup message ready to send.
 The app reads the workflow's files as the skill writes them, and draws them:
 
 - A decision's `icon`, a [Lucide](https://lucide.dev/icons/) name, shows beside its title, and a
-  default icon for a name it does not know. A decision changed on a branch shows its change against
-  the default branch, in place.
+  default icon for a name it does not know. Its card on the decisions page shows its opening quote,
+  the human's words, as a quote, or its context when it has none. A decision changed on a branch
+  shows its change against the default branch, in place.
 - A spec folds its stories' "More scenarios" and its niche edge cases, and shows `data-model.md`
   after the stories, as "Data".
 - With a preview decision, a story link alone in its paragraph shows the story live, at a phone's

@@ -632,9 +632,15 @@ title: string,
  */
 icon: string | null, 
 /**
- * The first sentence of its first paragraph, when one comes before its first section.
+ * The principle in the human's words: the text of the quote before its first section, its
+ * paragraphs joined, when it opens with one.
  */
-summary: string | null, 
+quote: string | null, 
+/**
+ * What the quote needs to be understood alone: the paragraphs before its first section,
+ * outside the quote, joined, when it has some.
+ */
+context: string | null, 
 /**
  * The date of the last commit of the default branch touching it, `YYYY-MM-DD`.
  */
@@ -644,8 +650,8 @@ changed: string | null,
  */
 text: string, document: Document, 
 /**
- * The kept parts of its `## Rules` section, each with its strength and its check; empty for
- * an unreadable file or one without the section.
+ * The kept parts of its `## Rules` section, each rule with its case; empty for an unreadable
+ * file or one without the section.
  */
 rules: Array<PartChange>, 
 /**
@@ -3247,10 +3253,6 @@ export type PartChange = {
  */
 kind: string, 
 /**
- * A list item's strength, as `Strength::as_str` names it.
- */
-strength: string | null, 
-/**
  * Its lines in the merge base's version, from the file's first line.
  */
 before: LineRange | null, 
@@ -3259,13 +3261,14 @@ before: LineRange | null,
  */
 after: LineRange | null, 
 /**
- * The part's words. For a rule, the words before its check.
+ * The part's words. For a list item with a case, the words before it.
  */
 runs: Array<Run>, 
 /**
- * For a rule, the words of its check, from "Checked by"; empty for any other part.
+ * For a list item, the words of its case, after "So:", which they leave out; empty for any
+ * other part, and for an item with no case.
  */
-check: Array<Run>, };
+example: Array<Run>, };
 
 export type PlanItems = { 
 /**
