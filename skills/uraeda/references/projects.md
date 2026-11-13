@@ -35,10 +35,10 @@ Then propose, each committed once the human approves it:
   root, or keeps its mockups as HTML pages, or uses the preview the project already has, like a
   component gallery. A preview whose stories read data says how in the decision: a tool that shows
   it may forward only read requests.
-- **For a project with a UI, a guide**, `specs/ui/`: free-form files that say how its views read,
-  behave, and look, and who uses them. Start it with what the human says about the first mockups,
-  and add each taste they state afterwards. It is the one place that stops the same comment from
-  being made twice.
+- **For a project with a UI, a guide**, `specs/ui/`, as [writing a guide](spec.md#writing-a-guide)
+  says: free-form files that say how its views read, behave, and look, and who uses them. Start it
+  with what the human says about the first mockups, and add each taste they state afterwards. It is
+  the one place that stops the same comment from being made twice.
 
 A project that lacks one of the three decisions is asked once, by the next round of questions,
 whether to adopt it. A "no" becomes that decision, saying so, with a date in its **Revisit when**:

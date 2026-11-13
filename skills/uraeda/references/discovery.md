@@ -257,10 +257,9 @@ Only if you picked B in Q2. [...]
 Number questions from Q1 in each round, and leave each `**Answer:**` empty.
 
 **A conflict** with an active decision is a question: change the proposal, or change the decision,
-which can be narrowed, softened from a MUST into a SHOULD, or given a case where it does not apply.
-A conflict with the constitution names the principle and recommends changing the proposal. An
-exception holds only if the human accepts it in their answer: it is then spelled out in the plan,
-which waits for their review.
+which can be narrowed, or given a case where it does not apply. A conflict with the constitution
+names the principle and recommends changing the proposal. An exception holds only if the human
+accepts it in their answer: it is then spelled out in the plan, which waits for their review.
 
 ## Visual questions
 

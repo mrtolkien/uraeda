@@ -201,24 +201,18 @@ else open.
 
 A decision is written from [its template](../assets/templates/specs/decisions/decision-topic.md), as
 [writing a decision](spec.md#writing-a-decision) describes. An agent reads it alone, before a task,
-without the feature that made it. The human approves each of its lines.
+without the feature that made it. The human approves each of its lines, and must be able to read all
+the decisions again in a few minutes, to see that they still say what they want.
 
-- **The intent first**, in two or three sentences before `## Rules`: the choice, and what it
-  protects.
-- **Few rules.** Each added rule lowers how well the others are followed. A decision that needs many
-  is holding a feature's spec: cut what any agent would do anyway, and what the code already holds.
-  `ura check` warns on a decision with many rules, and its message offers a split: cut or merge
-  rules first, and a second decision is the last resort.
-- **One keyword per rule, and SHOULD by default.** A rule is a MUST only when the human said always
-  or never, or when breaking it loses work or opens the system. What the human prefers is a SHOULD.
-  MUST rules come first, then SHOULD, then MAY.
-- **The Why gives the reason, in the present tense, in a few sentences.** An agent applies a rule to
-  a case it does not name from its reason. No history: who asked what, and when, is the record's. It
-  quotes the human only when their words are the reason. It ends with at most one link, to the
-  feature's record. `ura check` warns on a long one.
-- **Alternatives and consequences are short lists**: the options an agent could propose again, with
-  why they lose, and the costs the human accepted, with no code facts. `ura check` warns on long
-  lists.
+- **The human's words first**: the principle as a quote, right under the title, then a sentence or
+  two of context when the quote needs it.
+- **Few rules, each a boundary, in one plain sentence.** No keyword in capitals: "never" and
+  "always" say it. A decision that needs many rules is holding a feature's spec or an area's guide:
+  move them there.
+- **Each rule has its example**, after "_So:_": one case it settles, as an agent would meet it. "An
+  undo never rewrites git's history. _So:_ no revert commit, no reset."
+- **The Why gives the reason, in the present tense, in a few sentences.** No history: who asked
+  what, and when, is the record's. It ends with at most one link, to the feature's record.
 - **Terms are defined in the decision**, since it is read alone.
 - **Applies to names folders and kinds of features**, never the files inside a folder.
 

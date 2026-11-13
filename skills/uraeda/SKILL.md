@@ -64,9 +64,10 @@ Five habits follow, and every step applies them:
   wrote them.
 - **Spec**: `spec.md`, what the feature does and how it is built. The human approves it.
 - **Plan**: `plan.md`, the tasks that build the spec, checked off as they are built.
-- **Decision**: a boundary or a direction the human set for the whole project, in
+- **Decision**: a boundary the human set for the whole project, in their own words, in
   `specs/decisions/`. See [what is a decision](references/spec.md#what-is-a-decision).
-- **Guide**: a free-form file of the project that says how an area is designed, like `specs/ui/`.
+- **Guide**: a free-form file that says how an area should feel and behave: `specs/ui/` for a UI,
+  `specs/guides/` for any other area.
 - **Ruling**: a choice made while planning or building, whose reason would otherwise be lost, in
   `rulings.md`. It binds nothing outside its feature.
 - **Finding**: a problem a review reports, in `findings-NN.md`, committed before it is fixed.
@@ -91,7 +92,8 @@ specs/
   proposals/                # upcoming features: <slug>.md, or <slug>/proposal.md with images/
   notes/                    # note files: inbox notes with images, and agents' notes
   decisions/                # one file per topic: due-dates.md
-  ui/                       # the project's guides, free form: read before designing in their area
+  ui/                       # the UI's guides, free form: read before designing a view
+  guides/                   # the guides of other areas, free form: git, runs, the toolchain
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change
   changes/YYYY-MM-DD-<slug>/ # one folder per change: proposal.md, clarifications-NN.md,
                             # rulings.md, findings-NN.md, images/, mockups/
