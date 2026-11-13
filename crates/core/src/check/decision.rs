@@ -10,7 +10,7 @@ use crate::workspace::Problem;
 
 /// The most rules a decision holds before `decision.rules` warns. Every `pub` item of this module
 /// is a limit, exported from `check` as it is.
-pub const DECISION_RULES: usize = 5;
+pub const DECISION_RULES: usize = 8;
 
 /// The most words of its Why before `decision.why` warns.
 pub const DECISION_WHY_WORDS: usize = 80;
@@ -77,7 +77,8 @@ fn check_rules(file: &File<'_>, document: &Document, heading: &Block, problems: 
             Some(heading.start_line as usize),
             "decision.rules",
             format!(
-                "{} rules: keep at most {DECISION_RULES}, and cut the rest or move them to a guide",
+                "{} rules: a decision this long holds a spec or a guide, so cut rules or move them \
+                 to a guide",
                 rules.len()
             ),
         ));

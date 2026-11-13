@@ -27,17 +27,15 @@ the model's depth of reasoning.
 
 Some steps need a stronger model or a clean context, others a cheaper one, and most of a build's
 usage is its sub-agents. A model that changes during a session would surprise the human, and a pick
-an agent can override inside its own sub-agents is no pick. A feature's options are kept in Uraeda's
-data folder, never in a repository, as [Settings](settings.md) says: a repository someone else wrote
-must never choose what the human's runs spend. History:
-[Run options](../done/2026-11-08-run-options.md).
+an agent can override inside its own sub-agents is no pick. A feature's options stay out of git, as
+[Settings](settings.md) says, an exception to the constitution's "git and plain text first".
+History: [Run options](../done/2026-11-08-run-options.md).
 
 ## Alternatives considered
 
 - Changing the model between a session's turns, as Claude Code and Codex allow: one session per
   feature, but the model drifts under its runs.
-- A session that keeps its effort too: the effort changes between turns, since it keeps the
-  conversation and the model.
+
 - Sub-agents left to each agent, their models passed as hints: no server work, but the agent may
   pick another model, and only its own agent.
 - A feature's options in its proposal's frontmatter: in git and portable, but a cloned repository

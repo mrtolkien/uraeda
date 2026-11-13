@@ -30,12 +30,10 @@ own screen, a pane's width, the theme picked there, is no setting, and stays on 
 
 ## Why
 
-A file is simple to back up and to keep in one's dotfiles, and TOML is the format usual in the
-config folder that is safe to annotate by hand. The human edits it too, so the app treats it as
-theirs. Settings stay apart from data and secrets, so dotfiles never hold a secret. A repository is
-other people's text: one that could set a value could restyle the app, choose what the human's runs
-spend, or run an agent on their machine. A feature's run options are workflow choices kept out of
-git for that reason, an exception to the constitution's "git and plain text first". History:
+A file is simple to back up and to keep in one's dotfiles, and the human edits it too, so the app
+treats it as theirs. Settings stay apart from data and secrets, so dotfiles never hold a secret. A
+repository is other people's text: one that could set a value could restyle the app, choose what the
+human's runs spend, or run an agent on their machine. History:
 [Settings page](../done/2026-10-16-settings-page.md).
 
 ## Alternatives considered

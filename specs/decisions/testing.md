@@ -43,17 +43,15 @@ looks like.
 
 Every test costs upkeep, and a test of behaviour a spec replaces pushes an agent to bend the code to
 keep it passing. Early on, most behaviour still changes, so a test is inertia unless a mistake there
-is costly. The human judges the app by using it, so a UI test earns its place only where using the
-app would not show the loss. A failure has to mean a bug: a retry hides a real race, and a test that
-fails for nothing teaches everyone to ignore failures. History:
+is costly. The human judges the app by using it. A failure has to mean a bug: a retry hides a real
+race, and a test that fails for nothing teaches everyone to ignore failures. History:
 [Testing communication](../done/2026-10-26-testing-communication.md).
 
 ## Alternatives considered
 
 - A ruling for each removed test, the earlier rule: it pushed agents to bend the code instead.
-- Tests of the UI by screenshots, measures, or pixel comparisons: slow, and tied to a look that
-  changes weekly.
-- Screenshots committed with each change: the repository filled with images nobody read again.
+- Tests of the UI by screenshots or pixel comparisons, and screenshots committed with each change:
+  slow, tied to a look that changes weekly, and images nobody read again.
 - Retries that report the flaky tests: they hide real races.
 
 ## Applies to
