@@ -15,7 +15,7 @@ import { Button } from "./Button";
 import type { IconName } from "./Icon";
 import { Text } from "./Text";
 import { keyScope, registerKey } from "../keys/registry";
-import { feltOutcome, ios } from "../native";
+import { apple, feltOutcome, mac } from "../native";
 import type { Scope } from "../keys/store";
 import { tokens } from "../tokens";
 
@@ -78,10 +78,11 @@ function Lost(props: { words: string }) {
 }
 
 /**
- * The confirmation on iOS: the system's own alert, as every app's there. An act that loses
- * something is a sheet of actions from the bottom, its button in the system's red, felt as a
- * warning; any other is an alert. A press outside a sheet, or its Cancel, leaves everything as it
- * was.
+ * The confirmation on iOS and on a Mac: the system's own alert, as every app's there. On iOS an
+ * act that loses something is a sheet of actions from the bottom, its button in the system's red,
+ * felt as a warning; any other is an alert. On a Mac every one is an alert on the window, its
+ * button red where something is lost, which Return never presses. A press outside a sheet, its
+ * Cancel, or Escape leaves everything as it was.
  */
 function SystemConfirm(props: ConfirmProps) {
   let asking = false;
@@ -97,7 +98,7 @@ function SystemConfirm(props: ConfirmProps) {
           { id: "confirm", label: props.label, role: loses ? "destructive" : "default" },
         ],
         description: props.words,
-        presentation: loses ? "actionSheet" : "alert",
+        presentation: loses && !mac ? "actionSheet" : "alert",
         title: props.title,
       })
         .then(({ action }) => {
@@ -114,7 +115,7 @@ function SystemConfirm(props: ConfirmProps) {
 
 export function Confirm(props: ConfirmProps) {
   // The system's alert holds words alone: a confirmation with a list of its own stays the app's.
-  if (ios && props.children === undefined) return <SystemConfirm {...props} />;
+  if (apple && props.children === undefined) return <SystemConfirm {...props} />;
   const confirm = () => {
     // Once: the key and Enter may both come.
     if (!props.open) return;

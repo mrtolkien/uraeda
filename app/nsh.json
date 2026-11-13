@@ -22,6 +22,7 @@
       "hosts": ["*"]
     },
     "clipboard": true,
+    "notifications": true,
     "statusBar": true,
     "picker": true,
     "fs": { "read": ["${homeDir}", "/tmp"] },

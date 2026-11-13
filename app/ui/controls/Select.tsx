@@ -2,6 +2,7 @@
 // chevron; a press, or Enter or Space with the focus, opens the list on a popover under it, or on
 // a sheet across a narrow window, where a long list needs the room. Picking closes it, and the
 // focus goes back to the trigger. It moves at once; a refusal puts it back and says why under it.
+// On a Mac the list is the system's menu, as a pop-up button's (`systemMenu.ts`), at every width.
 import { signal, type ViewRef } from "nsh";
 import { Button as Base } from "nsh/base";
 import { pressHeight } from "./Button";
@@ -10,6 +11,7 @@ import { type Option, Options } from "./Options";
 import { type Looks, type PressProps, pressable } from "./press";
 import { Text } from "./Text";
 import { Under } from "./Under";
+import { popUnder, systemMenus } from "./systemMenu";
 import { Popover, Sheet } from "../surfaces";
 import { keyScope } from "../keys/registry";
 import { tokens } from "../tokens";
@@ -67,10 +69,13 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
   // A signal: the popover reads it once it is drawn, after the ref was set.
   const anchor = signal<ViewRef | undefined>(undefined);
   const width = signal(0);
+  const rows = () =>
+    props.options.map((option) => ({ ...option, picked: option.value === props.value }));
   const press = pressable(props, () => {
     // The trigger holds the focus, so it gets it back as the list closes.
     press.focus();
     isOpen.set(true);
+    if (systemMenus) void popUnder(anchor(), rows(), pick).finally(close);
   });
   props.opener?.(() => press.press());
   const chosen = () => props.options.find((option) => option.value === props.value);
@@ -88,7 +93,7 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
     <Options
       onPick={pick}
       scope={layer}
-      rows={props.options.map((option) => ({ ...option, picked: option.value === props.value }))}
+      rows={rows()}
       testID={props.testID === undefined ? undefined : `${props.testID}-list`}
     />
   );
@@ -127,17 +132,17 @@ export function Select<Value extends string>(props: SelectProps<Value>) {
         </If>
         <Icon
           colour={props.disabled === true ? tokens.role.inkFaint : tokens.role.inkQuiet}
-          name="chevron-down"
+          name={systemMenus ? "chevrons-up-down" : "chevron-down"}
         />
       </Base>
       <If
-        when={isNarrow()}
+        when={!systemMenus && isNarrow()}
         else={
           <Popover
             anchor={anchor()}
             name={props.label}
             onClose={close}
-            open={isOpen()}
+            open={isOpen() && !systemMenus}
             scope={layer}
             style={{ minWidth: width(), paddingVertical: 4 }}
           >

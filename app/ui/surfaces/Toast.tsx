@@ -19,7 +19,7 @@ import { presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { safe } from "./safe";
 import { Surface } from "./Surface";
-import { feltOutcome, ios } from "../native";
+import { apple, feltOutcome } from "../native";
 import { isNarrow } from "../width";
 import { type Tone, tokens } from "../tokens";
 
@@ -91,14 +91,14 @@ export function Toast(props: ToastProps) {
       <View style={there.style}>
         <Surface
           height="overlay"
-          // On iOS as the system draws a banner: rounded, its title inside it.
-          rounded={ios ? 18 : undefined}
+          // On iOS and on a Mac as the system draws a banner: rounded, its title inside it.
+          rounded={apple ? 18 : undefined}
           testID={props.testID}
           style={[
             {
               gap: 8,
               padding: tokens.space.panePadding - 1,
-              paddingTop: ios ? tokens.space.panePadding - 1 : tokens.type.line / 2 + 7,
+              paddingTop: apple ? tokens.space.panePadding - 1 : tokens.type.line / 2 + 7,
             },
             props.style,
           ]}

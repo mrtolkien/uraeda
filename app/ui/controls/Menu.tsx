@@ -1,12 +1,13 @@
 // A menu of actions, as a last resort for what has no better place: its trigger is an icon
 // button, "more" unless named, and its rows open on a popover under it, at every width. A row
 // shows the key the page declares for the same action. Picking runs it and closes the menu; the
-// focus goes back to the trigger.
-import { signal, View, type ViewRef } from "nsh";
+// focus goes back to the trigger. On a Mac the rows open as the system's menu (`systemMenu.ts`).
+import { effect, signal, untracked, View, type ViewRef } from "nsh";
 import type { IconName } from "./Icon";
 import { IconButton } from "./IconButton";
 import { Options, type Row } from "./Options";
 import type { PressState } from "./press";
+import { popUnder, systemMenus } from "./systemMenu";
 import { Popover } from "../surfaces";
 import { keyScope } from "../keys/registry";
 
@@ -45,6 +46,16 @@ export function Menu(props: MenuProps) {
   const close = () => setOpen(false);
   // The menu's layer, for its rows' keys: see `Float`'s `scope`.
   const layer = keyScope({ kind: "layer", name: props.label, on: isOpen });
+  // On a Mac, opened by a press or by its owner, the system's menu shows, until it closes.
+  if (systemMenus) {
+    effect(() => {
+      if (!isOpen()) return;
+      untracked(() => {
+        const entries = props.entries;
+        void popUnder(anchor(), entries, (at) => entries[at]?.run()).finally(close);
+      });
+    });
+  }
   return (
     <View ref={(node: ViewRef) => anchor.set(node)} style={{ alignSelf: "flex-start" }}>
       <IconButton
@@ -61,7 +72,7 @@ export function Menu(props: MenuProps) {
         anchor={anchor()}
         name={props.label}
         onClose={close}
-        open={isOpen()}
+        open={isOpen() && !systemMenus}
         scope={layer}
         style={{ minWidth: 200, paddingVertical: 4 }}
       >

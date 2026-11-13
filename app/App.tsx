@@ -13,6 +13,7 @@ import { appHost } from "./screens/shell/host";
 import { Root } from "./screens/shell/Root";
 import { bindHistory, navigate, overlayVisits, parseRoute, redirect } from "./store";
 import { bindVisits } from "./ui/surfaces/backCloses";
+import { hideTitleBar } from "./ui/layout";
 import { browserHistory } from "./store/history.web";
 import { page } from "./web/page";
 import { Web } from "./web/Web";
@@ -30,5 +31,9 @@ void boot().then(() => {
   const start = process.env.URAEDA_ROUTE;
   if (start !== undefined && start !== "") redirect(parseRoute(start));
   const host = appHost();
-  mount(() => <Root host={host} />);
+  mount(() => {
+    // On a Mac the window's toolbar is the app's: the title bar goes as the root is first drawn.
+    hideTitleBar();
+    return <Root host={host} />;
+  });
 });

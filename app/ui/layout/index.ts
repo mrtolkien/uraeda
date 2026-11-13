@@ -26,5 +26,6 @@ export {
   usePane,
 } from "./panes";
 export { RAIL, type RailPlace, type RailSlots } from "./Rail";
-export { Stacks, type StacksProps } from "./Stacks";
+export { hideTitleBar } from "./macBars";
+export { Stacks, type StacksProps, toggleRail } from "./Stacks";
 export { type StatusSlots, StatusLine } from "./StatusLine";

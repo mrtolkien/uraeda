@@ -1,9 +1,12 @@
 // A page of its own, without the frame: what the app shows before it can draw a screen, while it
 // starts or reaches the server, pairs the device, or cannot speak with the server. A raised card in
 // the middle of the window's backdrop, its title, the words that name the cause, and the way out.
-// On a phone, the middle is the room the keyboard leaves: a field's button stays above it.
+// On a phone, the middle is the room the keyboard leaves: a field's button stays above it. On a
+// Mac, whose window has no title bar of the system's, its top moves the window, as the toolbar's.
 import { type JSX, View } from "nsh";
 import { Heading, Icon, type IconName, Text } from "../../ui/controls";
+import { MAC_BAR } from "../../ui/layout/macBars";
+import { mac } from "../../ui/native";
 import { Backdrop, keyboardUp, safe, Surface } from "../../ui/surfaces";
 import { tokens } from "../../ui/tokens";
 
@@ -46,6 +49,12 @@ export function Lone(props: LoneProps) {
           {props.children}
         </Surface>
       </View>
+      <If when={mac}>
+        <View
+          desktop={{ windowDrag: true }}
+          style={{ height: MAC_BAR, left: 0, position: "absolute", right: 0, top: 0 }}
+        />
+      </If>
     </Backdrop>
   );
 }

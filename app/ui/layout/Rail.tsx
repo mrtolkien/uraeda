@@ -38,6 +38,10 @@ export type RailSlots = {
   sidebar?: JSX.Element;
   /** The places' pane's title: the repository's name. */
   title?: string;
+  /** Find anything, which the Mac's toolbar offers. */
+  onFind?: () => void;
+  /** New, which the Mac's toolbar offers. */
+  onNew?: () => void;
 };
 
 /** The rail's width, folded and unfolded, in points. */
@@ -99,7 +103,17 @@ function PlaceRow(props: { place: RailPlace }) {
 }
 
 /** The rail: unfolded, the places' pane and the sidebar's; folded, a column of icons. */
-export function Rail(props: RailSlots & { folded: boolean; onFold: (folded: boolean) => void }) {
+export function Rail(
+  props: RailSlots & {
+    folded: boolean;
+    onFold: (folded: boolean) => void;
+    /**
+     * The window's toolbar holds the sidebar's toggle and the repository's name, as the Mac's
+     * does: the rail then shows neither again, and its pane is the places'.
+     */
+    toolbar?: boolean;
+  },
+) {
   return (
     <If
       when={!props.folded}
@@ -112,19 +126,21 @@ export function Rail(props: RailSlots & { folded: boolean; onFold: (folded: bool
             width: RAIL.folded,
           }}
         >
-          <IconButton
-            icon="panel-left"
-            label="Unfold the sidebar"
-            onPress={() => props.onFold(false)}
-          />
-          <View
-            style={{
-              backgroundColor: tokens.role.ruleQuiet,
-              height: 1,
-              marginVertical: 4,
-              width: 20,
-            }}
-          />
+          <If when={props.toolbar !== true}>
+            <IconButton
+              icon="panel-left"
+              label="Unfold the sidebar"
+              onPress={() => props.onFold(false)}
+            />
+            <View
+              style={{
+                backgroundColor: tokens.role.ruleQuiet,
+                height: 1,
+                marginVertical: 4,
+                width: 20,
+              }}
+            />
+          </If>
           <Each key={(place: RailPlace) => place.label} of={props.places}>
             {(place) => (
               <IconButton
@@ -143,19 +159,23 @@ export function Rail(props: RailSlots & { folded: boolean; onFold: (folded: bool
         <Pane
           body={{ gap: 0, paddingHorizontal: 0 }}
           tabs={[
-            {
-              current: true,
-              icon: props.onTitle === undefined ? undefined : "folder-git-2",
-              onPress: props.onTitle,
-              title: props.title ?? "Places",
-            },
+            props.toolbar === true
+              ? { current: true, title: "Places" }
+              : {
+                  current: true,
+                  icon: props.onTitle === undefined ? undefined : "folder-git-2",
+                  onPress: props.onTitle,
+                  title: props.title ?? "Places",
+                },
           ]}
           tabsEnd={
-            <IconButton
-              icon="panel-left"
-              label="Fold the sidebar"
-              onPress={() => props.onFold(true)}
-            />
+            props.toolbar === true ? undefined : (
+              <IconButton
+                icon="panel-left"
+                label="Fold the sidebar"
+                onPress={() => props.onFold(true)}
+              />
+            )
           }
         >
           <Each key={(place: RailPlace) => place.label} of={props.places}>

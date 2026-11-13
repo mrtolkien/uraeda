@@ -50,3 +50,45 @@ user." Moving the selection across columns glides the view sideways to it.
 - A click selects; a click on the selected row, or a double click, edits it.
 - Rows drag to reorder, and sideways to nest, with the dragged row's children.
 - Hover is never the only way: everything hovered can be reached by a key and by a tap.
+
+## macOS
+
+The app on a Mac is the wide screen above, with the rule the [iPhone](phone.md#ios) follows, taken
+from Apple's guidelines for Liquid Glass: **what navigates and what the system draws floats in the
+system's glass, and what is read stays Uraeda's**. The glass is the system's, rounded, and used for
+the window's controls and the overlays alone: never in a pane, never one piece over another. The
+panes keep their square corners, their titled borders, and their type ("it needs to look MacOS
+native with the current vibe"). [`app/ui/native.ts`](/app/ui/native.ts) says whether the app runs
+there, and [`app/ui/layout/macBars.tsx`](/app/ui/layout/macBars.tsx) draws the toolbar.
+
+- **The window has no title bar of the system's**: the page goes up to the window's top edge, and
+  over it, in the bar's room, a toolbar with no background, as macOS 26 draws an app's. On its
+  leading side, after the window's buttons, the sidebar's toggle on its glass, then the repository's
+  name, which opens the switcher, on no glass: a title is no control. On its trailing side Find and
+  New, on one piece of glass, as the system groups a toolbar's buttons. Its empty room moves the
+  window, and a double click there zooms it; a page without the frame, as the server's start, keeps
+  that room at its top.
+- **The rail's pane is the places'**, titled "Places", with no toggle of its own: the toolbar holds
+  the repository's name and the sidebar's toggle, which nothing repeats.
+- **The menu bar holds every command of the frame**, with the Mac's own shortcuts beside the keys
+  the app writes out: Settings (`⌘,`), New Session (`⌘N`), New Feature (`⇧⌘N`), Switch Repository
+  (`⌘O`), Find Anything (`⌘K`), Toggle Sidebar (`⌃⌘S`), the appearance, Back (`⌘[`), each place
+  (`⌘1` to `⌘9`), and the key map (`⌘/`), with the system's Edit and Window menus
+  ([`MenuBar.tsx`](/app/screens/shell/MenuBar.tsx)).
+- **A menu and a select's list are the system's menu**, opened under what opened them, its rows'
+  icons tinted by the menu, a tick on the value held, with the system's keys. The page's keys still
+  run every action of a menu.
+- **Every other overlay is drawn as the system draws its own**: a dialog, a picker, the key map, and
+  the leader menu are the system's Liquid Glass with corners rounded and continuous, a panel's over
+  the window as a window's, a popover's and a toast's as a menu's, their title on a row inside them,
+  not on a plate over their edge.
+- **A confirmation is the system's alert** on the window, its button red where something is lost,
+  which Return never presses. One that holds more than words, a list of what it takes, stays the
+  app's dialog.
+- **The desktop's notifications are the system's**, which asks its owner once; a click opens the
+  item's page. The Dock's icon counts what needs the human, as the window's title does.
+- **An extension's page runs in a web view**, WebKit's, as on an iPhone.
+
+`just package-macos` makes `Uraeda.app`, with `ura` inside, which it starts as its server when none
+runs, in `ura serve`'s data folder, and stops as it quits; the device's token is kept in the login
+keychain.

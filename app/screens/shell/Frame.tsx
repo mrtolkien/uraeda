@@ -8,6 +8,7 @@
 import { computed, effect, Scroll, untracked, View } from "nsh";
 import { deviceTheme, followsSystem, keepsShownTheme, scheme } from "./boot";
 import { ShellKeys } from "./keys";
+import { MenuBar } from "./MenuBar";
 import { NeedsYouToasts, Notifier } from "./Notifications";
 import { DroppedFiles } from "../../web/Drops";
 import { nothingFor } from "./panes";
@@ -137,11 +138,14 @@ export function Frame() {
   return (
     <>
       <ShellKeys on={isOnHere} />
+      <MenuBar repo={shown()} />
       <FollowKeyboard />
       <Stacks
         place={place()}
         rail={{
           bar,
+          onFind: () => openPicker("all"),
+          onNew: () => navigate({ page: "new" }),
           onTitle: () => openPicker("repositories"),
           places: places(shown()),
           sidebar,

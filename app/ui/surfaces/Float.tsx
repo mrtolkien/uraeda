@@ -40,7 +40,7 @@ import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { InScope, keyScope, registerKey } from "../keys/registry";
 import type { Scope } from "../keys/store";
-import { ios } from "../native";
+import { ios, mac } from "../native";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
 
@@ -94,6 +94,9 @@ const WHOLE = { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 } as 
 /** On iOS, a sheet's corners, as the system's sheets have them, and a menu's. */
 const SHEET_RADIUS = 34;
 const MENU_RADIUS = 18;
+/** On a Mac: a menu's or a popover's corners, and a panel's over the window, as macOS 26 rounds them. */
+const MAC_MENU_RADIUS = 14;
+const MAC_PANEL_RADIUS = 22;
 
 /** The keys every layer has: Escape closes it, and with a trap Tab stays in it. */
 function LayerKeys(props: { onClose: () => void; scope: Scope; stops: Stops; trap: boolean }) {
@@ -175,10 +178,19 @@ export function Float(props: FloatProps) {
     cleanup(() => change(false));
   }
 
-  // On iOS an overlay is drawn as the system's: a sheet's corners as round as the screen's, a
-  // popover's as a menu's, and its title inside it.
+  // On iOS and on a Mac an overlay is drawn as the system's: on iOS a sheet's corners as round as
+  // the screen's, a popover's as a menu's; on a Mac a panel's as a window's, a popover's as a
+  // menu's; and its title inside it.
   const rounded = () =>
-    ios ? (props.scrim && isNarrow() ? SHEET_RADIUS : MENU_RADIUS) : undefined;
+    ios
+      ? props.scrim && isNarrow()
+        ? SHEET_RADIUS
+        : MENU_RADIUS
+      : mac
+        ? props.scrim
+          ? MAC_PANEL_RADIUS
+          : MAC_MENU_RADIUS
+        : undefined;
   const box = () => (
     <Surface
       height="overlay"

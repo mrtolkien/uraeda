@@ -14,17 +14,21 @@
 //   that comes; "Not now" is kept, and never asked again. The settings' Appearance changes it.
 // - In a browser they are the browser's, which asks its owner: the app asks the same way, then
 //   the browser asks, and a refusal there is kept by the browser, so the app never asks again.
-// - The window's title, and a browser's tab, count what needs the human.
+// - On a Mac they are the system's, which asks its owner once, as the browser does: a refusal is
+//   the system's, changed in its settings.
+// - The window's title, and a browser's tab, count what needs the human, and so does the Dock's
+//   icon on a Mac.
 //
-// Only the app's Linux host sends to the desktop: a run without it, a test's or `just app-dev`'s,
-// never reaches the desktop of the machine it runs on.
-import { effect, host, lifecycle, platform, signal, untracked, View } from "nsh";
+// Only the app's Linux host and the Mac app send to the desktop: a run without either, a test's or
+// `just app-dev`'s on Linux, never reaches the desktop of the machine it runs on.
+import { effect, host, lifecycle, Notifications, platform, signal, untracked, View } from "nsh";
 import { isAvailable, Window } from "nsh/desktop";
 import { Head } from "nsh/web";
 import { nextNotificationClick, notifyDesktop } from "uraeda/native";
 import { device, navigate, parseRoute, pathOf, record, route } from "../../store";
 import type { NeedsYouRow } from "../../store/protocol";
 import { Button, IconButton, Text } from "../../ui/controls";
+import { mac } from "../../ui/native";
 import { Toast } from "../../ui/surfaces";
 import { askBrowser, browserMayNotify, notifyBrowser } from "../../web/notify";
 
@@ -43,8 +47,20 @@ let listening = false;
 
 const web = platform.os === "web";
 
-/** Whether the app may reach the desktop: in its Linux host, or a browser that has not refused. */
-const mayNotify = () => (web ? browserMayNotify() : host.params.local !== undefined);
+/**
+ * Whether the app may reach the desktop: in its Linux host, on a Mac, or a browser that has not
+ * refused.
+ */
+const mayNotify = () => (web ? browserMayNotify() : mac || host.params.local !== undefined);
+
+/** Asks macOS to let the app notify: whether it may. */
+async function askMac(): Promise<boolean> {
+  try {
+    return (await Notifications.requestPermission()) === "granted";
+  } catch {
+    return false;
+  }
+}
 
 /** Whether the desktop's notifications are on, on this device. */
 export const desktopNotifications = () => device.get("notifications") === true;
@@ -57,16 +73,29 @@ export async function setDesktopNotifications(on: boolean) {
   question.set(false);
   notifyRefusal.set(undefined);
   device.set("notifications", on);
-  if (!on || !web || (await askBrowser())) return;
+  if (!on || !(web || mac)) return;
+  if (web ? await askBrowser() : await askMac()) return;
   device.set("notifications", false);
   notifyRefusal.set(
-    "This browser refuses Uraeda's notifications: allow them in its settings for this site.",
+    web
+      ? "This browser refuses Uraeda's notifications: allow them in its settings for this site."
+      : "macOS refuses Uraeda's notifications: allow them in System Settings, Notifications.",
   );
 }
 
 /** Whether the human looks at `href` now: the window focused, on its page. */
 const looksAt = (href: string) =>
   lifecycle() === "active" && pathOf(route()) === pathOf(parseRoute(href));
+
+/** On a Mac, opens the item of each notification the human clicks: its id is the item's address. */
+function listenOnMac() {
+  if (listening) return;
+  listening = true;
+  Notifications.on("press", ({ id }) => {
+    if (isAvailable) Window.get("main")?.focus();
+    navigate(parseRoute(id));
+  });
+}
 
 /** Opens the item of the next click, then waits for the one after. */
 function nextClick() {
@@ -100,6 +129,11 @@ function toDesktop(row: NeedsYouRow) {
     return notifyBrowser(title, row.message, row.key, row.href, (href) =>
       navigate(parseRoute(href)),
     );
+  }
+  if (mac) {
+    listenOnMac();
+    void Notifications.show({ body: row.message, id: row.href, title }).catch(() => false);
+    return;
   }
   notifyDesktop(title, row.message)
     .then((id) => {
@@ -155,9 +189,13 @@ export function Notifier() {
       if (left.length !== asks().length) asks.set(left);
     });
   });
-  // The window's title counts what waits, and so does a browser's tab.
+  // The window's title counts what waits, and so do a browser's tab and the Mac's Dock.
   effect(() => {
     if (isAvailable) Window.get("main")?.set({ title: windowTitle() });
+  });
+  effect(() => {
+    const count = rows()?.length ?? 0;
+    if (mac) void Notifications.setBadge(count).catch(() => undefined);
   });
   return <Head title={windowTitle()} />;
 }

@@ -20,6 +20,7 @@ import { tabDrags } from "./drag";
 import { choices, frameState, same } from "./frame";
 import { Drawer } from "./Drawer";
 import { FloatingBar, Toolbar } from "./iosBars";
+import { MacToolbar } from "./macBars";
 import { besideOffer } from "./here";
 import { FrameKeys } from "./keys";
 import {
@@ -44,7 +45,7 @@ import { type StatusSlots, StatusLine } from "./StatusLine";
 import { route } from "../../store/history";
 import { IconButton, Menu, Text } from "../controls";
 import { KeyScope } from "../keys/registry";
-import { ios } from "../native";
+import { ios, mac } from "../native";
 import { aboveHome, Backdrop, keyboardUp, safe, Sheet } from "../surfaces";
 import { tokens } from "../tokens";
 import { measured, width, windowWidth } from "../width";
@@ -69,6 +70,9 @@ const wideSide = (room: number) =>
 
 /** Whether the rail is folded: the human's choice, else on all but a wide window. */
 const railFolded = () => choices.kept().rail ?? width() !== "wide";
+
+/** Folds the rail, or opens it: the sidebar's toggle, as the Mac's View menu has it. */
+export const toggleRail = () => choices.set({ rail: !railFolded() });
 
 /** Whether the window is narrow: one stack of tabs. */
 const narrow = () => width() === "narrow";
@@ -258,12 +262,23 @@ export function Stacks(props: StacksProps) {
                       <If
                         when={ios}
                         else={
-                          <NavBar
-                            onSidebar={
-                              rail().sidebar === undefined ? undefined : () => sheet.set(true)
-                            }
-                            places={rail().places}
-                          />
+                          <>
+                            {/* On a Mac the window's toolbar stands over the places' bar. */}
+                            <If when={mac}>
+                              <MacToolbar
+                                onFind={rail().onFind}
+                                onNew={rail().onNew}
+                                onTitle={rail().onTitle}
+                                title={rail().title}
+                              />
+                            </If>
+                            <NavBar
+                              onSidebar={
+                                rail().sidebar === undefined ? undefined : () => sheet.set(true)
+                              }
+                              places={rail().places}
+                            />
+                          </>
                         }
                       >
                         <Toolbar
@@ -356,6 +371,20 @@ export function Stacks(props: StacksProps) {
               }
             >
               <View style={{ flex: 1, gap: tokens.space.gap.wide - 2 }}>
+                {/* On a Mac the window's toolbar, in its title bar, over the panes. */}
+                <If when={mac ? props.rail : undefined}>
+                  {(rail) => (
+                    <View style={{ marginBottom: -tokens.space.gap.wide + 2 }}>
+                      <MacToolbar
+                        onFind={rail().onFind}
+                        onNew={rail().onNew}
+                        onSidebar={toggleRail}
+                        onTitle={rail().onTitle}
+                        title={rail().title}
+                      />
+                    </View>
+                  )}
+                </If>
                 <View
                   style={{
                     flex: 1,
@@ -375,6 +404,7 @@ export function Stacks(props: StacksProps) {
                         places={rail().places}
                         sidebar={rail().sidebar}
                         title={rail().title}
+                        toolbar={mac}
                       />
                     )}
                   </If>

@@ -68,7 +68,8 @@ When two conflict, the higher one wins.
   glass.
 - [Space and motion](space-and-motion.md): room, tokens, animation, and speed.
 - [Flows](flows.md): committing, starting the agent, confirming, and reviewing.
-- By width: [the phone](phone.md), [semi-wide](semi-wide.md), and [wide](wide.md) screens.
+- By width: [the phone](phone.md) and iOS, [semi-wide](semi-wide.md), and [wide](wide.md) screens
+  and macOS.
 
 ## How the direction was found
 
