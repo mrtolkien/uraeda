@@ -628,6 +628,10 @@ uraeda.example.com { reverse_proxy 127.0.0.1:4310 }
 On a tailnet, `tailscale serve --bg 4310` reaches it from your phone, at your machine's full name,
 like `https://mac.tail1234.ts.net/`, once that name is in `allowed_hosts`.
 
+The iOS app asks for that address as it first opens, on "Connect to your server", then for a pairing
+code. The link `ura pair` prints does both at once, pasted in the same field. The server it uses is
+in Settings, under Sign-in, "This app's server", with "Use another server…".
+
 ## Sessions with Claude Code and Codex
 
 Sessions need `claude` or `codex` installed and signed in on the machine, with a paid plan: see

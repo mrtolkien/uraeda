@@ -76,7 +76,10 @@ configuration, and cache folders are temporary, and never yours. The sandbox kee
 ### iOS
 
 On a Mac with Xcode, `just app-ios` runs the app in the iOS Simulator, reloading as its TSX changes,
-beside a sandbox the simulator reaches at `127.0.0.1` as the Mac does (`just sandbox --no-app`).
+beside a sandbox the simulator reaches at `127.0.0.1` as the Mac does (`just sandbox --no-app`). Its
+first page asks for a server: "Use this Mac's sandbox" takes that one, and the field takes any other
+address, as a sandbox started with `--sign-in --port 4431`, whose
+`ura pair --data-dir <its folder>/data` prints a code and a link to pair with.
 `--device "iPhone 17 Pro"` picks a simulator. It needs NSH's `ios` component,
 `nsh component add ios`, with an `nsh` of the pinned version on the `PATH`: the dev shell brings NSH
 on Linux alone. The Rust targets are in [`rust-toolchain.toml`](rust-toolchain.toml).
@@ -86,6 +89,12 @@ a symbol QuickJS's C calls, and the device's link failed on it.
 
 A Mac's disk does not tell `undo.ts` from `Undo.tsx`: two files of one folder never differ by their
 letters' case alone, or the bundler takes one for the other there.
+
+What the app draws differently on iOS is in the [phone guide](specs/ui/phone.md#ios). On a device
+the app's host is TSX, `deviceHost` of [`app/screens/shell/host.ts`](app/screens/shell/host.ts): it
+keeps the server its owner named and the token it paired for. `nsh test` runs headless as iOS on
+every machine: `ios` of [`app/ui/native.ts`](app/ui/native.ts) is false there, so the tests draw the
+phone every other platform draws.
 
 #### On a phone
 
@@ -122,6 +131,10 @@ Team":
    ID is that of the profile, so nothing here names it.
 3. Install once with `just install-ios`. On the phone, Settings, General, VPN & Device Management,
    under Developer App, tap your certificate, Trust. Then open the app.
+
+The app asks for its server on its first page: the address of the Mac that runs `ura serve`, as the
+phone reaches it, `https://<your Mac>.<tailnet>.ts.net` over Tailscale
+([docs/app.md](docs/app.md#reaching-it-from-another-device)), then the code `ura pair` prints.
 
 `nix develop -c just package` packages the app as a release ships it, in `target/package/`: the
 folder `uraeda/`, the same as a tarball and as an AppImage, each with its `.sha256`.

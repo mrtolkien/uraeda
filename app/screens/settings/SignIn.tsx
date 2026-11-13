@@ -8,7 +8,8 @@ import { savedField } from "./fields";
 import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, extensionHost, record, serverDay, serverDaysAgo } from "../../store";
 import type { Device } from "../../store/protocol";
-import { Confirm, refusalOf, Text, Under } from "../../ui/controls";
+import { leaveServer } from "../shell/host";
+import { Button, Confirm, refusalOf, Text, Under } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
 import { Card, Empty } from "../../ui/lists";
 import { TextField } from "../../ui/text";
@@ -133,7 +134,36 @@ function Devices() {
 }
 
 /** The category's rows. */
-const ROWS = () => [{ id: "devices" }, { id: "pair" }, { id: "browser" }];
+const ROWS = () => [{ id: "devices" }, { id: "pair" }, { id: "browser" }, { id: "server" }];
+
+/** The address the app reaches the server at. */
+const address = () => extensionHost().server().address;
+
+/** Where the app reaches the server, and on a device that named it, the way to another. */
+function OwnServer() {
+  const asking = signal(false);
+  return (
+    <View style={{ alignItems: "flex-start", gap: 6 }}>
+      <Text font="code">{address()}</Text>
+      <If when={leaveServer()}>
+        {(leave) => (
+          <>
+            <Button icon="server" label="Use another server…" onPress={() => asking.set(true)} />
+            <Confirm
+              keep="Stay"
+              label="Disconnect"
+              onClose={() => asking.set(false)}
+              onConfirm={leave()}
+              open={asking()}
+              title={`Disconnect from ${address()}?`}
+              words="This device forgets the server and its pairing, and asks for a server's address. The server keeps this device in its list until you revoke it there."
+            />
+          </>
+        )}
+      </If>
+    </View>
+  );
+}
 
 export function SignIn() {
   return (
@@ -173,6 +203,12 @@ export function SignIn() {
             </Text>
           </View>
         }
+      />
+      <FieldRow
+        {...wordsOf("sign-in", "This app's server")}
+        icon="server"
+        id="server"
+        under={<OwnServer />}
       />
     </FieldRows>
   );

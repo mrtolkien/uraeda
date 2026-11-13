@@ -7,9 +7,9 @@
 // says so, while the host starts this machine's server again or the store tries another's. A
 // server started again on another port takes the same connection there, so the frame keeps its
 // values, marked stale, until the server gives its own.
-import { batch, effect, signal, untracked, View } from "nsh";
+import { batch, cleanup, effect, signal, untracked, View } from "nsh";
 import { Frame } from "./Frame";
-import { failureWords, type Server, type ShellHost } from "./host";
+import { failureWords, type Server, setLeaveServer, type ShellHost } from "./host";
 import { Lone } from "./Lone";
 import { Stopped } from "./Stopped";
 import {
@@ -23,6 +23,7 @@ import {
 } from "../../store";
 import type { SignIn } from "../../store/protocol";
 import { picks, SandboxPick } from "../../sandbox/Pick";
+import { Connect } from "../sign-in/Connect";
 import { Pairing } from "../sign-in/Pairing";
 import { Update } from "../sign-in/Update";
 import { Button, Spinner } from "../../ui/controls";
@@ -31,6 +32,8 @@ import { LeaveGuard } from "../../ui/text";
 
 type Phase =
   | { is: "finding" }
+  // A device whose owner has not named its server yet.
+  | { is: "naming" }
   | { is: "failed"; words: string }
   | { is: "pairing"; server: Server; why?: string }
   | { is: "connected"; server: Server; conn: Connection; generation: number };
@@ -58,7 +61,11 @@ export function Root(props: RootProps) {
     phase.set({ conn, generation, is: "connected", server });
   };
 
-  const find = async () => {
+  const find = async (why?: string) => {
+    // A device with no server of its own asks its owner for one, once.
+    if (props.host.remote !== undefined && props.host.remote.address() === undefined) {
+      return phase.set({ is: "naming" });
+    }
     phase.set({ is: "finding" });
     try {
       const server = await props.host.server();
@@ -66,13 +73,25 @@ export function Root(props: RootProps) {
       let token = await props.host.token();
       // On its own machine, the app pairs by itself, with its server's host token.
       if (token === null && server.local) token = await props.host.pair(null);
-      if (token === null) return phase.set({ is: "pairing", server });
+      if (token === null) return phase.set({ is: "pairing", server, why });
       start(server, { by: "token", token });
     } catch (error) {
       phase.set({ is: "failed", words: failureWords(error) });
     }
   };
   void find();
+
+  // On a device, the way to another server: this one and its token are forgotten.
+  const leave =
+    props.host.remote === undefined
+      ? undefined
+      : () => {
+          const now = phase();
+          if (now.is === "connected") now.conn.close();
+          void props.host.remote?.leave().then(() => find());
+        };
+  setLeaveServer(leave);
+  cleanup(() => setLeaveServer(undefined));
 
   // A token the server no longer knows, as a revoked device's: the device pairs again.
   effect(() => {
@@ -109,11 +128,18 @@ export function Root(props: RootProps) {
     <RecordsRoot value>
       <KeysHost place={pathOf(route())}>
         <LeaveGuard />
+        <If when={phase().is === "naming"}>
+          <Connect host={props.host} onNamed={(why) => void find(why)} />
+        </If>
         <If when={phase().is === "finding"}>
           <Lone
             icon="server"
-            title="Starting Uraeda's server"
-            words="The app finds the server that runs on this machine, or starts one, and waits until it answers."
+            title={leave === undefined ? "Starting Uraeda's server" : "Finding your server"}
+            words={
+              leave === undefined
+                ? "The app finds the server that runs on this machine, or starts one, and waits until it answers."
+                : `At ${props.host.remote?.address() ?? "its address"}.`
+            }
           >
             <Spinner label="Waiting for the server" />
           </Lone>
@@ -122,12 +148,19 @@ export function Root(props: RootProps) {
           {(words) => (
             <Lone
               icon="triangle-alert"
-              title="Uraeda's server did not start"
+              title={
+                leave === undefined ? "Uraeda's server did not start" : "Your server did not answer"
+              }
               tone="danger"
               words={words()}
             >
-              <View style={{ alignItems: "flex-start" }}>
+              <View
+                style={{ alignItems: "flex-start", flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+              >
                 <Button icon="refresh-cw" label="Try again" onPress={() => void find()} />
+                <If when={leave}>
+                  {(go) => <Button icon="server" label="Use another server" onPress={go()} />}
+                </If>
               </View>
             </Lone>
           )}
@@ -136,6 +169,7 @@ export function Root(props: RootProps) {
           {(now) => (
             <Pairing
               host={props.host}
+              onLeave={leave}
               onPaired={(token) => start(now().server, { by: "token", token })}
               server={now().server}
               why={now().why}
@@ -143,7 +177,9 @@ export function Root(props: RootProps) {
           )}
         </If>
         <Each key={(now) => now.generation} of={connected()}>
-          {(now) => <Connected conn={now().conn} host={props.host} server={now().server} />}
+          {(now) => (
+            <Connected conn={now().conn} host={props.host} onLeave={leave} server={now().server} />
+          )}
         </Each>
         <If when={picks}>
           <SandboxPick />
@@ -154,7 +190,13 @@ export function Root(props: RootProps) {
 }
 
 /** The app under one connection: the frame once welcomed, else why not. */
-function Connected(props: { conn: Connection; host: ShellHost; server: Server }) {
+function Connected(props: {
+  conn: Connection;
+  host: ShellHost;
+  /** On a device, the way to another server. */
+  onLeave?: () => void;
+  server: Server;
+}) {
   const conn = props.conn;
   // The server reached now: this machine's may start again on another port.
   const server = signal(props.server);
@@ -216,6 +258,9 @@ function Connected(props: { conn: Connection; host: ShellHost; server: Server })
             <Spinner label="Connecting" />
             <If when={conn.status() === "offline"}>
               <Button icon="refresh-cw" label="Try now" onPress={() => conn.reconnect()} />
+              <If when={props.onLeave}>
+                {(go) => <Button icon="server" label="Use another server" onPress={go()} />}
+              </If>
             </If>
           </View>
         </Lone>

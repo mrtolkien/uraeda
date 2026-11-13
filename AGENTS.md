@@ -247,6 +247,9 @@ Running it here:
   profile expires (CONTRIBUTING.md, "On a phone", says how to renew it). The bundle ID is the
   profile's, never `app/nsh.json`'s. A Mac's disk ignores a name's case: two files of one folder
   never differ by case alone (`undo.ts` beside `Undo.tsx`), or the bundler takes one for the other.
+  What iOS draws with the system's own parts is in `specs/ui/phone.md`, "iOS", behind `ios` of
+  `app/ui/native.ts`, which is false in `nsh test`, headless as iOS on every machine. The app asks
+  for its server there first: "Use this Mac's sandbox", or an address.
 - `ura serve` listens on 4310 by default, and keeps its files in `uraeda-next` of the system's data
   folder: the earlier server's `uraeda` is only read, by `ura import-sessions`. A test or a run of
   yours always names its own port and data folder: `--port 0 --data-dir <a temporary folder>`.

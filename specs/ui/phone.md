@@ -192,6 +192,24 @@ square corners, its panes, and its type ("it needs to look iOS native with the c
   shows, an error's, a warning's, or a success's.
 - **"System" follows the phone's appearance**, the status bar and the system's parts with it.
 
+### Its server
+
+A phone runs no server: its owner names one, once, on "Connect to your server", the app's first page
+there ([`Connect.tsx`](/app/screens/sign-in/Connect.tsx)).
+
+- **The field takes an address**, with or without its scheme, `https` unless it is this network's,
+  **or the link `ura pair` prints**, `https://mac.example.net/pair#7KQ2-M9XA-0TBD`, which names the
+  server and pairs the device at once. A refusal shows under it: nothing answers there, or what
+  answers is not Uraeda's server.
+- **A server that signs nobody in**, a sandbox, connects at once. Any other asks to pair, with a
+  code or the access key, on the page every device pairs on.
+- **The server and the device's token are kept on the device**, in the app's own storage. The token
+  is one the settings' Sign-in page revokes alone, on any device.
+- **"Use another server"** is on the pairing page, on the page of a server that does not answer, and
+  in the settings, under Sign-in, "This app's server", which says the address on every platform. It
+  forgets the server and the pairing, after its confirmation.
+- A development run offers "Use this Mac's sandbox" beside Connect.
+
 A place's count rides in its tab's name: Native Shell's tab bar draws no badge, and the system's red
 badge is for what is critical, which a count of notes is not. `just package-ios` makes the app a
 device installs, with no development server: the simulator's, or a device's `.ipa` signed with the

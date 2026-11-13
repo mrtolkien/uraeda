@@ -16,6 +16,12 @@ import type { Fonts, ThemeSource } from "../ui/tokens";
  * `[draft: \`unsaved:${string}\`]: Draft`.
  */
 export type DeviceKeys = {
+  /**
+   * The server a phone or a tablet works with, which its owner named, whether it signs nobody in,
+   * and the device's token for it once paired (`app/screens/shell/host.ts`). A desktop's app keeps
+   * neither here: its host finds the server, and keeps the token in the system's secret store.
+   */
+  server: { address: string; open?: boolean; token?: string };
   /** The mode the device shows, and the theme picked for each mode: `pickTheme` reads it. */
   theme: ThemeChoice;
   /** The theme last shown, which the app draws from its first frame, before the server answers. */

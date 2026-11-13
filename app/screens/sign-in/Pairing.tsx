@@ -14,6 +14,8 @@ import { TextField } from "../../ui/text";
 
 export function Pairing(props: {
   host: ShellHost;
+  /** On a device, the way to another server than the one named. */
+  onLeave?: () => void;
   onPaired: (token: string) => void;
   server: Server;
   /** Why the device pairs again: it was unpaired. */
@@ -84,7 +86,7 @@ export function Pairing(props: {
           refusal={refusal()}
           value={typed()}
         />
-        <View style={{ alignItems: "flex-start" }}>
+        <View style={{ alignItems: "flex-start", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Button
             icon="key-round"
             label="Pair"
@@ -92,6 +94,9 @@ export function Pairing(props: {
             pending={pending()}
             variant="main"
           />
+          <If when={props.onLeave}>
+            {(go) => <Button icon="server" label="Use another server" onPress={go()} />}
+          </If>
         </View>
       </If>
     </Lone>

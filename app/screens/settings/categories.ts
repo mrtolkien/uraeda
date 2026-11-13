@@ -165,6 +165,11 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         label: "Sign a browser in",
         terms: ["browser", "access key", "password"],
       },
+      {
+        help: "Where this app reaches Uraeda. A phone or a tablet names its server, and can name another.",
+        label: "This app's server",
+        terms: ["address", "connect", "disconnect", "switch", "remote"],
+      },
     ],
   },
   {
