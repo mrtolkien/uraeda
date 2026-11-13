@@ -1,12 +1,8 @@
 # Inbox
 
-- [codex-runtime] Decisions are too specific/constraining: for example the agents decisions focus
-  too much on Claude Code and its behaviour and not general rules.
-- Tapping a session composer on mobile does not open the virtual keyboard
 - [nsh-migration] Remove `ura import-sessions` and its importer once the port to the Rust server is
   done: it is a one-time tool.
 - #WORKAROUND comment to check againt future NSH releases + PRs?
-- eda-run-qBfn2J/tmp/tmp.BKZtcpWKZA/my-project
 - [nsh-migration] Review tug: https://www.youtube.com/watch?v=MyGyiKSv-QQ, plenty of good ideas
 - Should have a go to repo home shortcut (github/gitlab) in the git view
 

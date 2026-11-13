@@ -21,6 +21,8 @@ Human reviews:
     to our look and feel based on it.
   - ?daily? dependencies update > upgrade, check what broke, run tests
 - Add a background image option, and add some subtle blur/transparency to all surfaces
+- Decisions are too specific/constraining: for example the agents decisions focus too much on Claude
+  Code and its behaviour and not general rules.
 
 ## Next
 
