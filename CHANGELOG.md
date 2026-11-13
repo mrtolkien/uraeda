@@ -15,8 +15,9 @@ Released on 2026-11-13.
 - **The Mac app**: Uraeda runs on Apple silicon Macs, in a window of its own, with `ura` inside it.
   It starts its background process when none runs and stops it as it quits. It looks like a Mac app:
   a toolbar on Liquid Glass, the menu bar with the Mac's shortcuts, the system's menus and alerts,
-  and notifications with a count on the Dock's icon. [INSTALL.md](https://github.com/mrtolkien/uraeda/blob/v2.0.0/INSTALL.md)
-  says how to open it, as it is not notarised.
+  and notifications with a count on the Dock's icon.
+  [INSTALL.md](https://github.com/mrtolkien/uraeda/blob/v2.0.0/INSTALL.md) says how to open it, as
+  it is not notarised.
 
 ### Breaking changes
 
