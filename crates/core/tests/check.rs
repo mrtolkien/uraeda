@@ -2289,8 +2289,8 @@ fn a_decision_of_too_many_rules() {
     assert_eq!(
         summary(&problems),
         [format!(
-            "warning: {DECISION}:{line}: 7 rules: keep at most 5, and cut the rest or move them to \
-             a guide"
+            "warning: {DECISION}:{line}: 10 rules: a decision this long holds a spec or a guide, so \
+             cut rules or move them to a guide"
         )]
     );
     assert_eq!(problems[0].rule, "decision.rules");
@@ -2394,9 +2394,10 @@ fn each_decision_limit() {
         ),
         (
             "decision.rules",
-            |e| with_rules(e, &format!("> ## A quoted heading\n\n{}", rules(6))),
+            |e| with_rules(e, &format!("> ## A quoted heading\n\n{}", rules(9))),
             "## Rules",
-            "6 rules: keep at most 5, and cut the rest or move them to a guide".into(),
+            "9 rules: a decision this long holds a spec or a guide, so cut rules or move them to a guide"
+                .into(),
         ),
     ];
     for (rule, break_it, at, message) in rows {

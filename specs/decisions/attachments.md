@@ -30,10 +30,9 @@ plain text in git that the constitution asks a decision to justify.
 
 Workflow files are read on GitHub, in an editor, and in the app. An image beside its file shows in
 all three, and comes back from git like the text does. What is committed stays in git's history for
-good: each image must be small, and a screenshot of a secret leaves only by rewriting history. A
-chat is not workflow state, so its images stay with it, outside git. An image is bytes from outside
-the repository: one encoder, for every tool that attaches, keeps what a browser could run out of it.
-History: [Image attachments](../done/2026-10-13-image-attachments.md).
+good, so each image must be small. A chat is not workflow state: its images stay with it, outside
+git. An image is bytes from outside the repository, so one encoder keeps out what a browser could
+run. History: [Image attachments](../done/2026-10-13-image-attachments.md).
 
 ## Alternatives considered
 

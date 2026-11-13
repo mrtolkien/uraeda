@@ -34,11 +34,10 @@ adapter, the only code that knows that agent's formats. A session is one convers
 ## Why
 
 More agents come, and a view written for one agent's formats is rewritten for the next. One concept
-of a session gives every conversation a page and a history, and fewer things to learn. Skipped
-permissions, or an unreviewed network, would let a hostile page make an agent act on, or send away,
-the human's code. A branch started without the human's yes is a choice they did not make. Sessions
-kept out of git leave a repository with only what the workflow needs: another agent resumes from the
-repository alone.
+of a session gives every conversation a page and a history. Skipped permissions, or an unreviewed
+network, would let a hostile page make an agent act on, or send away, the human's code. A branch
+started without the human's yes is a choice they did not make. Sessions stay out of git: another
+agent resumes from the repository alone.
 
 ## Alternatives considered
 

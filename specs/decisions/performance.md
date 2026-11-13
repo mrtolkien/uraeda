@@ -32,9 +32,8 @@ how pages reach them, and how to measure.
 
 The human reads and decides in Uraeda for hours, mostly from the keyboard, and a wait after each key
 breaks their pace. A page that asks git again cannot draw in 100 ms, so the app answers from what it
-has already read. A spinner does not make a wait shorter, and a result shown before it is true is a
-lie. Work that is slow says what it is doing. Timings change with the machine, so a benchmark run on
-demand measures them, and no check enforces them. History:
+has already read. A spinner does not shorten a wait, and a result shown before it is true is a lie.
+Timings change with the machine, so a benchmark run on demand measures them. History:
 [Performance pass](../done/2026-10-29-performance-pass.md).
 
 ## Alternatives considered

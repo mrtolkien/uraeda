@@ -34,9 +34,8 @@ Uraeda's server and app. It runs with the owner's rights: where it comes from is
 
 An agent writes an extension in minutes, so any part of Uraeda can be changed or turned off without
 forking it. A build step or a restart would slow extensions written on the spot. The agent already
-runs commands as the owner, so limits on an extension protect little: what protects the owner is
-that code never comes from a cloned repository. Instructions added to runs would reach only the runs
-Uraeda starts, and split the workflow between the skill and the app. History:
+runs commands as the owner, so what protects them is that code never comes from a cloned repository.
+Instructions added to runs would split the workflow between the skill and the app. History:
 [Extensions system](../done/2026-11-08-extensions-system.md).
 
 ## Alternatives considered

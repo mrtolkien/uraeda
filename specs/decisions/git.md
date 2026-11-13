@@ -32,11 +32,10 @@ an agent may run in its session is the human's to allow, and no part of this dec
 ## Why
 
 Uraeda works in the human's own repository, beside their editor, their hooks, and their habits. A
-lost commit, or a note typed and never committed, cannot come back, so removal waits for the human.
-Writes go through `git` itself, so hooks, signing, and credentials behave as they do by hand. The
-app writes on every branch from one checkout, often from a phone. So it works through worktrees, and
-never moves the branch the human is on. A commit made behind an edit hides what it holds: the human
-commits what they have seen. History: [CLI core](../done/2026-10-10-cli-core.md).
+lost commit, or a note never committed, cannot come back, so removal waits for the human. Writes go
+through `git` itself, so hooks, signing, and credentials behave as they do by hand. The app writes
+on every branch from one checkout, so it works through worktrees. A commit made behind an edit hides
+what it holds. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 ## Alternatives considered
 
