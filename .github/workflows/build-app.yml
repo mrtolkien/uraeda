@@ -1,6 +1,7 @@
 # Builds the Linux app's package for a release, `just package` in the dev shell: the tarball and
-# the AppImage, each with `ura` inside and its `.sha256`, from the commit of the tag that releases
-# `ura`, so both carry the version of the workspace's `Cargo.toml`. `release.yml` calls it, from
+# the AppImage, each with `ura` inside and its `.sha256`, and the update installed apps download,
+# with its signed manifest, `latest.json`, from the commit of the tag that releases `ura`, so all
+# carry the version of the workspace's `Cargo.toml`. `release.yml` calls it, from
 # `global-artifacts-jobs` in dist-workspace.toml, and its `host` job releases what it uploads with
 # `ura`'s archives, once every build passed: a failed build releases nothing, and "Re-run failed
 # jobs" on the tag's run completes the release at the same version.
@@ -54,6 +55,14 @@ jobs:
           echo "release: $version"
           test "$(echo "$version" | wc -l)" = 1
           grep -q "\"version\":\"$version\"" target/package/uraeda/lib/nsh/app.json
+      - name: Write the update manifest
+        # `latest.json` and its signature, which installed apps read as they look for a new
+        # version. A Mac's archive joins Linux's here once its app is built.
+        run:
+          nix develop --command scripts/update-manifest.sh
+          target/package/uraeda-update-*-linux-x86_64.tar.gz
+        env:
+          URAEDA_UPDATER_KEY: ${{ secrets.URAEDA_UPDATER_KEY }}
       - name: Upload the package
         uses: actions/upload-artifact@v7
         with:
@@ -64,4 +73,7 @@ jobs:
             target/package/uraeda-app-x86_64-linux.tar.gz.sha256
             target/package/uraeda-app-x86_64.AppImage
             target/package/uraeda-app-x86_64.AppImage.sha256
+            target/package/uraeda-update-*-linux-x86_64.tar.gz
+            target/package/latest.json
+            target/package/latest.json.sig
           if-no-files-found: error

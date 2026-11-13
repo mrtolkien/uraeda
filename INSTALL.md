@@ -77,8 +77,9 @@ sudo pacman -S gtk4 webkitgtk-6.0                 # Arch
 When one is missing or too old, the app says which, and how to install it, instead of starting.
 
 Each release has the app in two forms, with the same files: an AppImage, one program to download and
-run, and a tarball, a folder to unpack where you keep programs. Neither updates itself: install the
-next release the same way.
+run, and a tarball, a folder to unpack where you keep programs. Both look for a new release as they
+start, and say so. The tarball's app installs it when you say so, and restarts on it. An AppImage
+cannot replace itself: its app opens the release's page, and you download the new AppImage there.
 
 ### The AppImage
 
@@ -103,7 +104,8 @@ cp -r ~/.local/opt/uraeda/share/. ~/.local/share/
 ```
 
 Uraeda is then in the desktop's launcher, and `uraeda` starts it from a terminal. Its `ura` comes
-with the app, so `ura upgrade` does not update it: install the next release's tarball instead.
+with the app, so `ura upgrade` does not update it: the app updates it with itself. A folder only the
+system can write, such as one under `/opt`, updates as the AppImage does, from the release's page.
 
 ### On a Mac
 

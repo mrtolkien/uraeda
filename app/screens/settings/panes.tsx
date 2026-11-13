@@ -12,6 +12,7 @@ import { Keyboard } from "./Keyboard";
 import { Runs } from "./Runs";
 import { Server } from "./Server";
 import { SignIn } from "./SignIn";
+import { Updates } from "./Updates";
 import { navigate } from "../../store";
 import { definePane, definePlace, PaneScroll } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
@@ -45,6 +46,8 @@ function Category(props: { id: string }) {
       return <SignIn />;
     case "server":
       return <Server />;
+    case "updates":
+      return <Updates />;
     default:
       return (
         <Empty

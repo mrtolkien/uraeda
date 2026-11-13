@@ -11,7 +11,8 @@ export type CategoryId =
   | "runs"
   | "extensions"
   | "sign-in"
-  | "server";
+  | "server"
+  | "updates";
 
 /**
  * A setting's words: its name, the line that says what it does, the keys that do it too, hinted
@@ -187,6 +188,19 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       {
         help: "When the server starts, it opens Uraeda in your browser. A change applies at the next start.",
         label: "Open a browser at start",
+      },
+    ],
+  },
+  {
+    about: "This app's version, and its new releases.",
+    icon: "download",
+    id: "updates",
+    label: "Updates",
+    settings: [
+      {
+        help: "The app looks for a new release as it starts, and installs one when you say so: it restarts on the new version, its server with it.",
+        label: "This app",
+        terms: ["version", "release", "upgrade", "install", "about"],
       },
     ],
   },

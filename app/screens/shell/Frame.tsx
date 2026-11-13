@@ -17,6 +17,7 @@ import { placesIn } from "./places";
 import { Sidebar, UsageBar } from "./Sidebar";
 import { Branch, modeSlot, StatusEnd } from "./Status";
 import { UndoKeys, UndoQuestion, UndoToast } from "./Undo";
+import { checkAtStart, UpdateToast } from "./updates";
 import { LandingWrites, RefusedWrites } from "./Writes";
 import "../routes";
 import { ExtensionKeys, offPlace } from "../extension";
@@ -86,6 +87,8 @@ export function Frame() {
     });
   });
   effect(() => applyFonts(device.get("fonts")));
+  // A new release of the app, looked for once a run, and offered by a toast.
+  checkAtStart();
 
   const place = computed((): Place | undefined => {
     const listed = rows();
@@ -177,6 +180,7 @@ export function Frame() {
         <UndoToast />
         <LandingWrites />
         <DroppedFiles />
+        <UpdateToast />
       </Toasts>
       <UndoQuestion />
     </>

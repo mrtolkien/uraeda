@@ -97,6 +97,13 @@ it has under the contrast floor and how many other problems, and the problems th
 where to put one. A role with a problem keeps its colour from the theme the file extends; a colour
 under the floor applies as written.
 
+Its Updates section shows this app's version, looks for a new release, and installs it. The desktop
+app also looks once as it starts, and a toast offers the new version: Not now quiets it until the
+next one. Installing downloads the release, checks its signature and its SHA-256, swaps it in, and
+restarts the app on it, with the server the app started. An AppImage, or a folder only the system
+can write, opens the release's page instead. In a browser the app is the one the server holds, and
+updates with it.
+
 The server's settings are kept in `~/.config/uraeda/config.toml`, a file you can also edit by hand
 and keep in your dotfiles. It is in `$XDG_CONFIG_HOME/uraeda/` when `XDG_CONFIG_HOME` is set, or in
 `URAEDA_CONFIG_DIR` when that is. The page keeps the file's comments. Its `[server]` table holds:

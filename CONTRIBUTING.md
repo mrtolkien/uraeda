@@ -252,6 +252,33 @@ run that created the release never replaces a file of it: run again, it stops at
 exists, and only the jobs after it, such as Homebrew's, are re-run. GitHub re-runs a run's jobs for
 30 days.
 
+### The app's updates
+
+An installed app updates itself with Native Shell's `nsh/updater`
+([`app/screens/shell/updates.tsx`](app/screens/shell/updates.tsx)): it reads `latest.json` from
+`releases/latest/download/`, checks its signature against `updater.publicKey` in
+[`app/nsh.json`](app/nsh.json), downloads its platform's archive, and swaps it in. `just package`
+writes the app's `nsh-updater.json` (the source, the key, the version) into `lib/nsh/assets/`, and
+the update, `uraeda-update-<version>-linux-x86_64.tar.gz`, which holds `lib/`, the folder the app
+replaces. `build-app.yml` then signs the manifest with
+[`scripts/update-manifest.sh`](scripts/update-manifest.sh), using the repository's secret
+`URAEDA_UPDATER_KEY`. A release fails without the key. To set it up, or to change the key:
+
+```sh
+nix develop -c nsh keygen ~/uraeda-updater     # keep ~/uraeda-updater.secret out of the repository
+gh secret set URAEDA_UPDATER_KEY < ~/uraeda-updater.secret
+```
+
+Then put the content of `~/uraeda-updater.pub` in `app/nsh.json`, as `updater.publicKey`. A new key
+works only for apps that have it: an app released with the old key refuses manifests signed with the
+new one, and has to be installed again by hand.
+
+A new platform, such as the Mac app, needs only its package side. Its host reads `nsh-updater.json`
+from the app's assets, as the engine does for Linux. Its build writes its archive under the same
+name, `uraeda-update-<version>-macos-<arch>.tar.gz` holding the `.app`. The manifest step then
+describes every platform's archive at once. That means moving it to a job after every build, which
+calls `update-manifest.sh` with all the archives. The app's TSX stays as it is.
+
 ## Licenses
 
 The code is under the [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) licenses, at your option.

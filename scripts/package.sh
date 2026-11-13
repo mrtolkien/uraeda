@@ -9,7 +9,10 @@
 # - `uraeda-app-x86_64-linux.tar.gz`, that folder.
 # - `uraeda-app-x86_64.AppImage`, the same folder as one program: the AppImage's runtime, then the
 #   folder's squashfs image, with what an AppImage holds at its root (`AppRun`, the entry, the icon).
-# - a `.sha256` beside each, as cargo-dist writes for `ura`.
+# - `uraeda-update-<version>-linux-x86_64.tar.gz`, its `lib/`: what an installed app downloads and
+#   swaps in as it updates itself, which `scripts/update-manifest.sh` describes in the release's
+#   `latest.json`.
+# - a `.sha256` beside the tarball and the AppImage, as cargo-dist writes for `ura`.
 #
 # The version is the workspace's, in `Cargo.toml`: `ura`, the app, and the package carry it.
 # The binaries build in the dev shell, against Nix's libraries, and are made to run outside Nix:
@@ -38,6 +41,20 @@ scripts/nsh.sh build --release -o "$package/lib/nsh"
 # The source and its map are for development: the program runs the bytecode.
 rm -f "$package/lib/nsh/bundle.js" "$package/lib/nsh/bundle.js.map"
 printf '{"name":"Uraeda","id":"%s","version":"%s"}\n' "$id" "$version" > "$package/lib/nsh/app.json"
+# How the app updates itself (`nsh/updater`): `app/nsh.json`'s "updater", with this version, where
+# NSH reads it, among the app's assets. `target/package/updater/nsh.json` is the same file at this
+# version, which `scripts/update-manifest.sh` describes the release with.
+field() { sed -n "s/^ *\"$1\": \"\([^\"]*\)\",\{0,1\}$/\1/p" app/nsh.json | head -n 1; }
+github=$(field github)
+public_key=$(field publicKey)
+[ -n "$github" ] || { echo "package: app/nsh.json's \"updater\" names no \"github\" repository" >&2; exit 1; }
+mkdir -p "$out/updater" "$package/lib/nsh/assets"
+sed "s/^\(  \"version\": \)\"[^\"]*\"/\1\"$version\"/" app/nsh.json > "$out/updater/nsh.json"
+{
+  printf '{"id":"%s","version":"%s","github":"%s","build":1' "$id" "$version" "$github"
+  [ -z "$public_key" ] || printf ',"publicKey":"%s"' "$public_key"
+  printf '}\n'
+} > "$package/lib/nsh/assets/nsh-updater.json"
 
 # A web build already made, which `URAEDA_WEB_BUILD` names, is the one `ura` holds: the release
 # builds it once, and the `ura` of the archives and the package's then hold the same.
@@ -107,6 +124,12 @@ echo "package: the tarball"
 tarball=$out/uraeda-app-$arch-linux.tar.gz
 tar --sort=name --owner=0 --group=0 --numeric-owner --mtime="@$epoch" -C "$out" -cf - uraeda \
   | gzip -n -9 > "$tarball"
+
+# The update: `lib/`, what the app replaces of itself as it updates (`nsh/updater` swaps the folder
+# beside its program), named as `nsh update-manifest` reads a platform from an archive's name.
+echo "package: the update"
+tar --sort=name --owner=0 --group=0 --numeric-owner --mtime="@$epoch" -C "$package" -cf - lib \
+  | gzip -n -9 > "$out/uraeda-update-$version-linux-$arch.tar.gz"
 
 echo "package: the AppImage"
 appdir=$out/AppDir

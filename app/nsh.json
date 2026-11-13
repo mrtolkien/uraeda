@@ -8,6 +8,9 @@
   "theme": "theme.json",
   "icon": { "web": "web/icon.png" },
   "web": { "base": "/", "history": false },
+  "updater": {
+    "github": "mrtolkien/uraeda"
+  },
   "ios": {
     "infoPlist": {
       "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true },
