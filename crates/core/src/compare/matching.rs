@@ -1,13 +1,10 @@
 //! The matching of two versions' parts, section by section, and the word diff of a matched pair.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::parts::{Part, Version};
 
 /// Words of a part, joined with single spaces, all `kept`, `added`, or `removed`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Run {

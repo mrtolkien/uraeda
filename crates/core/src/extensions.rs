@@ -9,8 +9,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use include_dir::{Dir, include_dir};
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 
 pub mod install;
 mod manifest;
@@ -64,7 +62,6 @@ const SOURCE: &str = ".ura-source";
 const LARGEST: u64 = 1024 * 1024;
 
 /// The extensions: the built-in ones, then yours.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Extensions {
     /// Your extensions folder, as messages show it, the home folder written `~`, and a `/` last.
@@ -74,7 +71,6 @@ pub struct Extensions {
 }
 
 /// An extension, as its manifest and the settings file describe it.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Extension {
     /// Its folder's name, which its manifest's `name` must equal.
@@ -108,7 +104,6 @@ pub struct Extension {
 }
 
 /// Where `ura` installed an extension from, its `.ura-source`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Source {
     /// The git URL it was cloned from.
@@ -120,7 +115,6 @@ pub struct Source {
 }
 
 /// A setting an extension's manifest declares.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SettingSpec {
     pub key: String,
@@ -134,7 +128,6 @@ pub struct SettingSpec {
 
 /// A problem of an extension. A fatal one keeps it from loading; any other leaves it running, a
 /// setting at fault on its default.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtensionProblem {
     /// The file it is in, in the extension's folder, like `extension.toml`, or `config.toml` for
@@ -190,7 +183,16 @@ pub fn settings_json(config_dir: &Path, name: &str, repository: Option<&str>) ->
         return "{}".to_owned();
     };
     let values = values::Config::load(config_dir).settings(&extension, repository);
-    serde_json::Value::Object(values).to_string()
+    sorted_json(values)
+}
+
+/// A JSON object's text, its keys sorted at every level. serde_json sorts them itself only without
+/// its `preserve_order` feature, which a crate linked beside the core can turn on, as Native
+/// Shell's bundler does: the text must not depend on what the core is built with.
+fn sorted_json(values: serde_json::Map<String, serde_json::Value>) -> String {
+    let mut object = serde_json::Value::Object(values);
+    object.sort_all_objects();
+    object.to_string()
 }
 
 /// The values of the extension `name` set for one repository, over those for every repository, as
@@ -201,7 +203,7 @@ pub fn repository_settings_json(config_dir: &Path, name: &str) -> String {
         return "{}".to_owned();
     };
     let values = values::Config::load(config_dir).by_repository(&extension);
-    serde_json::Value::Object(values).to_string()
+    sorted_json(values)
 }
 
 /// Whether `extension` is on in `repository`; with no repository, whether it is on in every one.

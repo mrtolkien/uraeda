@@ -1,4 +1,4 @@
-//! What an operation of the binding refuses or fails with, from the core's own errors.
+//! What an operation of the core refuses or fails with, from its own errors.
 
 use crate::actions::{ActionError, place};
 use crate::git::GitError;

@@ -45,4 +45,4 @@ truly blocks the workflow. The core decides once, so every tool reads results th
 
 - [`crates/core/src/check/`](/crates/core/src/check/), and every feature that adds a rule to
   `ura check`
-- [`packages/web/`](/packages/web/): Home, the sidebar, and the item pages
+- [`app/`](/app/): Home, the sidebar, and the item pages

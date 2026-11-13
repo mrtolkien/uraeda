@@ -1,14 +1,15 @@
 //! Parsers and edits for each kind of workflow file. Edits keep every byte they do not change,
 //! Windows line endings included.
 
+// The readers of a text alone are a crate of their own, which the app's web build takes too.
+pub use uraeda_text::{document, markdown, stories};
+
 pub mod clarifications;
-pub mod document;
 pub mod frontmatter;
 pub mod image_links;
 pub mod inbox;
 pub mod items;
 pub(crate) mod lines;
-pub mod markdown;
 pub mod nested;
 pub mod outline;
 pub mod plan;
@@ -20,19 +21,8 @@ pub mod retarget;
 pub mod review;
 pub mod rulings;
 pub mod spec;
-pub mod stories;
 
-/// Runs an edit on the text with `\n` line endings, and gives the result the text's own endings.
-pub(crate) fn with_unix_newlines<T>(
-    text: &str,
-    edit: impl FnOnce(&str) -> Result<String, T>,
-) -> Result<String, T> {
-    if text.contains("\r\n") {
-        edit(&text.replace("\r\n", "\n")).map(|edited| edited.replace('\n', "\r\n"))
-    } else {
-        edit(text)
-    }
-}
+pub(crate) use uraeda_text::markdown::with_unix_newlines;
 
 /// Whether a line opens or closes a fenced code block.
 pub(crate) fn is_fence(line: &str) -> bool {

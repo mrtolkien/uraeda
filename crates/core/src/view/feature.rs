@@ -1,8 +1,6 @@
 //! A feature as the web UI reads it: its files, its step, its problems and notes, and a feature
 //! started.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use super::{CatchUpView, ProblemView, kebab, title};
@@ -12,7 +10,6 @@ use crate::pulls::{PullRequestState, PullRequestView};
 use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, WorkflowFile};
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StepView {
@@ -36,7 +33,6 @@ pub struct StepView {
     pub catch_up: Option<CatchUpView>,
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSummary {
@@ -60,7 +56,6 @@ fn workflow_key(file: &WorkflowFile) -> (u8, u32, FileKind, &str) {
     (stage, file.round.unwrap_or(0), file.kind, &file.name)
 }
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeatureView {
@@ -99,7 +94,6 @@ pub struct FeatureView {
 }
 
 /// A feature started.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartedView {
@@ -109,7 +103,6 @@ pub struct StartedView {
 }
 
 /// A start planned: what it would make, every check made, nothing written.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlannedView {
@@ -124,7 +117,6 @@ pub struct PlannedView {
 
 /// A step of a start under way: `committing`, `output` with the `line` the commit or its hooks
 /// printed, `branching`, or `done`.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartStepView {
@@ -148,7 +140,6 @@ impl From<StartProgress> for StartStepView {
 }
 
 /// A change made a feature, in place.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PromotedView {

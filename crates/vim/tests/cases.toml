@@ -1,0 +1,1751 @@
+# The Vim layer's table of cases: one row per behaviour, as a text before, keys, and the text after.
+# `|` is the caret: in normal mode it stands before the character the caret is on.
+#
+# - `key` names the item of the subset the row is the case of: every item has one.
+# - `keys` uses Vim's notation: `<Esc>`, `<CR>`, `<BS>`, `<C-r>`, and `<lt>` for `<`.
+# - `mode` is the mode after the keys, `NORMAL` when absent, and `pending` what is typed and not
+#   run yet.
+# - `clipboard` is the system clipboard before the keys, and `copied` after them.
+# - `selected` is the selected text after the keys, and `passed` the keys left to the field.
+#
+# Where Vim and Neovim differ, the rows follow Neovim's defaults (ruling R31), with an indent of
+# two spaces.
+
+# Motions
+
+[[case]]
+name = "h moves left"
+key = "h"
+before = "ab|c"
+keys = "h"
+after = "a|bc"
+
+[[case]]
+name = "h stops at the line's start"
+before = "abc\n|def"
+keys = "h"
+after = "abc\n|def"
+
+[[case]]
+name = "l moves right"
+key = "l"
+before = "|abc"
+keys = "l"
+after = "a|bc"
+
+[[case]]
+name = "l stops on the last character"
+before = "ab|c\ndef"
+keys = "l"
+after = "ab|c\ndef"
+
+[[case]]
+name = "j moves down"
+key = "j"
+before = "a|bc\ndef"
+keys = "j"
+after = "abc\nd|ef"
+
+[[case]]
+name = "k moves up"
+key = "k"
+before = "abc\nd|ef"
+keys = "k"
+after = "a|bc\ndef"
+
+[[case]]
+name = "j keeps its column through a shorter line"
+before = "abc|d\nx\nabcdef"
+keys = "jj"
+after = "abcd\nx\nabc|def"
+
+[[case]]
+name = "j after $ stays at the lines' ends"
+before = "|ab\nabcdef\nabc"
+keys = "$jj"
+after = "ab\nabcdef\nab|c"
+
+[[case]]
+name = "w moves to the next word"
+key = "w"
+before = "|one two"
+keys = "w"
+after = "one |two"
+
+[[case]]
+name = "w stops at punctuation"
+before = "|foo.bar"
+keys = "w"
+after = "foo|.bar"
+
+[[case]]
+name = "w crosses to the next line"
+before = "on|e\n  two"
+keys = "w"
+after = "one\n  |two"
+
+[[case]]
+name = "w stops on an empty line"
+before = "on|e\n\ntwo"
+keys = "w"
+after = "one\n|\ntwo"
+
+[[case]]
+name = "w on the last word goes to the last character"
+before = "one |two"
+keys = "w"
+after = "one tw|o"
+
+[[case]]
+name = "W moves over punctuation"
+key = "W"
+before = "|foo.bar baz"
+keys = "W"
+after = "foo.bar |baz"
+
+[[case]]
+name = "b moves to the word's start"
+key = "b"
+before = "one tw|o"
+keys = "b"
+after = "one |two"
+
+[[case]]
+name = "b crosses to the previous line"
+before = "one\n|two"
+keys = "b"
+after = "|one\ntwo"
+
+[[case]]
+name = "B moves back over punctuation"
+key = "B"
+before = "one foo.ba|r"
+keys = "B"
+after = "one |foo.bar"
+
+[[case]]
+name = "e moves to the word's end"
+key = "e"
+before = "|one two"
+keys = "e"
+after = "on|e two"
+
+[[case]]
+name = "e from a word's end goes to the next one's"
+before = "on|e two"
+keys = "e"
+after = "one tw|o"
+
+[[case]]
+name = "E moves to the end over punctuation"
+key = "E"
+before = "|foo.bar baz"
+keys = "E"
+after = "foo.ba|r baz"
+
+[[case]]
+name = "0 moves to the line's start"
+key = "0"
+before = "  on|e"
+keys = "0"
+after = "|  one"
+
+[[case]]
+name = "^ moves to the first character that is not blank"
+key = "^"
+before = "  on|e"
+keys = "^"
+after = "  |one"
+
+[[case]]
+name = "$ moves to the line's last character"
+key = "$"
+before = "|one two\nthree"
+keys = "$"
+after = "one tw|o\nthree"
+
+[[case]]
+name = "gg moves to the first line"
+key = "gg"
+before = "one\ntwo\nth|ree"
+keys = "gg"
+after = "on|e\ntwo\nthree"
+
+[[case]]
+name = "G moves to the last line"
+key = "G"
+before = "o|ne\ntwo\nthree"
+keys = "G"
+after = "one\ntwo\nt|hree"
+
+[[case]]
+name = "a count before G is a line"
+before = "|one\ntwo\nthree\nfour"
+keys = "3G"
+after = "one\ntwo\n|three\nfour"
+
+[[case]]
+name = "f moves onto a character"
+key = "f"
+before = "|one two"
+keys = "fw"
+after = "one t|wo"
+
+[[case]]
+name = "F moves back onto a character"
+key = "F"
+before = "one tw|o"
+keys = "Fn"
+after = "o|ne two"
+
+[[case]]
+name = "t moves before a character"
+key = "t"
+before = "|one two"
+keys = "tw"
+after = "one |two"
+
+[[case]]
+name = "T moves back after a character"
+key = "T"
+before = "one tw|o"
+keys = "Tn"
+after = "on|e two"
+
+[[case]]
+name = "; repeats the last f"
+key = ";"
+before = "|x a b a b a"
+keys = "fa;"
+after = "x a b |a b a"
+
+[[case]]
+name = "; after t does not stay before the same character"
+before = "|x a b a b a"
+keys = "ta;"
+after = "x a b| a b a"
+
+[[case]]
+name = ", repeats the last f the other way"
+key = ","
+before = "|x a b a b a"
+keys = "3fa,"
+after = "x a b |a b a"
+
+[[case]]
+name = "f with a count takes that occurrence"
+before = "|x a b a b a"
+keys = "2fa"
+after = "x a b |a b a"
+
+[[case]]
+name = "f without its character on the line does not move"
+before = "|one two\nxyz"
+keys = "fx"
+after = "|one two\nxyz"
+
+[[case]]
+name = "% moves to the matching bracket"
+key = "%"
+before = "|(a [b] c) d"
+keys = "%"
+after = "(a [b] c|) d"
+
+[[case]]
+name = "% finds the first bracket after the caret, and matches across lines"
+before = "i|f {\n  a (b)\n} c"
+keys = "%"
+after = "if {\n  a (b)\n|} c"
+
+[[case]]
+name = "{ moves to the empty line before"
+key = "{"
+before = "one\n\ntwo\nth|ree"
+keys = "{"
+after = "one\n|\ntwo\nthree"
+
+[[case]]
+name = "} moves to the empty line after"
+key = "}"
+before = "o|ne\ntwo\n\nthree"
+keys = "}"
+after = "one\ntwo\n|\nthree"
+
+[[case]]
+name = "} in the last paragraph goes to the text's last character"
+before = "one\n\nt|wo\nthree"
+keys = "}"
+after = "one\n\ntwo\nthre|e"
+
+[[case]]
+name = "a count repeats a motion"
+before = "|one two three four"
+keys = "3w"
+after = "one two three |four"
+
+[[case]]
+name = "a count of two digits"
+before = "|abcdefghijklmnop"
+keys = "12l"
+after = "abcdefghijkl|mnop"
+
+# Operators
+
+[[case]]
+name = "d deletes over a motion"
+key = "d"
+before = "|one two three"
+keys = "dw"
+after = "|two three"
+
+[[case]]
+name = "d2w deletes two words"
+before = "|one two three four"
+keys = "d2w"
+after = "|three four"
+
+[[case]]
+name = "2dw deletes two words"
+before = "|one two three four"
+keys = "2dw"
+after = "|three four"
+
+[[case]]
+name = "counts before and after an operator multiply"
+before = "|a b c d e f g"
+keys = "2d3w"
+after = "|g"
+
+[[case]]
+name = "d with a motion that fails deletes nothing"
+before = "|one two"
+keys = "dfx"
+after = "|one two"
+
+[[case]]
+name = "db deletes back to the word's start"
+before = "one tw|o"
+keys = "db"
+after = "one |o"
+
+[[case]]
+name = "d$ deletes to the line's end, and the caret steps back"
+before = "one |two\nthree"
+keys = "d$"
+after = "one| \nthree"
+
+[[case]]
+name = "dj deletes two lines"
+before = "one\nt|wo\nthree\nfour"
+keys = "dj"
+after = "one\nf|our"
+
+[[case]]
+name = "dG deletes to the last line"
+before = "one\nt|wo\nthree"
+keys = "dG"
+after = "o|ne"
+
+[[case]]
+name = "de deletes through the word's last character"
+before = "|one two"
+keys = "de"
+after = "| two"
+
+[[case]]
+name = "dt deletes up to a character"
+before = "|one, two"
+keys = "dt,"
+after = "|, two"
+
+[[case]]
+name = "d} from a paragraph's first column deletes its lines"
+before = "one\n\n|two\nthree\n\nfour"
+keys = "d}"
+after = "one\n\n|\nfour"
+
+[[case]]
+name = "d% deletes through the matching bracket"
+before = "a |(b c) d"
+keys = "d%"
+after = "a | d"
+
+[[case]]
+name = "c changes over a motion"
+key = "c"
+before = "one |two three"
+keys = "cex<Esc>"
+after = "one |x three"
+
+[[case]]
+name = "cw on a word acts like ce"
+before = "|one two"
+keys = "cw"
+after = "| two"
+mode = "INSERT"
+
+[[case]]
+name = "cw on a word's last character changes that character"
+before = "on|e two"
+keys = "cwx<Esc>"
+after = "on|x two"
+
+[[case]]
+name = "cw on blanks changes the blanks"
+before = "one|   two"
+keys = "cw-<Esc>"
+after = "one|-two"
+
+[[case]]
+name = "c2w changes two words"
+before = "|one two three"
+keys = "c2wx<Esc>"
+after = "|x three"
+
+[[case]]
+name = "y yanks over a motion, and the caret stays"
+key = "y"
+before = "one |two three"
+keys = "ywP"
+after = "one two| two three"
+
+[[case]]
+name = "yb moves the caret to the start of what it yanked"
+before = "one tw|o"
+keys = "yb"
+after = "one |two"
+
+[[case]]
+name = "> indents over a motion"
+key = ">"
+before = "o|ne\ntwo\nthree"
+keys = ">j"
+after = " | one\n  two\nthree"
+
+[[case]]
+name = "> leaves an empty line empty"
+before = "o|ne\n\nthree"
+keys = ">2j"
+after = " | one\n\n  three"
+
+[[case]]
+name = "<lt> removes an indent over a motion"
+key = "<lt>"
+before = "    o|ne\n  two\nthree"
+keys = "<lt>2j"
+after = "  on|e\ntwo\nthree"
+
+# Doubled operators
+
+[[case]]
+name = "dd deletes the line"
+key = "dd"
+before = "one\nt|wo\nthree"
+keys = "dd"
+after = "one\nt|hree"
+
+[[case]]
+name = "dd keeps the caret's column, as Neovim does"
+before = "one\ntw|o\nthree"
+keys = "dd"
+after = "one\nth|ree"
+
+[[case]]
+name = "a count before dd deletes that many lines"
+before = "one\nt|wo\nthree\nfour"
+keys = "2dd"
+after = "one\nf|our"
+
+[[case]]
+name = "cc changes the line, and keeps its indent"
+key = "cc"
+before = "one\n  t|wo\nthree"
+keys = "ccx<Esc>"
+after = "one\n  |x\nthree"
+
+[[case]]
+name = "yy yanks the line"
+key = "yy"
+before = "o|ne\ntwo"
+keys = "yyp"
+after = "one\n|one\ntwo"
+
+[[case]]
+name = ">> indents the line, and the caret keeps its column"
+key = ">>"
+before = "o|ne\ntwo"
+keys = ">>"
+after = " | one\ntwo"
+
+[[case]]
+name = "a count before >> indents that many lines"
+before = "o|ne\ntwo\nthree"
+keys = "2>>"
+after = " | one\n  two\nthree"
+
+[[case]]
+name = "<lt><lt> removes the line's indent"
+key = "<lt><lt>"
+before = "    o|ne\ntwo"
+keys = "<lt><lt>"
+after = "  on|e\ntwo"
+
+[[case]]
+name = "<lt><lt> on a line with less than an indent removes what it has"
+before = " o|ne"
+keys = "<lt><lt>"
+after = "on|e"
+
+# Commands on the caret's character or line
+
+[[case]]
+name = "D deletes to the line's end"
+key = "D"
+before = "one |two\nthree"
+keys = "D"
+after = "one| \nthree"
+
+[[case]]
+name = "C changes to the line's end"
+key = "C"
+before = "one |two\nthree"
+keys = "Cx<Esc>"
+after = "one |x\nthree"
+
+[[case]]
+name = "Y yanks to the line's end, as Neovim does"
+key = "Y"
+before = "one |two\nthree"
+keys = "Y$p"
+after = "one twotw|o\nthree"
+
+[[case]]
+name = "x deletes the character"
+key = "x"
+before = "o|ne"
+keys = "x"
+after = "o|e"
+
+[[case]]
+name = "x on the last character steps back"
+before = "on|e\ntwo"
+keys = "x"
+after = "o|n\ntwo"
+
+[[case]]
+name = "X deletes the character before"
+key = "X"
+before = "on|e"
+keys = "X"
+after = "o|e"
+
+[[case]]
+name = "X at the line's start deletes nothing"
+before = "one\n|two"
+keys = "X"
+after = "one\n|two"
+
+[[case]]
+name = "s changes the character"
+key = "s"
+before = "o|ne"
+keys = "sxy<Esc>"
+after = "ox|ye"
+
+[[case]]
+name = "S changes the line"
+key = "S"
+before = "  o|ne\ntwo"
+keys = "Sx<Esc>"
+after = "  |x\ntwo"
+
+[[case]]
+name = "r replaces the character"
+key = "r"
+before = "o|ne"
+keys = "rx"
+after = "o|xe"
+
+[[case]]
+name = "r with a count replaces that many characters"
+before = "|one two"
+keys = "3rx"
+after = "xx|x two"
+
+[[case]]
+name = "r with a count past the line's end replaces nothing"
+before = "on|e\ntwo"
+keys = "3rx"
+after = "on|e\ntwo"
+
+[[case]]
+name = "r waits for its character in replace mode"
+before = "o|ne"
+keys = "r"
+after = "o|ne"
+mode = "REPLACE"
+pending = "r"
+
+[[case]]
+name = "J joins the next line with one space"
+key = "J"
+before = "o|ne\n  two\nthree"
+keys = "J"
+after = "one| two\nthree"
+
+[[case]]
+name = "J with a count joins that many lines"
+before = "o|ne\ntwo\nthree\nfour"
+keys = "3J"
+after = "one two| three\nfour"
+
+[[case]]
+name = "J adds no space before a closing parenthesis, nor after a space"
+before = "(o|ne\n) \ntwo"
+keys = "JJ"
+after = "(one) |two"
+
+[[case]]
+name = "J with an empty line adds no space"
+before = "o|ne\n\ntwo"
+keys = "J"
+after = "on|e\ntwo"
+
+[[case]]
+name = "J on the last line joins nothing"
+before = "one\nt|wo"
+keys = "J"
+after = "one\nt|wo"
+
+[[case]]
+name = "~ switches the character's case, and moves on"
+key = "~"
+before = "|one"
+keys = "~"
+after = "O|ne"
+
+[[case]]
+name = "~ with a count stops at the line's end"
+before = "o|nE\ntwo"
+keys = "5~"
+after = "oN|e\ntwo"
+
+[[case]]
+name = "p puts after the caret"
+key = "p"
+before = "|one two"
+keys = "xp"
+after = "n|oe two"
+
+[[case]]
+name = "p puts lines below the caret's line"
+before = "o|ne\n  two\nthree"
+keys = "jddp"
+after = "one\nthree\n  |two"
+
+[[case]]
+name = "p with a count puts that many times"
+before = "|ab"
+keys = "x3p"
+after = "baa|a"
+
+[[case]]
+name = "p with a text of several lines leaves the caret at its start"
+before = "|one\ntwo three"
+keys = "y/th<CR>$p"
+after = "one|one\ntwo \ntwo three"
+
+[[case]]
+name = "P puts before the caret"
+key = "P"
+before = "o|ne two"
+keys = "xP"
+after = "o|ne two"
+
+[[case]]
+name = "P puts lines above the caret's line"
+before = "one\n  t|wo"
+keys = "yykP"
+after = "  |two\none\n  two"
+
+[[case]]
+name = "p with nothing yanked puts nothing"
+before = "o|ne"
+keys = "p"
+after = "o|ne"
+
+# Text objects
+
+[[case]]
+name = "iw is the word"
+key = "iw"
+before = "one t|wo three"
+keys = "diw"
+after = "one | three"
+
+[[case]]
+name = "iw on blanks is the blanks"
+before = "one|   two"
+keys = "diw"
+after = "one|two"
+
+[[case]]
+name = "aw is the word and the blanks after it"
+key = "aw"
+before = "one t|wo three"
+keys = "daw"
+after = "one |three"
+
+[[case]]
+name = "aw on a line's last word takes the blanks before it"
+before = "one two thr|ee"
+keys = "daw"
+after = "one tw|o"
+
+[[case]]
+name = "a count before aw takes that many words"
+before = "o|ne two three four"
+keys = "d2aw"
+after = "|three four"
+
+[[case]]
+name = "iW is the word with its punctuation"
+key = "iW"
+before = "one fo|o.bar three"
+keys = "diW"
+after = "one | three"
+
+[[case]]
+name = "aW is the word with its punctuation and the blanks after it"
+key = "aW"
+before = "one fo|o.bar three"
+keys = "daW"
+after = "one |three"
+
+[[case]]
+name = "ip is the paragraph"
+key = "ip"
+before = "one\n\ntwo\nth|ree\n\nfour"
+keys = "dip"
+after = "one\n\n|\nfour"
+
+[[case]]
+name = "ap is the paragraph and the blank lines after it"
+key = "ap"
+before = "one\n\ntwo\nth|ree\n\nfour"
+keys = "dap"
+after = "one\n\nfo|ur"
+
+[[case]]
+name = "ap on the last paragraph takes the blank lines before it"
+before = "one\n\ntwo\nth|ree"
+keys = "dap"
+after = "on|e"
+
+[[case]]
+name = "i\" is a string's text"
+key = "i\""
+before = "say \"one t|wo\" now"
+keys = "di\""
+after = "say \"|\" now"
+
+[[case]]
+name = "i\" before a string on the line takes that string"
+before = "s|ay \"one two\" now"
+keys = "ci\"x<Esc>"
+after = "say \"|x\" now"
+
+[[case]]
+name = "i\" skips an escaped quote"
+before = "say \"one \\\" t|wo\" now"
+keys = "di\""
+after = "say \"|\" now"
+
+[[case]]
+name = "a\" is a string and the blanks after it"
+key = "a\""
+before = "say \"one t|wo\" now"
+keys = "da\""
+after = "say |now"
+
+[[case]]
+name = "i' is a single-quoted string's text"
+key = "i'"
+before = "say 'one t|wo' now"
+keys = "di'"
+after = "say '|' now"
+
+[[case]]
+name = "a' is a single-quoted string and the blanks after it"
+key = "a'"
+before = "say 'one t|wo' now"
+keys = "da'"
+after = "say |now"
+
+[[case]]
+name = "i` is a backtick string's text"
+key = "i`"
+before = "run `ura c|heck` now"
+keys = "di`"
+after = "run `|` now"
+
+[[case]]
+name = "a` is a backtick string and the blanks after it"
+key = "a`"
+before = "run `ura c|heck` now"
+keys = "da`"
+after = "run |now"
+
+[[case]]
+name = "i( is what the parentheses hold"
+key = "i("
+before = "f(one, (t|wo), three)"
+keys = "di("
+after = "f(one, (|), three)"
+
+[[case]]
+name = "a count before i( takes that many levels"
+before = "f(one, (t|wo), three)"
+keys = "d2i("
+after = "f(|)"
+
+[[case]]
+name = "a( is the parentheses and what they hold"
+key = "a("
+before = "f(one, (t|wo), three)"
+keys = "da("
+after = "f(one, |, three)"
+
+[[case]]
+name = "i[ is what the brackets hold"
+key = "i["
+before = "a [one t|wo] b"
+keys = "di["
+after = "a [|] b"
+
+[[case]]
+name = "a[ is the brackets and what they hold"
+key = "a["
+before = "a [one t|wo] b"
+keys = "da["
+after = "a | b"
+
+[[case]]
+name = "i{ is what the braces hold"
+key = "i{"
+before = "a {one t|wo} b"
+keys = "di{"
+after = "a {|} b"
+
+[[case]]
+name = "i{ over lines leaves the braces on their lines"
+before = "if {\n  o|ne\n  two\n}"
+keys = "di{"
+after = "if {\n|}"
+
+[[case]]
+name = "a{ is the braces and what they hold"
+key = "a{"
+before = "a {one t|wo} b"
+keys = "da{"
+after = "a | b"
+
+[[case]]
+name = "it is what a tag holds"
+key = "it"
+before = "<p>one <b>t|wo</b> three</p>"
+keys = "dit"
+after = "<p>one <b>|</b> three</p>"
+
+[[case]]
+name = "a count before it takes that many levels"
+before = "<p>one <b>t|wo</b> three</p>"
+keys = "d2it"
+after = "<p>|</p>"
+
+[[case]]
+name = "at is a tag and what it holds"
+key = "at"
+before = "<p>one <b>t|wo</b> three</p>"
+keys = "dat"
+after = "<p>one | three</p>"
+
+[[case]]
+name = "at matches a nested tag of the same name, over lines"
+before = "<div>\n  <div>a</div> |b\n</div> c"
+keys = "dat"
+after = "| c"
+
+[[case]]
+name = "an object with nothing around the caret does nothing"
+before = "one t|wo three"
+keys = "di("
+after = "one t|wo three"
+
+[[case]]
+name = "c with an empty object still starts inserting"
+before = "f(|)"
+keys = "ci(x<Esc>"
+after = "f(|x)"
+
+[[case]]
+name = "y with an object moves the caret to its start"
+before = "one t|wo three"
+keys = "yiw"
+after = "one |two three"
+
+# Visual mode
+
+[[case]]
+name = "v selects characters"
+key = "v"
+before = "|one two"
+keys = "ve"
+after = "one| two"
+mode = "VISUAL"
+selected = "one"
+
+[[case]]
+name = "v then an operator acts on the selection"
+before = "o|ne two"
+keys = "vld"
+after = "o| two"
+
+[[case]]
+name = "v then y yanks the selection, and the caret goes to its start"
+before = "one |two"
+keys = "veyP"
+after = "one tw|otwo"
+
+[[case]]
+name = "v then c changes the selection"
+before = "|one two"
+keys = "vecx<Esc>"
+after = "|x two"
+
+[[case]]
+name = "v again leaves visual mode"
+before = "o|ne two"
+keys = "vlv"
+after = "on|e two"
+
+[[case]]
+name = "Escape leaves visual mode, and the caret stays"
+before = "o|ne two"
+keys = "vl<Esc>"
+after = "on|e two"
+
+[[case]]
+name = "v selects backwards"
+before = "one t|wo"
+keys = "vb"
+after = "one |two"
+mode = "VISUAL"
+selected = "tw"
+
+[[case]]
+name = "v with an object selects it"
+before = "one (t|wo three) four"
+keys = "vi("
+after = "one (two three|) four"
+mode = "VISUAL"
+selected = "two three"
+
+[[case]]
+name = "v then $ takes the line break"
+before = "o|ne\ntwo"
+keys = "v$d"
+after = "o|two"
+
+[[case]]
+name = "v then ~ switches the selection's case"
+before = "|one two"
+keys = "ve~"
+after = "|ONE two"
+
+[[case]]
+name = "v then r replaces every selected character"
+before = "|one two"
+keys = "verx"
+after = "|xxx two"
+
+[[case]]
+name = "v then J joins the selected lines"
+before = "o|ne\ntwo\nthree"
+keys = "vjjJ"
+after = "one two| three"
+
+[[case]]
+name = "v then p replaces the selection with the register"
+before = "|one two"
+keys = "yewvep"
+after = "one on|e"
+
+[[case]]
+name = "V selects lines"
+key = "V"
+before = "one\nt|wo\nthree"
+keys = "V"
+after = "one\ntwo\n|three"
+mode = "VISUAL LINE"
+selected = "two\n"
+
+[[case]]
+name = "V then d deletes the lines"
+before = "one\nt|wo\nthree\nfour"
+keys = "Vjd"
+after = "one\nf|our"
+
+[[case]]
+name = "V then > indents the lines"
+before = "o|ne\ntwo\nthree"
+keys = "Vj>"
+after = " | one\n  two\nthree"
+
+[[case]]
+name = "a count before > in visual mode indents that many times"
+before = "o|ne\ntwo"
+keys = "V2>"
+after = " |   one\ntwo"
+
+[[case]]
+name = "V then y yanks the lines"
+before = "one\nt|wo\nthree"
+keys = "Vyjp"
+after = "one\ntwo\nthree\n|two"
+
+[[case]]
+name = "v then V changes to lines"
+before = "o|ne two\nthree"
+keys = "vVd"
+after = "t|hree"
+
+[[case]]
+name = "o moves the caret to the selection's other end"
+key = "vo"
+before = "one |two three"
+keys = "veob"
+after = "|one two three"
+mode = "VISUAL"
+selected = "one two"
+
+# Registers
+
+[[case]]
+name = "a delete goes to the unnamed register"
+before = "|one two"
+keys = "dwep"
+after = "twoone| "
+
+[[case]]
+name = "\"a is a named register"
+key = "\"a"
+before = "|one two three"
+keys = "\"ayewyew\"ap"
+after = "one two ton|ehree"
+
+[[case]]
+name = "\"0 keeps the last yank through a delete"
+key = "\"0"
+before = "|one two three"
+keys = "yewdw\"0P"
+after = "one on|ethree"
+
+[[case]]
+name = "\"+ yanks to the system clipboard"
+key = "\"+"
+before = "|one two"
+keys = "\"+ye"
+after = "|one two"
+copied = "one"
+
+[[case]]
+name = "\"+ puts the system clipboard"
+before = "|one two"
+keys = "\"+p"
+after = "oab|cne two"
+clipboard = "abc"
+
+[[case]]
+name = "\"+ puts a clipboard text that ends with a line break as lines"
+before = "o|ne\ntwo"
+keys = "\"+p"
+after = "one\n|abc\ntwo"
+clipboard = "abc\n"
+
+[[case]]
+name = "a yank reaches the system clipboard"
+before = "|one two"
+keys = "yw"
+after = "|one two"
+copied = "one "
+
+[[case]]
+name = "a yank of lines reaches the system clipboard with its line break"
+before = "o|ne\ntwo"
+keys = "yy"
+after = "o|ne\ntwo"
+copied = "one\n"
+
+[[case]]
+name = "a delete never reaches the system clipboard"
+before = "|one two"
+keys = "dwx"
+after = "|wo"
+clipboard = "kept"
+copied = "kept"
+
+[[case]]
+name = "a yank to a named register does not reach the system clipboard"
+before = "|one two"
+keys = "\"ayw"
+after = "|one two"
+clipboard = "kept"
+copied = "kept"
+
+[[case]]
+name = "p puts Vim's register, not the system clipboard"
+before = "|one two"
+keys = "yep"
+after = "oon|ene two"
+clipboard = "other"
+
+# Search
+
+[[case]]
+name = "/ searches forward"
+key = "/"
+before = "|one two three two"
+keys = "/two<CR>"
+after = "one |two three two"
+
+[[case]]
+name = "/ shows what is typed, and Backspace removes a character"
+before = "|one two"
+keys = "/twx<BS>"
+after = "|one two"
+pending = "/tw"
+
+[[case]]
+name = "/ wraps around the text's end"
+before = "one two |three"
+keys = "/one<CR>"
+after = "|one two three"
+
+[[case]]
+name = "/ with a text that is nowhere does not move"
+before = "one |two"
+keys = "/xyz<CR>"
+after = "one |two"
+
+[[case]]
+name = "Escape leaves the search"
+before = "|one two"
+keys = "/two<Esc>"
+after = "|one two"
+
+[[case]]
+name = "? searches backward"
+key = "?"
+before = "one two three |two"
+keys = "?t<CR>"
+after = "one two |three two"
+
+[[case]]
+name = "n repeats the search"
+key = "n"
+before = "|one two three two"
+keys = "/two<CR>n"
+after = "one two three |two"
+
+[[case]]
+name = "N repeats the search the other way"
+key = "N"
+before = "|one two three two"
+keys = "/two<CR>nN"
+after = "one |two three two"
+
+[[case]]
+name = "n after ? searches backward"
+before = "two one two |one"
+keys = "?two<CR>n"
+after = "|two one two one"
+
+[[case]]
+name = "* searches the word under the caret, as a whole word"
+key = "*"
+before = "o|ne ones one"
+keys = "*"
+after = "one ones |one"
+
+[[case]]
+name = "# searches the word under the caret backward"
+key = "#"
+before = "one ones o|ne"
+keys = "#"
+after = "|one ones one"
+
+[[case]]
+name = "d with a search deletes up to the match"
+before = "|one two three"
+keys = "d/th<CR>"
+after = "|three"
+
+# Repeat
+
+[[case]]
+name = ". repeats the last change"
+key = "."
+before = "|one two three"
+keys = "dw."
+after = "|three"
+
+[[case]]
+name = ". repeats what was typed"
+before = "|one two three"
+keys = "cwx<Esc>w.w."
+after = "x x |x"
+
+[[case]]
+name = ". after a counted change repeats it with its count"
+before = "|abcdefgh"
+keys = "3x."
+after = "|gh"
+
+[[case]]
+name = ". after d2w deletes two more words"
+before = "|a b c d e"
+keys = "d2w."
+after = "|e"
+
+[[case]]
+name = "a count before . replaces the change's count"
+before = "|abcdefgh"
+keys = "3x2."
+after = "|fgh"
+
+[[case]]
+name = ". repeats an insert"
+before = "|one"
+keys = "ix<Esc>.."
+after = "|xxxone"
+
+[[case]]
+name = ". repeats an opened line"
+before = "o|ne"
+keys = "otwo<Esc>."
+after = "one\ntwo\ntw|o"
+
+[[case]]
+name = ". repeats a change in visual mode on as much text"
+before = "|one two three"
+keys = "vlldw."
+after = " | three"
+
+[[case]]
+name = ". does not repeat a yank or a motion"
+before = "|one two three"
+keys = "xywj."
+after = "|e two three"
+
+# Undo
+
+[[case]]
+name = "u takes back the last change"
+key = "u"
+before = "one |two three"
+keys = "dwu"
+after = "one |two three"
+
+[[case]]
+name = "u takes back a counted change as one step"
+before = "|one two three"
+keys = "3xu"
+after = "|one two three"
+
+[[case]]
+name = "u takes back d2w as one step"
+before = "|one two three"
+keys = "d2wu"
+after = "|one two three"
+
+[[case]]
+name = "u takes back a repeated change alone"
+before = "|abcdefgh"
+keys = "3x.u"
+after = "|defgh"
+
+[[case]]
+name = "u after a change in visual mode comes back to normal mode"
+before = "one |two three"
+keys = "vedu"
+after = "one |two three"
+
+[[case]]
+name = "Ctrl-r takes back an undo"
+key = "<C-r>"
+before = "one |two three"
+keys = "dwu<C-r>"
+after = "one |three"
+
+# Insert mode
+
+[[case]]
+name = "i inserts before the caret"
+key = "i"
+before = "o|ne"
+keys = "ix<Esc>"
+after = "o|xne"
+
+[[case]]
+name = "a inserts after the caret"
+key = "a"
+before = "o|ne"
+keys = "ax<Esc>"
+after = "on|xe"
+
+[[case]]
+name = "I inserts before the line's first character that is not blank"
+key = "I"
+before = "  on|e"
+keys = "Ix<Esc>"
+after = "  |xone"
+
+[[case]]
+name = "A inserts at the line's end"
+key = "A"
+before = "o|ne\ntwo"
+keys = "Ax<Esc>"
+after = "one|x\ntwo"
+
+[[case]]
+name = "o opens a line below, with the line's indent"
+key = "o"
+before = "  o|ne\ntwo"
+keys = "ox<Esc>"
+after = "  one\n  |x\ntwo"
+
+[[case]]
+name = "O opens a line above, with the line's indent"
+key = "O"
+before = "one\n  t|wo"
+keys = "Ox<Esc>"
+after = "one\n  |x\n  two"
+
+[[case]]
+name = "an opened line left empty loses its indent"
+before = "  o|ne"
+keys = "o<Esc>"
+after = "  one\n|"
+
+[[case]]
+name = "a count before i repeats what was typed"
+before = "|one"
+keys = "3ix<Esc>"
+after = "xx|xone"
+
+[[case]]
+name = "a count before o opens that many lines"
+before = "o|ne"
+keys = "2ox<Esc>"
+after = "one\nx\n|x"
+
+[[case]]
+name = "keys typed in insert mode are left to the field"
+before = "|one"
+keys = "idw<Esc>"
+after = "d|wone"
+
+[[case]]
+name = "Escape from insert mode steps back, but not past the line's start"
+before = "one\n|two"
+keys = "i<Esc>"
+after = "one\n|two"
+
+# Escape and Enter
+
+[[case]]
+name = "Escape in normal mode is left to the field"
+before = "o|ne"
+keys = "<Esc>"
+after = "o|ne"
+passed = "<Esc>"
+
+[[case]]
+name = "Escape after a pending key only drops it"
+before = "o|ne two"
+keys = "2d<Esc>w"
+after = "one |two"
+
+[[case]]
+name = "an operator waiting for its motion shows in the status"
+before = "o|ne"
+keys = "\"a2d3"
+after = "o|ne"
+mode = "OPERATOR PENDING"
+pending = "\"a2d3"
+
+[[case]]
+name = "Enter in normal mode is left to the field"
+before = "o|ne"
+keys = "<CR>"
+after = "o|ne"
+passed = "<CR>"
+
+# The edges
+
+[[case]]
+name = "an empty text takes every key"
+before = "|"
+keys = "xXddDJ~wbe$0^Gggjkhl{}%dwdiwdapyy>><lt><lt>"
+after = "|"
+
+[[case]]
+name = "an empty text takes an insert"
+before = "|"
+keys = "ione<Esc>"
+after = "on|e"
+
+[[case]]
+name = "o in an empty text opens a second line"
+before = "|"
+keys = "ox<Esc>"
+after = "\n|x"
+
+[[case]]
+name = "cc in an empty text starts inserting"
+before = "|"
+keys = "ccx<Esc>"
+after = "|x"
+
+[[case]]
+name = "dd on the only line leaves an empty text"
+before = "o|ne"
+keys = "dd"
+after = "|"
+
+[[case]]
+name = "dd on the last line moves the caret up"
+before = "one\n  two\nth|ree"
+keys = "dd"
+after = "one\n  |two"
+
+[[case]]
+name = "j on the last line does not move"
+before = "one\nt|wo"
+keys = "j"
+after = "one\nt|wo"
+
+[[case]]
+name = "dj on the last line deletes nothing"
+before = "one\nt|wo"
+keys = "dj"
+after = "one\nt|wo"
+
+[[case]]
+name = "p of lines on the last line adds a line"
+before = "one\nt|wo"
+keys = "yyp"
+after = "one\ntwo\n|two"
+
+[[case]]
+name = "a count of lines past the end goes to the last line"
+before = "o|ne\ntwo\nthree"
+keys = "9j"
+after = "one\ntwo\nt|hree"
+
+[[case]]
+name = "a count of characters past the line's end deletes to the end"
+before = "on|e two\nthree"
+keys = "9x"
+after = "o|n\nthree"
+
+[[case]]
+name = "a count of words past the end deletes to the end"
+before = "one |two three"
+keys = "d9w"
+after = "one| "
+
+[[case]]
+name = "a count of lines past the end deletes to the last line"
+before = "one\nt|wo\nthree"
+keys = "9dd"
+after = "o|ne"
+
+[[case]]
+name = "a count before dd on the last line deletes nothing"
+before = "one\nt|wo"
+keys = "2dd"
+after = "one\nt|wo"
+
+[[case]]
+name = "a count of words back past the start goes to the start"
+before = "one tw|o"
+keys = "9b"
+after = "|one two"
+
+[[case]]
+name = "dw on a line's last word keeps the line break"
+before = "one |two\nthree"
+keys = "dw"
+after = "one| \nthree"
+
+[[case]]
+name = "dw on a line's last character deletes it alone"
+before = "one tw|o\nthree"
+keys = "dw"
+after = "one t|w\nthree"
+
+[[case]]
+name = "dw on the text's last word deletes to the end"
+before = "one |two"
+keys = "dw"
+after = "one| "
+
+[[case]]
+name = "dw on an empty line deletes the line"
+before = "one\n|\ntwo"
+keys = "dw"
+after = "one\n|two"
+
+[[case]]
+name = "d2w over a line break takes the line break"
+before = "one |two\nthree four"
+keys = "d2w"
+after = "one |four"
+
+[[case]]
+name = "a character of two bytes is one character"
+before = "|éa"
+keys = "x"
+after = "|a"
+
+[[case]]
+name = "l moves over wide characters one by one"
+before = "|日本語"
+keys = "ll"
+after = "日本|語"
+
+[[case]]
+name = "a character outside the basic plane is one character"
+before = "a|😀b"
+keys = "x"
+after = "a|b"
+
+[[case]]
+name = "the caret lands after a character outside the basic plane"
+before = "|😀😀ab"
+keys = "fa"
+after = "😀😀|ab"
+
+[[case]]
+name = "a letter with a combining accent is one character"
+before = "|éa"
+keys = "xix<Esc>"
+after = "|xa"
+
+[[case]]
+name = "$ lands on a wide last character"
+before = "|ab日本"
+keys = "$"
+after = "ab日|本"
+
+[[case]]
+name = "~ switches an accented letter's case"
+before = "|éa"
+keys = "~"
+after = "É|a"
+
+[[case]]
+name = "r replaces a wide character"
+before = "日|本語"
+keys = "rx"
+after = "日|x語"
+
+[[case]]
+name = "p after a wide character"
+before = "|日本"
+keys = "xp"
+after = "本|日"
+
+[[case]]
+name = "w moves over words of wide characters"
+before = "|日本語 と 英語"
+keys = "ww"
+after = "日本語 と |英語"
+
+[[case]]
+name = "dd between lines with characters outside the basic plane"
+before = "😀a\n|😀b\n😀c"
+keys = "ddx"
+after = "😀a\n|c"
+
+[[case]]
+name = "j keeps its column as a terminal counts it, over wide characters"
+before = "日本|語\nabcd"
+keys = "j"
+after = "日本語\nabc|d"
+
+# What a comparison with Neovim on random keys found
+
+[[case]]
+name = "l in visual mode reaches the line's end, and the selection takes the line break"
+before = "ab|c\nabc"
+keys = "vld"
+after = "ab|abc"
+
+[[case]]
+name = "x and s in visual mode delete and change the selection"
+before = "o|ne two"
+keys = "vlxvlsx<Esc>"
+after = "o|xwo"
+
+[[case]]
+name = "ch at a line's start still inserts"
+before = "one\n|two"
+keys = "chx<Esc>"
+after = "one\n|xtwo"
+
+[[case]]
+name = "s on an empty line inserts"
+before = "one\n|"
+keys = "sx<Esc>"
+after = "one\n|x"
+
+[[case]]
+name = "dw on a line's last blanks keeps the line break"
+before = "one |   \n  two"
+keys = "dw"
+after = "one| \n  two"
+
+[[case]]
+name = "a count before D deletes through the lines below"
+before = "one |two\nthree\nfour"
+keys = "2D"
+after = "one| \nfour"
+
+[[case]]
+name = "a count before iw takes words and the blanks between them"
+before = "one tw|o three"
+keys = "d3iw"
+after = "one| "
+
+[[case]]
+name = "a count before i\" takes the quotes too"
+before = "say \"one t|wo\" now"
+keys = "d2i\""
+after = "say | now"
+
+[[case]]
+name = "i( before every pair takes the next one, on a later line too"
+before = "x |y\n(a b) c"
+keys = "di("
+after = "x y\n(|) c"
+
+[[case]]
+name = "d{ from a line's first column takes whole lines, and goes to the first character that is not blank"
+before = "one\ntwo\n|  three"
+keys = "d{"
+after = "  |three"
+
+[[case]]
+name = "iw again in visual mode takes the blanks, then the next word"
+before = "one t|wo three four"
+keys = "viwiwiwd"
+after = "one | four"
+
+[[case]]
+name = "aw in visual mode extends backward from a selection that runs backward"
+before = "one two th|ree four"
+keys = "vbawd"
+after = "one |ee four"
+
+[[case]]
+name = "ip again in visual mode takes the blank lines, then the next paragraph"
+before = "o|ne\n\ntwo\n\nthree"
+keys = "vipipipd"
+after = "|\nthree"
+
+[[case]]
+name = "i( again in visual mode takes the pair around"
+before = "f(one, (t|wo), three)"
+keys = "vi(i(d"
+after = "f(|)"
+
+[[case]]
+name = "it again in visual mode takes the tag around"
+before = "<p>one <b>t|wo</b> three</p>"
+keys = "vatatd"
+after = "|"
+
+[[case]]
+name = "V then y leaves the caret at the first line's start"
+before = "one\ntw|o\nthree"
+keys = "Vjy"
+after = "one\n|two\nthree"
+
+[[case]]
+name = "V then an operator leaves the caret alone when it is above where V started"
+before = "one\ntw|o\nthree"
+keys = "Vky"
+after = "on|e\ntwo\nthree"
+
+[[case]]
+name = "p in visual mode with nothing yanked deletes the selection"
+before = "o|ne two"
+keys = "vp"
+after = "o|e two"
+
+[[case]]
+name = "p in visual mode keeps what it replaced in the register"
+before = "|one two"
+keys = "yiwwviwp$p"
+after = "one onetw|o"
+
+[[case]]
+name = "P in visual mode keeps the register"
+before = "|one two"
+keys = "yiwwviwP$p"
+after = "one oneon|e"
+
+[[case]]
+name = "p of lines over a selection of characters puts them on lines of their own"
+before = "o|ne\ntwo three four"
+keys = "yyjwviwp"
+after = "one\ntwo \n|one\n four"
+
+[[case]]
+name = "J with a count past the last line joins the lines there are"
+before = "one\ntw|o\nthree"
+keys = "5J"
+after = "one\ntwo| three"
+
+[[case]]
+name = "j keeps its column over a tab, which runs to the next multiple of eight"
+before = "a\tb|c\n\txyz"
+keys = "j"
+after = "a\tbc\n\tx|yz"
+
+[[case]]
+name = "> turns a tab of the indent into blanks"
+before = "\to|ne"
+keys = ">>"
+after = "         | one"
+
+[[case]]
+name = "# on punctuation, with no word after it on the line, searches the punctuation"
+before = "a => b |=>"
+keys = "#"
+after = "a |=> b =>"
+
+[[case]]
+name = "* from before a word takes the next word on the line"
+before = "|  one two one"
+keys = "*"
+after = "  one two |one"
+
+[[case]]
+name = "the column j aims for lasts through visual mode, and ends with an operator"
+before = "abcd|ef\nab\nabcdef\nab\nabcdef"
+keys = "jvvjjyyj"
+after = "abcdef\nab\nabcdef\nab\na|bcdef"

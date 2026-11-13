@@ -1,0 +1,286 @@
+// One section of the priorities: its title, what it holds, its rows in the order the human sets,
+// a refused move's words under them, and its Add row. Its keys are its own scope's, on while the
+// section has the pane's focus, so Now, Next, and Later each have `j` `k` `m` without a clash.
+import { type Accessor, cleanup, computed, effect, untracked, View } from "nsh";
+import type { Order } from "./moves";
+import { shownIn } from "./order";
+import { stateOf } from "../shell/Sidebar";
+import { broughtBack, remember, took } from "../shell/undo";
+import { call, record } from "../../store";
+import type { ProposalItem } from "../../store/protocol";
+import { Refusal } from "../../ui/controls";
+import { KeyScope, registerKey } from "../../ui/keys/registry";
+import { isNarrow } from "../../ui/width";
+import { type Cursor, createCursor, DragOrder, Empty, Line, List, Row } from "../../ui/lists";
+import { usePane } from "../../ui/layout";
+import { TextField } from "../../ui/text";
+
+/** A proposal's words, as one line of plain text. */
+export const plain = (proposal: Pick<ProposalItem, "spans">) =>
+  proposal.spans.map((span) => span.text).join("");
+
+/** What a proposal's row shows besides its words: its file, or its merge. */
+function looks(proposal: ProposalItem | undefined) {
+  if (proposal?.merged) {
+    const number = proposal.merged.pullRequest?.number;
+    return {
+      icon: "circle-check" as const,
+      meta: number === undefined ? "Merged" : `Merged · #${number}`,
+    };
+  }
+  if (proposal?.file) return { icon: "file-text" as const, meta: undefined };
+  return { icon: undefined, meta: undefined };
+}
+
+/** A proposal's row: its words whole, its nested lines counted; `current` while it is open. */
+export function ProposalLine(props: { current?: boolean; proposal: ProposalItem | undefined }) {
+  const look = () => looks(props.proposal);
+  const nested = () => props.proposal?.children.length ?? 0;
+  return (
+    <Line
+      current={props.current}
+      icon={look().icon}
+      label={props.proposal === undefined ? "" : plain(props.proposal)}
+      meta={look().meta ?? (nested() > 0 ? `+${nested()}` : undefined)}
+    />
+  );
+}
+
+export type SectionProps = {
+  /** Whether the keys go to this section now. */
+  active: () => boolean;
+  /** The section's cursor, made, for the pane's keys that cross sections. */
+  cursor: (cursor: Cursor) => void;
+  id: string;
+  onOpen: (key: string) => void;
+  /** A row was pointed at or pressed: the section takes the focus. */
+  onTouched: () => void;
+  order: Order;
+  proposals: Accessor<ReadonlyMap<string, ProposalItem>>;
+  repo: string;
+  /** The proposal open beside the list: marked `current`, and the keys start on it. */
+  open?: string;
+  /** Its heading: "Now". */
+  title: string;
+};
+
+/** The section's rows, which the human orders: by keys, the grip, or a long press. */
+export function Section(props: SectionProps) {
+  const keys = computed(() => shownIn(props.order.order(), props.id, props.order.runs));
+  const items = computed(() => keys().map((id) => ({ id })));
+  const cursor = createCursor(items, {
+    initial: props.open,
+    onChange: (id) => id !== undefined && props.onTouched(),
+  });
+  props.cursor(cursor);
+  // A proposal an undo brought back: the cursor goes to it once the section shows it.
+  effect(() => {
+    const back = broughtBack();
+    if (back === null || back.repo !== props.repo) return;
+    const key = keys().find((one) => {
+      const proposal = props.proposals().get(one);
+      return proposal !== undefined && plain(proposal) === back.subject;
+    });
+    if (key === undefined) return;
+    untracked(() => {
+      took(back.id);
+      cursor.set(key, { reveal: true });
+      props.onTouched();
+    });
+  });
+  const label = (key: string) => {
+    const proposal = props.proposals().get(key);
+    return proposal === undefined ? "The proposal" : `“${plain(proposal)}”`;
+  };
+  const refusal = () => {
+    const refused = props.order.refusal();
+    return refused?.section === props.id ? refused.words : null;
+  };
+  return (
+    <KeyScope kind="pane" name={props.id} on={props.active}>
+      <View style={{ gap: 4 }}>
+        <DragOrder
+          cursor={cursor}
+          label={label}
+          onMove={(key, to) => props.order.move({ index: to, key, section: props.id })}
+          onOpen={props.onOpen}
+          row={(id) => (
+            <ProposalLine current={id() === props.open} proposal={props.proposals().get(id())} />
+          )}
+          testID={`section-${props.id}`}
+        />
+        <If when={keys().length === 0}>
+          <Empty
+            icon="list"
+            title={`Nothing in ${props.title}`}
+            words={
+              isNarrow()
+                ? "Add a proposal below."
+                : "Add a proposal below, or move one here from its page, or by H or L beside."
+            }
+          />
+        </If>
+        <If when={refusal()}>
+          {(words) => (
+            <View style={{ paddingHorizontal: 8 }}>
+              <Refusal testID={`refusal-${props.id}`} words={words()} />
+            </View>
+          )}
+        </If>
+        <Add active={props.active} repo={props.repo} section={props.id} />
+      </View>
+    </KeyScope>
+  );
+}
+
+/** The status of a running proposal's feature, as the server decides it for every view. */
+function statusOf(repo: string, proposal: ProposalItem | undefined) {
+  const folder = proposal?.running?.folder;
+  const features = record("Workspace", { repo })()?.features ?? [];
+  return features.find((feature) => feature.id === folder);
+}
+
+/**
+ * Where a running proposal's feature is, in words: its task while an agent works on it, else its
+ * status as the sidebar says it ("Waits for your Continue", "Needs you", "Idle").
+ */
+export function stepWords(repo: string, proposal: ProposalItem | undefined) {
+  const step = proposal?.running?.step;
+  if (step === undefined) return undefined;
+  const status = statusOf(repo, proposal)?.status;
+  if (status === undefined) return step.task ?? undefined;
+  return status.status === "working" ? (step.task ?? status.label) : status.label;
+}
+
+/** Who a running proposal's feature waits on, as its row's icon and hue: the sidebar's. */
+function stepLook(repo: string, proposal: ProposalItem | undefined) {
+  const feature = statusOf(repo, proposal);
+  return feature === undefined ? { hue: undefined, icon: "flag" as const } : stateOf(feature);
+}
+
+/** The running proposals, apart: each opens its feature. Nothing to order here. */
+export function Ongoing(props: {
+  active: () => boolean;
+  /**
+   * A column: who it waits on is the icon's, as in the sidebar, and only a task is in words, so a
+   * row is not two lines for a state.
+   */
+  compact: () => boolean;
+  cursor: (cursor: Cursor) => void;
+  keys: Accessor<ReadonlyArray<string>>;
+  onOpen: (key: string) => void;
+  onTouched: () => void;
+  proposals: Accessor<ReadonlyMap<string, ProposalItem>>;
+  repo: string;
+}) {
+  const items = computed(() => props.keys().map((id) => ({ id })));
+  const cursor = createCursor(items, { onChange: (id) => id !== undefined && props.onTouched() });
+  props.cursor(cursor);
+  return (
+    <KeyScope kind="pane" name="ongoing" on={props.active}>
+      <List
+        cursor={cursor}
+        onOpen={props.onOpen}
+        openLabel="open its feature"
+        row={(id) => {
+          const proposal = () => props.proposals().get(id());
+          return (
+            <Line
+              hue={stepLook(props.repo, proposal()).hue}
+              icon={stepLook(props.repo, proposal()).icon}
+              label={proposal() === undefined ? "" : plain(proposal()!)}
+              meta={
+                props.compact()
+                  ? (proposal()?.running?.step?.task ?? undefined)
+                  : stepWords(props.repo, proposal())
+              }
+            />
+          );
+        }}
+        testID="section-ongoing"
+      />
+    </KeyScope>
+  );
+}
+
+/** What opens each shown section's Add line, by the section's id. */
+const opens = new Map<string, () => void>();
+
+/** Opens the Add line of the section `id`, as a press on its row does: whether one is shown. */
+export function openAdd(id: string): boolean {
+  const opening = opens.get(id);
+  opening?.();
+  return opening !== undefined;
+}
+
+/** The Add row: `a`, or a press, opens a line; Enter adds it at the section's end. */
+function Add(props: { active: () => boolean; repo: string; section: string }) {
+  const pane = usePane();
+  const open = pane.remember<boolean>(`adding:${props.section}`, false);
+  const opening = () => open.set(true);
+  opens.set(props.section, opening);
+  cleanup(() => {
+    if (opens.get(props.section) === opening) opens.delete(props.section);
+  });
+  const typed = pane.remember<string>(`add:${props.section}`, "");
+  const refusal = pane.remember<string | null>(`added:${props.section}`, null);
+  const priorities = record("Priorities", { repo: props.repo });
+  registerKey({
+    hint: "a",
+    hintLabel: "add",
+    keys: "a",
+    label: "add a proposal",
+    run: () => {
+      if (!props.active()) return false;
+      open.set(true);
+      return undefined;
+    },
+  });
+  const add = async () => {
+    const text = typed().trim();
+    const hash = priorities()?.hash;
+    if (text === "" || hash === undefined) return;
+    typed.set("");
+    try {
+      const written = await call("proposals.add", {
+        hash,
+        repo: props.repo,
+        section: props.section,
+        text,
+      });
+      remember(written.change, `Added “${text}” to the priorities.`, {
+        quiet: true,
+        repo: props.repo,
+        subject: text,
+      });
+      refusal.set(null);
+    } catch (error) {
+      typed.set(text);
+      refusal.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+  return (
+    <If
+      when={open()}
+      else={
+        <Row onPress={() => open.set(true)}>
+          <Line icon="plus" label="Add a proposal" quiet />
+        </Row>
+      }
+    >
+      <View style={{ paddingHorizontal: 4 }}>
+        <TextField
+          autoFocus
+          label="New proposal"
+          lines="one"
+          onBlur={() => typed().trim() === "" && open.set(false)}
+          onChange={(value) => typed.set(value)}
+          onEnter={() => void add()}
+          placeholder="What it is, in one line"
+          refusal={refusal()}
+          value={typed()}
+        />
+      </View>
+    </If>
+  );
+}

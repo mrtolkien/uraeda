@@ -55,7 +55,7 @@ runs spend. History: [Run options](../done/2026-11-08-run-options.md).
 
 ## Applies to
 
-- [`packages/server/src/runner/`](/packages/server/src/runner/), the settings in
-  [`crates/core/`](/crates/core/), the run options' views in [`packages/web/`](/packages/web/), and
-  the skill's [implementation](/skills/uraeda/references/implementation.md) and
+- [`crates/server/src/runner/`](/crates/server/src/runner/), the settings in
+  [`crates/core/`](/crates/core/), the run options' views in [`app/`](/app/), and the skill's
+  [implementation](/skills/uraeda/references/implementation.md) and
   [change](/skills/uraeda/references/change.md) references on sub-agents and reviews

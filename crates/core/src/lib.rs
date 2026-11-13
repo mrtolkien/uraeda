@@ -1,4 +1,4 @@
-//! Uraeda's workflow logic, shared by the `ura` CLI and, through napi-rs, by the server.
+//! Uraeda's workflow logic, shared by the `ura` CLI and the server.
 
 pub mod actions;
 pub mod api;
@@ -17,6 +17,7 @@ pub mod history;
 pub mod images;
 pub mod jobs;
 pub mod moves;
+pub mod offers;
 pub mod pulls;
 pub mod repositories;
 pub mod settings;

@@ -145,7 +145,7 @@ fn write_reviewers(runs: &mut dyn TableLike, reviewers: Option<&[ReviewerOptions
         let mut table = table.unwrap_or_default();
         // A reviewer past the old tables' count follows the last of them.
         if let Some(place) = places.get(index).or(places.last()) {
-            table.set_position(*place);
+            table.set_position(Some(*place));
         }
         put_pick(
             &mut table,

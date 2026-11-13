@@ -1,0 +1,154 @@
+{
+ "_comment": "The sandbox's sample chats in the project \"sample\": each one message, and the events of the agent's turn after its `accepted`, ending with a successful `result` unless they end it themselves. Read by `crates/server/src/sandbox/sessions.rs`.",
+ "chats": [
+  {
+   "text": "What does the README say?",
+   "script": [
+    {
+     "type": "toolStart",
+     "id": "readme",
+     "input": {
+      "file_path": "README.md"
+     },
+     "kind": "read",
+     "name": "Read",
+     "target": "README.md"
+    },
+    {
+     "type": "toolEnd",
+     "id": "readme",
+     "isError": false,
+     "output": "# Todo"
+    },
+    {
+     "type": "text",
+     "text": "The README describes the todo app: its tasks, their due dates, and how they repeat."
+    }
+   ]
+  },
+  {
+   "text": "Show me the round's prototypes",
+   "script": [
+    {
+     "type": "toolStart",
+     "id": "round",
+     "input": {
+      "file_path": "specs/2026-10-17-round-mockup/clarifications-01.md"
+     },
+     "kind": "read",
+     "name": "Read",
+     "target": "specs/2026-10-17-round-mockup/clarifications-01.md"
+    },
+    {
+     "type": "toolEnd",
+     "id": "round",
+     "isError": false,
+     "output": "# Questions"
+    },
+    {
+     "type": "text",
+     "text": "The round's options A and C each show a prototype:\n\n[A new task under the completed one](specs/2026-10-17-round-mockup/mockups/new-task.svg)\n\n![The same task, its due date moved](/specs/2026-10-17-round-mockup/mockups/moved-date.svg)"
+    }
+   ]
+  },
+  {
+   "text": "Compare our personas with the book's",
+   "script": [
+    {
+     "type": "toolStart",
+     "id": "personas",
+     "input": {
+      "file_path": "README.md"
+     },
+     "kind": "read",
+     "name": "Read",
+     "target": "README.md"
+    },
+    {
+     "type": "toolEnd",
+     "id": "personas",
+     "isError": false,
+     "output": "# Todo"
+    },
+    {
+     "type": "text",
+     "text": "What the book asks of a persona, and what ours have:\n\n| Section | Book | Our personas today |\n| --- | --- | --- |\n| **Info** | Name, a short tagline, age, job, and a photo, all reflecting what a real group shares | Name and device only |\n| **Details** | A short life story, behaviours, frustrations, goals and motivations, the tasks they do with the product | Mostly behaviours: input method, screen, rules a view must follow |\n| **Insights** | Their attitude and mindset, in direct quotes | None |\n| **Lens** (journey maps) | Persona + scenario + expectation (\"Jane orders a ride and expects it within 10 minutes\") | None. This is where \"workflow\" fits. |\n\nA table this wide takes the room right of the session, and scrolls past it.\n\n| Step | Reads | Writes | Waits on | Ends at | Commit | Next step |\n| --- | --- | --- | --- | --- | --- | --- |\n| Discovery | The proposal, the constitution, the decisions | `discovery-01.md`, `clarifications-01.md` | Nothing | The round's gate | `discovery(<slug>): <what it asks>` | The spec, once the round is answered |\n| Spec | The answered rounds, the notes | `spec.md`, the proposed decisions | The answers | The spec's gate | `spec(<slug>): <title>` | The approval, then the plan |"
+    }
+   ]
+  },
+  {
+   "text": "Why does the due date test fail?",
+   "script": [
+    {
+     "type": "text",
+     "text": "Looking at the failing test."
+    },
+    {
+     "type": "result",
+     "denials": [],
+     "errors": [
+      "API Error: 500 Internal server error"
+     ],
+     "interrupted": false,
+     "ok": false
+    }
+   ]
+  },
+  {
+   "text": "Sort the list by due date",
+   "script": [
+    {
+     "type": "text",
+     "text": "Starting on the list's sort order."
+    },
+    {
+     "type": "result",
+     "denials": [],
+     "errors": [],
+     "interrupted": true,
+     "ok": false
+    }
+   ]
+  },
+  {
+   "text": "Add a dark theme",
+   "script": [
+    {
+     "type": "usage",
+     "windows": [
+      {
+       "id": "five_hour",
+       "label": "5h",
+       "resetsAt": "2026-10-16T15:00:00.000Z",
+       "used": 1
+      }
+     ]
+    },
+    {
+     "type": "result",
+     "denials": [],
+     "errors": [
+      "Claude AI usage limit reached. Your limit resets at 3pm."
+     ],
+     "interrupted": false,
+     "ok": false
+    }
+   ]
+  },
+  {
+   "text": "Run the tests, then tidy the imports",
+   "script": [
+    {
+     "type": "text",
+     "text": "Auto mode blocked the test command, so I could not run the tests. Tidying the imports is a code change, which goes in a change of its own:\n\n```uraeda-offer change\n# Tidy the imports\n\nSort the imports of `src/`, and remove the ones nothing uses.\n```"
+    },
+    {
+     "type": "denial",
+     "tool": "Bash",
+     "target": "npm test",
+     "rule": "Bash(npm test)"
+    }
+   ]
+  }
+ ]
+}

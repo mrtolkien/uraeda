@@ -1,0 +1,3395 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-mode="normal" data-run="steady" data-wash="on" data-gap="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uraeda: a terminal, lit</title>
+    <style>
+      /* ---------------------------------------------------------------- tokens */
+      :root {
+        --mono:
+          "JetBrains Mono", "Iosevka", "Maple Mono", "Geist Mono", ui-monospace, "SF Mono",
+          "Cascadia Code", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+        --reading:
+          "Atkinson Hyperlegible", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --row: 28px;
+        --gap: 8px;
+        --in: 180ms cubic-bezier(0.05, 0.7, 0.1, 1);
+        --out: 120ms cubic-bezier(0.3, 0, 0.8, 0.15);
+        --light-time: 300ms;
+
+        /* Catppuccin Mocha */
+        --backdrop: #11111b;
+        --well: #181825;
+        --surface: #1e1e2e;
+        --raised: #28283a;
+        --edge: #6c7086;
+        --edge-quiet: #3b3d52;
+        --text: #cdd6f4;
+        --text-2: #a6adc8;
+        --text-3: #9399b2;
+        --accent: #cba6f7;
+        --accent-2: #89b4fa;
+        --needs: #fab387;
+        --running: #94e2d5;
+        --added: #a6e3a1;
+        --removed: #f38ba8;
+        --warn: #f9e2af;
+        --on-accent: #11111b;
+        --h1: #cba6f7;
+        --h2: #89b4fa;
+        --h3: #a6e3a1;
+
+        --wash-1: color-mix(in srgb, var(--accent) 11%, transparent);
+        --wash-2: color-mix(in srgb, var(--accent-2) 10%, transparent);
+        --glass-fill: color-mix(
+          in srgb,
+          color-mix(in srgb, var(--surface) 95%, #fab387) 58%,
+          transparent
+        );
+        --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 46%);
+        --glass-bright: 0.92;
+        --glass-rim: rgba(255, 255, 255, 0.12);
+        --glass-sat: 1.7;
+        --dim: rgba(0, 0, 0, 0.2);
+        --shadow-raised: 0 2px 3px rgba(0, 0, 0, 0.12);
+        --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.35);
+        --well-shade: inset 0 1px 0 rgba(0, 0, 0, 0.35);
+        --well-in-glass: rgba(0, 0, 0, 0.24);
+        --bracket: #ffffff;
+        --glow-a: 42%;
+        --grain: 0.05;
+        --added-tint: color-mix(in srgb, var(--added) 14%, transparent);
+        --removed-tint: color-mix(in srgb, var(--removed) 14%, transparent);
+      }
+      :root[data-theme="light"] {
+        /* Catppuccin Latte */
+        --backdrop: #dce0e8;
+        --well: #e6e9ef;
+        --surface: #eff1f5;
+        --raised: #f8f9fb;
+        --edge: #7c7f93;
+        --edge-quiet: #bcc0cc;
+        --text: #4c4f69;
+        --text-2: #5c5f77;
+        --text-3: #6c6f85;
+        --accent: #8839ef;
+        --accent-2: #1e66f5;
+        --needs: #c2500a;
+        --running: #0f7f85;
+        --added: #2f7d20;
+        --removed: #d20f39;
+        --warn: #a5690b;
+        --on-accent: #ffffff;
+        --h1: #8839ef;
+        --h2: #1e66f5;
+        --h3: #2f7d20;
+
+        --wash-1: color-mix(in srgb, var(--accent) 5%, transparent);
+        --wash-2: color-mix(in srgb, var(--accent-2) 4%, transparent);
+        --glass-fill: color-mix(in srgb, var(--surface) 80%, transparent);
+        --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 46%);
+        --glass-bright: 1;
+        --glass-rim: rgba(255, 255, 255, 0.6);
+        --glass-sat: 1.5;
+        --dim: rgba(40, 42, 60, 0.1);
+        --shadow-raised: 0 2px 3px rgba(40, 42, 60, 0.1);
+        --shadow-overlay: 0 12px 32px rgba(40, 42, 60, 0.18);
+        --well-shade: inset 0 1px 0 rgba(40, 42, 60, 0.12);
+        --well-in-glass: rgba(40, 42, 60, 0.06);
+        --bracket: var(--light, var(--accent));
+        --grain: 0.035;
+      }
+      :root[data-mode="normal"] {
+        --mode: var(--accent);
+      }
+      :root[data-mode="insert"] {
+        --mode: var(--added);
+      }
+      :root[data-mode="visual"] {
+        --mode: var(--accent-2);
+      }
+      :root[data-mode="replace"] {
+        --mode: var(--removed);
+      }
+      :root[data-gap="off"] {
+        --gap: 0px;
+      }
+
+      /* ---------------------------------------------------------------- page */
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--backdrop);
+      }
+      body {
+        margin: 0;
+        font: 15px/24px var(--mono);
+        color: var(--text);
+        background: var(--backdrop);
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: "calt" 0;
+      }
+      .wash {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(60% 55% at 12% 8%, var(--wash-1), transparent 70%),
+          radial-gradient(55% 60% at 92% 96%, var(--wash-2), transparent 70%),
+          radial-gradient(40% 35% at 70% 20%, var(--wash-2), transparent 75%);
+        transition: opacity 400ms;
+      }
+      .wash::after,
+      .glass::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: var(--grain);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        mix-blend-mode: overlay;
+      }
+      :root[data-theme="light"] .wash::after,
+      :root[data-theme="light"] .glass::after {
+        mix-blend-mode: multiply;
+        filter: invert(1);
+      }
+      :root[data-wash="off"] .wash {
+        opacity: 0;
+      }
+      main {
+        position: relative;
+        z-index: 1;
+      }
+      svg.i {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        vertical-align: -3px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: square;
+        stroke-linejoin: miter;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      kbd {
+        font: inherit;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+
+      /* ---------------------------------------------------------------- mockup chrome (not the design) */
+      .mock-head {
+        padding: 20px 24px 6px;
+        max-width: 1480px;
+        margin: 0 auto;
+      }
+      .mock-head h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-2);
+      }
+      .mock-head p {
+        margin: 4px 0 0;
+        color: var(--text-3);
+        max-width: 90ch;
+      }
+      .controls {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 8px 24px 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        align-items: center;
+        color: var(--text-3);
+      }
+      .controls .grp {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+      .controls .lbl {
+        margin-right: 6px;
+      }
+      .controls button {
+        height: var(--row);
+        padding: 0 8px;
+        background: transparent;
+        border: 1px dashed var(--edge);
+        margin-left: -1px;
+        color: var(--text-2);
+        cursor: pointer;
+      }
+      .controls button[aria-pressed="true"] {
+        background: var(--text);
+        color: var(--backdrop);
+        border-style: solid;
+        border-color: var(--text);
+        position: relative;
+      }
+      .controls button {
+        white-space: nowrap;
+      }
+      .controls button kbd {
+        opacity: 0.6;
+        margin-left: 4px;
+      }
+      .note-d {
+        color: var(--needs);
+      }
+      section.spec {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 34px 24px 0;
+      }
+      section.spec > h2 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      section.spec > h2 span {
+        color: var(--text-3);
+        font-weight: 400;
+      }
+      section.spec > p {
+        margin: 0 0 16px;
+        color: var(--text-3);
+        max-width: 100ch;
+      }
+      .cap {
+        color: var(--text-3);
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      footer {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 40px 24px 60px;
+        color: var(--text-3);
+      }
+
+      /* ---------------------------------------------------------------- heights */
+      .h-recessed {
+        background: var(--well);
+        border: 1px solid var(--edge);
+        box-shadow: var(--well-shade);
+      }
+      .h-standard {
+        background: var(--surface);
+        border: 1px solid var(--edge);
+      }
+      .h-raised {
+        background: var(--raised);
+        border: 1px solid var(--edge);
+        box-shadow: var(--shadow-raised);
+      }
+      .glass {
+        position: relative;
+        isolation: isolate;
+        background: var(--glass-sheen), var(--glass-fill);
+        -webkit-backdrop-filter: blur(18px) saturate(var(--glass-sat))
+          brightness(var(--glass-bright));
+        backdrop-filter: blur(18px) saturate(var(--glass-sat)) brightness(var(--glass-bright));
+      }
+      .glass::after {
+        z-index: -1;
+      }
+      .h-overlay {
+        border: 1px solid var(--edge);
+        box-shadow:
+          inset 0 1px 0 var(--glass-rim),
+          var(--shadow-overlay);
+      }
+      .h-raised.glass {
+        background: var(--glass-sheen), var(--glass-fill);
+        box-shadow:
+          inset 0 1px 0 var(--glass-rim),
+          var(--shadow-raised);
+      }
+      .glass .h-recessed,
+      .h-recessed .h-recessed {
+        background: var(--well-in-glass);
+      }
+      .h-raised .h-recessed {
+        background: var(--surface);
+      }
+
+      /* ---------------------------------------------------------------- pane: edges and light */
+      .pane {
+        position: relative;
+        background: var(--surface);
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        outline: none;
+        --light: var(--accent);
+        --light-2: var(--accent-2);
+        --gs: 0px;
+        --ge: 0px;
+      }
+      .pane.is-needs {
+        --light: var(--needs);
+        --light-2: var(--needs);
+      }
+      .pane > .pane-title {
+        position: absolute;
+        z-index: 3;
+        top: -12px;
+        left: 11px;
+        height: 24px;
+        padding: 0 1ch;
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--title, var(--text-2));
+        transition: color var(--light-time);
+        display: flex;
+        align-items: center;
+        gap: 0.75ch;
+      }
+      .pane > .pane-title b {
+        font-weight: 400;
+        color: var(--text-3);
+      }
+      /* A plate behind the title, so the glow never runs through its letters. */
+      .pane > .pane-title::before {
+        content: "";
+        position: absolute;
+        inset: 0 -2px;
+        z-index: -1;
+        background: linear-gradient(var(--plate, var(--backdrop)) 50%, var(--surface) 50%);
+        -webkit-mask: linear-gradient(
+          90deg,
+          transparent,
+          #000 1ch,
+          #000 calc(100% - 1ch),
+          transparent
+        );
+        mask: linear-gradient(90deg, transparent, #000 1ch, #000 calc(100% - 1ch), transparent);
+        opacity: 0;
+        transition: opacity var(--light-time);
+      }
+      .pane.is-focused > .pane-title::before,
+      .pane.is-needs > .pane-title::before {
+        opacity: 1;
+      }
+      .pane.is-focused > .pane-title,
+      .pane.is-needs > .pane-title {
+        color: var(--light);
+      }
+      .pane > i {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .pane > i.edge,
+      .pane > i.lit {
+        -webkit-mask:
+          linear-gradient(
+              90deg,
+              #000 var(--gs),
+              transparent var(--gs),
+              transparent var(--ge),
+              #000 var(--ge)
+            )
+            top / 100% 2px no-repeat,
+          linear-gradient(#000 0 0) 0 2px / 100% calc(100% - 2px) no-repeat;
+        mask:
+          linear-gradient(
+              90deg,
+              #000 var(--gs),
+              transparent var(--gs),
+              transparent var(--ge),
+              #000 var(--ge)
+            )
+            top / 100% 2px no-repeat,
+          linear-gradient(#000 0 0) 0 2px / 100% calc(100% - 2px) no-repeat;
+      }
+      .pane > i.edge {
+        border: 1px solid var(--edge);
+      }
+      .pane > i.lit {
+        border: 1px solid transparent;
+        border-image: linear-gradient(45deg, var(--light), var(--light-2)) 1;
+        opacity: 0;
+        transition: opacity var(--light-time);
+      }
+      .pane > i.glow {
+        z-index: -1;
+        opacity: 0;
+        transition: opacity var(--light-time);
+        box-shadow:
+          -5px 5px 18px color-mix(in srgb, var(--light) var(--glow-a), transparent),
+          5px -5px 18px color-mix(in srgb, var(--light-2) var(--glow-a), transparent);
+      }
+      :root[data-theme="light"] .pane > i.glow {
+        box-shadow:
+          0 5px 16px color-mix(in srgb, var(--light) 20%, transparent),
+          0 1px 3px color-mix(in srgb, var(--light-2) 16%, transparent);
+      }
+      .pane > i.brackets {
+        opacity: 0;
+        transition: opacity var(--light-time);
+        --b: var(--bracket);
+        background:
+          linear-gradient(var(--b) 0 0) top left / 9px 1px,
+          linear-gradient(var(--b) 0 0) top left / 1px 9px,
+          linear-gradient(var(--b) 0 0) top right / 9px 1px,
+          linear-gradient(var(--b) 0 0) top right / 1px 9px,
+          linear-gradient(var(--b) 0 0) bottom left / 9px 1px,
+          linear-gradient(var(--b) 0 0) bottom left / 1px 9px,
+          linear-gradient(var(--b) 0 0) bottom right / 9px 1px,
+          linear-gradient(var(--b) 0 0) bottom right / 1px 9px;
+        background-repeat: no-repeat;
+        filter: drop-shadow(0 0 3px color-mix(in srgb, var(--light) 80%, transparent));
+      }
+      :root[data-theme="light"] .pane > i.brackets {
+        filter: none;
+        background-size:
+          9px 2px,
+          2px 9px,
+          9px 2px,
+          2px 9px,
+          9px 2px,
+          2px 9px,
+          9px 2px,
+          2px 9px;
+      }
+      .pane.is-focused,
+      .pane.is-needs {
+        z-index: 2;
+      }
+      .pane.is-focused > i.lit,
+      .pane.is-needs > i.lit {
+        opacity: 1;
+      }
+      .pane.is-focused > i.glow {
+        opacity: 1;
+      }
+      .pane.is-needs > i.glow {
+        opacity: 0.75;
+      }
+      .pane.is-focused > i.brackets {
+        opacity: 1;
+      }
+      .pane.is-needs:not(.is-focused) > i.edge {
+        opacity: 0;
+      }
+      .pane > .pane-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 18px 12px 12px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--edge-quiet) transparent;
+      }
+
+      /* ---------------------------------------------------------------- the app scene */
+      .app {
+        position: relative;
+        max-width: 1480px;
+        margin: 0 auto;
+        height: 880px;
+        padding: 14px 24px 0;
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr) 350px;
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: calc(var(--gap) + 6px) var(--gap);
+        row-gap: calc(var(--gap) + 8px);
+      }
+      :root[data-gap="off"] .app {
+        row-gap: 14px;
+      }
+      .col {
+        display: grid;
+        gap: calc(var(--gap) + 10px);
+        min-height: 0;
+        min-width: 0;
+      }
+      .col.right {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+      .col.left {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      /* rows, lists */
+      .rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .rows li {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1ch;
+        min-height: var(--row);
+        padding: 2px 8px;
+        margin: 0 -8px;
+        white-space: nowrap;
+      }
+      .rows li .grow {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .rows li .meta {
+        color: var(--text-3);
+      }
+      .rows li.sel {
+        background: var(--raised);
+      }
+      .rows li.sel::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--light, var(--accent));
+        box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+      }
+      :root[data-theme="light"] .rows li.sel::before {
+        box-shadow: none;
+      }
+      .rows li.wrap {
+        white-space: normal;
+        align-items: flex-start;
+      }
+      .rows li.wrap svg {
+        margin-top: 4px;
+      }
+      .count {
+        color: var(--text-3);
+      }
+      .badge {
+        margin-left: auto;
+        padding: 0 6px;
+        height: 22px;
+        line-height: 22px;
+        background: var(--needs);
+        color: var(--on-accent);
+        font-weight: 700;
+      }
+      .k1 {
+        color: var(--accent);
+      }
+      .k2 {
+        color: var(--accent-2);
+      }
+      .k3 {
+        color: var(--added);
+      }
+      .k4 {
+        color: var(--needs);
+      }
+      .k5 {
+        color: var(--running);
+      }
+      .k6 {
+        color: var(--removed);
+      }
+      .sep {
+        height: 1px;
+        background: var(--edge-quiet);
+        margin: 10px -12px;
+      }
+      .group {
+        color: var(--text-3);
+        margin: 0 0 2px;
+      }
+      .rowbar {
+        display: flex;
+        gap: 6px;
+        padding: 4px 8px 6px;
+        margin: 0 -8px;
+        background: var(--raised);
+        position: relative;
+      }
+      .rowbar::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--accent);
+      }
+      /* field */
+      .field {
+        position: relative;
+        background: var(--well);
+        border: 1px solid var(--edge);
+        box-shadow: var(--well-shade);
+        padding: 5px 9px;
+        min-height: 36px;
+        transition:
+          border-color var(--light-time),
+          box-shadow var(--light-time);
+      }
+      .field.is-active {
+        border-color: var(--mode);
+        box-shadow:
+          var(--well-shade),
+          0 0 12px color-mix(in srgb, var(--mode) 28%, transparent);
+      }
+      :root[data-theme="light"] .field.is-active {
+        box-shadow:
+          var(--well-shade),
+          0 3px 10px color-mix(in srgb, var(--mode) 22%, transparent);
+      }
+      .caret {
+        display: inline-block;
+        width: 1ch;
+        height: 20px;
+        vertical-align: -4px;
+        background: var(--mode);
+        color: var(--on-accent);
+      }
+      :root[data-mode="insert"] .caret {
+        width: 2px;
+      }
+      :root[data-mode="replace"] .caret {
+        height: 3px;
+        vertical-align: -4px;
+      }
+      .ph {
+        color: var(--text-3);
+      }
+      .selx {
+        background: color-mix(in srgb, var(--mode) 30%, transparent);
+      }
+
+      /* session pane */
+      .session > .pane-body {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .session .scroll {
+        margin-top: 11px;
+      }
+      .scroll {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        position: relative;
+        scrollbar-width: thin;
+        scrollbar-color: var(--edge-quiet) transparent;
+      }
+      .stuck {
+        white-space: nowrap;
+        overflow: hidden;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        margin: 0 1px;
+        display: flex;
+        align-items: center;
+        gap: 1.5ch;
+        height: 38px;
+        padding: 0 14px;
+        border-top: 1px solid var(--edge-quiet);
+        border-bottom: 1px solid var(--edge-quiet);
+      }
+      .stuck .crumb {
+        color: var(--text-3);
+      }
+      .stuck .state {
+        margin-left: auto;
+        color: var(--running);
+        display: flex;
+        gap: 0.75ch;
+        align-items: center;
+      }
+      .msgs {
+        padding: 14px 18px 26px;
+        display: grid;
+        gap: 16px;
+      }
+      .msg {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 0 10px;
+      }
+      .msg > svg {
+        margin-top: 3px;
+      }
+      .msg .who {
+        color: var(--text-3);
+        grid-column: 2;
+      }
+      .msg .who b {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .msg .body {
+        grid-column: 2;
+      }
+      .prose {
+        font: 18px/28px var(--reading);
+        max-width: 74ch;
+      }
+      .prose p {
+        margin: 0 0 10px;
+      }
+      .prose h4 {
+        font: 700 15px/24px var(--mono);
+        margin: 14px 0 4px;
+        color: var(--h2);
+      }
+      .prose code {
+        font: 15px var(--mono);
+        background: var(--well);
+        padding: 1px 5px;
+        border: 1px solid var(--edge-quiet);
+      }
+      .tools {
+        display: grid;
+        gap: 0;
+        margin: 4px 0 10px;
+      }
+      .tool {
+        display: flex;
+        gap: 1ch;
+        align-items: center;
+        min-height: var(--row);
+        color: var(--text-2);
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .tool .t {
+        color: var(--text-3);
+        margin-left: auto;
+        padding-left: 2ch;
+      }
+      .tool .path {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      pre.code {
+        margin: 6px 0 10px;
+        padding: 8px 12px;
+        font: 15px/24px var(--mono);
+        overflow: auto;
+      }
+      pre.code .c {
+        color: var(--text-3);
+      }
+      pre.code .s {
+        color: var(--added);
+      }
+      pre.code .kw {
+        color: var(--accent);
+      }
+      pre.code .fn {
+        color: var(--accent-2);
+      }
+      pre.code .n {
+        color: var(--needs);
+      }
+      .diff {
+        margin: 6px 0 10px;
+        font: 15px/24px var(--mono);
+        padding: 6px 0;
+        overflow: hidden;
+      }
+      .diff div {
+        padding: 0 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .diff div {
+        display: flex;
+      }
+      .diff div::before {
+        flex: none;
+        width: 2ch;
+      }
+      .diff div.in::before {
+        margin-right: 2ch;
+      }
+      .diff .a {
+        background: var(--added-tint);
+      }
+      .diff .a::before {
+        content: "+ ";
+        color: var(--added);
+      }
+      .diff .r {
+        background: var(--removed-tint);
+      }
+      .diff .r::before {
+        content: "- ";
+        color: var(--removed);
+      }
+      .diff .k {
+        color: var(--text-3);
+      }
+      .diff .k::before {
+        content: "  ";
+      }
+      .composer {
+        padding: 10px 14px 12px;
+        border-top: 1px solid var(--edge-quiet);
+        display: grid;
+        gap: 8px;
+      }
+      .composer .field {
+        min-height: 64px;
+      }
+      .composer .foot {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-3);
+      }
+      .composer .foot .btn {
+        margin-left: auto;
+      }
+
+      /* status line */
+      .status {
+        grid-column: 1 / -1;
+        overflow: hidden;
+        display: flex;
+        align-items: stretch;
+        height: 30px;
+        border: 1px solid var(--edge);
+        white-space: nowrap;
+      }
+      .status .end {
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        background: var(--mode);
+        color: var(--on-accent);
+        font-weight: 700;
+        transition: background var(--light-time);
+        position: relative;
+        z-index: 1;
+      }
+      .status .end + .seg,
+      .status .seg.b {
+        color: var(--mode);
+        transition: color var(--light-time);
+      }
+      .status .seg {
+        display: flex;
+        align-items: center;
+        gap: 0.75ch;
+        padding: 0 12px;
+        color: var(--text-2);
+      }
+      .status .seg + .seg {
+        border-left: 1px solid var(--edge-quiet);
+      }
+      .status .fill {
+        flex: 1;
+      }
+      .status .hint kbd {
+        color: var(--accent);
+      }
+      .status .needs {
+        color: var(--needs);
+      }
+      .status .live {
+        color: var(--running);
+      }
+
+      /* overlays */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        background: var(--dim);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--out);
+      }
+      .ov {
+        position: absolute;
+        z-index: 30;
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition:
+          opacity var(--out),
+          transform var(--out);
+      }
+      .ov.open {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+        transition:
+          opacity var(--in),
+          transform var(--in);
+      }
+      .ov.open ~ .scrim.for-dialog,
+      .scrim.open {
+        opacity: 1;
+        transition: opacity var(--in);
+      }
+      .ov > .ov-title,
+      .ovs > .ov-title,
+      .toast > .ov-title {
+        position: absolute;
+        top: -12px;
+        left: 11px;
+        height: 24px;
+        padding: 0 1ch;
+        font-weight: 700;
+        color: var(--accent);
+        z-index: 2;
+        display: flex;
+        gap: 0.75ch;
+        align-items: center;
+      }
+      .ov-title {
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        box-shadow: inset 0 1px 0 var(--glass-rim);
+      }
+      .leader {
+        right: 24px;
+        bottom: 50px;
+        width: 560px;
+        padding: 16px 14px 10px;
+      }
+      .keys {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0 3ch;
+      }
+      .keys div {
+        display: flex;
+        gap: 1ch;
+        min-height: var(--row);
+        align-items: center;
+        white-space: nowrap;
+      }
+      .keys kbd {
+        color: var(--accent);
+        width: 2ch;
+        text-align: right;
+        font-weight: 700;
+      }
+      .keys .ar {
+        color: var(--text-3);
+      }
+      .keys .g {
+        color: var(--accent-2);
+      }
+      .trail {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--edge-quiet);
+        color: var(--text-3);
+        display: flex;
+        gap: 2ch;
+      }
+      .trail kbd {
+        color: var(--accent);
+      }
+      .dialog {
+        left: 50%;
+        top: 30%;
+        width: 520px;
+        margin-left: -260px;
+        padding: 20px 16px 14px;
+      }
+      .dialog p {
+        margin: 0 0 12px;
+        font: 18px/28px var(--reading);
+      }
+      .dialog .foot {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 14px;
+      }
+      .toasts {
+        right: 34px;
+        top: 30px;
+        width: 380px;
+        display: grid;
+        gap: 16px;
+      }
+      .toast {
+        position: relative;
+        padding: 14px 14px 10px;
+      }
+      .toast .ov-title {
+        color: var(--added);
+      }
+      .toast.warn .ov-title {
+        color: var(--needs);
+      }
+      .toast .foot {
+        display: flex;
+        gap: 2ch;
+        color: var(--text-3);
+        margin-top: 4px;
+      }
+      .toast .foot kbd {
+        color: var(--accent);
+      }
+
+      /* ---------------------------------------------------------------- specimens */
+      .grid {
+        display: grid;
+        gap: 22px 16px;
+      }
+      .g4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .g3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .g2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .stage {
+        position: relative;
+        padding: 18px;
+        min-height: 120px;
+        overflow: hidden;
+      }
+      .stage.texty {
+        background: var(--surface);
+        border: 1px solid var(--edge-quiet);
+      }
+      .stage.texty > .lorem {
+        position: absolute;
+        inset: 0;
+        padding: 6px 10px;
+        color: var(--text);
+        font: 15px/24px var(--mono);
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .stage.texty > .lorem b {
+        color: var(--accent);
+      }
+      .stage.texty > .lorem i {
+        color: var(--added);
+        font-style: normal;
+      }
+      .stage.texty > .lorem u {
+        color: var(--needs);
+        text-decoration: none;
+      }
+      .stage > .box {
+        position: relative;
+        padding: 12px;
+        min-height: 84px;
+      }
+      .box .box {
+        padding: 8px 10px;
+        min-height: 0;
+        margin-top: 8px;
+      }
+      .tag {
+        color: var(--text-3);
+        font-size: 13px;
+      }
+      .matrix {
+        display: grid;
+        grid-template-columns: 90px repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+      }
+      .matrix .hd {
+        color: var(--text-3);
+        align-self: center;
+      }
+      .matrix .stage {
+        padding: 12px;
+        min-height: 0;
+      }
+      .states {
+        display: grid;
+        grid-template-columns: 110px repeat(5, max-content);
+        gap: 14px 18px;
+        align-items: center;
+      }
+      .states .hd {
+        color: var(--text-3);
+      }
+      .pane.demo {
+        min-height: 132px;
+      }
+      .pane.demo .pane-body {
+        overflow: hidden;
+      }
+      .statusdemo {
+        display: grid;
+        gap: 10px;
+      }
+      .scale div {
+        display: flex;
+        align-items: baseline;
+        gap: 2ch;
+        min-height: 30px;
+      }
+      .scale .tag {
+        width: 22ch;
+        flex: none;
+      }
+      .hues {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 3ch;
+      }
+      .hues span {
+        display: inline-flex;
+        gap: 0.75ch;
+        align-items: center;
+      }
+      .ovs {
+        position: relative;
+      }
+      .ovs.leaderdemo {
+        padding: 16px 14px 10px;
+      }
+      .phone {
+        width: 300px;
+        height: 560px;
+        border: 1px solid var(--edge);
+        background: var(--backdrop);
+        position: relative;
+        overflow: hidden;
+        padding: 12px 2px 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .phone .pane {
+        flex: 1;
+      }
+      .phone .pane-body {
+        padding: 14px 6px 80px;
+      }
+      .phone .bar {
+        z-index: 6;
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        height: 56px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        align-items: center;
+        text-align: center;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--text-2);
+      }
+      .phone .bar svg {
+        width: 20px;
+        height: 20px;
+        display: block;
+        margin: 0 auto 2px;
+      }
+      .phone .bar .on {
+        color: var(--accent);
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+          height: 760px;
+        }
+        .app .col.left,
+        .app .col.right {
+          display: none;
+        }
+        .g4 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .g3,
+        .g2 {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .matrix {
+          grid-template-columns: 70px repeat(2, minmax(0, 1fr));
+        }
+        .matrix .x2 {
+          display: none;
+        }
+        .leader {
+          width: auto;
+          left: 34px;
+        }
+        .dialog {
+          left: 34px;
+          right: 34px;
+          width: auto;
+          margin: 0;
+        }
+        .states {
+          grid-template-columns: 90px repeat(2, max-content);
+        }
+      }
+
+      /* ================================================================ second pass
+         From the review of the first mockup: steady running light, titles as tabs,
+         heights that read as depth, keys and buttons as lit keycaps, and deeper glass. */
+
+      /* ---- the title is a tab hanging in the pane's corner: it never meets the glow */
+      .tv-tab .pane > .pane-title {
+        top: 0;
+        left: 0;
+        z-index: 1;
+        height: 27px;
+        padding: 0 11px 0 10px;
+        background: color-mix(in srgb, var(--edge) 22%, var(--surface));
+        border-right: 1px solid var(--edge);
+        border-bottom: 1px solid var(--edge);
+        color: var(--title, var(--text-2));
+        transition:
+          background var(--light-time),
+          color var(--light-time),
+          border-color var(--light-time);
+      }
+      .tv-tab .pane > .pane-title::before {
+        display: none;
+      }
+      .tv-tab .pane.is-focused > .pane-title {
+        background: var(--light);
+        border-color: var(--light);
+        color: var(--on-accent);
+      }
+      .tv-tab .pane.is-focused > .pane-title b {
+        color: color-mix(in srgb, var(--on-accent) 72%, transparent);
+      }
+      .tv-tab .pane > .pane-body {
+        padding-top: 38px;
+      }
+      .tv-tab .session > .pane-body {
+        padding: 0;
+      }
+      .tv-tab .session .scroll {
+        margin-top: 27px;
+      }
+      .tv-tab .pane.inner > .pane-body {
+        padding-top: 34px;
+      }
+
+      /* ---- only the focus emits light. "Needs you" is a colour, not a lamp. */
+      .pane.is-needs {
+        --light: var(--accent);
+        --light-2: var(--accent-2);
+        --title: var(--needs);
+        z-index: auto;
+      }
+      .pane.is-needs > i.lit,
+      .pane.is-needs > i.glow {
+        opacity: 0;
+      }
+      .pane.is-needs:not(.is-focused) > i.edge {
+        opacity: 1;
+      }
+      .pane.is-needs > .pane-title {
+        color: var(--needs);
+      }
+      .pane.is-needs:not(.is-focused) > .pane-title::before {
+        opacity: 0;
+      }
+      .pane.is-needs.is-focused {
+        z-index: 2;
+      }
+      .pane.is-needs.is-focused > i.lit,
+      .pane.is-needs.is-focused > i.glow {
+        opacity: 1;
+      }
+      .tv-tab .pane.is-needs.is-focused > .pane-title {
+        background: var(--needs);
+        border-color: var(--needs);
+        color: var(--on-accent);
+      }
+
+      /* ---- a running pane: a steady line. It moves only when the state changes. */
+      .pane > i.run {
+        inset: 0 0 auto 0;
+        height: 1px;
+        z-index: 4;
+        display: none;
+      }
+      .tv-border .pane > i.run {
+        left: var(--ge);
+      }
+      .pane.is-running > i.run,
+      .pane.run-done > i.run {
+        display: block;
+      }
+      .pane > i.run::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--running);
+        transform-origin: left;
+        box-shadow:
+          0 0 10px color-mix(in srgb, var(--running) 60%, transparent),
+          0 0 2px var(--running);
+      }
+      :root[data-theme="light"] .pane > i.run::before {
+        height: 2px;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--running) 40%, transparent);
+      }
+      :root[data-run="breathe"] .pane.is-running > i.run::before {
+        animation: breathe 6s ease-in-out infinite;
+      }
+      :root[data-run="off"] .pane > i.run {
+        display: none;
+      }
+      .pane.run-start > i.run::before {
+        animation: draw 700ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+      }
+      .pane.run-done > i.run::before {
+        animation: done 1200ms ease-out both;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      @keyframes draw {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes done {
+        0% {
+          background: var(--added);
+          box-shadow: 0 0 18px 2px var(--added);
+          opacity: 1;
+        }
+        100% {
+          background: var(--added);
+          box-shadow: 0 0 0 0 var(--added);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pane > i.run::before,
+        .btn.main {
+          animation: none !important;
+        }
+      }
+
+      /* ---- glass: thin tint, a bent edge, a specular rim, light inside */
+      :root {
+        --glass-fill: color-mix(
+          in srgb,
+          color-mix(in srgb, var(--well) 95%, #fab387) 62%,
+          transparent
+        );
+        --glass-rim-a: rgba(255, 255, 255, 0.6);
+        --glass-rim-b: rgba(255, 255, 255, 0.07);
+        --glass-inner:
+          inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 30px rgba(255, 255, 255, 0.035),
+          inset 0 -16px 26px -18px rgba(0, 0, 0, 0.45);
+        --glass-drop: 0 1px 0 rgba(0, 0, 0, 0.5), 0 22px 50px -12px rgba(0, 0, 0, 0.65);
+      }
+      :root[data-theme="light"] {
+        --glass-fill: color-mix(in srgb, var(--surface) 72%, transparent);
+        --glass-rim-a: rgba(255, 255, 255, 1);
+        --glass-rim-b: rgba(255, 255, 255, 0.35);
+        --glass-inner:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 30px rgba(255, 255, 255, 0.3),
+          inset 0 -16px 26px -18px rgba(40, 42, 60, 0.12);
+        --glass-drop: 0 1px 0 rgba(40, 42, 60, 0.15), 0 22px 50px -12px rgba(40, 42, 60, 0.3);
+      }
+      .glass {
+        -webkit-backdrop-filter: blur(14px) saturate(1.8) brightness(var(--glass-bright));
+        backdrop-filter: blur(14px) saturate(1.8) brightness(var(--glass-bright));
+      }
+      .glass::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        z-index: 1;
+        pointer-events: none;
+        padding: 1px;
+        background: linear-gradient(
+          135deg,
+          var(--glass-rim-a),
+          var(--glass-rim-b) 26%,
+          var(--glass-rim-b) 64%,
+          color-mix(in srgb, var(--glass-rim-a) 65%, transparent)
+        );
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box exclude,
+          linear-gradient(#000 0 0);
+      }
+      .stuck.glass::before {
+        inset: 0;
+      }
+      .h-overlay {
+        border-color: color-mix(in srgb, var(--edge) 45%, transparent);
+        box-shadow: var(--glass-inner), var(--glass-drop);
+      }
+
+      /* ---- the caret leaves a short trail when it jumps: a state change, so it may move */
+      #composer {
+        position: relative;
+      }
+      #composer #caret {
+        position: absolute;
+        left: 0;
+        top: 0;
+        vertical-align: 0;
+        height: 22px;
+        mix-blend-mode: normal;
+        opacity: 0.85;
+        box-shadow: 0 0 10px color-mix(in srgb, var(--mode) 60%, transparent);
+      }
+      .blaze {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        background: linear-gradient(90deg, var(--mode), color-mix(in srgb, var(--mode) 55%, #fff));
+        filter: drop-shadow(0 0 6px var(--mode));
+      }
+      .trail,
+      .leader .trail {
+        color: var(--text-2);
+      }
+
+      /* ================================================================ third pass
+         From the second review: the border wraps the title, no corner brackets, softer
+         heights with no hard shadow, and lighter keys and buttons, each in a few variants. */
+      .pane > i.brackets {
+        display: none;
+      }
+
+      /* ---- the border goes around the title, and so does the glow */
+      .pane > i.w {
+        display: none;
+        position: absolute;
+        inset: -14px 0 0 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      .tv-wrap .pane {
+        background: transparent;
+        isolation: isolate;
+        --shape: polygon(0 0, var(--ge) 0, var(--ge) 14px, 100% 14px, 100% 100%, 0 100%);
+        --shape-in: polygon(
+          1px 1px,
+          calc(var(--ge) - 1px) 1px,
+          calc(var(--ge) - 1px) 15px,
+          calc(100% - 1px) 15px,
+          calc(100% - 1px) calc(100% - 1px),
+          1px calc(100% - 1px)
+        );
+        --shape-tab: polygon(
+          1px 1px,
+          calc(var(--ge) - 1px) 1px,
+          calc(var(--ge) - 1px) 26px,
+          1px 26px
+        );
+      }
+      .tv-wrap .pane > i.w {
+        display: block;
+      }
+      .tv-wrap .pane > i.edge,
+      .tv-wrap .pane > i.lit,
+      .tv-wrap .pane > i.glow {
+        display: none;
+      }
+      .pane > i.w-glow {
+        opacity: 0;
+        transition: opacity var(--light-time);
+        filter: drop-shadow(
+            -4px 4px 9px color-mix(in srgb, var(--light) var(--glow-a), transparent)
+          )
+          drop-shadow(4px -4px 9px color-mix(in srgb, var(--light-2) var(--glow-a), transparent));
+      }
+      :root[data-theme="light"] .pane > i.w-glow {
+        filter: drop-shadow(0 5px 9px color-mix(in srgb, var(--light) 24%, transparent));
+      }
+      .pane > i.w-glow::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        clip-path: var(--shape);
+        background: linear-gradient(45deg, var(--light), var(--light-2));
+      }
+      .pane > i.w-edge {
+        clip-path: var(--shape);
+        background: var(--edge);
+      }
+      .pane > i.w-lit {
+        clip-path: var(--shape);
+        background: linear-gradient(45deg, var(--light), var(--light-2));
+        opacity: 0;
+        transition: opacity var(--light-time);
+      }
+      .pane > i.w-fill {
+        clip-path: var(--shape-in);
+        background: var(--pane-fill, var(--surface));
+      }
+      .pane > i.w-tab {
+        clip-path: var(--shape-tab);
+        background: var(--tab, var(--light));
+        opacity: 0;
+        transition: opacity var(--light-time);
+      }
+      .tv-wrap .pane.is-focused > i.w-glow,
+      .tv-wrap .pane.is-focused > i.w-lit,
+      .tv-wrap .pane.is-focused > i.w-tab {
+        opacity: 1;
+      }
+      .tv-wrap .pane.is-needs {
+        --tab: var(--needs);
+      }
+      .tv-wrap .pane > .pane-title {
+        top: -14px;
+        left: 0;
+        z-index: 1;
+        height: 26px;
+        padding: 0 11px 0 10px;
+        background: none;
+        color: var(--title, var(--text-2));
+      }
+      .tv-wrap .pane > .pane-title::before {
+        display: none;
+      }
+      .tv-wrap .pane.is-focused > .pane-title {
+        color: var(--on-accent);
+      }
+      .tv-wrap .pane.is-focused > .pane-title b {
+        color: color-mix(in srgb, var(--on-accent) 72%, transparent);
+      }
+      .tv-wrap .pane > i.run {
+        left: var(--ge);
+      }
+      .tv-wrap .pane.inner {
+        --pane-fill: var(--raised);
+        box-shadow: none;
+      }
+
+      /* ---- heights, in three strengths */
+      :root {
+        --well: #181824;
+        --raised: #2a2b3e;
+        --lip: rgba(255, 255, 255, 0.09);
+        --pit: rgba(0, 0, 0, 0.42);
+      }
+      :root[data-theme="light"] {
+        --well: #e4e7ee;
+        --raised: #fbfbfd;
+        --lip: rgba(255, 255, 255, 0.95);
+        --pit: rgba(40, 42, 60, 0.16);
+      }
+      .h-recessed,
+      .field {
+        background: var(--well);
+        box-shadow: none;
+      }
+      .h-raised {
+        background: var(--raised);
+        box-shadow: none;
+      }
+      .hv-lips .h-recessed,
+      .hv-lips .field {
+        box-shadow: inset 0 1px 0 var(--pit);
+      }
+      .hv-lips .h-raised {
+        box-shadow: inset 0 1px 0 var(--lip);
+      }
+      .hv-soft .h-recessed,
+      .hv-soft .field {
+        box-shadow:
+          inset 0 1px 0 var(--pit),
+          inset 0 6px 8px -6px var(--pit);
+      }
+      .hv-soft .h-raised {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--raised) 94%, #fff),
+          var(--raised) 50%
+        );
+        box-shadow:
+          inset 0 1px 0 var(--lip),
+          0 1px 0 rgba(0, 0, 0, 0.3),
+          0 9px 16px -9px rgba(0, 0, 0, 0.65);
+      }
+      :root[data-theme="light"] .hv-soft .h-raised {
+        box-shadow:
+          inset 0 1px 0 var(--lip),
+          0 9px 16px -9px rgba(40, 42, 60, 0.35);
+      }
+      .h-raised.glass,
+      .hv-lips .h-raised.glass,
+      .hv-soft .h-raised.glass {
+        background: var(--glass-sheen), var(--glass-fill);
+        box-shadow:
+          inset 0 1px 0 var(--glass-rim),
+          0 9px 16px -10px rgba(0, 0, 0, 0.6);
+      }
+      .field.is-active,
+      .hv-lips .field.is-active,
+      .hv-soft .field.is-active {
+        box-shadow:
+          inset 0 1px 0 var(--pit),
+          0 0 14px color-mix(in srgb, var(--mode) 32%, transparent);
+      }
+      :root[data-theme="light"] .field.is-active {
+        box-shadow: 0 3px 10px color-mix(in srgb, var(--mode) 22%, transparent);
+      }
+
+      /* ---- keys: a glowing letter, a soft chip, or a flat cap */
+      .act {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.8ch;
+        height: var(--row);
+        padding: 0 10px 0 2px;
+        border: 0;
+        background: transparent;
+        color: var(--text-2);
+        cursor: pointer;
+        transition: color var(--out);
+      }
+      .act:hover,
+      .act.hover {
+        color: var(--text);
+      }
+      .rowbar {
+        gap: 2px;
+      }
+      :is(.act, .keys, .trail, .composer .foot, .toast .foot, .status .hint, .btn) kbd {
+        display: inline-block;
+        width: auto;
+        min-width: 1ch;
+        text-align: center;
+        color: var(--accent);
+        font-weight: 700;
+        transition:
+          text-shadow var(--out),
+          color var(--out),
+          background var(--out);
+      }
+      .kv-glow :is(.act, .keys, .trail, .composer .foot, .toast .foot, .status .hint, .btn) kbd {
+        text-shadow:
+          0 0 8px color-mix(in srgb, var(--accent) 80%, transparent),
+          0 0 2px color-mix(in srgb, var(--accent) 60%, transparent);
+      }
+      .kv-glow .act:hover kbd,
+      .kv-glow .act.hover kbd {
+        color: color-mix(in srgb, var(--accent) 60%, #fff);
+        text-shadow:
+          0 0 6px var(--accent),
+          0 0 18px var(--accent);
+      }
+      .kv-glow .act:active kbd,
+      .kv-glow .act.pressed kbd {
+        text-shadow: none;
+        color: color-mix(in srgb, var(--accent) 70%, var(--surface));
+      }
+      :root[data-theme="light"] .kv-glow kbd {
+        text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 35%, transparent) !important;
+      }
+      .kv-chip :is(.act, .keys, .trail, .composer .foot, .toast .foot, .status .hint, .btn) kbd,
+      .kv-cap :is(.act, .keys, .trail, .composer .foot, .toast .foot, .status .hint, .btn) kbd {
+        display: inline-grid;
+        place-items: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        font-size: 13px;
+        line-height: 1;
+        background: color-mix(in srgb, var(--accent) 20%, var(--backdrop));
+      }
+      .kv-chip .act:hover kbd,
+      .kv-chip .act.hover kbd {
+        background: color-mix(in srgb, var(--accent) 38%, var(--backdrop));
+      }
+      .kv-chip .act.pressed kbd {
+        background: color-mix(in srgb, var(--accent) 8%, var(--backdrop));
+      }
+      .kv-cap :is(.act, .keys, .trail, .composer .foot, .toast .foot, .status .hint, .btn) kbd {
+        background: var(--raised);
+        border: 1px solid var(--edge);
+      }
+      .kv-cap .act:hover kbd,
+      .kv-cap .act.hover kbd {
+        border-color: var(--accent);
+      }
+      .kv-cap .act.pressed kbd {
+        background: var(--well);
+      }
+      .btn:not(.quiet, .danger, .onglass) kbd {
+        color: var(--on-accent) !important;
+        text-shadow: none !important;
+        background: color-mix(in srgb, var(--on-accent) 14%, transparent);
+        border-color: transparent !important;
+        opacity: 0.8;
+      }
+
+      /* ---- buttons: no hard shadow, no white edge */
+      .btn {
+        --tone: var(--accent);
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.9ch;
+        height: 32px;
+        padding: 0 14px;
+        border: 1px solid var(--tone);
+        background: var(--tone);
+        color: var(--on-accent);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition:
+          transform 90ms,
+          box-shadow var(--out),
+          filter var(--out),
+          background var(--out),
+          border-color var(--out),
+          color var(--out);
+      }
+      .btn svg {
+        color: currentColor;
+      }
+      .btn:focus-visible,
+      .btn.focus {
+        outline: 1px solid color-mix(in srgb, var(--tone) 70%, #fff);
+        outline-offset: 3px;
+      }
+      .btn:active,
+      .btn.pressed {
+        transform: translateY(1px);
+        animation: none !important;
+        transition: none;
+      }
+      /* A: a flat block of the accent, glowing all round. */
+      .bv-glow .btn {
+        box-shadow: 0 0 14px color-mix(in srgb, var(--tone) 38%, transparent);
+      }
+      .bv-glow .btn:is(:hover, .hover, :focus-visible, .focus) {
+        filter: brightness(1.06);
+        box-shadow: 0 0 24px 2px color-mix(in srgb, var(--tone) 62%, transparent);
+      }
+      .bv-glow .btn:is(:active, .pressed) {
+        filter: brightness(0.88);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+      }
+      .bv-glow .btn.main {
+        animation: breathe-glow 6s ease-in-out infinite;
+      }
+      @keyframes breathe-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 10px color-mix(in srgb, var(--tone) 28%, transparent);
+        }
+        50% {
+          box-shadow: 0 0 26px 3px color-mix(in srgb, var(--tone) 66%, transparent);
+        }
+      }
+      /* B: lit from above, glowing under itself. */
+      .bv-lamp .btn {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--tone) 86%, #fff),
+          var(--tone) 55%,
+          color-mix(in srgb, var(--tone) 90%, #000)
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.28),
+          0 5px 14px -2px color-mix(in srgb, var(--tone) 45%, transparent);
+      }
+      .bv-lamp .btn:is(:hover, .hover, :focus-visible, .focus) {
+        filter: brightness(1.07);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.34),
+          0 6px 24px 0 color-mix(in srgb, var(--tone) 68%, transparent);
+      }
+      .bv-lamp .btn:is(:active, .pressed) {
+        filter: brightness(0.9);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+      }
+      .bv-lamp .btn.main {
+        animation: breathe-lamp 6s ease-in-out infinite;
+      }
+      @keyframes breathe-lamp {
+        0%,
+        100% {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.28),
+            0 4px 10px -2px color-mix(in srgb, var(--tone) 32%, transparent);
+        }
+        50% {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.32),
+            0 6px 26px 2px color-mix(in srgb, var(--tone) 70%, transparent);
+        }
+      }
+      /* C: a neon tube: dark inside, its line and its letters lit. */
+      .bv-tube .btn {
+        background: color-mix(in srgb, var(--tone) 12%, var(--well));
+        color: color-mix(in srgb, var(--tone) 78%, #fff);
+        text-shadow: 0 0 10px color-mix(in srgb, var(--tone) 70%, transparent);
+        box-shadow:
+          inset 0 0 12px color-mix(in srgb, var(--tone) 26%, transparent),
+          0 0 12px color-mix(in srgb, var(--tone) 42%, transparent);
+      }
+      :root[data-theme="light"] .bv-tube .btn {
+        color: var(--tone);
+        text-shadow: none;
+      }
+      .bv-tube .btn:is(:hover, .hover, :focus-visible, .focus) {
+        background: var(--tone);
+        color: var(--on-accent);
+        text-shadow: none;
+        box-shadow: 0 0 24px 2px color-mix(in srgb, var(--tone) 62%, transparent);
+      }
+      .bv-tube .btn:is(:active, .pressed) {
+        background: color-mix(in srgb, var(--tone) 70%, #000);
+        color: var(--on-accent);
+        text-shadow: none;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+      }
+      .bv-tube .btn.main {
+        animation: breathe-tube 6s ease-in-out infinite;
+      }
+      @keyframes breathe-tube {
+        0%,
+        100% {
+          box-shadow:
+            inset 0 0 10px color-mix(in srgb, var(--tone) 18%, transparent),
+            0 0 8px color-mix(in srgb, var(--tone) 28%, transparent);
+        }
+        50% {
+          box-shadow:
+            inset 0 0 16px color-mix(in srgb, var(--tone) 36%, transparent),
+            0 0 24px 2px color-mix(in srgb, var(--tone) 62%, transparent);
+        }
+      }
+      /* The other buttons, in every variant: a dark tube that lights when hot. */
+      :is(.bv-glow, .bv-lamp, .bv-tube) .btn:is(.quiet, .danger, .onglass) {
+        background: color-mix(in srgb, var(--well) 72%, transparent);
+        border-color: var(--edge);
+        color: var(--text);
+        font-weight: 400;
+        text-shadow: none;
+        filter: none;
+        box-shadow: none;
+        animation: none;
+      }
+      :is(.bv-glow, .bv-lamp, .bv-tube) .btn.danger {
+        --tone: var(--removed);
+        border-color: color-mix(in srgb, var(--removed) 75%, transparent);
+        color: var(--removed);
+        box-shadow: inset 0 0 10px color-mix(in srgb, var(--removed) 14%, transparent);
+      }
+      :is(.bv-glow, .bv-lamp, .bv-tube)
+        .btn:is(.quiet, .danger, .onglass):is(:hover, .hover, :focus-visible, .focus) {
+        background: color-mix(in srgb, var(--tone) 10%, var(--well));
+        border-color: var(--tone);
+        color: color-mix(in srgb, var(--tone) 75%, var(--text));
+        box-shadow:
+          inset 0 0 14px color-mix(in srgb, var(--tone) 26%, transparent),
+          0 0 16px color-mix(in srgb, var(--tone) 50%, transparent);
+      }
+      :is(.bv-glow, .bv-lamp, .bv-tube) .btn:is(.quiet, .danger, .onglass):is(:active, .pressed) {
+        background: var(--well);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45);
+      }
+      :is(.bv-glow, .bv-lamp, .bv-tube) .btn[disabled] {
+        background: transparent;
+        color: var(--text-3);
+        border: 1px dashed var(--edge-quiet);
+        box-shadow: none;
+        text-shadow: none;
+        filter: none;
+        animation: none;
+        cursor: default;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .btn.main {
+          animation: none !important;
+        }
+      }
+
+      /* ---- the variants sheet */
+      .variants .vrow {
+        display: grid;
+        grid-template-columns: 110px repeat(3, minmax(0, 1fr));
+        gap: 14px 16px;
+        align-items: start;
+        margin-bottom: 22px;
+      }
+      .variants .vhd {
+        color: var(--text);
+        font-weight: 700;
+        padding-top: 6px;
+      }
+      .variants .vhd small {
+        display: block;
+        font-weight: 400;
+        color: var(--text-3);
+        font-size: 13px;
+      }
+      .vcell {
+        border: 1px dashed var(--edge-quiet);
+        padding: 22px 14px 12px;
+        position: relative;
+        min-height: 92px;
+      }
+      .vcell > .vname {
+        position: absolute;
+        top: -10px;
+        left: 10px;
+        padding: 0 6px;
+        background: var(--backdrop);
+        color: var(--text-2);
+        font-size: 13px;
+      }
+      .vcell.pick > .vname {
+        color: var(--needs);
+      }
+      .vcell .line {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        min-height: 30px;
+      }
+      .vcell .mini {
+        background: var(--surface);
+        border: 1px solid var(--edge);
+        padding: 10px;
+        display: grid;
+        gap: 10px;
+      }
+      .vcell .mini .box {
+        padding: 6px 10px;
+        min-height: 0;
+        margin: 0;
+        border: 1px solid var(--edge);
+      }
+      .vcell .panes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding-top: 6px;
+      }
+      .vcell .panes .pane {
+        min-height: 78px;
+      }
+      @media (max-width: 1100px) {
+        .variants .vrow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="home" viewBox="0 0 24 24">
+          <path d="M3 11 12 3l9 8v10H3z M9 21v-7h6v7" />
+        </symbol>
+        <symbol id="inbox" viewBox="0 0 24 24">
+          <path d="M3 13h5l1 3h6l1-3h5 M3 13 6 4h12l3 9v7H3z" />
+        </symbol>
+        <symbol id="flag" viewBox="0 0 24 24"><path d="M5 22V3h14l-3 5 3 5H5" /></symbol>
+        <symbol id="layers" viewBox="0 0 24 24">
+          <path d="m12 3 9 5-9 5-9-5z M3 13l9 5 9-5 M3 17.5l9 5 9-5" />
+        </symbol>
+        <symbol id="chat" viewBox="0 0 24 24"><path d="M3 4h18v13H9l-6 4z" /></symbol>
+        <symbol id="scale" viewBox="0 0 24 24">
+          <path
+            d="M12 3v18 M6 21h12 M4 7h16 M4 7l-2 7h6z M20 7l-2 7h6z"
+            transform="translate(0 0) scale(.92) translate(1 1)"
+          />
+        </symbol>
+        <symbol id="git" viewBox="0 0 24 24">
+          <path
+            d="M6 3v12 M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 9c0 6-12 3-12 9"
+          />
+        </symbol>
+        <symbol id="gear" viewBox="0 0 24 24">
+          <path
+            d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M7 17l-2 2"
+          />
+        </symbol>
+        <symbol id="file" viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6z M15 2v4h4" /></symbol>
+        <symbol id="term" viewBox="0 0 24 24">
+          <path d="M3 4h18v16H3z M7 9l3 3-3 3 M12 15h5" />
+        </symbol>
+        <symbol id="bot" viewBox="0 0 24 24">
+          <path d="M5 9h14v11H5z M12 9V4 M9 14v2 M15 14v2 M2 14h3 M19 14h3" />
+        </symbol>
+        <symbol id="user" viewBox="0 0 24 24">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c0-5 4-7 8-7s8 2 8 7" />
+        </symbol>
+        <symbol id="check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6" /></symbol>
+        <symbol id="dot" viewBox="0 0 24 24">
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" />
+        </symbol>
+        <symbol id="ring" viewBox="0 0 24 24">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" />
+        </symbol>
+        <symbol id="search" viewBox="0 0 24 24">
+          <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M16 16l5 5" />
+        </symbol>
+        <symbol id="edit" viewBox="0 0 24 24">
+          <path d="M4 20h4L20 8l-4-4L4 16z M14 6l4 4" />
+        </symbol>
+        <symbol id="send" viewBox="0 0 24 24"><path d="M3 12 21 4l-6 17-3-8z" /></symbol>
+        <symbol id="alert" viewBox="0 0 24 24">
+          <path d="M12 3 2 20h20z M12 10v5 M12 17.5v.5" />
+        </symbol>
+        <symbol id="plug" viewBox="0 0 24 24">
+          <path d="M9 2v6 M15 2v6 M6 8h12v4a6 6 0 0 1-12 0z M12 18v4" />
+        </symbol>
+      </defs>
+    </svg>
+    <div class="wash"></div>
+
+    <main>
+      <header class="mock-head">
+        <h1>Uraeda · a terminal, lit · design language mockup</h1>
+        <p>
+          A browser sketch of
+          <a style="color: var(--accent-2)" href="../../ui/design-language.md"
+            >the design language</a
+          >, not the real renderer. Click a pane to move the focus and watch the light glide. The
+          dashed controls below are the mockup's, not the design's.
+        </p>
+      </header>
+      <div class="controls" id="controls">
+        <div class="grp" data-set="theme">
+          <span class="lbl">theme</span><button data-v="dark">dark</button
+          ><button data-v="light">light <kbd>t</kbd></button>
+        </div>
+        <div class="grp" data-set="mode">
+          <span class="lbl">mode</span><button data-v="normal">normal <kbd>esc</kbd></button
+          ><button data-v="insert">insert <kbd>i</kbd></button
+          ><button data-v="visual">visual <kbd>v</kbd></button
+          ><button data-v="replace">replace <kbd>R</kbd></button>
+        </div>
+        <div class="grp" data-set="overlay">
+          <span class="lbl">overlay</span><button data-v="none">none</button
+          ><button data-v="leader">leader <kbd>space</kbd></button
+          ><button data-v="dialog">dialog <kbd>d</kbd></button
+          ><button data-v="toast">toasts <kbd>n</kbd></button>
+        </div>
+        <div class="grp" data-set="run">
+          <span class="lbl note-d">① running light</span><button data-v="steady">steady</button
+          ><button data-v="breathe">breathing</button><button data-v="off">off</button>
+        </div>
+        <div class="grp" data-act="run">
+          <span class="lbl">a run</span><button data-v="start">▶ starts</button
+          ><button data-v="finish">■ ends</button>
+        </div>
+        <div class="grp" data-set="title">
+          <span class="lbl note-d">⑤ title</span><button data-v="wrap">border around it</button
+          ><button data-v="tab">a tab inside</button><button data-v="border">in the border</button>
+        </div>
+        <div class="grp" data-set="heights">
+          <span class="lbl note-d">⑦ heights</span><button data-v="tone">tone</button
+          ><button data-v="lips">lips</button><button data-v="soft">soft</button>
+        </div>
+        <div class="grp" data-set="keys">
+          <span class="lbl note-d">⑧ keys</span><button data-v="glow">glow</button
+          ><button data-v="chip">chip</button><button data-v="cap">cap</button>
+        </div>
+        <div class="grp" data-set="button">
+          <span class="lbl note-d">⑨ main button</span><button data-v="glow">glow</button
+          ><button data-v="lamp">lamp</button><button data-v="tube">tube</button>
+        </div>
+        <div class="grp" data-act="caret">
+          <span class="lbl note-d">⑥ caret trail</span
+          ><button data-v="b">◀ word <kbd>b</kbd></button
+          ><button data-v="w">word ▶ <kbd>w</kbd></button>
+        </div>
+        <div class="grp" data-set="wash">
+          <span class="lbl note-d">② backdrop wash</span><button data-v="on">on</button
+          ><button data-v="off">flat</button>
+        </div>
+        <div class="grp" data-set="gap">
+          <span class="lbl note-d">② gaps</span><button data-v="on">8 px</button
+          ><button data-v="off">none</button>
+        </div>
+        <span
+          ><span class="note-d">③</span> mode colour: switch the mode ·
+          <span class="note-d">④</span> every corner is square</span
+        >
+      </div>
+
+      <!-- ============================================================ the app -->
+      <div class="app" id="app">
+        <div class="col left">
+          <nav class="pane" data-pane="nav" tabindex="0" style="--title: var(--h3)">
+            <span class="pane-title"
+              ><svg class="i"><use href="#layers" /></svg>uraeda</span
+            >
+            <div class="pane-body">
+              <ul class="rows">
+                <li>
+                  <svg class="i k1"><use href="#home" /></svg><span class="grow">Home</span
+                  ><span class="meta">gh</span>
+                </li>
+                <li>
+                  <svg class="i k4"><use href="#inbox" /></svg><span class="grow">Inbox</span
+                  ><span class="badge">10</span>
+                </li>
+                <li>
+                  <svg class="i k2"><use href="#flag" /></svg><span class="grow">Priorities</span
+                  ><span class="meta">gp</span>
+                </li>
+                <li class="sel">
+                  <svg class="i k5"><use href="#chat" /></svg><span class="grow">Sessions</span
+                  ><span class="meta">gs</span>
+                </li>
+                <li>
+                  <svg class="i k3"><use href="#scale" /></svg><span class="grow">Decisions</span
+                  ><span class="meta">gd</span>
+                </li>
+                <li>
+                  <svg class="i k6"><use href="#git" /></svg><span class="grow">Git</span
+                  ><span class="meta">gg</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#plug" /></svg><span class="grow">Extensions</span
+                  ><span class="meta">ge</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#gear" /></svg><span class="grow">Settings</span
+                  ><span class="meta">g,</span>
+                </li>
+              </ul>
+            </div>
+          </nav>
+          <section class="pane" data-pane="features" tabindex="0" style="--title: var(--h2)">
+            <span class="pane-title">Features <b>· 5</b></span>
+            <div class="pane-body">
+              <p class="group">In progress</p>
+              <ul class="rows">
+                <li class="sel">
+                  <svg class="i k5"><use href="#dot" /></svg><span class="grow">nsh-migration</span
+                  ><span class="meta">plan</span>
+                </li>
+                <li>
+                  <svg class="i k5"><use href="#dot" /></svg><span class="grow">scheduled-jobs</span
+                  ><span class="meta">6/9</span>
+                </li>
+                <li>
+                  <svg class="i k4"><use href="#alert" /></svg
+                  ><span class="grow">multi-accounts</span><span class="meta">q2</span>
+                </li>
+              </ul>
+              <div class="sep"></div>
+              <p class="group">Next</p>
+              <ul class="rows">
+                <li>
+                  <svg class="i"><use href="#ring" /></svg><span class="grow">remote-agents</span
+                  ><span class="meta">spec</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg><span class="grow">run-options</span
+                  ><span class="meta">idea</span>
+                </li>
+              </ul>
+              <div class="sep"></div>
+              <p class="group">Done this week</p>
+              <ul class="rows">
+                <li>
+                  <svg class="i k3"><use href="#check" /></svg
+                  ><span class="grow ph">color-themes</span>
+                </li>
+                <li>
+                  <svg class="i k3"><use href="#check" /></svg
+                  ><span class="grow ph">extensions-system</span>
+                </li>
+                <li>
+                  <svg class="i k3"><use href="#check" /></svg><span class="grow ph">vim-text</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <section class="pane session is-focused is-running" data-pane="session" tabindex="0">
+          <span class="pane-title"
+            ><svg class="i"><use href="#chat" /></svg>Session <b>· nsh-migration · plan</b></span
+          >
+          <div class="pane-body">
+            <div class="scroll" id="scroll">
+              <div class="stuck glass h-raised">
+                <span
+                  ><span class="crumb">features » nsh-migration »</span> Task 27 · Surfaces</span
+                >
+                <span class="state"
+                  ><svg class="i"><use href="#bot" /></svg>working · 02:14</span
+                >
+              </div>
+              <div class="msgs">
+                <div class="msg">
+                  <svg class="i k2"><use href="#user" /></svg>
+                  <div class="who"><b>you</b> · 14:02</div>
+                  <div class="body prose">
+                    <p>
+                      Components should have a concept of height: recessed, standard, overlays at
+                      least. It will help draw shadows and glass.
+                    </p>
+                  </div>
+                </div>
+                <div class="msg">
+                  <svg class="i k5"><use href="#bot" /></svg>
+                  <div class="who"><b>claude</b> · 14:02 · read 6 files</div>
+                  <div class="body">
+                    <div class="tools">
+                      <div class="tool">
+                        <svg class="i k2"><use href="#file" /></svg
+                        ><span class="path">specs/ui/design-language.md</span
+                        ><span class="t">read</span>
+                      </div>
+                      <div class="tool">
+                        <svg class="i k2"><use href="#file" /></svg
+                        ><span class="path">app/ui/surfaces/Surface.tsx</span
+                        ><span class="t">write · 84 lines</span>
+                      </div>
+                      <div class="tool">
+                        <svg class="i k3"><use href="#term" /></svg
+                        ><span class="path">vp run app:check</span
+                        ><span class="t">0.8 s · pass</span>
+                      </div>
+                    </div>
+                    <div class="prose">
+                      <p>
+                        A surface now takes one of four heights, and everything else follows from
+                        it: its fill, its edge, its shadow, and whether it is glass.
+                        <code>Surface</code> is the only component that draws a shadow, so depth
+                        reads the same on every page.
+                      </p>
+                      <h4>The four heights</h4>
+                    </div>
+                    <pre
+                      class="code h-recessed"
+                    ><span class="kw">type</span> <span class="fn">Height</span> = <span class="s">"recessed"</span> | <span class="s">"standard"</span> | <span class="s">"raised"</span> | <span class="s">"overlay"</span>;
+
+<span class="kw">export function</span> <span class="fn">Surface</span>(props: { height: <span class="fn">Height</span>; children: <span class="fn">Node</span> }) {
+  <span class="kw">const</span> t = tokens.height[props.height]; <span class="c">// fill, edge, shadow, blur, tint, glow</span>
+  <span class="kw">return</span> &lt;<span class="fn">HeightContext</span> value={props.height}&gt;{<span class="fn">draw</span>(t, props.children)}&lt;/<span class="fn">HeightContext</span>&gt;;
+}</pre>
+                    <div class="prose">
+                      <p>
+                        A field inside a dialog is still a well: it takes the dialog's own fill,
+                        darkened by the same step. I changed the tokens to carry one set per height.
+                      </p>
+                    </div>
+                    <div class="diff h-recessed">
+                      <div class="k">export const tokens = {</div>
+                      <div class="r in">
+                        shadow: { card: "0 1px 2px #0003", dialog: "0 8px 24px #0006" },
+                      </div>
+                      <div class="a in">height: { recessed, standard, raised, overlay },</div>
+                      <div class="k in">colour: roles,</div>
+                      <div class="k">};</div>
+                    </div>
+                    <div class="tools">
+                      <div class="tool">
+                        <svg class="i k3"><use href="#term" /></svg
+                        ><span class="path">nsh test app/ui/surfaces</span
+                        ><span class="t">running…</span>
+                      </div>
+                    </div>
+                    <div class="prose">
+                      <p>
+                        Now measuring the glass bar over a scrolling transcript of 20,000
+                        messages<span
+                          class="caret"
+                          style="--mode: var(--running); width: 2px; margin-left: 2px"
+                        ></span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="field is-active" id="composer">
+                <span id="composer-text">Keep the glow off list rows, they would shout</span
+                ><i class="blaze" id="blaze" aria-hidden="true"></i
+                ><span class="caret" id="caret"></span>
+              </div>
+              <div class="foot">
+                <span><kbd class="k1">⏎</kbd> send</span
+                ><span><kbd class="k1">ctrl+c</kbd> stop</span
+                ><span><kbd class="k1">@</kbd> file</span>
+                <button class="btn main">
+                  <svg class="i"><use href="#send" /></svg>Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="col right">
+          <section class="pane is-needs" data-pane="needs" tabindex="0">
+            <span class="pane-title"
+              ><svg class="i"><use href="#alert" /></svg>Needs you <b>· 2</b></span
+            >
+            <div class="pane-body">
+              <ul class="rows">
+                <li class="wrap">
+                  <svg class="i k4"><use href="#scale" /></svg
+                  ><span class="grow"
+                    >Approve the spec of <b>nsh-migration</b>: eleven decisions change</span
+                  >
+                </li>
+                <li class="wrap">
+                  <svg class="i k4"><use href="#chat" /></svg
+                  ><span class="grow"
+                    >multi-accounts asks: rotate on a rate limit, or on a schedule?</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </section>
+          <section class="pane" data-pane="plan" tabindex="0" style="--title: var(--h1)">
+            <span class="pane-title">Plan <b>· 61 tasks</b></span>
+            <div class="pane-body">
+              <p class="group">Wave 13 · surfaces and keys</p>
+              <ul class="rows">
+                <li>
+                  <svg class="i k3"><use href="#check" /></svg
+                  ><span class="grow ph">25 The design language's samples</span>
+                </li>
+                <li>
+                  <svg class="i k3"><use href="#check" /></svg
+                  ><span class="grow ph">26 Tokens, themes, and fonts</span>
+                </li>
+                <li class="sel">
+                  <svg class="i k5"><use href="#dot" /></svg><span class="grow">27 Surfaces</span
+                  ><span class="meta">2/5</span>
+                </li>
+              </ul>
+              <div class="rowbar">
+                <button class="act"><kbd>⏎</kbd>open</button
+                ><button class="act"><kbd>s</kbd>session</button
+                ><button class="act"><kbd>m</kbd>move</button
+                ><button class="act"><kbd>d</kbd>delete</button>
+              </div>
+              <ul class="rows">
+                <li>
+                  <svg class="i"><use href="#ring" /></svg><span class="grow">28 Controls</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg
+                  ><span class="grow">29 Lists, cards, tables, and trees</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg
+                  ><span class="grow">30 The text field</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg
+                  ><span class="grow">31 The document renderer</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg><span class="grow">32 Keys</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg
+                  ><span class="grow">33 The layout shell</span>
+                </li>
+                <li>
+                  <svg class="i"><use href="#ring" /></svg
+                  ><span class="grow">34 Extension pages in the client</span>
+                </li>
+                <li>
+                  <svg class="i k4"><use href="#flag" /></svg
+                  ><span class="grow">35 The gallery</span><span class="meta">gate</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+          <section class="pane" data-pane="changes" tabindex="0" style="--title: var(--h3)">
+            <span class="pane-title"
+              ><svg class="i"><use href="#git" /></svg>Changes <b>· 4</b></span
+            >
+            <div class="pane-body">
+              <ul class="rows">
+                <li>
+                  <svg class="i k3"><use href="#file" /></svg
+                  ><span class="grow">app/ui/surfaces/Surface.tsx</span><span class="k3">+84</span>
+                </li>
+                <li>
+                  <svg class="i k2"><use href="#file" /></svg
+                  ><span class="grow">app/ui/tokens/height.ts</span><span class="k3">+41</span>
+                </li>
+                <li>
+                  <svg class="i k2"><use href="#file" /></svg
+                  ><span class="grow">app/ui/tokens/index.ts</span><span class="k3">+1</span>
+                  <span class="k6">-1</span>
+                </li>
+                <li>
+                  <svg class="i k6"><use href="#file" /></svg
+                  ><span class="grow">app/ui/surfaces/shadow.ts</span><span class="k6">-22</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="status glass h-raised" id="status">
+          <span class="end" id="mode-name">NORMAL</span>
+          <span class="seg b"
+            ><svg class="i"><use href="#git" /></svg>2026-11-10-nsh-migration</span
+          >
+          <span class="seg">session · task 27</span>
+          <span class="seg live"
+            ><svg class="i"><use href="#bot" /></svg>1 working</span
+          >
+          <span class="seg needs"
+            ><svg class="i"><use href="#alert" /></svg>2 need you</span
+          >
+          <span class="fill"></span>
+          <span class="seg hint"><kbd>space</kbd> menu</span>
+          <span class="seg hint"><kbd>?</kbd> keys</span>
+          <span class="seg b">live · 0.9 ms</span>
+          <span class="end">27:61</span>
+        </div>
+
+        <div class="scrim" id="scrim"></div>
+        <div class="ov leader glass h-overlay" id="ov-leader">
+          <span class="ov-title">Leader</span>
+          <div class="keys">
+            <div><kbd>f</kbd><span class="ar">➜</span><span>find a file</span></div>
+            <div><kbd>g</kbd><span class="ar">➜</span><span class="g">+go</span></div>
+            <div><kbd>s</kbd><span class="ar">➜</span><span class="g">+session</span></div>
+            <div><kbd>/</kbd><span class="ar">➜</span><span>search everything</span></div>
+            <div><kbd>n</kbd><span class="ar">➜</span><span>new proposal</span></div>
+            <div><kbd>t</kbd><span class="ar">➜</span><span class="g">+theme</span></div>
+            <div><kbd>i</kbd><span class="ar">➜</span><span>inbox note</span></div>
+            <div><kbd>c</kbd><span class="ar">➜</span><span>commit</span></div>
+            <div><kbd>e</kbd><span class="ar">➜</span><span class="g">+extensions</span></div>
+            <div><kbd>u</kbd><span class="ar">➜</span><span>undo</span></div>
+            <div><kbd>p</kbd><span class="ar">➜</span><span>pick a feature</span></div>
+            <div><kbd>,</kbd><span class="ar">➜</span><span>settings</span></div>
+          </div>
+          <div class="trail">
+            <span>space »</span><span><kbd>esc</kbd> close</span><span><kbd>⌫</kbd> back</span>
+          </div>
+        </div>
+        <div class="ov dialog glass h-overlay" id="ov-dialog">
+          <span class="ov-title"
+            ><svg class="i"><use href="#alert" /></svg>Delete task 27?</span
+          >
+          <p>Its session and its 4 uncommitted changes go with it. This cannot be undone.</p>
+          <div class="field h-recessed">
+            <span class="ph">Type the task's number to confirm</span>
+          </div>
+          <div class="foot">
+            <button class="btn onglass"><kbd>esc</kbd>Keep it</button>
+            <button class="btn danger">
+              <svg class="i"><use href="#alert" /></svg>Delete
+            </button>
+          </div>
+        </div>
+        <div class="ov toasts" id="ov-toast">
+          <div class="toast glass h-overlay">
+            <span class="ov-title"
+              ><svg class="i"><use href="#check" /></svg>Committed</span
+            >
+            <div>feat(nsh-migration): surfaces, with glass and glow</div>
+            <div class="foot">
+              <span>a6f1884 · 4 files</span><span><kbd>u</kbd> undo</span>
+            </div>
+          </div>
+          <div class="toast warn glass h-overlay">
+            <span class="ov-title"
+              ><svg class="i"><use href="#alert" /></svg>Needs you</span
+            >
+            <div>multi-accounts has a question</div>
+            <div class="foot">
+              <span>just now</span><span><kbd>⏎</kbd> open</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ specimens -->
+      <section class="spec variants">
+        <h2>0 · Variants <span>· where I was unsure, side by side</span></h2>
+        <p>
+          Each row shows three ways to draw one thing. The one in orange is what the page above uses
+          now. The controls ⑤ ⑦ ⑧ ⑨ switch each of them for the whole page.
+        </p>
+        <div class="vrow">
+          <div class="vhd">⑤ Title<small>focused, and at rest</small></div>
+          <div class="vcell pick tv-wrap hv-lips kv-chip bv-lamp">
+            <span class="vname">border around it</span>
+            <div class="panes">
+              <section class="pane is-focused">
+                <span class="pane-title">Plan <b>· 61</b></span>
+                <div class="pane-body">
+                  <span class="tag">The border and the glow go round the title.</span>
+                </div>
+              </section>
+              <section class="pane" style="--title: var(--h3)">
+                <span class="pane-title">Changes <b>· 4</b></span>
+                <div class="pane-body"><span class="tag">No row is lost inside.</span></div>
+              </section>
+            </div>
+          </div>
+          <div class="vcell tv-tab hv-lips kv-chip bv-lamp">
+            <span class="vname">a tab inside</span>
+            <div class="panes">
+              <section class="pane is-focused">
+                <span class="pane-title">Plan <b>· 61</b></span>
+                <div class="pane-body"><span class="tag">Costs a row in every pane.</span></div>
+              </section>
+              <section class="pane" style="--title: var(--h3)">
+                <span class="pane-title">Changes <b>· 4</b></span>
+                <div class="pane-body"><span class="tag">The last mockup's.</span></div>
+              </section>
+            </div>
+          </div>
+          <div class="vcell tv-border hv-lips kv-chip bv-lamp">
+            <span class="vname">in the border</span>
+            <div class="panes">
+              <section class="pane is-focused">
+                <span class="pane-title">Plan <b>· 61</b></span>
+                <div class="pane-body">
+                  <span class="tag">The glow runs behind the letters.</span>
+                </div>
+              </section>
+              <section class="pane" style="--title: var(--h3)">
+                <span class="pane-title">Changes <b>· 4</b></span>
+                <div class="pane-body"><span class="tag">The first mockup's.</span></div>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="vhd">⑦ Heights<small>a well and a card, in a pane</small></div>
+          <div class="vcell hv-tone kv-chip bv-lamp">
+            <span class="vname">tone: fills only</span>
+            <div class="mini">
+              <div class="box h-recessed">recessed</div>
+              <div class="box h-raised">raised</div>
+            </div>
+          </div>
+          <div class="vcell pick hv-lips kv-chip bv-lamp">
+            <span class="vname">lips: a 1 px shade or light on top</span>
+            <div class="mini">
+              <div class="box h-recessed">recessed</div>
+              <div class="box h-raised">raised</div>
+            </div>
+          </div>
+          <div class="vcell hv-soft kv-chip bv-lamp">
+            <span class="vname">soft: lips, and a soft shadow</span>
+            <div class="mini">
+              <div class="box h-recessed">recessed</div>
+              <div class="box h-raised">raised</div>
+            </div>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="vhd">⑧ Keys<small>rest, hover, pressed</small></div>
+          <div class="vcell kv-glow hv-lips bv-lamp">
+            <span class="vname">glow: a lit letter, no box</span>
+            <div class="line">
+              <button class="act"><kbd>m</kbd>move</button
+              ><button class="act hover"><kbd>m</kbd>move</button
+              ><button class="act pressed"><kbd>m</kbd>move</button>
+            </div>
+            <div class="line keys" style="display: flex">
+              <div><kbd>f</kbd><span class="ar">➜</span><span>find a file</span></div>
+              <div><kbd>g</kbd><span class="ar">➜</span><span class="g">+go</span></div>
+            </div>
+          </div>
+          <div class="vcell pick kv-chip hv-lips bv-lamp">
+            <span class="vname">chip: a tinted block, no border</span>
+            <div class="line">
+              <button class="act"><kbd>m</kbd>move</button
+              ><button class="act hover"><kbd>m</kbd>move</button
+              ><button class="act pressed"><kbd>m</kbd>move</button>
+            </div>
+            <div class="line keys" style="display: flex">
+              <div><kbd>f</kbd><span class="ar">➜</span><span>find a file</span></div>
+              <div><kbd>g</kbd><span class="ar">➜</span><span class="g">+go</span></div>
+            </div>
+          </div>
+          <div class="vcell kv-cap hv-lips bv-lamp">
+            <span class="vname">cap: a flat keycap, no shadow</span>
+            <div class="line">
+              <button class="act"><kbd>m</kbd>move</button
+              ><button class="act hover"><kbd>m</kbd>move</button
+              ><button class="act pressed"><kbd>m</kbd>move</button>
+            </div>
+            <div class="line keys" style="display: flex">
+              <div><kbd>f</kbd><span class="ar">➜</span><span>find a file</span></div>
+              <div><kbd>g</kbd><span class="ar">➜</span><span class="g">+go</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="vhd">
+            ⑨ Main button<small>breathing, hover, pressed, and a quiet one</small>
+          </div>
+          <div class="vcell bv-glow kv-chip hv-lips">
+            <span class="vname">glow: a flat block of light</span>
+            <div class="line">
+              <button class="btn main">Approve</button><button class="btn hover">Approve</button
+              ><button class="btn pressed">Approve</button><button class="btn quiet">Cancel</button>
+            </div>
+          </div>
+          <div class="vcell pick bv-lamp kv-chip hv-lips">
+            <span class="vname">lamp: lit from above</span>
+            <div class="line">
+              <button class="btn main">Approve</button><button class="btn hover">Approve</button
+              ><button class="btn pressed">Approve</button><button class="btn quiet">Cancel</button>
+            </div>
+          </div>
+          <div class="vcell bv-tube kv-chip hv-lips">
+            <span class="vname">tube: a neon sign</span>
+            <div class="line">
+              <button class="btn main">Approve</button><button class="btn hover">Approve</button
+              ><button class="btn pressed">Approve</button><button class="btn quiet">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>1 · Heights <span>· four, each a fixed recipe</span></h2>
+        <p>
+          Every surface picks a height, and takes its fill, edge, shadow, and glass from it. Each
+          stage below has text behind it, to show what glass does.
+        </p>
+        <div class="grid g4">
+          <div>
+            <div class="stage texty">
+              <div class="lorem"></div>
+              <div class="box h-recessed">
+                <b>recessed</b><br /><span class="tag">a field, a code block, a diff</span>
+              </div>
+            </div>
+            <div class="cap">A darker fill, and a soft shade under its top edge.</div>
+          </div>
+          <div>
+            <div
+              class="stage"
+              style="background: var(--backdrop); border: 1px solid var(--edge-quiet)"
+            >
+              <div class="box h-standard">
+                <b>standard</b><br /><span class="tag">a pane, on the backdrop</span>
+              </div>
+            </div>
+            <div class="cap">The surface one reads on. Flat: no light on it, and no shadow.</div>
+          </div>
+          <div>
+            <div class="stage texty">
+              <div class="lorem"></div>
+              <div class="box h-raised">
+                <b>raised</b><br /><span class="tag">a card, a selected row's bar</span>
+              </div>
+            </div>
+            <div class="cap">A lighter fill, a lit top edge, and a soft shadow under it.</div>
+          </div>
+          <div>
+            <div class="stage texty">
+              <div class="lorem"></div>
+              <div class="box glass h-overlay">
+                <b>overlay</b><br /><span class="tag">a menu, a dialog, a toast</span>
+              </div>
+            </div>
+            <div class="cap">
+              Glass: a thin tint, an edge that bends what is behind it, a bright rim, a deep shadow.
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 26px">
+          Each height inside each other. Rows are the outer surface, columns the inner one.
+        </p>
+        <div class="matrix" id="matrix"></div>
+      </section>
+
+      <section class="spec">
+        <h2>2 · Edges and light <span>· only the focus emits light</span></h2>
+        <p>
+          At rest nothing glows. The focused pane lights its edge in two colours, as a window's
+          border on a desktop, and the edge goes round its title. "Needs you" is a colour, not a
+          lamp. A running pane has a steady line, and moves only when its state changes.
+        </p>
+        <div class="grid g4" style="padding-top: 10px">
+          <section class="pane demo" style="--title: var(--h2)">
+            <span class="pane-title">At rest</span>
+            <div class="pane-body">
+              <span class="tag">A 1 px edge, which goes round the title.</span>
+            </div>
+          </section>
+          <section class="pane demo is-focused">
+            <span class="pane-title">Focused</span>
+            <div class="pane-body">
+              <span class="tag"
+                >A gradient at 45° and an 18 px glow, round the title too. The title fills with the
+                light.</span
+              >
+            </div>
+          </section>
+          <section class="pane demo is-needs">
+            <span class="pane-title"
+              ><svg class="i"><use href="#alert" /></svg>Needs you <b>· 2</b></span
+            >
+            <div class="pane-body">
+              <span class="tag">An orange title, and no light: it is not where the keys go.</span>
+            </div>
+          </section>
+          <section class="pane demo is-running" style="--title: var(--running)">
+            <span class="pane-title"
+              ><svg class="i"><use href="#bot" /></svg>Running</span
+            >
+            <div class="pane-body">
+              <span class="tag"
+                >A steady line on its top edge. Choice ① lets it breathe, over 6 s, or cuts
+                it.</span
+              >
+            </div>
+          </section>
+        </div>
+        <div class="grid g4" style="padding-top: 28px">
+          <section class="pane demo is-focused is-running">
+            <span class="pane-title">Focused and running</span>
+            <div class="pane-body">
+              <span class="tag">The session in view: the focus's light, and the run's line.</span>
+            </div>
+          </section>
+          <section class="pane demo is-focused is-needs">
+            <span class="pane-title"
+              ><svg class="i"><use href="#alert" /></svg>Focused, needs you</span
+            >
+            <div class="pane-body">
+              <span class="tag">The focus's light, and the title stays orange.</span>
+            </div>
+          </section>
+          <section class="pane demo" style="--title: var(--h3)">
+            <span class="pane-title">A pane in a pane</span>
+            <div class="pane-body" style="overflow: visible">
+              <section class="pane inner h-raised" style="min-height: 62px; --title: var(--text-2)">
+                <span class="pane-title">Card</span>
+                <div class="pane-body"><span class="tag">Raised. Two levels at most.</span></div>
+              </section>
+            </div>
+          </section>
+          <div>
+            <div class="field is-active" style="margin-top: 0">
+              <span>A focused field takes the mode's colour</span><span class="caret"></span>
+            </div>
+            <div class="field" style="margin-top: 12px">
+              <span class="ph">A field at rest: a well with a border</span>
+            </div>
+            <div class="cap">Choice ③: switch the mode above and watch this edge.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>3 · Buttons and keys <span>· lit when hot, sunk when pressed</span></h2>
+        <p>
+          The main action is a block of light, and a view's one main action breathes over 6 s. The
+          others are dark tubes, lit by the pointer or the focus. A key is a lit letter, with no box
+          around it. Controls ⑧ and ⑨ switch the variants.
+        </p>
+        <div class="states">
+          <span class="hd"></span><span class="hd">rest</span><span class="hd">hover</span
+          ><span class="hd">focus</span><span class="hd">pressed</span
+          ><span class="hd">disabled</span>
+
+          <span class="hd">main</span><button class="btn main">Approve</button
+          ><button class="btn hover">Approve</button><button class="btn focus">Approve</button
+          ><button class="btn pressed">Approve</button><button class="btn" disabled>Approve</button>
+
+          <span class="hd">tube</span><button class="btn quiet">Cancel</button
+          ><button class="btn quiet hover">Cancel</button
+          ><button class="btn quiet focus">Cancel</button
+          ><button class="btn quiet pressed">Cancel</button
+          ><button class="btn quiet" disabled>Cancel</button>
+
+          <span class="hd">danger</span><button class="btn danger">Delete</button
+          ><button class="btn danger hover">Delete</button
+          ><button class="btn danger focus">Delete</button
+          ><button class="btn danger pressed">Delete</button
+          ><button class="btn danger" disabled>Delete</button>
+
+          <span class="hd">with a key</span><button class="btn quiet"><kbd>esc</kbd>Keep it</button
+          ><button class="btn quiet hover"><kbd>esc</kbd>Keep it</button
+          ><button class="btn"><kbd>⏎</kbd>Send</button><span></span><span></span>
+
+          <span class="hd">row action</span><button class="act"><kbd>m</kbd>move</button
+          ><button class="act hover"><kbd>m</kbd>move</button><span></span
+          ><button class="act pressed"><kbd>m</kbd>move</button><span></span>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>4 · The status line <span>· one colour says the mode at both ends</span></h2>
+        <p>
+          Glass at the raised height. The mode's colour fills a block at each end, and tints the
+          segment beside it.
+        </p>
+        <div class="statusdemo" id="statusdemo"></div>
+      </section>
+
+      <section class="spec">
+        <h2>5 · Overlays <span>· glass, titled in the border</span></h2>
+        <p>
+          What is behind shows its shapes and colours, never its words. Text on glass keeps its
+          contrast over the busiest page.
+        </p>
+        <div class="grid g3">
+          <div class="stage texty" style="padding: 26px 18px 18px">
+            <div class="lorem"></div>
+            <div class="ovs leaderdemo glass h-overlay">
+              <span class="ov-title">Leader</span>
+              <div class="keys" style="grid-template-columns: repeat(2, 1fr)">
+                <div><kbd>f</kbd><span class="ar">➜</span><span>find a file</span></div>
+                <div><kbd>g</kbd><span class="ar">➜</span><span class="g">+go</span></div>
+                <div><kbd>/</kbd><span class="ar">➜</span><span>search</span></div>
+                <div><kbd>s</kbd><span class="ar">➜</span><span class="g">+session</span></div>
+                <div><kbd>c</kbd><span class="ar">➜</span><span>commit</span></div>
+                <div><kbd>t</kbd><span class="ar">➜</span><span class="g">+theme</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="stage texty" style="padding: 26px 18px 18px">
+            <div class="lorem"></div>
+            <div class="ovs glass h-overlay" style="padding: 18px 14px 12px">
+              <span class="ov-title"
+                ><svg class="i"><use href="#search" /></svg>Pick a feature</span
+              >
+              <div class="field h-recessed is-active" style="margin-bottom: 8px">
+                nsh<span class="caret"></span>
+              </div>
+              <ul class="rows">
+                <li class="sel">
+                  <svg class="i k5"><use href="#dot" /></svg
+                  ><span class="grow"><b class="k1">nsh</b>-migration</span
+                  ><span class="meta">plan</span>
+                </li>
+                <li>
+                  <svg class="i k3"><use href="#check" /></svg
+                  ><span class="grow"><b class="k1">nsh</b>-spike</span
+                  ><span class="meta">done</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="stage texty" style="padding: 26px 18px 18px">
+            <div class="lorem"></div>
+            <div class="ovs toast glass h-overlay" style="margin-bottom: 20px">
+              <span class="ov-title"
+                ><svg class="i"><use href="#check" /></svg>Committed</span
+              >
+              <div>feat: surfaces, with glass and glow</div>
+              <div class="foot">
+                <span>a6f1884</span><span><kbd>u</kbd> undo</span>
+              </div>
+            </div>
+            <div class="ovs toast warn glass h-overlay">
+              <span class="ov-title"
+                ><svg class="i"><use href="#alert" /></svg>Needs you</span
+              >
+              <div>multi-accounts has a question</div>
+              <div class="foot">
+                <span>just now</span><span><kbd>⏎</kbd> open</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>6 · Type and glyphs <span>· colour and weight before size</span></h2>
+        <div class="grid g2">
+          <div class="scale">
+            <div>
+              <span class="tag">title, two steps over</span
+              ><span style="font: 700 22px var(--mono); color: var(--h1)"
+                ># Migration to Native Shell</span
+              >
+            </div>
+            <div>
+              <span class="tag">title, one step over</span
+              ><span style="font: 700 18px var(--mono); color: var(--h2)">## User stories</span>
+            </div>
+            <div>
+              <span class="tag">the reading size, mono</span
+              ><span>A pane's title sits in its top border.</span>
+            </div>
+            <div>
+              <span class="tag">the reading size, prose</span
+              ><span style="font: 18px var(--reading)"
+                >Long prose keeps its reading font and its measure.</span
+              >
+            </div>
+            <div>
+              <span class="tag">one step under</span
+              ><span style="font-size: 13px; color: var(--text-2)"
+                >what reads second: a date, a count, a path</span
+              >
+            </div>
+          </div>
+          <div>
+            <div class="hues">
+              <span
+                ><svg class="i k1"><use href="#home" /></svg>place</span
+              ><span
+                ><svg class="i k2"><use href="#file" /></svg>document</span
+              ><span
+                ><svg class="i k3"><use href="#check" /></svg>done, added</span
+              >
+              <span
+                ><svg class="i k4"><use href="#alert" /></svg>needs you</span
+              ><span
+                ><svg class="i k5"><use href="#bot" /></svg>agent, running</span
+              ><span
+                ><svg class="i k6"><use href="#git" /></svg>removed, wrong</span
+              >
+            </div>
+            <div class="cap">Six hues for an item's kind, never one colour per item.</div>
+            <div style="margin-top: 14px; color: var(--text-2)">
+              ─ │ ┌ ┐ └ ┘ · » ➜ &nbsp; features » nsh-migration » plan &nbsp; Inbox · 10
+            </div>
+            <div class="cap">Box-drawing separates and trails. Never decoration.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>7 · The phone <span>· the same heights, a 2 px gap</span></h2>
+        <p>
+          Panes keep their whole border with little room around it. The bottom bar is raised glass,
+          with the page scrolling under it.
+        </p>
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, 300px); gap: 24px">
+          <div class="phone">
+            <section class="pane is-focused is-running">
+              <span class="pane-title"
+                ><svg class="i"><use href="#chat" /></svg>Session</span
+              >
+              <div class="pane-body">
+                <div class="prose" style="font-size: 15px">
+                  <p>
+                    A surface now takes one of four heights, and everything else follows from it.
+                  </p>
+                  <p>
+                    A field inside a dialog is still a well: it takes the dialog's own fill,
+                    darkened by the same step.
+                  </p>
+                  <p>
+                    I changed the tokens to carry one set per height, and removed the old shadows.
+                  </p>
+                  <p>Now measuring the glass bar over a scrolling transcript of 20,000 messages.</p>
+                  <p>The frame cost stays under the budget with two passes of blur.</p>
+                </div>
+              </div>
+            </section>
+            <div class="bar glass h-raised" style="border: 1px solid var(--edge)">
+              <span class="on"
+                ><svg class="i"><use href="#chat" /></svg>Session</span
+              ><span
+                ><svg class="i"><use href="#file" /></svg>Files</span
+              ><span
+                ><svg class="i"><use href="#git" /></svg>Changes</span
+              ><span
+                ><svg class="i"><use href="#send" /></svg>Reply</span
+              >
+            </div>
+          </div>
+          <div class="phone">
+            <section class="pane is-needs">
+              <span class="pane-title"
+                ><svg class="i"><use href="#alert" /></svg>Needs you <b>· 2</b></span
+              >
+              <div class="pane-body">
+                <ul class="rows" style="margin: 0">
+                  <li class="wrap sel" style="margin: 0">
+                    <svg class="i k4"><use href="#scale" /></svg
+                    ><span class="grow"
+                      >Approve the spec of nsh-migration: eleven decisions change</span
+                    >
+                  </li>
+                </ul>
+                <div class="rowbar" style="margin: 0 0 8px">
+                  <button class="act"><kbd>⏎</kbd>open</button
+                  ><button class="act"><kbd>a</kbd>approve</button>
+                </div>
+                <ul class="rows" style="margin: 0">
+                  <li class="wrap" style="margin: 0">
+                    <svg class="i k4"><use href="#chat" /></svg
+                    ><span class="grow"
+                      >multi-accounts asks: rotate on a rate limit, or on a schedule?</span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </section>
+            <div class="bar glass h-raised" style="border: 1px solid var(--edge)">
+              <span class="on"
+                ><svg class="i"><use href="#home" /></svg>Home</span
+              ><span
+                ><svg class="i"><use href="#inbox" /></svg>Inbox</span
+              ><span
+                ><svg class="i"><use href="#chat" /></svg>Sessions</span
+              ><span
+                ><svg class="i"><use href="#search" /></svg>Find</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Keys: <kbd class="k1">tab</kbd> next pane · <kbd class="k1">t</kbd> theme ·
+        <kbd class="k1">i</kbd> <kbd class="k1">v</kbd> <kbd class="k1">R</kbd>
+        <kbd class="k1">esc</kbd> mode · <kbd class="k1">space</kbd> leader ·
+        <kbd class="k1">d</kbd> dialog · <kbd class="k1">n</kbd> toasts · <kbd class="k1">w</kbd>
+        <kbd class="k1">b</kbd> move the caret. A state can be linked:
+        <code>#theme=light&amp;mode=insert&amp;overlay=dialog&amp;focus=plan</code>.
+      </footer>
+    </main>
+
+    <script>
+      const root = document.documentElement;
+      const $ = (s, el = document) => el.querySelector(s);
+      const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+      const state = {
+        theme: "dark",
+        mode: "normal",
+        overlay: "none",
+        run: "steady",
+        title: "wrap",
+        heights: "lips",
+        keys: "chip",
+        button: "lamp",
+        wash: "on",
+        gap: "on",
+        focus: "session",
+      };
+
+      // Filler text behind the glass stages.
+      const filler =
+        "<b>fn</b> draw(surface) { <i>blur</i>(14); tint(0.46); <u>bend</u>(22) } ─ features » nsh-migration » plan · 61 tasks ─ " +
+        "<i>+ height: { recessed, standard, raised, overlay }</i> <u>- shadow: { card, dialog }</u> <b>Session</b> · task 27 · Surfaces " +
+        '<span style="background:var(--accent);color:var(--on-accent)"> Approve </span> <span style="background:var(--added-tint)">+ tokens.height</span> ' +
+        '<span style="background:var(--needs);color:var(--on-accent)"> 10 </span> <span style="background:var(--removed-tint)">- tokens.shadow</span> ';
+      $$(".lorem").forEach((el) => (el.innerHTML = filler.repeat(8)));
+
+      // Each height inside each other.
+      const heights = ["recessed", "standard", "raised", "overlay"];
+      const cls = (h) => (h === "overlay" ? "glass h-overlay" : "h-" + h);
+      const matrix = $("#matrix");
+      matrix.innerHTML =
+        '<span class="hd"></span>' +
+        heights.map((h, i) => `<span class="hd ${i > 1 ? "x2" : ""}">${h} inside</span>`).join("") +
+        heights
+          .map(
+            (outer) =>
+              `<span class="hd">${outer}</span>` +
+              heights
+                .map(
+                  (inner, i) =>
+                    `<div class="stage texty ${i > 1 ? "x2" : ""}"><div class="lorem">${filler.repeat(3)}</div>` +
+                    `<div class="box ${cls(outer)}" style="min-height:0"><span class="tag">${outer}</span>` +
+                    `<div class="box ${cls(inner)}">${inner}</div></div></div>`,
+                )
+                .join(""),
+          )
+          .join("");
+
+      // The status line in each mode.
+      const modes = { normal: "accent", insert: "added", visual: "accent-2", replace: "removed" };
+      $("#statusdemo").innerHTML = Object.entries(modes)
+        .map(
+          ([m, c]) =>
+            `<div class="stage texty" style="padding:10px;min-height:0"><div class="lorem">${filler.repeat(2)}</div>` +
+            `<div class="status glass h-raised" style="--mode: var(--${c})"><span class="end">${m.toUpperCase()}</span>` +
+            `<span class="seg b">nsh-migration</span><span class="seg">session · task 27</span><span class="fill"></span>` +
+            `<span class="seg hint"><kbd>space</kbd> menu</span><span class="seg b">live</span><span class="end">27:61</span></div></div>`,
+        )
+        .join("");
+
+      // Every pane gets its edge, its light, its glow, its corners, and its running light.
+      $$(".pane").forEach((p) => {
+        for (const c of [
+          "w w-glow",
+          "w w-edge",
+          "w w-lit",
+          "w w-fill",
+          "w w-tab",
+          "edge",
+          "lit",
+          "glow",
+          "run",
+        ]) {
+          if (!p.querySelector(":scope > i." + c.split(" ").pop()))
+            p.insertAdjacentHTML("beforeend", `<i class="${c}" aria-hidden="true"></i>`);
+        }
+      });
+      // The border leaves a gap where the title sits.
+      function gaps() {
+        $$(".pane").forEach((p) => {
+          const t = p.querySelector(":scope > .pane-title");
+          const how = p.closest(".tv-wrap, .tv-tab, .tv-border");
+          const cut = t && how && !how.classList.contains("tv-tab");
+          const wrap = how && how.classList.contains("tv-wrap");
+          p.style.setProperty("--gs", cut && !wrap ? t.offsetLeft + "px" : "0px");
+          p.style.setProperty("--ge", cut ? t.offsetLeft + t.offsetWidth + "px" : "0px");
+        });
+      }
+
+      function apply() {
+        for (const k of ["theme", "mode", "run", "wash", "gap"]) root.dataset[k] = state[k];
+        // The variants are classes on each live part of the page, so the sheet can show all at once.
+        const pick = { tv: state.title, hv: state.heights, kv: state.keys, bv: state.button };
+        $$("#app, section.spec:not(.variants), footer").forEach((el) => {
+          el.className = el.className.replace(/\b(tv|hv|kv|bv)-\w+/g, "").trim();
+          for (const [k, v] of Object.entries(pick)) el.classList.add(k + "-" + v);
+        });
+        $("#mode-name").textContent = state.mode.toUpperCase();
+        $$("#controls .grp").forEach((g) =>
+          $$("button", g).forEach((b) =>
+            b.setAttribute("aria-pressed", String(state[g.dataset.set] === b.dataset.v)),
+          ),
+        );
+        for (const o of ["leader", "dialog", "toast"])
+          $("#ov-" + o).classList.toggle("open", state.overlay === o);
+        $("#scrim").classList.toggle("open", state.overlay === "dialog");
+        $$("#app [data-pane]").forEach((p) =>
+          p.classList.toggle("is-focused", p.dataset.pane === state.focus),
+        );
+        $("#composer").classList.toggle("is-active", state.focus === "session");
+        const hash = Object.entries(state)
+          .map(([k, v]) => k + "=" + v)
+          .join("&");
+        history.replaceState(null, "", "#" + hash);
+        requestAnimationFrame(gaps);
+        requestAnimationFrame(placeCaret);
+        if (state.theme !== lensTheme) {
+          lensTheme = state.theme;
+          requestAnimationFrame(lenses);
+        }
+      }
+      let lensTheme = "";
+      new URLSearchParams(location.hash.slice(1)).forEach((v, k) => {
+        if (k in state) state[k] = v;
+      });
+
+      $("#controls").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        if (b.parentElement.dataset.act === "run") return run(b.dataset.v);
+        if (b.parentElement.dataset.act === "caret") return jump(b.dataset.v);
+        state[b.parentElement.dataset.set] = b.dataset.v;
+        apply();
+      });
+      $$("#app [data-pane]").forEach((p) =>
+        p.addEventListener("pointerdown", () => {
+          state.focus = p.dataset.pane;
+          apply();
+        }),
+      );
+      // The caret, and the trail it leaves when it jumps: after a terminal's cursor shader.
+      const field = $("#composer");
+      const text = $("#composer-text").firstChild;
+      let at = text.length;
+      function caretBox(i) {
+        const r = document.createRange();
+        const end = i >= text.length;
+        r.setStart(text, end ? text.length - 1 : i);
+        r.setEnd(text, end ? text.length : i + 1);
+        const b = r.getBoundingClientRect();
+        const f = field.getBoundingClientRect();
+        const x = (end ? b.right : b.left) - f.left - 1;
+        return { x, y: b.top - f.top - 1 + (b.height - 18) / 2, w: b.width, h: 18 };
+      }
+      function placeCaret() {
+        const c = caretBox(at);
+        const el = $("#caret");
+        el.style.left = c.x + "px";
+        el.style.top = c.y + "px";
+        return c;
+      }
+      function jump(dir) {
+        const from = caretBox(at);
+        const words = [...text.data.matchAll(/\S+/g)].map((m) => m.index).concat(text.length);
+        at =
+          dir === "w"
+            ? (words.find((i) => i > at) ?? text.length)
+            : ([...words].reverse().find((i) => i < at) ?? 0);
+        const to = placeCaret();
+        const mid = (b) => `${b.x + (dir === "w" ? 0 : b.w)}px ${b.y + b.h / 2}px`;
+        const head = `${to.x}px ${to.y}px, ${to.x + 8}px ${to.y}px, ${to.x + 8}px ${to.y + to.h}px, ${to.x}px ${to.y + to.h}px`;
+        const still = `${to.x + 4}px ${to.y + to.h / 2}px`;
+        $("#blaze").animate(
+          [
+            { clipPath: `polygon(${mid(from)}, ${head})`, opacity: 0.9 },
+            { clipPath: `polygon(${still}, ${head})`, opacity: 0 },
+          ],
+          { duration: 480, easing: "cubic-bezier(0.1, 0.9, 0.2, 1)" },
+        );
+      }
+
+      // A run's state changes are the only moments its light moves.
+      function run(what) {
+        const p = $('#app [data-pane="session"]');
+        p.classList.remove("run-start", "run-done");
+        void p.offsetWidth;
+        if (what === "start") {
+          p.classList.add("is-running", "run-start");
+          setTimeout(() => p.classList.remove("run-start"), 750);
+        } else {
+          p.classList.remove("is-running");
+          p.classList.add("run-done");
+          setTimeout(() => p.classList.remove("run-done"), 1250);
+        }
+      }
+
+      // Glass bends what is behind its edge. Chromium only: elsewhere the glass keeps its blur.
+      const NS = "http://www.w3.org/2000/svg";
+      const lensHost = document.createElementNS(NS, "svg");
+      lensHost.setAttribute("width", "0");
+      lensHost.setAttribute("height", "0");
+      lensHost.style.position = "absolute";
+      document.body.append(lensHost);
+      const canLens = /Chrom(e|ium)/.test(navigator.userAgent);
+      function lensMap(w, h, band, axis) {
+        const c =
+          axis === "x"
+            ? ["255,0,0", "178,0,0", "128,0,0", "78,0,0", "0,0,0"]
+            : ["0,255,0", "0,178,0", "0,128,0", "0,78,0", "0,0,0"];
+        const dir = axis === "x" ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="0" y1="0" x2="0" y2="1"';
+        const near =
+          axis === "x" ? `width="${band}" height="${h}"` : `width="${w}" height="${band}"`;
+        const far = axis === "x" ? `x="${w - band}" ${near}` : `y="${h - band}" ${near}`;
+        const svg =
+          `<svg xmlns="${NS}" width="${w}" height="${h}">` +
+          `<defs><linearGradient id="a" ${dir}><stop offset="0" stop-color="rgb(${c[0]})"/><stop offset=".4" stop-color="rgb(${c[1]})"/><stop offset="1" stop-color="rgb(${c[2]})"/></linearGradient>` +
+          `<linearGradient id="b" ${dir}><stop offset="0" stop-color="rgb(${c[2]})"/><stop offset=".6" stop-color="rgb(${c[3]})"/><stop offset="1" stop-color="rgb(${c[4]})"/></linearGradient></defs>` +
+          `<rect width="${w}" height="${h}" fill="rgb(${c[2]})"/><rect ${near} fill="url(#a)"/><rect ${far} fill="url(#b)"/></svg>`;
+        return "data:image/svg+xml," + encodeURIComponent(svg);
+      }
+      function lenses() {
+        if (!canLens) return;
+        lensHost.replaceChildren();
+        $$(".glass").forEach((el, i) => {
+          if (el.closest("#matrix")) return;
+          const w = el.offsetWidth;
+          const h = el.offsetHeight;
+          if (!w || !h) return;
+          const band = Math.min(22, Math.floor(h / 3));
+          const at = `x="0" y="0" width="${w}" height="${h}"`;
+          const f = document.createElementNS(NS, "filter");
+          f.id = "lens-" + i;
+          for (const [k, v] of Object.entries({
+            x: 0,
+            y: 0,
+            width: w,
+            height: h,
+            filterUnits: "userSpaceOnUse",
+            primitiveUnits: "userSpaceOnUse",
+            "color-interpolation-filters": "sRGB",
+          }))
+            f.setAttribute(k, v);
+          f.innerHTML =
+            `<feImage href="${lensMap(w, h, band, "x")}" ${at} preserveAspectRatio="none" result="mx"/>` +
+            `<feImage href="${lensMap(w, h, band, "y")}" ${at} preserveAspectRatio="none" result="my"/>` +
+            `<feBlend in="mx" in2="my" mode="screen" result="map"/>` +
+            `<feGaussianBlur in="SourceGraphic" stdDeviation="7" result="frost"/>` +
+            `<feDisplacementMap in="frost" in2="map" scale="${band * 3.2}" xChannelSelector="R" yChannelSelector="G" result="warm"/>` +
+            `<feDisplacementMap in="frost" in2="map" scale="${band * 3.7}" xChannelSelector="R" yChannelSelector="G" result="cool"/>` +
+            `<feColorMatrix in="warm" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rg"/>` +
+            `<feColorMatrix in="cool" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>` +
+            `<feBlend in="rg" in2="b" mode="screen"/>`;
+          lensHost.append(f);
+          const v = `url(#${f.id}) saturate(1.8) brightness(${getComputedStyle(el).getPropertyValue("--glass-bright") || 1.1})`;
+          el.style.backdropFilter = v;
+        });
+      }
+
+      const order = ["nav", "features", "session", "needs", "plan", "changes"];
+      addEventListener("keydown", (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const k = e.key;
+        if (k === "Tab") {
+          state.focus =
+            order[
+              (order.indexOf(state.focus) + (e.shiftKey ? order.length - 1 : 1)) % order.length
+            ];
+        } else if (k === "t") state.theme = state.theme === "dark" ? "light" : "dark";
+        else if (k === "i") state.mode = "insert";
+        else if (k === "v") state.mode = "visual";
+        else if (k === "R") state.mode = "replace";
+        else if (k === "Escape") {
+          if (state.overlay !== "none") state.overlay = "none";
+          else state.mode = "normal";
+        } else if (k === " ") state.overlay = state.overlay === "leader" ? "none" : "leader";
+        else if (k === "d") state.overlay = state.overlay === "dialog" ? "none" : "dialog";
+        else if (k === "n") state.overlay = state.overlay === "toast" ? "none" : "toast";
+        else if (k === "w" || k === "b") return (e.preventDefault(), jump(k));
+        else return;
+        e.preventDefault();
+        apply();
+      });
+      addEventListener("resize", () => {
+        gaps();
+        placeCaret();
+        lenses();
+      });
+      apply();
+      gaps();
+      lenses();
+      document.fonts?.ready.then(() => {
+        gaps();
+        lenses();
+      });
+      // Start with the transcript scrolled, so the glass bar has text under it.
+      $("#scroll").scrollTop = 118;
+    </script>
+  </body>
+</html>

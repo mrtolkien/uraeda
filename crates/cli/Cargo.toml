@@ -5,7 +5,6 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-homepage.workspace = true
 publish.workspace = true
 rust-version.workspace = true
 
@@ -16,11 +15,13 @@ path = "src/main.rs"
 [dependencies]
 clap.workspace = true
 clap_complete.workspace = true
+qrcodegen.workspace = true
 ratatui.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uraeda-core.workspace = true
 uraeda-lsp.workspace = true
+uraeda-server.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true

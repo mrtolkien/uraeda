@@ -1,0 +1,13 @@
+{"message":{"content":[{"content":[{"text":"Exit code 1","type":"text"},{"text":"no git remotes found","type":"text"}],"is_error":true,"tool_use_id":"toolu_1","type":"tool_result"}],"role":"user"},"parent_tool_use_id":null,"type":"user"}
+{"message":{"content":[{"content":[{"source":{"data":"UklGRg==","media_type":"image/webp","type":"base64"},"type":"image"}],"tool_use_id":"toolu_2","type":"tool_result"}],"role":"user"},"parent_tool_use_id":null,"type":"user","tool_use_result":{"file":{"base64":"UklGRg=="},"type":"image"}}
+{"message":{"content":[{"tool_use_id":"toolu_3","type":"tool_result"}],"role":"user"},"parent_tool_use_id":null,"type":"user"}
+{"message":{"content":[{"content":"ok","is_error":"yes","tool_use_id":"toolu_4","type":"tool_result"},{"content":"two","tool_use_id":"toolu_5","type":"tool_result"},{"text":"not a result","type":"text"},{"content":"no id","type":"tool_result"}],"role":"user"},"parent_tool_use_id":null,"type":"user"}
+{"type":"result","errors":["[ede_diagnostic] aborted"],"is_error":true,"permission_denials":[],"subtype":"error_during_execution","terminal_reason":"aborted_streaming"}
+{"type":"result","is_error":true,"permission_denials":[],"result":"API Error: 500","subtype":"success"}
+{"type":"result","is_error":false,"modelUsage":{},"permission_denials":[],"subtype":"success"}
+{"type":"result","is_error":false,"modelUsage":{"claude-x":{"costUSD":0.1,"inputTokens":"2"}},"permission_denials":[],"subtype":"success"}
+{"type":"result","is_error":false,"modelUsage":{"a":{"cacheCreationInputTokens":3,"cacheReadInputTokens":4,"inputTokens":1,"outputTokens":2},"b":{"inputTokens":10,"outputTokens":20},"c":"broken"},"permission_denials":[],"subtype":"success","total_cost_usd":1.25}
+{"type":"result","errors":["one",2,null,"two"],"is_error":true,"result":"ignored: it has errors","subtype":"error_during_execution"}
+{"type":"result","is_error":true,"result":"","subtype":"error_max_turns"}
+{"type":"result","permission_denials":[{"tool_input":{"command":"rm -rf /"},"tool_name":"Bash","tool_use_id":"t"},{"tool_input":"broken","tool_name":"Write"},{"tool_input":{"url":"https://example.com"}},"not an object"],"subtype":"success","total_cost_usd":"free"}
+{"type":"result","subtype":"success"}

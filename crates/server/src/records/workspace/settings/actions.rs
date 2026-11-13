@@ -1,0 +1,97 @@
+//! The actions `settings.*`: each written to the settings file by the core, which keeps the
+//! human's comments and never overwrites a file it cannot read, then read again, so the record
+//! and the guard hold the change before the action answers.
+
+use std::path::Path;
+
+use uraeda_core::api::ApiError;
+use uraeda_core::settings::{self as core, ContinueKey};
+use uraeda_protocol::{
+    ContinueKind, SettingsAddHost, SettingsEditHost, SettingsRemoveHost,
+    SettingsSetAutomaticContinues, SettingsSetContinue, SettingsSetDefaultAgent,
+    SettingsSetOpenBrowser, SettingsSetPort, SettingsSetRunOptions, SettingsSetSingleKeyShortcuts,
+    SettingsSetVimCommands, SettingsSetVimMode,
+};
+
+use super::{options, reload};
+use crate::live::{Call, Fault, Registry};
+
+/// What the core answers a write with.
+type Written = Result<core::Settings, ApiError>;
+
+/// Registers each action on the core's function that writes its setting.
+pub(super) fn register(registry: &Registry) {
+    registry.action::<SettingsAddHost>(|call, input| {
+        write(call, |dir| core::add_allowed_host(dir, &input.name))
+    });
+    registry.action::<SettingsEditHost>(|call, input| {
+        write(call, |dir| {
+            core::edit_allowed_host(dir, &input.from, &input.to)
+        })
+    });
+    registry.action::<SettingsRemoveHost>(|call, input| {
+        write(call, |dir| core::remove_allowed_host(dir, &input.name))
+    });
+    registry.action::<SettingsSetAutomaticContinues>(|call, input| {
+        write(call, |dir| {
+            core::set_automatic_continues(dir, &input.continues)
+        })
+    });
+    registry.action::<SettingsSetContinue>(|call, input| {
+        write(call, |dir| {
+            core::set_continue(dir, key(input.key), input.on)
+        })
+    });
+    // The runtimes read the file at each pick: a session made after the answer runs on it,
+    // and the record of the runtimes lists it first.
+    registry.action::<SettingsSetDefaultAgent>(|call, input| {
+        write(call, |dir| {
+            core::set_default_agent(dir, input.agent.as_deref())
+        })?;
+        call.shared().get::<crate::runtimes::Runtimes>().changed();
+        Ok(())
+    });
+    // The next start typed at a terminal reads it: `browser.rs`.
+    registry.action::<SettingsSetOpenBrowser>(|call, input| {
+        write(call, |dir| core::set_open_browser(dir, input.open))
+    });
+    registry.action::<SettingsSetPort>(|call, input| {
+        write(call, |dir| core::set_port(dir, &input.port))
+    });
+    // The settings' options are read over none: an option left to the agent's default is
+    // left out.
+    registry.action::<SettingsSetRunOptions>(|call, input| {
+        let runtimes = call.shared().get::<crate::runtimes::Runtimes>();
+        let fallback = core::RunOptions::default();
+        let options = options::left_to_agents(input.options, &fallback, &runtimes);
+        let options = options::given(options);
+        write(call, |dir| core::set_run_options(dir, &options))
+    });
+    registry.action::<SettingsSetSingleKeyShortcuts>(|call, input| {
+        write(call, |dir| core::set_single_key_shortcuts(dir, input.on))
+    });
+    registry.action::<SettingsSetVimCommands>(|call, input| {
+        write(call, |dir| core::set_vim_commands(dir, &input.lines))
+    });
+    registry.action::<SettingsSetVimMode>(|call, input| {
+        write(call, |dir| core::set_vim_mode(dir, input.on))
+    });
+}
+
+/// Writes a setting in the config folder's file, then reads the settings again. What the core
+/// refuses, as a port that is not one or a file it cannot read, is the action's refusal.
+fn write(call: &Call, write: impl FnOnce(&Path) -> Written) -> Result<(), Fault> {
+    write(call.shared().config_dir())?;
+    reload(call.shared());
+    Ok(())
+}
+
+/// The core's switch of a kind of automatic run.
+fn key(kind: ContinueKind) -> ContinueKey {
+    match kind {
+        ContinueKind::CatchUp => ContinueKey::CatchUp,
+        ContinueKind::Limit => ContinueKey::Limit,
+        ContinueKind::Restart => ContinueKey::Restart,
+        ContinueKind::Jobs => ContinueKey::Jobs,
+    }
+}

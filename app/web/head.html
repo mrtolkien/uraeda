@@ -1,0 +1,57 @@
+<!-- Uraeda's own first paint, which `scripts/web-build.sh` adds to the page Native Shell writes:
+     the default themes' backdrop, `crust` of Catppuccin Latte and Mocha, in place of white and
+     black, and the app's name over the wait, so a first load never flashes or shows a blank
+     page while the runtime comes. A wait past four seconds, a phone on a slow link, says what
+     comes and that it comes once: a spinner alone, a minute long, looks stuck. The app draws its
+     own theme over it once it runs. -->
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<style>
+  html,
+  body {
+    background: #dce0e8;
+    color: #4c4f69;
+  }
+  @media (prefers-color-scheme: dark) {
+    html,
+    body {
+      background: #11111b;
+      color: #cdd6f4;
+    }
+  }
+  #status:not(.failed)::before {
+    content: "Uraeda";
+    font:
+      500 14px/1 ui-monospace,
+      "SF Mono",
+      Menlo,
+      Consolas,
+      monospace;
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+  }
+  #status:not(.failed)::after {
+    content: "Loading the app, about 3 MB. Only the first visit waits for it: this browser keeps it.";
+    max-width: 18em;
+    font:
+      13px/1.5 ui-monospace,
+      "SF Mono",
+      Menlo,
+      Consolas,
+      monospace;
+    text-align: center;
+    opacity: 0;
+    animation: uraeda-slow 0.4s ease-out 4s forwards;
+  }
+  @keyframes uraeda-slow {
+    to {
+      opacity: 0.6;
+    }
+  }
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border-width: 1.5px;
+    border-color: color-mix(in srgb, currentColor 18%, transparent);
+    border-top-color: color-mix(in srgb, currentColor 62%, transparent);
+  }
+</style>

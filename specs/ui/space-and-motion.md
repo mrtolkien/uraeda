@@ -7,9 +7,9 @@ view:
 
 | Room                                           | Token                                                   |
 | ---------------------------------------------- | ------------------------------------------------------- |
-| Under a pane's last line, and under its title  | `--pane-end` (`layout/pane.stylex.ts`)                  |
+| Under a pane's last line, and under its title  | `--pane-end`                                            |
 | A pane's sides                                 | `--pane-inset`, the theme's `--spacing-3` by default    |
-| The page's sides, and what reaches past them   | `--page-inset` and `--page-bleed` (`layout/Page.tsx`)   |
+| The page's sides, and what reaches past them   | `--page-inset` and `--page-bleed`                       |
 | Between blocks of prose, a list's included     | `--prose-paragraph-gap`; airy paragraphs, `--spacing-4` |
 | Around a table                                 | `--spacing-5`                                           |
 | Between a round's question cards, and sections | `--spacing-8`                                           |

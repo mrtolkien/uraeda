@@ -15,56 +15,56 @@ concurrency:
 permissions:
   contents: read
 
-# Each job runs one group of `vp run ready`, without Vite Task's cache, then fails when its checks
-# changed a file, such as a generated one left uncommitted. The toolchain test checks that every
-# group of `ready` has a job. The TypeScript tests are split over several jobs, by Vitest's
-# `--shard` (`URAEDA_TEST_SHARD`, see `vite.tasks.ts`), balanced by `scripts/test-shard.ts`: the
-# toolchain test checks that the matrix lists every shard, so the jobs together run every test.
-# 10 jobs: a free plan runs 20 at once. Validation runs on Linux x64 only; the
-# release matrix builds the other platforms.
+# `ready` runs the full pass, every check of the repository, then fails when its checks changed a
+# file, such as a generated one left uncommitted: `crates/xtask/tests/toolchain.rs` checks that a
+# job runs it. `web` builds the app for a browser and opens it, and `release` checks the release's
+# plan and packages the Linux app. Validation runs on Linux x64 only; the release matrix builds
+# the other platforms.
 jobs:
-  rust:
+  ready:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Its first run builds Native Shell's crates, the app's headless runner, and every test: on
+    # a 32-thread development machine, cold, about 95 minutes of processor time, then
+    # `just app-test`, one test at a time, for 5 1/2 minutes. On a runner's four
+    # cores, an estimated 45 to 60 minutes; with the cache, far less.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - name: Run the Rust checks
+      - name: Allow the user namespaces of WebKit's sandbox
+        # The web view check of `crates/app/tests/outside.rs` starts WebKitGTK, whose page runs in
+        # bubblewrap's sandbox, which needs unprivileged user namespaces. Ubuntu 24.04 lets only
+        # the programs AppArmor profiles create them, and the dev shell's `bwrap` is Nix's, which
+        # none does: the check would fail on CI alone. The runner is a machine of its own for this
+        # job, so the restriction is lifted there, and WebKit's sandbox stays on, as the app runs it.
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+      - name: Run every check
         # nextest's `ci` profile reports every failure at once.
         env:
           NEXTEST_PROFILE: ci
-        run: nix develop --command pnpm exec vp run --no-cache ready:rust
+        run: nix develop --command just ready
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain
           test -z "$(git status --porcelain)"
 
-  typescript:
+  web:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Its first run builds Native Shell's engine and the app's Rust for WebAssembly, then the
+    # server's tests: about 30 minutes of processor time, cold.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - name: Run the TypeScript checks
-        run: nix develop --command pnpm exec vp run --no-cache ready:typescript
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  ts-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
-    env:
-      URAEDA_TEST_SHARD: ${{ matrix.shard }}/7
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run a slice of the TypeScript tests
-        run: nix develop --command pnpm exec vp run --no-cache ready:ts-test
+      - name: Build the web app
+        # The app for a browser, as `ura serve` serves it, then what a first load weighs.
+        run: nix develop --command just web-build
+      - name: Open it in a browser
+        # The dev shell's headless Chromium signs in and opens the home page.
+        run: nix develop --command just web-test
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain
@@ -72,22 +72,32 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The Linux app's package builds the app's crates in release, from a cold cache at first: 98
+    # minutes of processor time, cold, then `ura` with full link-time optimisation, 30 more, most
+    # of it on one core.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
 
       - name: Check the release plan
-        # The release workflow runs on tags only, so its plan is checked here.
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.33.0/cargo-dist-installer.sh | sh
-          dist plan
+        # The release workflow runs on tags only, so its plan is checked here, with the dev
+        # shell's cargo-dist, at the version dist-workspace.toml pins.
+        run: nix develop --command just release-plan
+
+      - name: Package the Linux app
+        # As the release builds it (`build-app.yml`): the tarball and the AppImage, whose sizes
+        # it prints.
+        run: nix develop --command just package
 
       - name: Print the size of ura
-        # Printed on every run, never tested: see the CLI decision.
+        # Printed on every run, never tested: see the CLI decision. The `ura` a release ships:
+        # cargo-dist's profile, with the web build `just package` made.
+        env:
+          URAEDA_WEB_BUILD: ${{ github.workspace }}/target/web
         run: |
-          nix develop --command cargo build --release -p uraeda-cli
-          size=$(stat -c %s target/release/ura)
+          nix develop --command cargo build --profile dist -p uraeda-cli
+          size=$(stat -c %s target/dist/ura)
           echo "ura: $size bytes"
 
       - name: Check the working tree is unchanged

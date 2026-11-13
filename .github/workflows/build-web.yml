@@ -1,0 +1,37 @@
+# Builds the app for a browser, `just web-build` in the dev shell, once for a release: `ura` holds
+# it on every platform, and Native Shell builds it on x86_64 Linux only. `release.yml` calls it
+# before it builds `ura`, from `plan-jobs` in dist-workspace.toml, and each of its builds takes
+# what this uploads, by the steps of `.github/build-setup.yml`. A failed build releases nothing.
+name: Build the web app
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-web:
+    # NSH's web runtime and the app's WebAssembly build on x86_64 Linux.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          # The build of CI's `web` job on `main`, which builds the same: a tag's run reads the
+          # default branch's caches, and what it saves no other tag reads.
+          cache: web
+          save: false
+      - name: Build the web app
+        # It ends with what a first load weighs, against its limit.
+        run: nix develop --command just web-build
+      - name: Upload the web build
+        uses: actions/upload-artifact@v7
+        with:
+          # Not `artifacts-*`: the release's `host` job releases those, and this is held by `ura`.
+          name: web-build
+          path: target/web
+          if-no-files-found: error

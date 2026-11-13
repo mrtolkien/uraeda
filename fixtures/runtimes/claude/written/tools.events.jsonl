@@ -1,0 +1,33 @@
+{"id":"toolu_2","input":{"file_path":"/session-dir/src/a.ts"},"kind":"read","name":"Read","type":"toolStart","target":"src/a.ts"}
+{"id":"toolu_2","input":{"command":"ls"},"kind":"execute","name":"Bash","type":"toolStart","target":"ls"}
+{"id":"toolu_2","input":{"pattern":"TODO"},"kind":"search","name":"Grep","type":"toolStart","target":"TODO"}
+{"id":"toolu_2","input":{"url":"https://example.com"},"kind":"fetch","name":"WebFetch","type":"toolStart","target":"https://example.com"}
+{"id":"toolu_2","input":{"file_path":"/session-dir/a.ts"},"kind":"edit","name":"Edit","type":"toolStart","target":"a.ts"}
+{"id":"toolu_2","input":{"todos":[]},"kind":"other","name":"TodoWrite","type":"toolStart"}
+{"id":"toolu_1","input":{"description":"Map the runner code","prompt":"p"},"kind":"other","name":"Agent","type":"toolStart","subagent":{"description":"Map the runner code"}}
+{"id":"toolu_1","input":{"description":"Map the runner code"},"kind":"other","name":"Task","type":"toolStart","subagent":{"description":"Map the runner code"}}
+{"id":"toolu_4","input":{"prompt":"no description"},"kind":"other","name":"Agent","type":"toolStart","subagent":{"description":""}}
+{"id":"toolu_2","input":{"file_path":"/elsewhere/a.ts"},"kind":"read","name":"Read","type":"toolStart","target":"/elsewhere/a.ts"}
+{"id":"toolu_2","input":{"file_path":"/session-dir"},"kind":"read","name":"Read","type":"toolStart","target":"/session-dir"}
+{"id":"toolu_2","input":{"file_path":"/session-dir/"},"kind":"read","name":"Read","type":"toolStart","target":"/session-dir/"}
+{"id":"toolu_2","input":{"file_path":"/session-dir/../other/a.ts"},"kind":"read","name":"Read","type":"toolStart","target":"/session-dir/../other/a.ts"}
+{"id":"toolu_2","input":{"file_path":"/session-dir/src/../b.ts"},"kind":"read","name":"Read","type":"toolStart","target":"b.ts"}
+{"id":"toolu_2","input":{"file_path":"/session-dir//src/./c.ts"},"kind":"read","name":"Read","type":"toolStart","target":"src/c.ts"}
+{"id":"toolu_2","input":{"file_path":"/session-dirx/a.ts"},"kind":"read","name":"Read","type":"toolStart","target":"/session-dirx/a.ts"}
+{"id":"toolu_2","input":{"file_path":"relative/a.ts"},"kind":"read","name":"Read","type":"toolStart","target":"relative/a.ts"}
+{"id":"toolu_2","input":{"file_path":"/session-dir/..hidden/a.ts"},"kind":"read","name":"Read","type":"toolStart","target":"..hidden/a.ts"}
+{"id":"toolu_2","input":{"path":"/session-dir/src"},"kind":"search","name":"LS","type":"toolStart","target":"src"}
+{"id":"toolu_2","input":{"path":"/session-dir/src","pattern":"**/*.rs"},"kind":"search","name":"Glob","type":"toolStart","target":"**/*.rs"}
+{"id":"toolu_2","input":{"command":3,"pattern":"x","url":null},"kind":"search","name":"Grep","type":"toolStart","target":"x"}
+{"id":"toolu_2","input":{"notebook_path":"/session-dir/n.ipynb"},"kind":"edit","name":"NotebookEdit","type":"toolStart"}
+{"id":"toolu_2","input":{"shell_id":"s1"},"kind":"execute","name":"KillShell","type":"toolStart"}
+{"id":"toolu_2","input":{"bash_id":"s1"},"kind":"execute","name":"BashOutput","type":"toolStart"}
+{"id":"toolu_2","input":{"file_path":"/session-dir/a.ts"},"kind":"edit","name":"MultiEdit","type":"toolStart","target":"a.ts"}
+{"id":"toolu_2","input":{"content":"x","file_path":"/session-dir/new.md"},"kind":"edit","name":"Write","type":"toolStart","target":"new.md"}
+{"id":"toolu_2","input":{"query":"rust"},"kind":"fetch","name":"WebSearch","type":"toolStart"}
+{"id":"toolu_2","input":{"task":"Task 1"},"kind":"other","name":"mcp__uraeda__run_agent","target":"Task 1","type":"toolStart"}
+{"id":"toolu_5","input":{},"kind":"execute","name":"Bash","type":"toolStart"}
+{"id":"toolu_6","input":{"command":"ls"},"kind":"other","name":"","type":"toolStart","target":"ls"}
+{"id":"toolu_7","input":{"command":"ls -la"},"kind":"execute","name":"Bash","type":"toolStart","target":"ls -la"}
+{"text":"Then this.","type":"text"}
+{"id":"toolu_8","input":{"file_path":"/session-dir/src/b.ts"},"kind":"read","name":"Read","type":"toolStart","target":"src/b.ts","parent":"toolu_1"}

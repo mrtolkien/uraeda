@@ -144,7 +144,7 @@ colour.
   mode ([`StoryFrames.tsx`](/packages/web/src/StoryFrames.tsx),
   [`.storybook/preview.tsx`](/packages/web/.storybook/preview.tsx)).
 - The format, with a shipped theme to copy, is documented in
-  [the web UI's page](/docs/web-ui.md#colour-themes); the themes' licenses in
+  [the web UI's page](/docs/app.md#colour-themes); the themes' licenses in
   [CONTRIBUTING](/CONTRIBUTING.md).
 
 ## Replaced behaviour

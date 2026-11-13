@@ -46,7 +46,7 @@ changes than the worktree.
 carry the difference, and the word and the icon name it for a reader who does not see colours.
 [`ChangesTree.tsx`](/packages/web/src/git/ChangesTree.tsx) gives it to every group but the main
 checkout's. The guides say it in [look and feel](/specs/ui/look-and-feel.md) and
-[flows](/specs/ui/flows.md), and the [web UI's page](/docs/web-ui.md) for users.
+[flows](/specs/ui/flows.md), and the [web UI's page](/docs/app.md) for users.
 
 ## Replaced behaviour
 

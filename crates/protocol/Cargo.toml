@@ -1,0 +1,24 @@
+[package]
+name = "uraeda-protocol"
+description = "The protocol between Uraeda's server and its clients: the messages, and the names of records and actions."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+# cargo-nextest does not run doctests, and the crate has none.
+[lib]
+doctest = false
+
+[dependencies]
+# A long part of a message is compressed with raw deflate: `frame.rs`. Its backend is Rust's own,
+# which builds for the web's WebAssembly, where the app inflates it.
+flate2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
+
+[lints]
+workspace = true

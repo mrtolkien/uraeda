@@ -15,9 +15,9 @@ down.
 
 - Rust and TypeScript functions and files MUST stay within limits on length, parameters, and
   nesting. Checked by clippy and Oxlint.
-- The TypeScript lint configuration MUST extend `@nkzw/oxlint-config`, the shared configuration of
-  fate's stack, turning off its rules only where an active decision conflicts. Checked by the lint
-  configuration's test.
+- The TypeScript lint configuration MUST be [`.oxlintrc.json`](/.oxlintrc.json), read by the dev
+  shell's Oxlint: its correctness and suspicious rules as errors, and these limits. Checked by
+  `just lint`.
 - Code over a limit when this decision was approved MUST be marked in place with its reason, so that
   a marker left on fixed code fails. Checked by the linters.
 - A new marker MUST NOT be added unless a human approves it in the plan.
@@ -42,8 +42,11 @@ beside its code, the same way in both languages, and fails once the code is fixe
 - A feature touching a marked function or file splits it first, in a commit that only restructures
   it, and removes its marker.
 - Lua, and duplication across languages, stay checked by review only.
+- A TSX function's length is checked at 150 lines, without blanks and comments, a looser limit than
+  Rust's: a component's markup is one function. The functions over it are marked in place, as Rust's
+  are. Oxlint holds nesting, parameters, a function's and a file's length.
 
 ## Applies to
 
-- [`crates/`](/crates/), [`packages/`](/packages/), [`Cargo.toml`](/Cargo.toml), `clippy.toml`,
-  [`vite.config.ts`](/vite.config.ts), and every feature that adds or changes code
+- [`crates/`](/crates/), [`app/`](/app/), [`Cargo.toml`](/Cargo.toml), `clippy.toml`,
+  [`.oxlintrc.json`](/.oxlintrc.json), and every feature that adds or changes code

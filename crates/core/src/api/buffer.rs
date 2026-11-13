@@ -1,6 +1,7 @@
 //! A buffer: any Markdown file under `specs/`, read whole and saved as typed, never committed. A
 //! feature's or a change's file, at any depth of its folder, is written on its branch; any other on
-//! the default branch. Each save is recorded beside the checkout it wrote, for the Git page.
+//! the default branch. Each save is recorded beside the checkout it wrote, for the Git page. Any
+//! other text file of the main checkout is read too, as code a decision links, and never saved.
 
 use std::path::{Component, Path, PathBuf};
 
@@ -13,7 +14,6 @@ use crate::git::Git;
 use crate::workspace::Workspace;
 
 /// A buffer's file as read: its whole text, frontmatter included, and the branch it is written on.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BufferView {
@@ -21,7 +21,22 @@ pub struct BufferView {
     pub text: String,
     pub hash: String,
     pub branch: String,
+    /// The linked worktree the file is read from, by its path: none for the main checkout, or for
+    /// a branch no checkout has, read from its tip.
+    pub worktree: Option<String>,
+    /// Whether a checkout has its branch: else it is read from the branch's tip, and a save makes
+    /// the branch's worktree.
+    pub checked_out: bool,
+    /// Why it cannot be saved, with what to do instead: none for a Markdown file of `specs/`.
+    pub read_only: Option<String>,
 }
+
+/// Why a file that is not Markdown of `specs/` is only read.
+const ONLY_READ: &str = "Only the Markdown files of specs/ are edited here. Change this file in \
+                         your own editor, or ask an agent to.";
+
+/// The most bytes a file read as a buffer holds: a bigger one is no text a person reads here.
+const MOST_BYTES: u64 = 2 * 1024 * 1024;
 
 fn not_a_buffer(path: &str) -> super::ApiError {
     refused(format!("{path} is not a Markdown file of specs/"))
@@ -106,32 +121,76 @@ pub(super) fn branch_of(workspace: &Workspace, path: &str) -> Result<String> {
         .ok_or_else(|| refused("no default branch: commit on main first"))
 }
 
-/// A file's text from the checkout that has its branch, else from the branch's tip.
-fn read_on(git: &Git, branch: &str, path: &str) -> Result<String> {
+/// A file's text from the checkout that has its branch, with that checkout, else from the
+/// branch's tip.
+fn read_on(git: &Git, branch: &str, path: &str) -> Result<(String, Option<PathBuf>)> {
     let missing = || refused(format!("{path}: no such file"));
     if let Some(root) = default_checkout(git, branch) {
         inside(&root, path)?;
-        return std::fs::read_to_string(root.join(path)).map_err(|_| missing());
+        let text = std::fs::read_to_string(root.join(path)).map_err(|_| missing())?;
+        return Ok((text, Some(root)));
     }
     let bytes = git
         .tip(branch)
         .and_then(|tip| git.read_file(tip, path).ok().flatten())
         .ok_or_else(missing)?;
-    String::from_utf8(bytes).map_err(|_| missing())
+    Ok((String::from_utf8(bytes).map_err(|_| missing())?, None))
+}
+
+/// Any text file of the main checkout at `root`, by a plain path that stays inside it once its
+/// links are followed: never one of git's own files, nor a hidden one, which may hold secrets.
+fn read_text_file(root: &Path, path: &str) -> Result<String> {
+    let refuse = || refused(format!("{path} is no text file of this repository"));
+    if !plain(path) || path.contains(char::is_control) {
+        return Err(refuse());
+    }
+    if root.join(path).symlink_metadata().is_err() {
+        return Err(refused(format!("{path}: no such file")));
+    }
+    let top = std::fs::canonicalize(root).map_err(|_| refuse())?;
+    let file = std::fs::canonicalize(root.join(path)).map_err(|_| refuse())?;
+    let metadata = std::fs::metadata(&file).map_err(|_| refuse())?;
+    if !file.starts_with(&top) || !metadata.is_file() || metadata.len() > MOST_BYTES {
+        return Err(refuse());
+    }
+    let bytes = std::fs::read(&file).map_err(|_| refuse())?;
+    if bytes.contains(&0) {
+        return Err(refuse());
+    }
+    String::from_utf8(bytes).map_err(|_| refuse())
 }
 
 /// A Markdown file under `specs/`, whole, as its branch has it: from the checkout with the branch,
-/// else from its tip, without creating a worktree.
+/// else from its tip, without creating a worktree. Any other text file is read from the main
+/// checkout, and says it is only read.
 pub fn read_buffer(repo: &Path, path: &str) -> Result<BufferView> {
-    markdown_of_specs(path)?;
     let (git, workspace) = open(repo)?;
+    if markdown_of_specs(path).is_err() {
+        let text = read_text_file(git.root(), path)?;
+        return Ok(BufferView {
+            path: path.to_string(),
+            hash: hash(&text),
+            text,
+            branch: workspace.default_branch.clone().unwrap_or_default(),
+            worktree: None,
+            checked_out: true,
+            read_only: Some(ONLY_READ.to_string()),
+        });
+    }
     let branch = branch_of(&workspace, path)?;
-    let text = read_on(&git, &branch, path)?;
+    let (text, checkout) = read_on(&git, &branch, path)?;
+    let worktree = checkout
+        .as_ref()
+        .filter(|root| root.as_path() != git.root())
+        .map(|root| root.to_string_lossy().into_owned());
     Ok(BufferView {
         path: path.to_string(),
         hash: hash(&text),
         text,
         branch,
+        worktree,
+        checked_out: checkout.is_some(),
+        read_only: None,
     })
 }
 

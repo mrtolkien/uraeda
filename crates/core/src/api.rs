@@ -1,4 +1,4 @@
-//! The operations the binding exposes, by repository path: each reads the workspace, reaches the
+//! The operations the server calls, by repository path: each reads the workspace, reaches the
 //! branch it writes on through a worktree, acts, and returns what the UI shows next.
 
 use std::path::{Path, PathBuf};
@@ -16,8 +16,8 @@ use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::Git;
 use crate::view::{
-    CommitView, FeatureView, FileView, NextView, ProposalLink, StepView, VersionView, WaitingFile,
-    WorkspaceView,
+    CommitView, FeatureView, FileView, NextView, ProposalLink, ProposalView, StepView, VersionView,
+    WaitingFile, WorkspaceView,
 };
 use crate::workspace::{Feature, FileKind, Source, Workspace, WorkspaceError};
 
@@ -74,8 +74,8 @@ pub use findings::write_findings;
 pub use git_page::{
     ChangeGroupView, CommitRowView, ConflictFileView, ConflictView, FileChangeView, GitAt,
     GitCommitView, GitDiffView, GitHistoryPageView, GitPageView, GitSummaryView, StoppedView,
-    WorktreeView, conflict_file, git_commit, git_diff, git_history, git_page, git_summary,
-    resolve_commit,
+    WorktreeView, branch_diff, conflict_file, git_commit, git_diff, git_history, git_page,
+    git_summary, resolve_commit,
 };
 pub use git_writes::{
     clean_feature, git_abort, git_commit_staged, git_continue, git_discard, git_fetch, git_merge,
@@ -172,6 +172,13 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
             ..WorkspaceView::new(workspace, |feature| checked(&git, &read, feature, false))
         }
     }))
+}
+
+/// The proposals of the priorities, as [`read_workspace`] gives them, without building every
+/// feature's view: what a feature's page reads to learn whether it is in **Now**.
+pub fn read_proposal_lines(repo: &Path) -> Result<Vec<ProposalView>> {
+    let (_, workspace) = open(repo)?;
+    Ok(ProposalView::lines(&workspace))
 }
 
 /// One feature, for its page: a done one with the notes of its record.

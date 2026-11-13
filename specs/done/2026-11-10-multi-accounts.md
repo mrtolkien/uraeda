@@ -69,11 +69,11 @@ signs in each account's configuration folder, from a script in the documentation
 - **Settings, Extensions** shows a banner per problem of an account, for the built-in and for any
   extension's runtime: "Claude Code: account b is signed out, in ~/.claude-b", "Claude Code: account
   c has no folder at ~/.claude-c", "Claude Code: account folder docs is not an absolute path".
-- **The documentation**, in [`docs/web-ui.md`](/docs/web-ui.md), holds the script that makes and
-  signs in one account's folder linked to `~/.claude`, the setting, the pick, and the limits: MCP
-  servers added for the user are per folder, usage credits make an account pay past its limit, an
-  API key in the server's environment outranks every account, and Anthropic's terms forbid using
-  someone else's account, with limits that "assume ordinary, individual usage".
+- **The documentation**, in [`docs/web-ui.md`](/docs/app.md), holds the script that makes and signs
+  in one account's folder linked to `~/.claude`, the setting, the pick, and the limits: MCP servers
+  added for the user are per folder, usage credits make an account pay past its limit, an API key in
+  the server's environment outranks every account, and Anthropic's terms forbid using someone else's
+  account, with limits that "assume ordinary, individual usage".
 
 ## Design
 

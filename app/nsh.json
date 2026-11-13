@@ -1,0 +1,27 @@
+{
+  "name": "Uraeda",
+  "id": "dev.uraeda.app",
+  "version": "0.0.0",
+  "build": 1,
+  "minRuntime": "0.5.0",
+  "rust": "../crates/app",
+  "theme": "theme.json",
+  "icon": { "web": "web/icon.png" },
+  "web": { "base": "/", "history": false },
+  "capabilities": {
+    "network": {
+      "hosts": ["*"]
+    },
+    "webview": {
+      "hosts": ["*"]
+    },
+    "clipboard": true,
+    "picker": true,
+    "fs": { "read": ["${homeDir}", "/tmp"] },
+    "openUrl": true,
+    "host": ["uraeda.*"],
+    "process": {
+      "env": ["URAEDA_SANDBOX", "URAEDA_ROUTE"]
+    }
+  }
+}

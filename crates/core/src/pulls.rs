@@ -6,8 +6,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime};
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::git::{Git, process};
@@ -16,7 +14,6 @@ use crate::workspace::Feature;
 use crate::{behind, cache};
 
 /// An open pull request's state.
-#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PullRequestState {
@@ -26,7 +23,6 @@ pub enum PullRequestState {
 }
 
 /// A branch's open pull request.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PullRequestView {

@@ -6,10 +6,10 @@ icon: mouse-pointer-click
 
 # UI behaviour
 
-The web UI acts on things where they are, and never loses what the human typed or where they were.
-Text saves only when the human says so, except in an outline, a list like the priorities or the
-inbox whose rows save as they are left. A write shows its result at once, and a write to git its
-progress until it lands, without the human waiting.
+The app acts on things where they are, and never loses what the human typed or where they were. Text
+saves only when the human says so, except in an outline, a list like the priorities or the inbox
+whose rows save as they are left. A write shows its result at once, and a write to git its progress
+until it lands, without the human waiting.
 
 ## Rules
 
@@ -56,4 +56,4 @@ rare. History: [Performance pass](../done/2026-10-29-performance-pass.md).
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), and every feature that adds or changes a view
+- [`app/`](/app/), and every feature that adds or changes a view

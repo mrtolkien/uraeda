@@ -8,14 +8,19 @@ mod complete;
 mod editor;
 mod expand;
 mod extension;
+mod import_sessions;
 mod inbox;
 mod init;
 mod install;
+mod key;
 mod next;
 mod note;
 mod output;
+mod pair;
 mod picker;
 mod review;
+mod sandbox;
+mod serve;
 mod shell;
 mod start;
 mod status;
@@ -184,7 +189,7 @@ enum Command {
     Lsp,
     /// Upgrade ura to the latest release, with the installer script or Homebrew it came from
     Upgrade,
-    /// Add the git repository holding a folder to the web UI's list
+    /// Add the git repository holding a folder to the app's list
     Add {
         /// A folder in the repository; the current folder by default
         #[arg(value_hint = clap::ValueHint::DirPath)]
@@ -192,6 +197,60 @@ enum Command {
     },
     /// Add, update, remove, and list your extensions, in the config folder's extensions/
     Extension(extension::Args),
+    /// Run Uraeda's server on this machine, until it is stopped
+    Serve {
+        /// The port on 127.0.0.1: else URAEDA_PORT, else the settings' port, else 4310; 0 takes
+        /// a free one
+        #[arg(long)]
+        port: Option<u16>,
+        /// The folder the server keeps its data in
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+        /// Start no scheduled job at its times, whatever the settings say; "Run now" still works
+        #[arg(long)]
+        no_scheduled_jobs: bool,
+        /// Do not open the app in the browser, whatever the settings say
+        #[arg(long)]
+        no_open: bool,
+    },
+    /// Run the server over sample projects and a fake agent, without sign-in, for Uraeda's own
+    /// development: from a checkout of Uraeda, until it is stopped
+    #[command(hide = true)]
+    Sandbox(sandbox::Args),
+    /// Play Storybook for the sandbox's stories: a page for each story, and their index
+    #[command(hide = true, disable_help_flag = true)]
+    FakeStorybook {
+        /// The fake's own arguments: see `uraeda_server::sandbox::storybook`
+        #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
+        args: Vec<String>,
+    },
+    /// Show a one-time code, and its QR code, that pairs another device with the running server
+    Pair {
+        /// The data folder of the server to pair with
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+    },
+    /// Show an access key, once, that signs a browser in to the running server
+    Key {
+        /// The data folder of the server
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+        /// Make a new key in place of the one there: every browser and device is signed out
+        #[arg(long)]
+        replace: bool,
+    },
+    /// Copy the earlier server's sessions into the store of `ura serve`, once
+    ImportSessions {
+        /// The earlier server's data folder, which is only read
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        from: Option<std::path::PathBuf>,
+        /// The data folder of the server to import into
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+        /// Remove the sessions the store already holds, and import in their place
+        #[arg(long)]
+        replace: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -250,6 +309,21 @@ fn main() -> ExitCode {
         Command::Upgrade => upgrade::run(),
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
+        Command::Serve {
+            port,
+            data_dir,
+            no_scheduled_jobs,
+            no_open,
+        } => serve::run(port, data_dir, no_scheduled_jobs, no_open),
+        Command::Sandbox(args) => sandbox::run(args),
+        Command::FakeStorybook { args } => Ok(uraeda_server::sandbox::storybook::run(args)),
+        Command::Pair { data_dir } => pair::run(data_dir),
+        Command::Key { data_dir, replace } => key::run(data_dir, replace),
+        Command::ImportSessions {
+            from,
+            data_dir,
+            replace,
+        } => import_sessions::run(from, data_dir, replace),
         Command::Review {
             target,
             comment,

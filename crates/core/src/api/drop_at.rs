@@ -6,7 +6,6 @@ use super::{Result, refused};
 /// item at `under_at`; else into the list `list`, a section of the priorities or a category of the
 /// inbox, none for the inbox's notes without a category. `index` is its place there, counted once
 /// it left.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DropAt {
     pub list: Option<String>,

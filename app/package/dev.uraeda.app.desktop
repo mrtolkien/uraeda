@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Uraeda
+GenericName=Spec workflow
+Comment=Write proposals, answer questions, and approve specs while coding agents do the rest
+Exec=uraeda
+Icon=dev.uraeda.app
+Terminal=false
+StartupNotify=true
+StartupWMClass=dev.uraeda.app
+Categories=Development;
+Keywords=agents;specs;git;workflow;

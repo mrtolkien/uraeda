@@ -1,0 +1,58 @@
+//! Git: the page of a repository's checkouts, the sidebar's count, a file's diff, a commit, a
+//! page of the history, a conflicted file, and the page's writes.
+//!
+//! The core reads the repository at each read: nothing of it is kept here. Each write lands in
+//! its repository's write queue, under its name, and is refused while an agent works in a
+//! checkout it writes. After each, landed or refused, the queue says the repository's records
+//! changed.
+
+mod fetcher;
+mod reads;
+mod views;
+mod working;
+mod writes;
+
+use uraeda_core::watch::Changes;
+use uraeda_protocol::{ConflictFile, GitDiff, GitHistoryPage, GitPage, GitSummary, RepositoryArgs};
+
+use crate::Failure;
+use crate::live::{Bus, Registry};
+use crate::shared::Shared;
+
+/// Registers git's records and actions, and starts fetching the list's repositories.
+pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
+    reads::register(registry);
+    writes::register(registry);
+    fetcher::start(shared);
+    Ok(())
+}
+
+/// Says what git's records show of a repository changed, as the core's watcher reports it: an
+/// edit of a list or of a feature, which is a change waiting for a commit, or a change of a
+/// checkout's git state.
+pub(super) fn files_changed(shared: &Shared, repository: &str, changes: &Changes) {
+    let edited = changes.priorities || changes.inbox || !changes.features.is_empty();
+    if edited || changes.git {
+        written(&shared.get::<Bus>(), repository);
+    }
+}
+
+/// A repository joined the list once the server runs: it is fetched now, and not at the next
+/// round.
+pub(super) fn repository_joined(shared: &Shared, repository: &str) {
+    fetcher::joined(shared, repository);
+}
+
+/// The server wrote to a repository: what git's records show of it changed. Its page and its
+/// count, and whatever diff, page of the history, and conflicted file of it somebody holds. A
+/// commit never changes.
+pub(super) fn written(bus: &Bus, repository: &str) {
+    let args = RepositoryArgs {
+        repo: repository.to_owned(),
+    };
+    bus.changed::<GitPage>(&args);
+    bus.changed::<GitSummary>(&args);
+    bus.changed_where::<GitDiff>(|args| args.repo == repository);
+    bus.changed_where::<GitHistoryPage>(|args| args.repo == repository);
+    bus.changed_where::<ConflictFile>(|args| args.repo == repository);
+}

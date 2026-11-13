@@ -1,4 +1,4 @@
-//! Colour themes: the TOML files the web UI draws its colours from, one per theme (see
+//! Colour themes: the TOML files the UI draws its colours from, one per theme (see
 //! `specs/decisions/colour-themes.md`). The shipped themes are embedded in the binary; the user's
 //! are in `themes/` in the config folder. Reading them never fails: each problem is reported on its
 //! file's row, with its line, and a broken theme leaves the lists without stopping any other.
@@ -8,10 +8,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use include_dir::{Dir, include_dir};
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 
-mod contrast;
+pub mod contrast;
 mod parse;
 mod resolve;
 
@@ -69,6 +67,19 @@ pub const ROLES: &[&str] = &[
     "syntax-tag",
     "syntax-attribute",
     "syntax-variable",
+    // The design language's: what is under the panes, the heights, glass, and light.
+    "backdrop",
+    "backdrop-wash-1",
+    "backdrop-wash-2",
+    "well",
+    "rule-quiet",
+    "lip",
+    "shade",
+    "glass-tint",
+    "glass-rim",
+    "light-focus",
+    "light-focus-2",
+    "light-running",
 ];
 
 /// The dark mode's default theme, which a dark theme without `extends` extends.
@@ -83,7 +94,6 @@ static SHIPPED: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/themes");
 const LARGEST: u64 = 1024 * 1024;
 
 /// A theme in the lists, every role resolved to a colour.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Theme {
     /// The file's name without `.toml`.
@@ -101,7 +111,6 @@ pub struct Theme {
 }
 
 /// A problem of a theme file: an error, or a warning, which never leaves the lists.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ThemeProblem {
     /// The line it is on, from 1, to sort and to point at; absent for the whole file.
@@ -119,7 +128,6 @@ pub struct ThemeProblem {
 }
 
 /// A theme file of the user's, listed or not, and its problems.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ThemeFile {
     /// The file's name, `ember.toml`.
@@ -136,7 +144,6 @@ pub struct ThemeFile {
 }
 
 /// The themes the lists show, and the user's files.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Themes {
     /// The user's themes folder, as messages show it, the home folder written `~`, and a `/` last.

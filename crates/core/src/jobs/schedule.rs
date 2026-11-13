@@ -1,8 +1,5 @@
 //! A job's schedule: the four forms of the data model, in lower case, each time on 24 hours.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
-
 /// Why a time is refused.
 pub(super) const TIME_PROBLEM: &str = "A time is from 00:00 to 23:59.";
 
@@ -18,7 +15,6 @@ const DAYS: [&str; 7] = [
 ];
 
 /// When a job runs, in the server's local time.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Schedule {
     /// `"hourly"`, `"daily"`, `"weekdays"`, or `"weekly"`.

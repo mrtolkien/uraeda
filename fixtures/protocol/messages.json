@@ -1,0 +1,53 @@
+{
+  "client": [
+    { "type": "hello", "protocol": 3, "signIn": { "by": "cookie" } },
+    { "type": "hello", "protocol": 3, "signIn": { "by": "token", "token": "p8Zk1mQ4" } },
+    {
+      "type": "sub",
+      "id": 1,
+      "record": "Feature",
+      "args": { "repo": "uraeda", "id": "2026-11-10-nsh-migration" }
+    },
+    { "type": "sub", "id": 2, "record": "Settings", "args": null },
+    { "type": "unsub", "id": 1 },
+    {
+      "type": "call",
+      "id": 3,
+      "action": "proposals.add",
+      "input": { "repo": "uraeda", "section": "Next", "text": "Pair a phone", "hash": "9c1f" }
+    },
+    {
+      "type": "resume",
+      "id": 1,
+      "record": "Feature",
+      "args": { "repo": "uraeda", "id": "2026-11-10-nsh-migration" },
+      "epoch": "b7Qx2f",
+      "seq": 41
+    }
+  ],
+  "server": [
+    { "type": "welcome", "protocol": 3, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" },
+    { "type": "refused", "reason": "client-too-old", "protocol": 3 },
+    { "type": "refused", "reason": "server-too-old", "protocol": 3 },
+    { "type": "refused", "reason": "not-signed-in", "protocol": 3 },
+    { "type": "data", "id": 1, "seq": 40, "value": { "id": "t7", "items": [] } },
+    {
+      "type": "change",
+      "id": 1,
+      "seq": 41,
+      "ops": [
+        { "op": "set", "path": ["state"], "value": "running" },
+        { "op": "append", "path": ["items", "m2", "text"], "text": "ld" },
+        { "op": "insert", "path": ["items"], "value": { "id": "m3", "text": "" } },
+        { "op": "insert", "path": ["items"], "value": { "id": "m0", "text": "" }, "before": "m1" },
+        { "op": "remove", "path": ["items", "m1"] },
+        { "op": "move", "path": ["items", "m3"], "before": "m2" },
+        { "op": "move", "path": ["items", "m0"] }
+      ]
+    },
+    { "type": "result", "id": 3, "output": { "hash": "41be" } },
+    { "type": "result", "id": 4, "output": null },
+    { "type": "error", "id": 3, "code": "conflict", "message": "the priorities changed since" },
+    { "type": "error", "code": "bad-message", "message": "expected value at line 1 column 1" }
+  ]
+}

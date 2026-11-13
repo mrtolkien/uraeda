@@ -1,14 +1,11 @@
 //! What changed in a spec since the version its human reviewed.
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use serde::Serialize;
 
 use crate::decisions::Run;
 use crate::files::document::LineRange;
 
 /// A spec's change since the version reviewed by the review its revision answers.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SinceReview {
@@ -22,7 +19,6 @@ pub struct SinceReview {
 }
 
 /// A part of a spec that changed since its review.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SinceChange {

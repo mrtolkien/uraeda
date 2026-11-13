@@ -1,0 +1,22 @@
+[package]
+name = "uraeda-text"
+description = "What Uraeda reads in a text alone: a Markdown file's document tree, its links, its stories, and the patch between two texts."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+# cargo-nextest does not run doctests, and the crate has none.
+[lib]
+doctest = false
+
+[dependencies]
+# The lines' diff of a patch: gitoxide's copy of imara-diff, which gix compares blobs with.
+gix-imara-diff.workspace = true
+pulldown-cmark.workspace = true
+serde.workspace = true
+sha2.workspace = true
+
+[lints]
+workspace = true

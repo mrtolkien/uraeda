@@ -51,12 +51,12 @@ page's header holds one, a session's and a feature's.
 
 ## A list's detail
 
-A row shows two or three lines. Its whole text, a proposal's or a note's, opens in the detail dialog
-(`pane/DetailOverlay.tsx`), 108 characters wide, its text in the reading font at the measure, on the
-row's own address, over the list, which keeps its selection and its scroll; a row with a file opens
-the file's page instead. Where reading an item is the page's job, the decisions page draws the list
-beside the item it reads, as the [UI layout](../decisions/ui-layout.md) decision asks. The
-priorities' side pane, and a hover card that followed the selection, were tried and removed.
+A row shows two or three lines. Its whole text, a proposal's or a note's, opens in the detail
+dialog, 108 characters wide, its text in the reading font at the measure, on the row's own address,
+over the list, which keeps its selection and its scroll; a row with a file opens the file's page
+instead. Where reading an item is the page's job, the decisions page draws the list beside the item
+it reads, as the [UI layout](../decisions/ui-layout.md) decision asks. The priorities' side pane,
+and a hover card that followed the selection, were tried and removed.
 
 ## The leader menu and the `g` keys
 
@@ -68,11 +68,11 @@ A page does not build its own menu of actions.
 ## Pickers
 
 A picker chooses one thing among many: a place, a category, where a note is promoted, a repository,
-or anything at all (`Space Space`). It is `keys/KeyPicker.tsx`'s dialog on wide screens and a sheet
-on the phone: it opens with its filter focused, the arrows move through it, `Enter` picks, and the
-human lands on the result. Its rows show a thing as the sidebar's card does, its icon and its state.
-Every picker is this one component, and beside its list on wide screens it previews the item under
-the cursor as the app draws that content (`keys/PickerPreview.tsx`): a document rendered as its page
+or anything at all (`Space Space`). It is [`KeyPicker.tsx`](/app/ui/keys/KeyPicker.tsx)'s dialog on
+wide screens and a sheet on the phone: it opens with its filter focused, the arrows move through it,
+`Enter` picks, and the human lands on the result. Its rows show a thing as the sidebar's card does,
+its icon and its state. Every picker is this one component, and beside its list on wide screens it
+previews the item under the cursor as the app draws that content: a document rendered as its page
 renders it, its frontmatter left out; a level, a proposal, a note, or a category as its list's pane
 and rows; anything else as plain lines. "Render it for all pickers really." When picking moves
 something, the picker shows where it lands, by level first ("Show the priority levels first"), the
@@ -90,12 +90,12 @@ page, which sends no click, keeps it open.
 
 Two jobs only:
 
-- **Confirming what cannot be undone**, through the one shared confirmation (`fields/Confirm.tsx`),
-  answered by `y` or `n`, its focus on Cancel: what loses work for good, like discarding uncommitted
-  changes or dropping typed text. "Make sure every cancel modal uses the same window." A question
-  with more than two answers, like deleting a category that holds notes, is the same confirmation
-  with one more answer and its key. What the stack can undo never asks: `d` deletes a row at once, a
-  note with its note file.
+- **Confirming what cannot be undone**, through the one shared confirmation
+  ([`Confirm.tsx`](/app/ui/controls/Confirm.tsx)), answered by `y` or `n`, its focus on Cancel: what
+  loses work for good, like discarding uncommitted changes or dropping typed text. "Make sure every
+  cancel modal uses the same window." A question with more than two answers, like deleting a
+  category that holds notes, is the same confirmation with one more answer and its key. What the
+  stack can undo never asks: `d` deletes a row at once, a note with its note file.
 - **One short question at a decision point**: a single field, with a suggestion at most, like a new
   feature's slug after `Ctrl+Enter`, or a quick note. A feature's and a change's start also hold the
   run map under the field, the settings' own (`runs/RunMap.tsx`), in a dialog as large as the map
@@ -109,41 +109,40 @@ exist?" A proposal file opens its page, not an overlay. On the phone a dialog is
 
 ## Undo
 
-Every edit to the human's lists and texts goes on the tab's undo stack (`undo/stack.ts`), as the
+Every edit to the human's lists and texts goes on the tab's undo stack, as the
 [Undo](../decisions/undo.md) decision sets: the last 50 actions, until the tab reloads or closes.
 `u` or `Ctrl+Z` undoes the latest, minutes later if the human likes, and `U` or `Ctrl+Shift+Z`
-redoes it (`undo/UndoKeys.tsx`). An undo writes the reverse, which waits on the Git page, and takes
-the human to where the action happened, with what came back selected. It asks first once the action
-was committed since, and is refused, under the top bar, once its file changed since.
+redoes it. An undo writes the reverse, which waits on the Git page, and takes the human to where the
+action happened, with what came back selected. It asks first once the action was committed since,
+and is refused, under the top bar, once its file changed since.
 
-Each action but a move shows a toast with Undo for 5 seconds (`undo/useUndo.ts`, over
-`layout/useTimedToast.tsx`), its time paused while the pointer is over it or the focus in it, so a
-slow reader or a screen reader keeps it. The toast is a reminder of what happened, its label alone;
-the stack is the way back, and the status line shows `U redo` while there is one. Moves show no
-toast, and the moves of one list each less than a second after the last are one step. On the phone,
-with no keys, the toast's Undo and Redo are the only way. A toast is for this, for a confirmation
-from another page, and for the git writes still landing, never for an error alone, which stays next
-to what it concerns.
+Each action but a move shows a toast with Undo for 5 seconds , its time paused while the pointer is
+over it or the focus in it, so a slow reader or a screen reader keeps it. The toast is a reminder of
+what happened, its label alone; the stack is the way back, and the status line shows `U redo` while
+there is one. Moves show no toast, and the moves of one list each less than a second after the last
+are one step. On the phone, with no keys, the toast's Undo and Redo are the only way. A toast is for
+this, for a confirmation from another page, and for the git writes still landing, never for an error
+alone, which stays next to what it concerns.
 
 ## The commit toast
 
 A git write shows its result at once and takes the human where it leads: the files are written when
 its call answers, and its commit lands behind it, with the hooks, in the server's queue of the
-repository. The commit toast (`writes/CommitToast.tsx`) lists what is still landing, the running
-write first, then the ones waiting their turn, each named as its button would say it ("Approving the
-spec of Performance pass"). Nothing waits for it and no button is blocked: "we don't have to 'lie'
-to the user", and the toast is the truth of what is not in git yet. Every tab shows the same toast,
-and a reload brings it back, as it reads the server's queue.
+repository. The commit toast lists what is still landing, the running write first, then the ones
+waiting their turn, each named as its button would say it ("Approving the spec of Performance
+pass"). Nothing waits for it and no button is blocked: "we don't have to 'lie' to the user", and the
+toast is the truth of what is not in git yet. Every tab shows the same toast, and a reload brings it
+back, as it reads the server's queue.
 
 It sits where the leader menu rises, at the bottom right over the status line, in the same frosted
 glass, square; the open menu covers it. On the phone, it sits over the bottom bar, across the
 screen's width, and follows the bar down as it slides away.
 
 A write a hook refused is undone where it happened: the page shows what it showed before, and the
-hook's output in a banner at that place (`writes/RefusedHere.tsx`), the verdict's place of a review,
-a round's end, the editor's Commit. The toast keeps it too, with Open, which goes to that place, and
-Dismiss, which takes it out of every tab. Writing at that place again deals with it. The queue goes
-on past a refusal: the next writes land, or are refused, each alone.
+hook's output in a banner at that place, the verdict's place of a review, a round's end, the
+editor's Commit. The toast keeps it too, with Open, which goes to that place, and Dismiss, which
+takes it out of every tab. Writing at that place again deals with it. The queue goes on past a
+refusal: the next writes land, or are refused, each alone.
 
 ## Pages
 
@@ -172,13 +171,13 @@ repeating some of it is expected.
 ## The status line
 
 The bottom line of wide and semi-wide screens, in the shape of LazyVim's: lualine's sections in the
-theme's `mode-*` roles, set apart by triangles. In order: the Vim mode while Vim mode is on, the
-branch a page names, like a buffer's, the page's key hints, the counts of what needs the human and
-what runs. No cursor's place: its line, column, and "All" were "distracting". The mode reads NAV,
-grey, while keys act on the page, and in a field NORMAL, INSERT, VISUAL, REPLACE, or COMMAND, each
-in its role: in Catppuccin blue, green, mauve, red, and peach. With Vim mode off, the line keeps its
-sections without the mode. It holds no content. It has a slot for a page's own controls, which only
-the phone's bar uses today.
+theme's `mode-*` roles, set apart by triangles. In order: the mode, the branch a page names, like a
+buffer's, the page's key hints, the counts of what needs the human and what runs. No cursor's place:
+its line, column, and "All" were "distracting". The mode reads NAV, grey, while keys act on the
+page, and in a field NORMAL, INSERT, VISUAL, REPLACE, or COMMAND, each in its role: in Catppuccin
+blue, green, mauve, red, and peach. With Vim mode off, the mode still reads NAV on the page, and
+INSERT in a field, so the line says where the keys go. It holds no content. It has a slot for a
+page's own controls, which only the phone's bar uses today.
 
 ## A session
 
@@ -204,9 +203,8 @@ the phone's bar uses today.
 The phone's version of the side column: one row of icon tiles in frosted glass, each with its word,
 a page's companions as its side column has them, each opening a sheet, then at its end the one help
 that moves the human forward, Next or Verdict, in the accent. It is drawn by the pages with a side
-column, through `layout/ColumnStatusLine.tsx`, and slides away as the page scrolls down and back as
-it scrolls up. One or two tiles are glass buttons in the corners instead of a bar. See
-[the phone](phone.md) for what goes in it.
+column, and slides away as the page scrolls down and back as it scrolls up. One or two tiles are
+glass buttons in the corners instead of a bar. See [the phone](phone.md) for what goes in it.
 
 ## Sheets
 

@@ -9,8 +9,8 @@ icon: flask-conical
 Tests check that the code behaves as the decisions and the approved spec say, and never override
 them. How much is tested follows the project's stage, now `early`: only what is costly to get wrong
 and rarely changes, such as stored formats, git, security, and the contracts between the core, the
-CLI, and the server. The human checks the web UI by using it in the [sandbox](sandbox.md), so tests
-of the UI are rare.
+CLI, and the server. The human checks the app by using it in the [sandbox](sandbox.md), so tests of
+the UI are rare.
 
 ## Rules
 
@@ -22,7 +22,7 @@ of the UI are rare.
 - A test MUST assert what a caller or a user observes, never how the code does it.
 - At the `early` stage, a feature MUST test little beyond stored formats, git, security, contracts
   between the project's parts, pure logic with many cases, and the reproduction of each bug fixed.
-- A test of the web UI MUST guard behaviour that is costly to lose and that using the UI would not
+- A test of the app's UI MUST guard behaviour that is costly to lose and that using the UI would not
   show, such as unsaved text or a git write.
 - The stage MUST be set by the human, and moves only when they say so.
 - A UI change MUST be easy to try in the running app, through the sandbox.
@@ -57,9 +57,9 @@ review actual behaviour in the sandbox. History:
 
 ## Applies to
 
-- Every feature and change, and the tests of [`crates/`](/crates/), [`packages/`](/packages/),
-  [`scripts/`](/scripts/), and [`benchmarks/`](/benchmarks/)
-- [`packages/web/`](/packages/web/), and every feature or change that adds or changes a view
+- Every feature and change, and the tests of [`crates/`](/crates/), [`app/`](/app/), and
+  [`scripts/`](/scripts/)
+- [`app/`](/app/), and every feature or change that adds or changes a view
 
 ## Revisit when
 

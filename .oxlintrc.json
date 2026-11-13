@@ -1,0 +1,131 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "ignorePatterns": ["app/.nsh/**", "app/store/protocol.d.ts"],
+  "rules": {
+    "import/no-unassigned-import": "off",
+    "max-depth": [
+      "error",
+      {
+        "max": 4
+      }
+    ],
+    "max-lines": [
+      "error",
+      {
+        "max": 500
+      }
+    ],
+    "max-params": [
+      "error",
+      {
+        "max": 7
+      }
+    ],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 150,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "max-lines": "off"
+      }
+    },
+    {
+      "files": ["app/ui/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/screens/**",
+                  "**/screens",
+                  "**/gallery/**",
+                  "**/tools/**",
+                  "**/extensions/**",
+                  "../../store",
+                  "../../store/*",
+                  "../../../store",
+                  "../../../store/*",
+                  "!../../store/device",
+                  "!../../store/history",
+                  "!../../store/routes",
+                  "!../../store/protocol",
+                  "!../../../store/device",
+                  "!../../../store/history",
+                  "!../../../store/routes",
+                  "!../../../store/protocol"
+                ],
+                "message": "app/ui/ is the component library, and what an extension's page is built with: it reads no record, no screen, and no extension. Take the value or the callback as a prop from the screen that draws it, or move the code to app/screens/. Of the store it takes only device, history, routes, and the protocol's types."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["app/store/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/screens/**", "**/screens", "**/gallery/**", "**/tools/**"],
+                "message": "app/store/ is under every screen and component: it imports no screen, and of app/ui/ and app/extensions/ only types, and ui/timing, a leaf. Move the shared code into app/store/, or have the caller pass it in."
+              },
+              {
+                "group": ["**/ui/**", "!**/ui/timing", "**/extensions/**"],
+                "allowTypeImports": true,
+                "message": "app/store/ is under every screen and component: it imports no screen, and of app/ui/ and app/extensions/ only types, and ui/timing, a leaf. Move the shared code into app/store/, or have the caller pass it in."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["app/extensions/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/screens/**", "**/screens", "**/gallery/**", "**/tools/**"],
+                "message": "app/extensions/ is the page API and its host: it imports no screen. Move what both need into app/ui/ or app/store/."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["app/screens/inbox/InboxPane.tsx"],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 260,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ]
+      }
+    }
+  ]
+}

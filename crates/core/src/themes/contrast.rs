@@ -1,11 +1,12 @@
-//! The contrast of a user's theme, at the level of roles: each text role and each mark against the
-//! backgrounds it is read on, as WCAG 2.x measures it, mirroring the web's `theme/contrast.ts`. A
-//! colour with alpha is laid over its background first.
+//! The contrast of a theme, at the level of roles: each text role and each mark against the
+//! backgrounds it is read on, as WCAG 2.x measures it. A colour with alpha is laid over its
+//! background first. What is mixed from roles, glass first, is measured where it is mixed, in the
+//! app's `theme.rs`.
 
 use std::collections::BTreeMap;
 
-/// The roles read as text, at 4.5:1 on `page` and on `raised`.
-const TEXT: &[&str] = &[
+/// The roles read as text, at 4.5:1 on each of [`GROUNDS`].
+pub const TEXT: &[&str] = &[
     "ink",
     "ink-quiet",
     "ink-faint",
@@ -29,18 +30,21 @@ const TEXT: &[&str] = &[
     "quote",
 ];
 
-/// The lines and marks, at 3:1 on `page` and on `raised`.
-const MARKS: &[&str] = &["rule", "sub-agent", "marked"];
+/// The lines and marks, at 3:1 on each of [`GROUNDS`].
+pub const MARKS: &[&str] = &["rule", "sub-agent", "marked"];
+
+/// The fills text and lines sit on: the standard height's, the raised one's, and the recessed one's.
+pub const GROUNDS: &[&str] = &["page", "raised", "well"];
 
 /// The floor of text, and of lines and marks.
-const TEXT_FLOOR: f64 = 4.5;
-const MARK_FLOOR: f64 = 3.0;
+pub const TEXT_FLOOR: f64 = 4.5;
+pub const MARK_FLOOR: f64 = 3.0;
 
 /// Each pair of `roles` under its floor: the foreground role, and its warning,
 /// `ink-faint is 3.1:1 on page, under 4.5.`
 pub fn warnings(roles: &BTreeMap<String, String>) -> Vec<(String, String)> {
     let mut pairs: Vec<(&str, &str, f64)> = Vec::new();
-    for background in ["page", "raised"] {
+    for background in GROUNDS.iter().copied() {
         pairs.extend(TEXT.iter().map(|role| (*role, background, TEXT_FLOOR)));
         pairs.extend(MARKS.iter().map(|role| (*role, background, MARK_FLOOR)));
     }
@@ -52,12 +56,12 @@ pub fn warnings(roles: &BTreeMap<String, String>) -> Vec<(String, String)> {
             .into_iter()
             .map(|role| (role, "code-ground", TEXT_FLOOR)),
     );
-    let page = roles.get("page").and_then(|page| rgba(page));
+    let page = roles.get("page");
     pairs
         .into_iter()
         .filter_map(|(role, background, floor)| {
-            let under = opaque(rgba(roles.get(background)?)?, page);
-            let ratio = contrast(opaque(rgba(roles.get(role)?)?, Some(under)), under);
+            let page = page.map(String::as_str);
+            let ratio = ratio(roles.get(role)?, roles.get(background)?, page)?;
             // Truncated, so a ratio just under the floor never prints as the floor.
             let shown = (ratio * 10.0).floor() / 10.0;
             (ratio < floor).then(|| {
@@ -66,6 +70,13 @@ pub fn warnings(roles: &BTreeMap<String, String>) -> Vec<(String, String)> {
             })
         })
         .collect()
+}
+
+/// The contrast ratio of `front` on `back`, each `#rrggbb` or `#rrggbbaa`, from 1 to 21: `back` is
+/// laid over `page` first when it has alpha, and `front` over `back`. None when one is no colour.
+fn ratio(front: &str, back: &str, page: Option<&str>) -> Option<f64> {
+    let under = opaque(rgba(back)?, page.and_then(rgba));
+    Some(contrast(opaque(rgba(front)?, Some(under)), under))
 }
 
 /// A colour's red, green, blue, and alpha, from 0 to 1.

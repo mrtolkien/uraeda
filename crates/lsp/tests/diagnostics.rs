@@ -146,7 +146,7 @@ fn example_spec_open() -> (Session, std::path::PathBuf, String) {
     (session, path, text)
 }
 
-/// SC-001: run by `vp run bench`.
+/// SC-001: run by `just bench`.
 #[test]
 #[ignore = "benchmark"]
 fn bench_diagnostics_arrive_within_300_ms() {

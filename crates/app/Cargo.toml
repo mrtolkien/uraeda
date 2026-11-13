@@ -1,0 +1,113 @@
+[package]
+name = "uraeda-app"
+description = "Uraeda's app on Native Shell: the native module `uraeda/native`, the native components, and the Linux host."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+# One program holds every integration test: `tests/main.rs`.
+autotests = false
+
+# cargo-nextest does not run doctests, and the crate has none.
+[lib]
+doctest = false
+
+# The app on Linux: a window on GTK, which finds or starts this machine's server.
+[[bin]]
+name = "uraeda"
+required-features = ["host"]
+
+[features]
+default = ["host"]
+# The Linux host's native component `uraeda.extension`, which runs an extension's page in a view
+# of its own. The server takes the module list of `uraeda/native` alone, without GTK.
+# The Linux host, `uraeda`, and its server start and secret store (`host.rs`, `server_start.rs`).
+host = [
+  "dep:libc",
+  "dep:nsh-engine",
+  "dep:nsh-platform-linux",
+  "dep:tokio",
+  "dep:ureq",
+  "dep:uraeda-core",
+]
+
+# Every integration test, in one program: each program linked the whole crate and what it depends
+# on, about 400 MB each, so a cold build of the workspace's tests passed what a CI runner has free.
+[[test]]
+name = "tests"
+path = "tests/main.rs"
+
+[dependencies]
+nsh-base.workspace = true
+nsh-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Code blocks' colours, with the syntaxes NSH's editor reads: `highlight.rs`.
+syntect.workspace = true
+# The document tree of a reply's finished blocks and a file's outline, and an editor's patch:
+# `reply.rs`, `editing.rs`. The readers of a text alone, and not the core, whose git and image
+# code does not build for the web.
+uraeda-text.workspace = true
+# Times in the server's zone, with the system's time zone database: `time.rs`.
+jiff.workspace = true
+# The names of an extension page's host channel.
+uraeda-protocol.workspace = true
+# Which extension pages run: verified under the server's key, on Linux and in a browser alike.
+nsh-package.workspace = true
+# The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.
+uraeda-vim.workspace = true
+
+# What the web build leaves out of its WebAssembly, which every first load carries.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Diagrams, drawn in Rust as a picture of shapes: `diagram/draw.rs`. In a browser the server
+# draws them.
+base64.workspace = true
+merman.workspace = true
+merman-export.workspace = true
+usvg.workspace = true
+# The syntaxes themselves: in a browser, a file Native Shell's page fetches when a block needs it.
+two-face.workspace = true
+
+# `extension_view.rs`: an extension's page, fetched whole from the server, verified under its key,
+# and run in a GTK view of its own.
+[target.'cfg(target_os = "linux")'.dependencies]
+nsh-engine = { workspace = true, optional = true }
+# The Linux host shows previews in web views, which link WebKitGTK: without `webview` a web view
+# shows a placeholder (ruling R24).
+nsh-platform-linux = { workspace = true, features = ["webview"], optional = true }
+ureq = { workspace = true, optional = true }
+# The host stops the server it started with a signal (`server_start.rs`).
+libc = { workspace = true, optional = true }
+# The desktop's notifications are answered on a thread of their own (`notify.rs`).
+tokio = { workspace = true, optional = true }
+# The host's own data folder, where it keeps this machine's server (`host/window.rs`).
+uraeda-core = { workspace = true, optional = true }
+
+# `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
+# text out of a build without `declarations`.
+[dev-dependencies]
+nsh-core = { workspace = true, features = ["declarations"] }
+# `tests/theme.rs` measures the shipped themes, which the core reads, from a temporary folder.
+tempfile.workspace = true
+uraeda-core.workspace = true
+# `tests/parity.rs` reads the screens' parity list, `app/screens/parity.toml`.
+toml_edit.workspace = true
+
+# `tests/outside.rs` checks NSH's behaviours the migration relies on, in GTK windows on the hidden
+# display: it builds pages as the server will, and embeds them as the Linux host will.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+log = "0.4"
+nsh-bundler.workspace = true
+nsh-engine.workspace = true
+nsh-package.workspace = true
+nsh-platform-linux = { workspace = true, features = ["webview"] }
+# rolldown's crates that nothing else holds at rolldown's version: see the workspace's manifest.
+rolldown_devtools.workspace = true
+rolldown_devtools_action.workspace = true
+rolldown_fs.workspace = true
+rolldown_std_utils.workspace = true
+rolldown_tracing.workspace = true
+
+[lints]
+workspace = true

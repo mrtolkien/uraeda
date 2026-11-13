@@ -1,10 +1,5 @@
 [workspace]
 members = ["crates/*"]
-# The binding turns on uraeda-core's `napi` feature, and a build selecting it unifies that feature
-# for every crate: their test binaries then fail to link napi's symbols, which only Node provides.
-# A bare `cargo build` or `cargo test` leaves it out; `vp run --filter uraeda-binding build` builds
-# it, and its tests run from TypeScript.
-default-members = ["crates/cli", "crates/compile", "crates/core", "crates/lsp"]
 resolver = "3"
 
 [workspace.package]
@@ -12,56 +7,157 @@ version = "1.4.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mrtolkien/uraeda"
-homepage = "https://github.com/mrtolkien/uraeda"
 publish = false
-rust-version = "1.96"
+rust-version = "1.100"
 
 [workspace.dependencies]
+# The server's HTTP and WebSockets, with only what it serves: HTTP/1 on tokio, JSON, and upgrades.
+axum = { version = "0.8", default-features = false, features = [
+  "http1",
+  "json",
+  "matched-path",
+  "multipart",
+  "query",
+  "tokio",
+  "ws",
+] }
 base64 = "0.23.1"
 clap = { version = "4.6.7", features = ["derive"] }
 # Exact: its dynamic completion, `unstable-dynamic`, is exempt from semver.
 clap_complete = { version = "=4.6.11", features = ["unstable-dynamic"] }
 crossbeam-channel = "0.5.15"
+futures-util = "0.3"
+getrandom = "0.4"
+# A file of the web build held compressed alone, inflated for a client that takes no encoding.
+# The lockfile held it.
+flate2 = "1.1"
 gif = "0.14.2"
-gix = { version = "0.89", default-features = false, features = ["sha1", "revision", "status"] }
+# The lines' diff of a patch, without git: the crate gix compares blobs with, which the lockfile
+# holds already.
+gix-imara-diff = "0.3.1"
+gix = { version = "0.90", default-features = false, features = ["sha1", "revision", "status"] }
+http-body-util = "0.1"
+# axum's own HTTP, named for the one request a second start sends the first.
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 include_dir = "0.7.4"
+# Time zones, for the wall-clock times Claude Code gives a limit's reset and a wakeup in. gix
+# holds it already.
+jiff = "0.2"
 libc = "0.2.190"
 libwebp-sys = "0.14.4"
 lsp-server = "0.10.0"
 lsp-types = "0.97.0"
-napi = { version = "3.14.2", default-features = false, features = ["napi4"] }
-napi-build = "2.6.0"
-napi-derive = "3.6.12"
 notify = "8.2.0"
-# oxc, at one exact version for every crate: its crates release together, and 0.153 needs Rust 1.97.
-oxc_allocator = "=0.152.0"
-oxc_ast = "=0.152.0"
-oxc_ast_visit = "=0.152.0"
-oxc_codegen = "=0.152.0"
-oxc_diagnostics = "=0.152.0"
-oxc_parser = "=0.152.0"
-oxc_semantic = "=0.152.0"
-oxc_span = "=0.152.0"
-oxc_syntax = "=0.152.0"
-oxc_transformer = "=0.152.0"
+# Native Shell, at one exact version for every crate, the one of the `nsh` CLI in `flake.nix`: its
+# crates release together, and its Rust API changes between releases.
+nsh-base = "=0.5.0"
+nsh-bundler = { version = "=0.5.0", features = ["bundle"] }
+nsh-core = "=0.5.0"
+nsh-engine = "=0.5.0"
+nsh-package = "=0.5.0"
+# The GTK backend, with its default features, the parts NSH's own runner has: TSX, shaders, and
+# every part of `nsh/base` a page may import. Since 0.5.0 each is a feature, and a build without
+# one draws no shader, or fails a page at its import. A crate adds `webview` for web views, which
+# links WebKitGTK.
+nsh-platform-linux = "=0.5.0"
+# oxc, at one exact version for every crate, the one NSH's rolldown (1.2.13) holds: its crates
+# release together, and one version builds once.
+oxc_allocator = "=0.153.0"
+oxc_ast = "=0.153.0"
+oxc_ast_visit = "=0.153.0"
+oxc_codegen = "=0.153.0"
+oxc_diagnostics = "=0.153.0"
+oxc_parser = "=0.153.0"
+oxc_semantic = "=0.153.0"
+oxc_span = "=0.153.0"
+oxc_syntax = "=0.153.0"
+oxc_transformer = "=0.153.0"
+percent-encoding = "2"
 pulldown-cmark = { version = "0.13.4", default-features = false }
+# The QR code `ura pair` draws in the terminal: no dependency of its own.
+qrcodegen = "1.8.0"
+# rolldown's crates, at the version NSH's bundler holds rolldown itself at, 1.2.13 in 0.5.0 as in
+# 0.4.0. NSH names four of them, and those hold the ones that depend on them: these five depend on
+# none, so a new release moved them alone, and rolldown no longer built. A crate that takes
+# `nsh-bundler` takes these too.
+rolldown_devtools = "=1.2.13"
+rolldown_devtools_action = "=1.2.13"
+rolldown_fs = "=1.2.13"
+rolldown_std_utils = "=1.2.13"
+rolldown_tracing = "=1.2.13"
 ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
+# The session store, `sessions.sqlite`, with SQLite built in, `bundled`: no library of the machine
+# is used. `cache` keeps prepared statements, and `fallible_uint` reads and writes a `u64`,
+# refusing one SQLite's integers cannot hold. Without its default features: the other is SQLite
+# for a browser.
+rusqlite = { version = "0.42.0", default-features = false, features = [
+  "bundled",
+  "cache",
+  "fallible_uint",
+] }
+# The previews' story warmer scans a page's scripts and a module's imports. The lockfile held it.
+regex = "1"
+# QuickJS, the engine NSH runs pages in: the VM of the extensions' server parts (ruling R4).
+rquickjs = { version = "0.14.0", default-features = false, features = ["std", "array-buffer"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 serde-saphyr = "1.3.0"
-toml_edit = { version = "0.23", default-features = false, features = ["parse", "display", "serde"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-tungstenite = "0.28"
+toml_edit = { version = "0.25", default-features = false, features = ["parse", "display", "serde"] }
 tempfile = "3"
 thiserror = "2.0.21"
+# The client's TypeScript types, from the protocol's Rust types. NSH's bundler holds it already.
+ts-rs = { version = "12.0.1", features = ["serde-json-impl"] }
+# SVG, at the version NSH draws images with: its text as shapes, which NSH's own build leaves out.
+# Mermaid diagrams, drawn in Rust: the parser, the layout, and SVG that `usvg` reads, measured with
+# the app's own fonts. Without the ELK and Cytoscape layouts and the math renderer, which no
+# diagram of a workflow file needs.
+merman = { version = "=0.9.3", default-features = false, features = [
+  "all-diagrams",
+  "native-fonts",
+  "svg",
+] }
+merman-export = { version = "=0.9.3", default-features = false, features = ["native-fonts"] }
+usvg = { version = "0.46", default-features = false, features = ["text"] }
+# Code blocks' colours: the syntect and syntaxes (two-face's, bat's set) NSH's editor highlights
+# with, so the app holds one highlighter. NSH 0.5.0's own build adds Oniguruma's regexes
+# (`regex-onig`), which syntect then uses in every crate built with it.
+syntect = { version = "5.3.0", default-features = false, features = [
+  "parsing",
+  "regex-fancy",
+  "dump-load",
+] }
+two-face = { version = "0.4.5", default-features = false, features = ["syntect-fancy"] }
+# A fetched address's host, for the rule that allows it. The lockfile held it.
+url = "2"
+# The extensions' `fetch`: the lockfile held it, for NSH's own.
+ureq = "3.5"
+# Without its Linux host by default: the server takes its module list alone.
+uraeda-app = { path = "crates/app", default-features = false }
 uraeda-compile = { path = "crates/compile" }
 uraeda-core = { path = "crates/core" }
 uraeda-lsp = { path = "crates/lsp" }
+uraeda-protocol = { path = "crates/protocol" }
+uraeda-server = { path = "crates/server" }
+uraeda-text = { path = "crates/text" }
+uraeda-vim = { path = "crates/vim" }
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 allow_attributes_without_reason = "warn"
 too_many_lines = "warn"
+
+# A dev build keeps only what a backtrace needs, a file and a line in the workspace's own code:
+# full debug information was 70% of each 1.25 GB test binary, and the linker holds it in memory.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
 
 [profile.release]
 codegen-units = 1
@@ -72,3 +168,11 @@ strip = true
 # The profile that dist builds releases with.
 [profile.dist]
 inherits = "release"
+
+# The Linux app's package, `just package`: `uraeda` and the `ura` beside it, built for speed, as
+# an app's drawing needs, and in minutes, where `release`'s one unit and full LTO took far longer.
+[profile.release-app]
+inherits = "release"
+opt-level = 3
+lto = "thin"
+codegen-units = 16

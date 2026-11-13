@@ -1,0 +1,67 @@
+# Builds the Linux app's package for a release, `just package` in the dev shell: the tarball and
+# the AppImage, each with `ura` inside and its `.sha256`, from the commit of the tag that releases
+# `ura`, so both carry the version of the workspace's `Cargo.toml`. `release.yml` calls it, from
+# `global-artifacts-jobs` in dist-workspace.toml, and its `host` job releases what it uploads with
+# `ura`'s archives, once every build passed: a failed build releases nothing, and "Re-run failed
+# jobs" on the tag's run completes the release at the same version.
+name: Build the Linux app
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-app:
+    # NSH's runtime and the app build for x86_64 Linux only.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PLAN: ${{ inputs.plan }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          # The build of CI's `release` job on `main`, which builds the same: a tag's run reads the
+          # default branch's caches, and what it saves no other tag reads.
+          cache: release
+          save: false
+      - name: Clear the cache's web build
+        # The cache may hold the web build of the CI run it was saved by: files of another
+        # build left beside this release's would go into `ura`.
+        run: rm -rf target/web
+      - name: Fetch the web build
+        # The one `build-web.yml` made for this release, which every `ura` of it holds: the
+        # package's `ura` too, and a second web build would cost this job many minutes.
+        uses: actions/download-artifact@v8
+        with:
+          name: web-build
+          path: target/web
+      - name: Build the package
+        run: nix develop --command just package
+        env:
+          URAEDA_WEB_BUILD: ${{ github.workspace }}/target/web
+      - name: Check the package carries the release's version
+        run: |
+          version=$(echo "$PLAN" | jq --raw-output '[.releases[].app_version] | unique | .[]')
+          echo "release: $version"
+          test "$(echo "$version" | wc -l)" = 1
+          grep -q "\"version\":\"$version\"" target/package/uraeda/lib/nsh/app.json
+      - name: Upload the package
+        uses: actions/upload-artifact@v7
+        with:
+          # `artifacts-*`: the name the `host` job collects and releases.
+          name: artifacts-build-app
+          path: |
+            target/package/uraeda-app-x86_64-linux.tar.gz
+            target/package/uraeda-app-x86_64-linux.tar.gz.sha256
+            target/package/uraeda-app-x86_64.AppImage
+            target/package/uraeda-app-x86_64.AppImage.sha256
+          if-no-files-found: error

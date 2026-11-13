@@ -5,9 +5,21 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
+use std::sync::{PoisonError, RwLock};
 use std::time::Duration;
 
 use super::GitError;
+
+/// The variables every process started here gets besides this process's own environment.
+static ADDED: RwLock<Vec<(String, String)>> = RwLock::new(Vec::new());
+
+/// Sets the variables every `git` and `gh` the core starts from now on gets besides this
+/// process's own environment, and with them the hooks git runs: the ones given before are
+/// replaced. A server gives the secrets of its config folder, which it never writes into its
+/// own environment. `ura` never calls it: its commands run in the environment it was started in.
+pub fn set_environment(variables: Vec<(String, String)>) {
+    *ADDED.write().unwrap_or_else(PoisonError::into_inner) = variables;
+}
 
 /// Why a process gave no output.
 #[derive(Debug)]
@@ -107,10 +119,13 @@ fn write_command(args: &[&str], dir: &Path) -> Command {
     git
 }
 
-/// `program` with `args`, to run in `dir`, its stdin closed.
+/// `program` with `args`, to run in `dir`, its stdin closed, in this process's environment and
+/// the variables [`set_environment`] added to it.
 fn command(program: &str, args: &[&str], dir: &Path) -> Command {
     let mut command = Command::new(program);
     command.args(args).current_dir(dir).stdin(Stdio::null());
+    let added = ADDED.read().unwrap_or_else(PoisonError::into_inner);
+    command.envs(added.iter().map(|(name, value)| (name, value)));
     command
 }
 

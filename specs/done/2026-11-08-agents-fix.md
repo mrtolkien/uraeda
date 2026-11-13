@@ -110,7 +110,7 @@ answer by the pair of tips, so a read with no tip moved computes no diff.
   [`CatchUpMockups.stories.tsx`](/packages/web/src/CatchUpMockups.stories.tsx).
 - The skill:
   [Catch up an open pull request](/skills/uraeda/references/implementation.md#catch-up-an-open-pull-request);
-  the user's docs in [the web UI's page](/docs/web-ui.md).
+  the user's docs in [the web UI's page](/docs/app.md).
 - Tests: `behind_main_rows` in [`steps.rs`](/crates/core/tests/steps.rs), `behind_rows` and the
   memo's tests in [`pulls.rs`](/crates/core/tests/pulls.rs);
   [`catch-ups.test.ts`](/packages/server/src/__tests__/catch-ups.test.ts) and

@@ -1,0 +1,21 @@
+{"type":"system","plugin_errors":null,"plugins":[{"name":"uraeda","path":"/plugin"}],"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","subtype":"init"}
+{"type":"system","plugin_errors":null,"plugins":[{"name":"uraeda","path":"/plugin"}],"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","subtype":"init"}
+{"type":"system","plugin_errors":null,"plugins":[{"name":"cc-plugin-telemetry"},{"name":"other"}],"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","subtype":"init"}
+{"type":"system","plugin_errors":null,"plugins":[],"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","subtype":"init"}
+{"type":"system","session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","subtype":"init"}
+{"type":"system","plugin_errors":[{"message":"Path not found: /tmp/no-such-plugin (commands)","type":"path"},{"type":"manifest"},{}],"plugins":[{"name":"uraeda"}],"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","subtype":"init"}
+{"type":"system","plugin_errors":[],"plugins":[{"name":"uraeda"}],"subtype":"init"}
+{"type":"system","subtype":"status"}
+{"type":"system","subtype":"hook_started"}
+{"type":"system","subtype":"task_started"}
+{"type":"system","subtype":"task_progress"}
+{"type":"system","subtype":"thinking_tokens"}
+{"type":"system","subtype":"background_tasks_changed"}
+{"type":"system","subtype":"permission_denied"}
+{"type":"rate_limit_event"}
+{"type":"system","description":"Map","subtype":"task_started","task_id":"t1","tool_use_id":"toolu_1"}
+{"type":"system","subtype":"background_tasks_changed","tasks":[{"description":"t1","task_id":"t1","task_type":"local_agent"},{"description":"t2","task_id":"t2","task_type":"local_workflow"},{"description":"t3","task_id":"t3","task_type":"local_bash"},{"description":"t4","task_id":"t4","task_type":"local_agent","ambient":true},"broken",{"task_type":"local_bash"}]}
+{"type":"system","subtype":"background_tasks_changed","tasks":[]}
+{"type":"system","attempt":1,"error":"rate_limit","max_retries":10,"retry_delay_ms":30000,"subtype":"api_retry"}
+{"type":"system","subtype":"api_retry"}
+{"type":"system","attempt":"2","error":"","retry_delay_ms":null,"subtype":"api_retry"}

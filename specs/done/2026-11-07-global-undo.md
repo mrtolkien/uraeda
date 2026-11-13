@@ -94,7 +94,7 @@ of write its undo and its redo.
   [`attach/attachUndo.ts`](/packages/web/src/attach/attachUndo.ts),
   [`useReviewActions.ts`](/packages/web/src/useReviewActions.ts), and
   [`newDraft.ts`](/packages/web/src/newDraft.ts).
-- **The docs**: [`docs/web-ui.md`](/docs/web-ui.md#undo), and the UI guides
+- **The docs**: [`docs/web-ui.md`](/docs/app.md#undo), and the UI guides
   [Surfaces](/specs/ui/surfaces.md#undo) and [Keyboard](/specs/ui/keyboard.md).
 
 ## Replaced behaviour

@@ -11,7 +11,6 @@ use super::{ActionError, Change};
 
 /// The findings of one review: what was reviewed, `wave 2` or `branch`, the range of commits
 /// reviewed, `<base>..<head>` by their IDs, and each reviewer's section, in the order they ran.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Findings {
     pub reviewed: String,
@@ -21,7 +20,6 @@ pub struct Findings {
 
 /// A reviewer's section: its name, as the run map shows it, "Codex · GPT-6.1-Sol", and its findings
 /// as it wrote them, a markdown list.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FindingsSection {
     pub reviewer: String,

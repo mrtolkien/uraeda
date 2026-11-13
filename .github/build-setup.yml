@@ -1,0 +1,11 @@
+# The steps `release.yml` runs before it builds `ura` on each platform, from `github-build-setup`
+# in dist-workspace.toml: the app's web build, which `build-web.yml` made once, goes where the
+# server's build script reads it, so the `ura` released holds the app for a browser.
+- name: Fetch the web build
+  uses: actions/download-artifact@v8
+  with:
+    name: web-build
+    path: target/web
+- name: Name the web build for ura's build
+  shell: bash
+  run: echo "URAEDA_WEB_BUILD=$GITHUB_WORKSPACE/target/web" >> "$GITHUB_ENV"

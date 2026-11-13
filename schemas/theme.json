@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/mrtolkien/uraeda/main/schemas/theme.json",
   "title": "Uraeda colour theme",
-  "description": "A colour theme of Uraeda's web UI, one TOML file per theme in the themes folder beside config.toml. See docs/web-ui.md, \"Colour themes\".",
+  "description": "A colour theme of Uraeda's UI, one TOML file per theme in the themes folder beside config.toml. See docs/app.md, \"Colour themes\".",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -35,12 +35,12 @@
         "page": {
           "type": "string",
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
-          "description": "The ground behind everything."
+          "description": "The standard height's fill: a pane, the page's own content."
         },
         "raised": {
           "type": "string",
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
-          "description": "Popovers, code blocks, a pane's surface."
+          "description": "The raised height's fill, one step above the page: a card, a selected row, a bar that stays."
         },
         "sunken": {
           "type": "string",
@@ -276,6 +276,66 @@
           "type": "string",
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
           "description": "Code's tokens: variables."
+        },
+        "backdrop": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "What is under the panes: the darkest colour on screen, the darkest of the light ones in a light theme."
+        },
+        "backdrop-wash-1": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The first of the two colours the backdrop is washed with."
+        },
+        "backdrop-wash-2": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The second of the two colours the backdrop is washed with."
+        },
+        "well": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The recessed height's fill: a field, a code block, a diff, the composer."
+        },
+        "rule-quiet": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "A line that only separates rows inside a pane."
+        },
+        "lip": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The 1 px of light under a raised surface's top edge, with its alpha."
+        },
+        "shade": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The 1 px of shade under a recessed surface's top edge, with its alpha, and the colour shadows are made of."
+        },
+        "glass-tint": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "What glass is tinted with."
+        },
+        "glass-rim": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The bright rim of glass."
+        },
+        "light-focus": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The focused pane's light, its first end."
+        },
+        "light-focus-2": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "The focused pane's light, its second end."
+        },
+        "light-running": {
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[^#].*)$",
+          "description": "A running pane's line."
         }
       }
     }

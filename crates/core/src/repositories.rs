@@ -88,6 +88,14 @@ struct Entry {
     items: BTreeMap<String, ItemSettings>,
 }
 
+/// The name of Uraeda's folder in the operating system's folder for application data. The
+/// earlier server, the Node one, kept its files in [`EARLIER_FOLDER`], which this one never
+/// writes: hence a name of its own.
+const FOLDER: &str = "uraeda-next";
+
+/// The name of the earlier server's folder, which `ura import-sessions` reads.
+const EARLIER_FOLDER: &str = "uraeda";
+
 /// Uraeda's data folder for the user: `URAEDA_DATA_DIR`, or else the operating system's default for
 /// application data. `var` reads the environment, an empty value counting as unset; `os` is
 /// `std::env::consts::OS`.
@@ -96,17 +104,34 @@ pub fn data_dir(var: impl Fn(&str) -> Option<String>, os: &str, home: &Path) -> 
     if let Some(folder) = var("URAEDA_DATA_DIR") {
         return PathBuf::from(folder);
     }
+    system_data_dir(var, os, home, FOLDER)
+}
+
+/// The data folder the earlier server kept by default: the operating system's, whatever
+/// `URAEDA_DATA_DIR` says, since the variable now names this server's.
+pub fn earlier_data_dir(var: impl Fn(&str) -> Option<String>, os: &str, home: &Path) -> PathBuf {
+    let var = |name: &str| var(name).filter(|value| !value.is_empty());
+    system_data_dir(var, os, home, EARLIER_FOLDER)
+}
+
+/// A folder of a name in the operating system's folder for application data.
+fn system_data_dir(
+    var: impl Fn(&str) -> Option<String>,
+    os: &str,
+    home: &Path,
+    name: &str,
+) -> PathBuf {
     match os {
         // Joined with `\` whatever the platform this runs on.
         "windows" => {
             let roaming =
                 var("APPDATA").unwrap_or_else(|| format!("{}\\AppData\\Roaming", home.display()));
-            PathBuf::from(format!("{roaming}\\uraeda"))
+            PathBuf::from(format!("{roaming}\\{name}"))
         }
-        "macos" => home.join("Library/Application Support/uraeda"),
+        "macos" => home.join("Library/Application Support").join(name),
         _ => var("XDG_DATA_HOME")
             .map_or_else(|| home.join(".local/share"), PathBuf::from)
-            .join("uraeda"),
+            .join(name),
     }
 }
 
@@ -114,6 +139,12 @@ pub fn data_dir(var: impl Fn(&str) -> Option<String>, os: &str, home: &Path) -> 
 pub fn default_data_dir() -> PathBuf {
     let home = std::env::home_dir().unwrap_or_default();
     data_dir(|name| std::env::var(name).ok(), std::env::consts::OS, &home)
+}
+
+/// The earlier server's data folder, from this process's environment.
+pub fn default_earlier_data_dir() -> PathBuf {
+    let home = std::env::home_dir().unwrap_or_default();
+    earlier_data_dir(|name| std::env::var(name).ok(), std::env::consts::OS, &home)
 }
 
 /// The list, the most recently opened first, then by name. A missing file is an empty list.

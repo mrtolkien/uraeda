@@ -256,10 +256,10 @@ fn refused<T: std::fmt::Debug>(result: Result<T, api::ApiError>) -> String {
     }
 }
 
-/// SC-001, with `vp run bench`: the Git page of Uraeda's own repository, its history, changes, and
+/// SC-001, with `just bench`: the Git page of Uraeda's own repository, its history, changes, and
 /// worktrees, read from what the server holds, a watch running as the server's does, the mean of
 /// 10 reads after a first one. The performance decision's 100 ms is on a release build, where it
-/// is checked; a debug build, as `vp run bench` makes, only prints its mean: unoptimized, gix's
+/// is checked; a debug build, as `just bench` makes, only prints its mean: unoptimized, gix's
 /// status of one checkout of this repository takes about 100 ms alone (ruling R29).
 #[test]
 #[ignore = "benchmark"]

@@ -9,7 +9,6 @@ use crate::actions::drop;
 
 /// A feature or a change dropped: its branch, kept, why its worktree stays, when it does, and
 /// whether its proposal's removal was committed.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DroppedView {

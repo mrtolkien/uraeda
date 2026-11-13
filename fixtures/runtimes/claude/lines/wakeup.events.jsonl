@@ -1,0 +1,5 @@
+{"id":"toolu_01Wake1","input":{"delaySeconds":1500,"prompt":"Check the build.","reason":"waiting for the build"},"kind":"other","name":"ScheduleWakeup","type":"toolStart"}
+{"at":"2026-11-10T09:25:00.000Z","type":"wakeup"}
+{"id":"toolu_01Wake2","input":{"cron":"30 9 5 11 *","prompt":"Check the review.","recurring":false},"kind":"other","name":"CronCreate","type":"toolStart"}
+{"at":"2027-11-05T00:30:00.000Z","type":"wakeup"}
+{"id":"toolu_01Wake3","input":{"cron":"*/10 * * * *","prompt":"Poll the queue.","recurring":true},"kind":"other","name":"CronCreate","type":"toolStart"}

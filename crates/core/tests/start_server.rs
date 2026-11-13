@@ -217,9 +217,11 @@ fn a_save_returns_while_a_start_waits_on_its_hook() {
     let release = repo.path().join("release");
     let started = repo.path().join("started");
     repo.set_hook(&format!(
-        "touch '{}'\nwhile [ ! -f '{}' ]; do sleep 0.05; done",
+        // Ends too when the test's folder went, so a failed test leaves no hook waiting forever.
+        "touch '{}'\nwhile [ ! -f '{}' ] && [ -d '{}' ]; do sleep 0.05; done",
         started.display(),
-        release.display()
+        release.display(),
+        repo.path().display()
     ));
     let path = repo.path().to_path_buf();
     let starting = std::thread::spawn(move || {

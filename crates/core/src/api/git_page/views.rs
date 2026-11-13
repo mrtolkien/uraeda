@@ -1,11 +1,10 @@
-//! The Git page's views, each a napi object with camelCase fields.
+//! The Git page's views, each an object with camelCase fields.
 
 use serde::Serialize;
 
 use crate::changes::ChangedFile;
 
 /// The Git page, read at once.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitPageView {
@@ -36,12 +35,10 @@ pub struct GitPageView {
 }
 
 /// The operation the main checkout stopped in, its sides named by branch.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoppedView {
     /// `pull`, `merge`, or `stash`.
-    #[cfg_attr(feature = "napi", napi(ts_type = "'pull' | 'merge' | 'stash'"))]
     pub kind: String,
     /// Git's stage 2, like `origin/main` during a pull.
     pub ours: String,
@@ -52,7 +49,6 @@ pub struct StoppedView {
 }
 
 /// The changed files of one checkout.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangeGroupView {
@@ -67,17 +63,14 @@ pub struct ChangeGroupView {
 }
 
 /// A changed file of a group.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileChangeView {
     /// From the checkout's top level.
     pub path: String,
     /// `modified`, `new`, or `deleted`.
-    #[cfg_attr(feature = "napi", napi(ts_type = "'modified' | 'new' | 'deleted'"))]
     pub state: String,
     /// `no`, `yes`, or `partly`.
-    #[cfg_attr(feature = "napi", napi(ts_type = "'no' | 'yes' | 'partly'"))]
     pub staged: String,
     /// Lines added and removed from `HEAD`; none for a binary file, or one past 1 MiB.
     pub added: Option<u32>,
@@ -85,7 +78,6 @@ pub struct FileChangeView {
 }
 
 /// A conflicted file of the main checkout.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConflictView {
@@ -93,19 +85,12 @@ pub struct ConflictView {
     pub path: String,
     /// `both-changed`, `both-added`, `deleted-ours`, `deleted-theirs`, `both-deleted`,
     /// `added-ours`, or `added-theirs`; `ours` is the stopped operation's `ours` side.
-    #[cfg_attr(
-        feature = "napi",
-        napi(
-            ts_type = "'both-changed' | 'both-added' | 'deleted-ours' | 'deleted-theirs' | 'both-deleted' | 'added-ours' | 'added-theirs'"
-        )
-    )]
     pub kind: String,
     pub is_binary: bool,
     pub is_resolved: bool,
 }
 
 /// A commit of the history.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommitRowView {
@@ -116,12 +101,10 @@ pub struct CommitRowView {
     /// In Unix seconds.
     pub authored: i64,
     /// `pull` for a commit only `origin` has, `push` for one only the branch has, else empty.
-    #[cfg_attr(feature = "napi", napi(ts_type = "'' | 'pull' | 'push'"))]
     pub mark: String,
 }
 
 /// A linked worktree.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorktreeView {
@@ -134,15 +117,10 @@ pub struct WorktreeView {
     pub folder: Option<String>,
     /// `missing`, `changes`, `locked`, `merged` for a feature done, or `clean`, the first that
     /// holds.
-    #[cfg_attr(
-        feature = "napi",
-        napi(ts_type = "'missing' | 'changes' | 'locked' | 'merged' | 'clean'")
-    )]
     pub state: String,
 }
 
 /// The sidebar's count.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitSummaryView {
@@ -156,7 +134,6 @@ pub struct GitSummaryView {
 
 /// What a diff is of: a commit of the main checkout's history, else a group's working tree, the
 /// main checkout's for no folder.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GitAt {
     pub folder: Option<String>,
@@ -164,7 +141,6 @@ pub struct GitAt {
 }
 
 /// A file's diff.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitDiffView {
@@ -184,7 +160,6 @@ pub struct GitDiffView {
 }
 
 /// A commit, with the files it changed.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitCommitView {
@@ -197,7 +172,6 @@ pub struct GitCommitView {
 }
 
 /// A page of the history, after a commit.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitHistoryPageView {
@@ -208,7 +182,6 @@ pub struct GitHistoryPageView {
 }
 
 /// A conflicted text file of the main checkout, for the editor.
-#[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConflictFileView {

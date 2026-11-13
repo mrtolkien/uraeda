@@ -45,8 +45,8 @@ refused commit puts it back. History: [Feature state pass](../done/2026-10-30-fe
 
 ## Consequences
 
-- The web UI moves when a commit lands or the human's own write is queued, not when a file is saved
-  by hand.
+- The app moves when a commit lands or the human's own write is queued, not when a file is saved by
+  hand.
 - A run that waits to continue by itself never notifies: the human learns of it only if it fails, or
   stops continuing.
 - The workflow has a step for the agent to push the commits an open pull request lacks, and one to
@@ -54,7 +54,6 @@ refused commit puts it back. History: [Feature state pass](../done/2026-10-30-fe
 
 ## Applies to
 
-- [`crates/core/`](/crates/core/), [`packages/server/`](/packages/server/), and
-  [`packages/web/`](/packages/web/), and every feature that shows, notifies, or counts a feature's
-  or a session's status
+- [`crates/core/`](/crates/core/), [`crates/server/`](/crates/server/), and [`app/`](/app/), and
+  every feature that shows, notifies, or counts a feature's or a session's status
 - The skill's step table, in [`skills/uraeda/`](/skills/uraeda/)

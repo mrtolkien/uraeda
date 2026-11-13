@@ -1,0 +1,3 @@
+{"text":"You've hit your session limit · resets 8:40am (Asia/Tokyo)","type":"text"}
+{"limit":{"kind":"session","resetsAt":"2026-11-10T23:40:00.000Z","text":"You've hit your session limit · resets 8:40am (Asia/Tokyo)"},"type":"limit"}
+{"costUsd":0,"denials":[],"errors":["You've hit your session limit · resets 8:40am (Asia/Tokyo)"],"ok":false,"type":"result","interrupted":false}

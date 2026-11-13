@@ -1,7 +1,7 @@
 # The UI's direction
 
-How Uraeda's web UI should read, behave, and be put together. The [decisions](../decisions/) hold
-the binding rules, [UI look](../decisions/ui-look.md), [UI layout](../decisions/ui-layout.md),
+How Uraeda's app should read, behave, and be put together. The [decisions](../decisions/) hold the
+binding rules, [UI look](../decisions/ui-look.md), [UI layout](../decisions/ui-layout.md),
 [UI behaviour](../decisions/ui-behaviour.md), [UI components](../decisions/ui-components.md), and
 [Keyboard](../decisions/keyboard.md). These guides say what those rules aim at, and how a view meets
 them, from what the human asked for while going over every view by hand. Read them before designing
@@ -29,6 +29,9 @@ guidelines exist for a reason, a reader's eyes, a hand's precision, a screen rea
 name is met, in the terminal's own way where one exists, like a hit area grown under dense text
 rather than a rounded button. Where no terminal way meets the need, or where meeting it would make
 the view generic, the conflict is the human's to arbitrate, proposed with each side's cost.
+
+The Native Shell app's look is the [design language](design-language.md): a terminal, lit, with
+heights, glass, and light that each mean one thing.
 
 ## The principles, by priority
 

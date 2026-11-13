@@ -1,14 +1,8 @@
-node_modules/
 target/
-*.node
-dist/
 .env
-.vitest/
 coverage/
-packages/web/storybook-static/
-storybook-static/
-debug-storybook.log
-# `vp run sandbox`'s sample projects and data, the folders a seed builds them in, and its lock.
+# `just sandbox`'s sample projects and data.
 /.sandbox/
 /.sandbox-*
-/.sandbox.lock
+# Native Shell's generated files: types, the runners' sources, and builds.
+.nsh/

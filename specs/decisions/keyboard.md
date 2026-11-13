@@ -6,9 +6,9 @@ icon: keyboard
 
 # Keyboard
 
-The whole web UI can be driven from the keyboard, and every shortcut is declared once, in one
-registry. Space opens the leader menu, a menu of nested groups of shortcuts, and every page shares
-one base set of keys. Single-key shortcuts can be turned off, and no key is ever the only way to do
+The whole app can be driven from the keyboard, and every shortcut is declared once, in one registry.
+Space opens the leader menu, a menu of nested groups of shortcuts, and every page shares one base
+set of keys. Single-key shortcuts can be turned off, and no key is ever the only way to do
 something.
 
 ## Rules
@@ -58,5 +58,5 @@ shortcuts off. History: [Leader key](../done/2026-10-26-leader-key.md).
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), and every feature that adds or changes a view or a shortcut
+- [`app/`](/app/), and every feature that adds or changes a view or a shortcut
 - [`crates/core/`](/crates/core/)'s settings, for the switch

@@ -1,4 +1,4 @@
-//! The outline writes of the inbox and the priorities through the binding's operations: indent,
+//! The outline writes of the inbox and the priorities through the operations of the API: indent,
 //! outdent, and drops on the default branch, over the files as read, and what they refuse.
 
 mod common;

@@ -7,8 +7,6 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use toml_edit::{Document, Item, TableLike};
 
 use crate::settings::unreadable;
@@ -30,7 +28,6 @@ const NOT_NAMES: &str = "repositories is a list of names.";
 const NO_REPOSITORY: &str = "A job runs in one repository at least.";
 
 /// A job, as the settings file describes it.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Job {
     /// Unique among the jobs, trimmed: the second of a name has a problem.
@@ -56,7 +53,6 @@ pub struct Job {
 }
 
 /// The jobs of the settings file, in its order.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Jobs {
     pub jobs: Vec<Job>,
@@ -65,7 +61,6 @@ pub struct Jobs {
 }
 
 /// A job to write, as the Jobs page's form gives it.
-#[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JobInput {
     pub name: String,
