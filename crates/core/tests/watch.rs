@@ -331,10 +331,7 @@ fn an_edit_of_a_decisions_check_candidate_is_reported() {
     let repo = repo();
     let (_watcher, receiver) = watching(&repo);
 
-    repo.write(
-        "specs/decisions-check/q1-a/git.md",
-        "---\nstatus: proposed\n---\n\n# Git\n\nA choice.\n",
-    );
+    repo.write("specs/decisions-check/q1-a/git.md", "# Git\n\nA choice.\n");
 
     let changes = next(&receiver);
     assert!(changes.inbox);
@@ -407,7 +404,7 @@ fn a_decision_committed_on_a_feature_branch_is_reported_for_its_spec_and_its_pag
             "--quiet",
             "--no-verify",
             "--message",
-            "decision(web-ui): git",
+            "spec(web-ui): git",
         ],
     );
 
@@ -565,10 +562,7 @@ fn a_child_line_or_a_step_change_flags_the_priorities() {
 #[test]
 fn a_switch_of_the_main_checkout_to_another_branch_reports_no_inbox_change() {
     let repo = repo();
-    repo.write(
-        "specs/decisions-check/q1-a/git.md",
-        "---\nstatus: proposed\n---\n\n# Git\n\nA choice.\n",
-    );
+    repo.write("specs/decisions-check/q1-a/git.md", "# Git\n\nA choice.\n");
     repo.commit("chore: propose a check");
     let (_watcher, receiver) = watching(&repo);
 

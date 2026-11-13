@@ -245,7 +245,7 @@ fn live_features(repo: &Repo) -> Result<(), String> {
         code("reminders", None),
     ));
     building.push(Commit::new(
-        "decision(due-reminders): a reminder notifies",
+        "spec(due-reminders): a reminder notifies",
         at("17 15:20"),
         vec![text(
             "specs/decisions/notifications.md",

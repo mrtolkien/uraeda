@@ -96,7 +96,7 @@ pub(super) fn plan(done: usize, status: &str) -> String {
 /// A new decision, named after the feature that made it.
 fn decision(title: &str) -> String {
     format!(
-        "---\nstatus: active\napproved-by: mrtolkien\nicon: book-open\n---\n\n# {title}\n\nFlows \
+        "---\nicon: book-open\n---\n\n# {title}\n\nFlows \
          and states are Mermaid code blocks, drawn by the UI.\n\n## Rules\n\n- Flows MUST be \
          drawn as Mermaid code blocks. Checked by review.\n- A diagram MUST draw in a frame \
          without scripts. Checked by the UI tests.\n\n## Why\n\nOne way to draw a flow, \
@@ -165,7 +165,7 @@ pub(super) fn finish(folder: &str, record: String, at: Option<String>) -> Commit
 }
 
 /// A feature's first stages, from its proposal on October 17 at 10:52 to its plan at 15:05, its
-/// decision left out without `decision`.
+/// spec's commit without its decision unless `decision_too`.
 pub(super) fn first_stages(
     folder: &str,
     title: &str,
@@ -187,19 +187,16 @@ pub(super) fn first_stages(
                 recurring("clarifications-01.md")?,
             )],
         ),
-        Commit::new(
-            format!("spec({slug}): the spec"),
-            at("17 12:11"),
-            vec![text(format!("{path}/spec.md"), spec("approved")?)],
-        ),
     ];
+    let mut written = vec![text(format!("{path}/spec.md"), spec("approved")?)];
     if decision_too {
-        stages.push(Commit::new(
-            format!("decision({slug}): {title}"),
-            at("17 15:01"),
-            vec![text(format!("specs/decisions/{slug}.md"), decision(title))],
-        ));
+        written.push(text(format!("specs/decisions/{slug}.md"), decision(title)));
     }
+    stages.push(Commit::new(
+        format!("spec({slug}): the spec"),
+        at("17 12:11"),
+        written,
+    ));
     stages.push(Commit::new(
         format!("plan({slug}): the plan"),
         at("17 15:05"),

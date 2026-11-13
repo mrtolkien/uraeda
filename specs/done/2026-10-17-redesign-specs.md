@@ -115,8 +115,8 @@ machinery of [`review/`](/packages/web/src/review/). The reading place is kept b
 [`pane/draftText.ts`](/packages/web/src/pane/draftText.ts). The skill describes the format in
 [`references/spec.md`](/skills/uraeda/references/spec.md), its limits in
 [`references/writing.md`](/skills/uraeda/references/writing.md), and the approval in
-[`references/approval.md`](/skills/uraeda/references/approval.md), with its templates and the
-example, a revision 2 with its `data-model.md`.
+[`references/approval.md`](/skills/uraeda/references/spec.md#new-decision-or-change), with its
+templates and the example, a revision 2 with its `data-model.md`.
 
 ## Questions
 

@@ -46,8 +46,8 @@ fn repository(files: &[File]) -> TestRepo {
     repo
 }
 
-fn decision(status: &str) -> String {
-    format!("---\nstatus: {status}\n---\n\n# A decision\n")
+fn decision() -> String {
+    "# A decision\n".to_string()
 }
 
 /// SC-005: the setup's items for each state of a project, as `(key, state)` pairs, or none once it
@@ -133,8 +133,8 @@ fn setup_items() {
             "one_left",
             vec![
                 (CONSTITUTION, written()),
-                ("specs/decisions/code-quality.md", decision("active")),
-                ("specs/decisions/preview.md", decision("active")),
+                ("specs/decisions/code-quality.md", decision()),
+                ("specs/decisions/preview.md", decision()),
             ],
             vec![
                 ("constitution", "written"),
@@ -143,13 +143,13 @@ fn setup_items() {
                 ("preview", "written"),
             ],
         ),
-        // An optional preview, or a `proposed` status, that keeps the pane.
+        // An optional preview that keeps the pane.
         (
             "set_up",
             vec![
                 (CONSTITUTION, written()),
-                ("specs/decisions/code-quality.md", decision("proposed")),
-                ("specs/decisions/testing.md", decision("proposed")),
+                ("specs/decisions/code-quality.md", decision()),
+                ("specs/decisions/testing.md", decision()),
             ],
             vec![],
         ),

@@ -1,5 +1,5 @@
 // What the decisions' panes share: the ledger read for a repository, the list's order, kept per
-// device, the words a decision's status and dates are said in, and the route each item opens.
+// device, the words a decision's dates are said in, and the route each item opens.
 // Nothing here parses a file: the server sends the ledger as the core read it.
 import { device, record, type Route, serverDay } from "../../store";
 import type { Decision, DecisionChange, Ledger, PartChange } from "../../store/protocol";
@@ -51,30 +51,13 @@ export const shortDate = (date: string, today: number = Date.now()): string =>
 /** "1 rule", "3 rules". */
 export const ruleCount = (count: number) => plural(count, "rule");
 
-/** A decision's status, in words with its cause, and its tone. */
-export function statusWords(decision: Decision): { label: string; tone: Tone; why: string } {
-  if (decision.unreadable) {
-    return { label: "Unreadable", tone: "danger", why: "its frontmatter is not valid YAML." };
-  }
-  const by = decision.approvedBy === null ? "" : `, approved by ${decision.approvedBy}`;
-  switch (decision.status) {
-    case "active":
-      return { label: "Active", tone: "done", why: `in force${by}.` };
-    case "proposed":
-      return {
-        label: "Proposed",
-        tone: "caution",
-        why: "not in force until a human approves it.",
-      };
-    case null:
-      return { label: "No status", tone: "quiet", why: "its frontmatter names none." };
-    default:
-      return {
-        label: decision.status,
-        tone: "quiet",
-        why: `its frontmatter says “${decision.status}”${by}.`,
-      };
-  }
+/** What is said of a decision that cannot be read, with its cause: nothing of one that can. */
+export function unreadableWords(
+  decision: Decision,
+): { label: string; tone: Tone; why: string } | undefined {
+  return decision.unreadable
+    ? { label: "Unreadable", tone: "danger", why: "its frontmatter is not valid YAML." }
+    : undefined;
 }
 
 /** The decisions check's status, as `Ledger.decisionsCheck` and its file say it. */

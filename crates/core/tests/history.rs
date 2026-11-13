@@ -100,8 +100,6 @@ fn through_the_spec(repo: &TestRepo) {
         "15:01",
         &[("spec.md", spec("approved", 2, 1))],
     );
-    repo.write("docs/topic.md", "# Topic\n");
-    commit(repo, "decision(<slug>): apply topic", "15:01", &[]);
 }
 
 /// The plan, at `at`, its one task not started.
@@ -173,7 +171,7 @@ fn each_stage_starts_at_its_first_commit_of_its_type() {
             ("proposal", Some("2026-10-17T10:52:00Z")),
             ("questions", Some("2026-10-17T11:18:00Z")),
             ("spec", Some("2026-10-17T12:11:00Z")),
-            ("plan", Some("2026-10-17T15:01:00Z")),
+            ("plan", Some("2026-10-17T15:08:00Z")),
             ("build", Some("2026-10-17T15:09:00Z")),
             ("pull-request", None),
             ("merged", None),
@@ -201,7 +199,7 @@ fn a_build_started_the_next_day() {
 
     let history = api::read_history(repo.path(), FOLDER).unwrap();
 
-    assert_eq!(start(&history, "plan"), Some("2026-10-17T15:01:00Z"));
+    assert_eq!(start(&history, "plan"), Some("2026-10-17T15:08:00Z"));
     assert_eq!(start(&history, "build"), Some("2026-10-18T09:10:00Z"));
 }
 
@@ -754,7 +752,7 @@ fn a_rebased_feature_counts_its_run_of_commits() {
 #[test]
 fn an_unscoped_commit_inside_a_rebased_run_cuts_nothing() {
     let repo = repo();
-    repo.write("specs/decisions/git.md", &decision("approved"));
+    repo.write("specs/decisions/git.md", &decision());
     repo.commit("chore: decisions");
     commit(
         &repo,
@@ -768,7 +766,7 @@ fn an_unscoped_commit_inside_a_rebased_run_cuts_nothing() {
         "12:11",
         &[("spec.md", spec("approved", 1, 0))],
     );
-    let git = decision("approved").replace("A choice.", "A choice, changed.");
+    let git = decision().replace("A choice.", "A choice, changed.");
     repo.write("specs/decisions/git.md", &git);
     repo.write("src/a.rs", &lines(3, "a"));
     rebased(&repo, "feat(<slug>): a", "15:01", &[]);
@@ -881,8 +879,8 @@ fn kinds(decisions: &[DecisionChange]) -> Vec<(&str, &str)> {
 #[test]
 fn a_done_feature_lists_the_decisions_it_changed() {
     let repo = repo();
-    repo.write("specs/decisions/git.md", &decision("approved"));
-    repo.write("specs/decisions/ledger.md", &decision("approved"));
+    repo.write("specs/decisions/git.md", &decision());
+    repo.write("specs/decisions/ledger.md", &decision());
     repo.commit("chore: decisions");
     commit(
         &repo,
@@ -891,7 +889,7 @@ fn a_done_feature_lists_the_decisions_it_changed() {
         &[("proposal.md", proposal())],
     );
     repo.write("specs/decisions/ledger.md", "# Ledger\n\nAnother choice.\n");
-    repo.commit_at("decision(other): ledger", &time("11:00"));
+    repo.commit_at("spec(other): ledger", &time("11:00"));
     rebased(
         &repo,
         "spec(<slug>): clarifications",
@@ -902,9 +900,9 @@ fn a_done_feature_lists_the_decisions_it_changed() {
         "specs/decisions/diagrams.md",
         "# Diagrams\n\n- MUST draw.\n",
     );
-    let git = decision("approved").replace("A choice.", "A choice, changed.");
+    let git = decision().replace("A choice.", "A choice, changed.");
     repo.write("specs/decisions/git.md", &git);
-    rebased(&repo, "decision(<slug>): apply", "15:01", &[]);
+    rebased(&repo, "spec(<slug>): decisions", "15:01", &[]);
     the_record(&repo, "feature", FOLDER, "2026-10-17");
     rebased(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
 

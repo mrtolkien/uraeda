@@ -22,7 +22,7 @@ const FIXED_CONSTITUTION: &str = "# Uraeda Constitution\n\n\
     **Version**: 1.3.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14\n";
 
 /// A decision with every field, its summary two sentences long.
-const GIT: &str = "---\nstatus: active\napproved-by: mrtolkien\nicon: git-branch\n---\n\n# Git\n\n\
+const GIT: &str = "---\nicon: git-branch\n---\n\n# Git\n\n\
     Tools read git with gix, and write with the system binary. Commits run the user's hooks.\n\n\
     ## Rules\n\n- Tools MUST NOT bypass hooks. Checked by review.\n\n## Why\n\nHooks.\n\n\
     ## Consequences\n\n- None.\n\n## Applies to\n\n- `crates/`\n";
@@ -100,7 +100,7 @@ fn the_ledger_reads_the_constitution() {
 fn a_decision_carries_its_file_as_written() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
-    commit_on(&repo, "decision: git", "2026-10-12");
+    commit_on(&repo, "docs: git", "2026-10-12");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -112,15 +112,13 @@ fn a_decision_carries_its_file_as_written() {
 fn the_ledger_reads_each_decision() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
-    commit_on(&repo, "decision: git", "2026-10-12");
+    commit_on(&repo, "docs: git", "2026-10-12");
     repo.write(
         "specs/decisions/toolchain.md",
-        &GIT.replace("status: active", "status: proposed")
-            .replace("approved-by: mrtolkien", "approved-by:")
-            .replace("icon: git-branch\n", "")
+        &GIT.replace("---\nicon: git-branch\n---\n\n", "")
             .replace("# Git", "# Toolchain"),
     );
-    commit_on(&repo, "decision: toolchain", "2026-10-16");
+    commit_on(&repo, "docs: toolchain", "2026-10-16");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -128,8 +126,6 @@ fn the_ledger_reads_each_decision() {
     assert_eq!(names, ["git", "toolchain"]);
     let git = decision(&ledger.decisions, "git");
     assert_eq!(git.title, "Git");
-    assert_eq!(git.status.as_deref(), Some("active"));
-    assert_eq!(git.approved_by.as_deref(), Some("mrtolkien"));
     assert_eq!(git.icon.as_deref(), Some("git-branch"));
     assert_eq!(
         git.summary.as_deref(),
@@ -139,8 +135,6 @@ fn the_ledger_reads_each_decision() {
     assert_eq!(git.problem, None);
     assert_eq!(git.document.blocks[0].kind.as_str(), "heading");
     let toolchain = decision(&ledger.decisions, "toolchain");
-    assert_eq!(toolchain.status.as_deref(), Some("proposed"));
-    assert_eq!(toolchain.approved_by, None);
     assert_eq!(toolchain.icon, None);
     assert_eq!(toolchain.changed.as_deref(), Some("2026-10-16"));
     assert!(ledger.problems.is_empty(), "{:?}", ledger.problems);
@@ -150,11 +144,8 @@ fn the_ledger_reads_each_decision() {
 #[test]
 fn a_decision_without_a_title_uses_its_file_name() {
     let repo = TestRepo::new();
-    repo.write(
-        "specs/decisions/git.md",
-        "---\nstatus: active\napproved-by: me\n---\n\n## Rules\n\n- A rule.\n",
-    );
-    repo.commit("decision: git");
+    repo.write("specs/decisions/git.md", "## Rules\n\n- A rule.\n");
+    repo.commit("docs: git");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -174,7 +165,7 @@ fn a_decision_with_a_broken_link_keeps_its_summary() {
         "specs/decisions/git.md",
         &GIT.replace("Hooks.\n", "Hooks, as [the hooks](missing.md) say.\n"),
     );
-    repo.commit("decision: git");
+    repo.commit("docs: git");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -195,9 +186,9 @@ fn an_unreadable_decision_names_its_problem() {
     let repo = TestRepo::new();
     repo.write(
         "specs/decisions/git.md",
-        &GIT.replace("status: active", "status: [active"),
+        &GIT.replace("icon: git-branch", "icon: [git-branch"),
     );
-    repo.commit("decision: git");
+    repo.commit("docs: git");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -205,7 +196,7 @@ fn an_unreadable_decision_names_its_problem() {
     assert!(git.unreadable);
     // Titled by its file name, even with an H1: nothing read from it stands as its own.
     assert_eq!(git.title, "git");
-    assert_eq!(git.status, None);
+    assert_eq!(git.icon, None);
     let problem = git.problem.as_deref().expect("a problem");
     assert!(
         problem.starts_with("frontmatter is not valid YAML"),
@@ -238,7 +229,7 @@ fn no_decisions_or_no_constitution() {
 fn the_ledger_reads_the_default_branch() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
-    repo.commit("decision: git");
+    repo.commit("docs: git");
     repo.branch("2026-10-16-x");
     repo.add_on_branch("2026-10-16-x", "specs/decisions/stack.md", GIT);
     repo.write(
@@ -267,7 +258,7 @@ fn default_checked_out_nowhere(target: &str) -> TestRepo {
             &format!("Hooks, as [the hooks]({target}) say.\n"),
         ),
     );
-    repo.commit("decision: git");
+    repo.commit("docs: git");
     repo.switch("old");
     repo
 }
@@ -308,24 +299,24 @@ fn a_link_to_a_file_only_the_checkout_has_is_broken() {
 fn a_merged_decision_keeps_the_date_of_its_commit() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
-    commit_on(&repo, "decision: git", "2026-10-12");
+    commit_on(&repo, "docs: git", "2026-10-12");
     repo.write(
         "specs/decisions/toolchain.md",
         &GIT.replace("# Git", "# Toolchain"),
     );
-    commit_on(&repo, "decision: toolchain", "2026-10-13");
+    commit_on(&repo, "docs: toolchain", "2026-10-13");
     repo.switch_new("edit-git");
     repo.write(
         "specs/decisions/git.md",
         &GIT.replace("icon: git-branch", "icon: git-merge"),
     );
-    commit_on(&repo, "decision: git icon", "2026-10-15");
+    commit_on(&repo, "docs: git icon", "2026-10-15");
     repo.switch("main");
     repo.write(
         "specs/decisions/toolchain.md",
         &GIT.replace("# Git", "# Build"),
     );
-    commit_on(&repo, "decision: toolchain title", "2026-10-16");
+    commit_on(&repo, "docs: toolchain title", "2026-10-16");
     let merged = without_user_git(
         Command::new("git")
             .args([
@@ -360,7 +351,7 @@ fn a_merged_decision_keeps_the_date_of_its_commit() {
 fn a_decision_with_a_non_ascii_name_has_its_date() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/café.md", GIT);
-    commit_on(&repo, "decision: café", "2026-10-12");
+    commit_on(&repo, "docs: café", "2026-10-12");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -376,7 +367,7 @@ fn a_decision_with_a_non_ascii_name_has_its_date() {
 fn rules_of_a_decision_are_its_kept_parts_with_strength_and_check() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
-    repo.commit("decision: git");
+    repo.commit("docs: git");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 
@@ -400,9 +391,9 @@ fn an_unreadable_decision_has_no_rules_and_keeps_its_problem() {
     let repo = TestRepo::new();
     repo.write(
         "specs/decisions/git.md",
-        &GIT.replace("status: active", "status: [active"),
+        &GIT.replace("icon: git-branch", "icon: [git-branch"),
     );
-    repo.commit("decision: git");
+    repo.commit("docs: git");
 
     let git = api::read_ledger(repo.path()).unwrap().decisions.remove(0);
 
@@ -416,7 +407,7 @@ fn files_under_decisions_check_are_not_in_the_ledger() {
     let repo = TestRepo::new();
     repo.write("specs/decisions/git.md", GIT);
     repo.write("specs/decisions-check/q1-a/git-extra.md", GIT);
-    repo.commit("decision: git");
+    repo.commit("docs: git");
 
     let ledger = api::read_ledger(repo.path()).unwrap();
 

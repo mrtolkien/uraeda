@@ -124,7 +124,7 @@ fn a_candidate_is_checked_as_a_decision() {
     repo.write(
         CANDIDATE,
         &fixture("decisions-check/q1-a/ui-components.md")
-            .replace("status: proposed", "status: maybe"),
+            .replace("icon: component", "icon: component\nstatus: maybe"),
     );
 
     assert_eq!(

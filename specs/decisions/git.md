@@ -1,6 +1,4 @@
 ---
-status: active
-approved-by: mrtolkien
 icon: git-branch
 ---
 

@@ -85,11 +85,11 @@ fn frontmatter_set_keeps_every_other_byte() {
 
 #[test]
 fn setting_a_field_to_nothing_leaves_no_trailing_space() {
-    let text = "---\nstatus: active\napproved-by: mrtolkien\n---\n";
+    let text = "---\nverdict: approved\ncommit: abc1234\n---\n";
 
     assert_eq!(
-        frontmatter::set(text, "approved-by", ""),
-        "---\nstatus: active\napproved-by:\n---\n"
+        frontmatter::set(text, "commit", ""),
+        "---\nverdict: approved\ncommit:\n---\n"
     );
 }
 

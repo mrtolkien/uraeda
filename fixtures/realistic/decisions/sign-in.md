@@ -1,6 +1,4 @@
 ---
-status: active
-approved-by: human
 icon: key-round
 ---
 

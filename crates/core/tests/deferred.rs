@@ -64,7 +64,7 @@ fn land_one(repo: &TestRepo) -> (Result<CommitView, api::ApiError>, Vec<String>)
 fn spec_to_review(spec_text: &str) -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
-    repo.write("specs/decisions/storage.md", &decision("proposed"));
+    repo.write("specs/decisions/storage.md", &decision());
     repo.commit("chore: specs");
     repo.switch_new(FOLDER);
     repo.write("specs/2026-10-11-web-ui/proposal.md", &proposal());
@@ -114,20 +114,6 @@ fn a_deferred_approval_moves_the_step_and_a_refusal_moves_it_back() {
     let (landed, _) = land_one(&repo);
     assert_eq!(landed.unwrap().subject, "spec(web-ui): approve");
     assert_eq!(step_of(&repo), "plan");
-}
-
-/// A deferred approval of a spec whose new decision is proposed reads the decisions' approval.
-#[test]
-fn a_deferred_approval_with_a_proposed_decision_reads_its_approval() {
-    let with_decision = spec("awaiting-human", 1, 1).replace(
-        "Relied on:",
-        "- **New: [Storage](/specs/decisions/storage.md)**. Where tasks live.\n\nRelied on:",
-    );
-    let repo = spec_to_review(&with_decision);
-
-    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
-
-    assert_eq!(step_of(&repo), "approval");
 }
 
 /// Review focus 1: a hand edit of the approved spec itself, after the queued approval, is not

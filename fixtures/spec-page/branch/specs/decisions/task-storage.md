@@ -1,6 +1,4 @@
 ---
-status: proposed
-approved-by:
 icon: database
 ---
 

@@ -43,11 +43,11 @@ fn commit_lookalikes(repo: &TestRepo) -> (String, String) {
         "specs/decisions/first.md",
         "specs/decisions/second.md",
     ]);
-    repo.commit("decision: rename first");
+    repo.commit("docs: rename first");
     repo.remove("specs/decisions/second.md");
-    repo.commit("decision: drop second");
+    repo.commit("docs: drop second");
     repo.write("specs/decisions/second.md", &lines("second", 10));
-    repo.commit("decision: a new second");
+    repo.commit("docs: a new second");
     repo.remove("specs/notes/x/images/i.png");
     repo.write("specs/proposals/x/images/i.png", &lines("png", 10));
     repo.remove("specs/notes/x/note.md");
@@ -89,7 +89,7 @@ fn a_missing_path_is_followed_to_where_it_went() {
         "specs/decisions/old-name.md",
         "specs/decisions/new-name.md",
     ]);
-    repo.commit("decision: rename");
+    repo.commit("docs: rename");
     repo.git(&["mv", "specs/changes/2026-10-02-fix", "specs/2026-10-02-fix"]);
     repo.commit("chore(fix): make the change a feature");
     repo.git(&["mv", "specs/notes/back.md", "specs/proposals/back.md"]);

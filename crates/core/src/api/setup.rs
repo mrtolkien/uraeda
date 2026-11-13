@@ -30,7 +30,7 @@ pub struct SetupItem {
 }
 
 /// The decisions of the setup, by key, file name, name, and whether each is required. A decision
-/// counts as written once its file exists, whatever its status: the setup leaves it `proposed`.
+/// counts as written once its file exists.
 const DECISIONS: [(&str, &str, &str, bool); 3] = [
     (
         "code-quality",

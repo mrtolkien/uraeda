@@ -1,6 +1,4 @@
 ---
-status: active
-approved-by: mrtolkien
 icon: folder-git-2
 ---
 

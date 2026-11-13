@@ -477,14 +477,14 @@ fn an_update_never_writes_through_a_linked_folder_inside_the_skill() {
     fs::rename(skill.join("references"), &theirs).unwrap();
     symlink(&theirs, &skill.join("references"));
     write(&theirs.join("old.md"), "old\n");
-    fs::remove_file(theirs.join("approval.md")).unwrap();
+    fs::remove_file(theirs.join("finish.md")).unwrap();
 
     let output = ura(&repo, &["install", "--user", "--update"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(fs::read_to_string(theirs.join("plan.md")).unwrap(), OLD);
     assert!(theirs.join("old.md").is_file());
-    assert!(!theirs.join("approval.md").exists());
+    assert!(!theirs.join("finish.md").exists());
     assert!(
         output.stdout.contains(&format!(
             "kept    ~/.agents/skills/uraeda/references: a link to {}\n",

@@ -47,7 +47,8 @@ enum Upto {
     Proposal,
     Round,
     SpecRevision,
-    Approval,
+    /// An approved spec, whose branch holds a new decision.
+    Decision,
     Plan,
     PlanWaiting,
     PlanRevision,
@@ -74,7 +75,7 @@ const STEPS: [Step; 11] = [
     Step {
         folder: "2026-10-19-tags",
         title: "Tags",
-        upto: Upto::Approval,
+        upto: Upto::Decision,
     },
     Step {
         folder: "2026-10-19-search",
@@ -113,8 +114,9 @@ const STEPS: [Step; 11] = [
     },
 ];
 
-/// A new decision the spec of the approval's feature lists, proposed: the human approves it.
-const PROPOSED_DECISION: &str = "---\nstatus: proposed\napproved-by:\nicon: repeat\n---\n\n# \
+/// A new decision the spec of the decision's feature lists, on its branch: the human approved it
+/// with the spec.
+const NEW_DECISION: &str = "---\nicon: repeat\n---\n\n# \
      Repeating tasks\n\nA repeating task is one task, whose due date moves when it is \
      completed.\n\n## Rules\n\n- A repeating task MUST stay one task. Checked by review.\n\n## \
      Why\n\nOne task keeps its history in one place.\n";
@@ -315,28 +317,23 @@ fn commits_upto(step: &Step) -> Result<Vec<Commit>, String> {
     let (spec_status, plan_state) = match step.upto {
         Upto::Proposal | Upto::Round => return Ok(commits),
         Upto::SpecRevision => ("changes-requested", None),
-        Upto::Approval | Upto::Plan => ("approved", None),
+        Upto::Decision | Upto::Plan => ("approved", None),
         Upto::PlanWaiting => ("approved", Some((0, "awaiting-human"))),
         Upto::PlanRevision => ("approved", Some((0, "changes-requested"))),
         Upto::Built => ("approved", Some((11, "approved"))),
     };
-    commits.push(stage(
+    let mut written = stage(
         "spec",
         "the spec",
         "18 12:11",
         "spec.md",
         spec(spec_status)?,
-    ));
-    if matches!(step.upto, Upto::Approval) {
-        let decision = PROPOSED_DECISION;
+    );
+    if matches!(step.upto, Upto::Decision) {
         let path = "specs/decisions/repeating-tasks.md";
-        let message = "decision(tags): Repeating tasks";
-        commits.push(Commit::new(
-            message,
-            at("18 12:30"),
-            vec![text(path, decision)],
-        ));
+        written.files.push(text(path, NEW_DECISION));
     }
+    commits.push(written);
     if let Some((done, status)) = plan_state {
         commits.push(stage(
             "plan",

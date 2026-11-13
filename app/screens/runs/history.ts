@@ -17,7 +17,6 @@ const STAGE_STEPS: Readonly<Record<string, StepId>> = {
 
 /** The step of the map a workflow turn ran, by the core's step when it started. */
 const TURN_STEPS: Readonly<Record<string, StepId>> = {
-  approval: "spec",
   "catch-up": "comments",
   change: "build",
   discovery: "discovery",

@@ -35,8 +35,8 @@ fn warnings(repo: &TestRepo, target: &str) -> Vec<String> {
 /// A repository whose `main` holds `git.md`, on a feature branch whose spec waits for review.
 fn feature() -> TestRepo {
     let repo = TestRepo::new();
-    repo.write(GIT, &decision("active"));
-    repo.write("specs/decisions/stack.md", &decision("active"));
+    repo.write(GIT, &decision());
+    repo.write("specs/decisions/stack.md", &decision());
     repo.commit("docs: decisions");
     repo.switch_new("2026-10-10-feature");
     repo.write(SPEC, &spec("awaiting-human", 1, 0));
@@ -52,16 +52,10 @@ fn approve(repo: &TestRepo) {
 #[test]
 fn a_decision_edited_after_the_approval_is_reported() {
     let repo = feature();
-    repo.write(
-        GIT,
-        &decision("proposed").replace("A choice.", "A first choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "A first choice."));
     repo.commit("docs(feature): propose git");
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("proposed").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     assert_eq!(
         warnings(&repo, "specs"),
@@ -77,10 +71,7 @@ fn a_decision_edited_after_the_approval_is_reported() {
 fn an_uncommitted_edit_after_the_approval_is_reported() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     assert_eq!(
         warnings(&repo, "specs"),
         ["warning: specs/decisions/git.md: git.md changed after the spec's approval"]
@@ -88,31 +79,9 @@ fn an_uncommitted_edit_after_the_approval_is_reported() {
 }
 
 #[test]
-fn activating_a_decision_is_not_a_change() {
-    let repo = feature();
-    repo.write(
-        GIT,
-        &decision("proposed").replace("A choice.", "A new choice."),
-    );
-    repo.commit("docs(feature): propose git");
-    approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active")
-            .replace("A choice.", "A new choice.")
-            .replace("approved-by:", "approved-by: Ada"),
-    );
-    repo.commit("docs(feature): activate git");
-    assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
-}
-
-#[test]
 fn edits_before_the_approval_are_approved() {
     let repo = feature();
-    repo.write(
-        GIT,
-        &decision("proposed").replace("A choice.", "A first choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "A first choice."));
     repo.commit("docs(feature): propose git");
     approve(&repo);
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
@@ -122,10 +91,7 @@ fn edits_before_the_approval_are_approved() {
 fn the_approval_is_the_first_commit_reading_approved() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     repo.write(
         SPEC,
@@ -142,20 +108,14 @@ fn the_approval_is_the_first_commit_reading_approved() {
 fn a_new_approved_revision_resets_the_check() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     repo.write(SPEC, &spec("awaiting-human", 2, 0));
     repo.commit("docs(feature): revise the spec");
     repo.write(SPEC, &spec("approved", 2, 0));
     repo.commit("docs(feature): approve revision 2");
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "A third choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "A third choice."));
     repo.commit("docs(feature): edit git again");
     assert_eq!(
         warnings(&repo, "specs"),
@@ -166,10 +126,7 @@ fn a_new_approved_revision_resets_the_check() {
 #[test]
 fn a_spec_waiting_for_review_has_no_approval_commit() {
     let repo = feature();
-    repo.write(
-        GIT,
-        &decision("proposed").replace("A choice.", "A first choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "A first choice."));
     repo.commit("docs(feature): propose git");
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
 }
@@ -179,7 +136,7 @@ fn a_decision_added_or_deleted_after_the_approval_is_reported() {
     let repo = feature();
     approve(&repo);
     repo.remove("specs/decisions/stack.md");
-    repo.write("specs/decisions/tui.md", &decision("proposed"));
+    repo.write("specs/decisions/tui.md", &decision());
     repo.commit("docs(feature): add tui, drop stack");
     assert_eq!(
         warnings(&repo, "specs"),
@@ -193,7 +150,7 @@ fn a_decision_added_or_deleted_after_the_approval_is_reported() {
 #[test]
 fn a_spec_approved_before_the_branch_has_no_approval_commit_on_it() {
     let repo = TestRepo::new();
-    repo.write(GIT, &decision("active"));
+    repo.write(GIT, &decision());
     repo.write(SPEC, &spec("approved", 1, 0));
     repo.commit("docs: an approved spec");
     repo.switch_new("2026-10-10-feature");
@@ -202,10 +159,7 @@ fn a_spec_approved_before_the_branch_has_no_approval_commit_on_it() {
         &spec("approved", 1, 0).replace("A feature.", "A feature, reworded."),
     );
     repo.commit("docs(feature): reword the spec");
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
 }
@@ -214,10 +168,7 @@ fn a_spec_approved_before_the_branch_has_no_approval_commit_on_it() {
 fn the_default_branch_and_a_spec_file_report_nothing() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     assert_eq!(warnings(&repo, SPEC), Vec::<String>::new());
     repo.git(&["switch", "--quiet", "main"]);
@@ -230,10 +181,7 @@ fn the_default_branch_and_a_spec_file_report_nothing() {
 fn a_single_decision_file_is_reported_when_it_changed_after_the_approval() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
 
     assert_eq!(
@@ -252,10 +200,7 @@ fn a_single_decision_file_is_reported_when_it_changed_after_the_approval() {
 fn a_spec_approved_again_at_the_same_revision_approves_the_edits_in_between() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     repo.write(SPEC, &spec("changes-requested", 1, 0));
     repo.commit("docs(feature): request changes");
@@ -263,10 +208,7 @@ fn a_spec_approved_again_at_the_same_revision_approves_the_edits_in_between() {
 
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
 
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "A third choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "A third choice."));
     repo.commit("docs(feature): edit git again");
     assert_eq!(
         warnings(&repo, "specs"),
@@ -281,9 +223,9 @@ fn a_decision_merged_in_from_the_default_branch_is_not_the_branch_s_change() {
     repo.add_on_branch(
         "main",
         GIT,
-        &decision("active").replace("A choice.", "Main's choice."),
+        &decision().replace("A choice.", "Main's choice."),
     );
-    repo.add_on_branch("main", "specs/decisions/tui.md", &decision("active"));
+    repo.add_on_branch("main", "specs/decisions/tui.md", &decision());
     repo.git(&["merge", "--quiet", "--no-edit", "main"]);
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
 }
@@ -291,13 +233,10 @@ fn a_decision_merged_in_from_the_default_branch_is_not_the_branch_s_change() {
 #[test]
 fn a_decision_put_back_to_the_default_branch_s_text_after_the_approval_is_reported() {
     let repo = feature();
-    repo.write(
-        GIT,
-        &decision("proposed").replace("A choice.", "A branch choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "A branch choice."));
     repo.commit("docs(feature): propose git");
     approve(&repo);
-    repo.write(GIT, &decision("active"));
+    repo.write(GIT, &decision());
     repo.commit("docs(feature): put git back");
     assert_eq!(
         warnings(&repo, "specs"),
@@ -308,7 +247,7 @@ fn a_decision_put_back_to_the_default_branch_s_text_after_the_approval_is_report
 #[test]
 fn a_decision_added_before_the_approval_then_deleted_is_reported() {
     let repo = feature();
-    repo.write("specs/decisions/tui.md", &decision("proposed"));
+    repo.write("specs/decisions/tui.md", &decision());
     repo.commit("docs(feature): propose tui");
     approve(&repo);
     repo.remove("specs/decisions/tui.md");
@@ -323,10 +262,7 @@ fn a_decision_added_before_the_approval_then_deleted_is_reported() {
 fn the_files_alone_are_checked_without_the_branch_s_history() {
     let repo = feature();
     approve(&repo);
-    repo.write(
-        GIT,
-        &decision("active").replace("A choice.", "Another choice."),
-    );
+    repo.write(GIT, &decision().replace("A choice.", "Another choice."));
     repo.commit("docs(feature): edit git");
     let specs = repo.path().join("specs");
     assert_eq!(
