@@ -198,6 +198,15 @@ Running it here:
   screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox of its
   own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you started by
   its process id.
+- **The sandbox's picker says what the human points at**: in a development run (`just sandbox`,
+  `just app-dev`), `Ctrl+Shift+C` or the "Sandbox" chip at the window's corner starts it, the
+  keyboard's selection is outlined, then the view under the pointer once it moves, and a click, or
+  `Ctrl+Shift+C` again, copies a "Sandbox pick": the address, the repository, the page and its
+  panes, the element, the file and component that wrote it, its test id, its text, its place, and
+  the window. The keys leave a menu or a popover open, so what it holds is picked too. Native Shell
+  has no inspector: `app/sandbox/tracked.ts` wraps the hot runtime's registration of components, so
+  a pick names a file and a component, never a line. A test, a picture, and the packaged app are not
+  hot, and draw none of it.
 - **`just walk`** walks the whole app as one person's day, on a fresh sandbox and the hidden
   display: the steps of `app/tools/walk.test.tsx`, by keys at a desk, then by touch at a phone's
   width, then the pages that matter in light, each step a numbered picture in `target/shots/walk/`.

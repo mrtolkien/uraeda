@@ -6,6 +6,7 @@
 // the address bar follows the page shown, a reload or a shared address opens its page, and Back
 // and Forward are the browser's; the shell signs in by the browser's session (`web/Web.tsx`).
 // The browser's benchmark opens pages through its `uraedaBench.go`, as a link does (`ui/timing.ts`).
+import "./sandbox/tracked";
 import { mount, platform } from "nsh";
 import { boot } from "./screens/shell/boot";
 import { appHost } from "./screens/shell/host";

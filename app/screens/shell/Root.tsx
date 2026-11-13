@@ -22,6 +22,7 @@ import {
   route,
 } from "../../store";
 import type { SignIn } from "../../store/protocol";
+import { picks, SandboxPick } from "../../sandbox/Pick";
 import { Pairing } from "../sign-in/Pairing";
 import { Update } from "../sign-in/Update";
 import { Button, Spinner } from "../../ui/controls";
@@ -144,6 +145,9 @@ export function Root(props: RootProps) {
         <Each key={(now) => now.generation} of={connected()}>
           {(now) => <Connected conn={now().conn} host={props.host} server={now().server} />}
         </Each>
+        <If when={picks}>
+          <SandboxPick />
+        </If>
       </KeysHost>
     </RecordsRoot>
   );
