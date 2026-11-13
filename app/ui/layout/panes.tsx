@@ -79,9 +79,20 @@ export type Placed =
   | { readonly focus?: boolean; readonly pane: PaneRef; readonly stack?: StackName };
 
 const kinds = new Map<string, PaneSpec<PaneArgs>>();
+/**
+ * What a page draws once beside its panes, while it is shown: what its panes share across its tabs,
+ * as a step the phone's bottom bar presses from any of them, and the dialog that press opens. A
+ * change of route that keeps its `key` keeps it drawn.
+ */
+export type Around = { key: string; view: () => JSX.Element };
+
 const places = new Map<
   string,
-  { panes: (route: Route) => ReadonlyArray<Placed>; split?: ReadonlyArray<StackName> }
+  {
+    around?: (route: Route) => Around;
+    panes: (route: Route) => ReadonlyArray<Placed>;
+    split?: ReadonlyArray<StackName>;
+  }
 >();
 
 /**
@@ -123,16 +134,21 @@ export const actionOf = (panes: ReadonlyArray<PaneRef>): PaneAction | undefined 
 export function definePlace<P extends Route["page"]>(
   page: P,
   panes: (route: RouteOf<P>) => ReadonlyArray<Placed>,
-  options: { split?: ReadonlyArray<StackName> } = {},
+  options: { around?: (route: RouteOf<P>) => Around; split?: ReadonlyArray<StackName> } = {},
 ) {
   if (places.has(page)) {
     throw new Error(`The page "${page}" has two places`);
   }
   places.set(page, {
+    around: options.around as ((route: Route) => Around) | undefined,
     panes: panes as (route: Route) => ReadonlyArray<Placed>,
     split: options.split,
   });
 }
+
+/** What the page of `route` draws beside its panes, if its place says so. */
+export const aroundOf = (route: Route): Around | undefined =>
+  places.get(route.page)?.around?.(route);
 
 /** The pages a screen declared a place for, as `definePlace` was called: what the app can open. */
 export const placedPages = (): ReadonlyArray<Route["page"]> =>

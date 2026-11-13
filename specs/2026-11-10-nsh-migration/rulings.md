@@ -10648,7 +10648,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Alternatives considered**: the address naming the sheet, so a reload reopens it (`openOverlay`'s
   `to`): each sheet would need a route of its own; the visit alone gives Back.
 - **If wrong**: a page opened from a sheet still open takes the sheet's visit, so one Back returns
-  under it (T205.1, which removed the dead visit this ruling first left there).
+  under it (R536, which removed the dead visit this ruling first left there).
 - **Where**: `app/ui/surfaces/backCloses.ts`, `app/ui/surfaces/Float.tsx`; the history's
   `overlayVisits`, bound by the app's entry, `App.tsx` (the component library imports nothing of the
   store, as an extension's page is built from `app/ui/` alone, and the store nothing of the
@@ -10723,7 +10723,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/cli/src/import_sessions.rs`, `crates/server/src/start.rs` (`held`),
   `crates/server/tests/runner_store.rs`, `crates/server/tests/one_server.rs`,
   `crates/cli/tests/import_sessions.rs`.
-## T205.1: A sheet's visit closes at once in the app, and the browser's writes wait for its Back
+
+## R536: A sheet's visit closes at once in the app, and the browser's writes wait for its Back
 
 - **Decision**: closing a sheet's visit (`closeOverlay`, the `close` of `overlayVisits`) shows the
   page under it at once, with what the visit kept meanwhile, and asks the adapter to go back. Until
@@ -10751,7 +10752,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/store/history.ts`, `app/ui/surfaces/backCloses.ts`, `app/store/routes.test.ts`,
   `crates/server/tests/browser/phone_sheets.rs`.
 
-## T205.2: A field that saves as it is left saves as its page goes too
+## R537: A field that saves as it is left saves as its page goes too
 
 - **Decision**: a job's typed fields (`Typed`) and the server's Port save in their component's
   `cleanup` as well as on blur, as the round's comment and notes already did: a field removed with
@@ -10767,7 +10768,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/jobs/Typed.tsx`, `app/screens/settings/Server.tsx`,
   `app/screens/jobs/__checks__/leave.tsx`, `app/screens/jobs/jobs.test.tsx`.
 
-## T205.3: A pane that loses the keys lets go of its control's focus
+## R538: A pane that loses the keys lets go of its control's focus
 
 - **Decision**: as a pane stops having the keys, `PaneBody` calls the ledger's `paneLeft` with its
   stops: the control of that pane that holds the focus lets go of it, as Escape does (R522). Enter
@@ -10778,3 +10779,22 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   each Enter would need the ledger to know the layout's focused pane.
 - **Where**: `app/ui/surfaces/focus.ts` (`paneLeft`), `app/ui/layout/Stack.tsx`,
   `app/ui/layout/focus.test.tsx`.
+
+## R539: A page draws what its panes share once, beside them: the feature's next step
+
+- **Decision**: a place may declare `around` (`definePlace`'s option), a view the frame draws once
+  beside the page's panes while they are shown, kept while its key stays. The feature page's is
+  `FeatureStep` (`app/screens/feature/step.tsx`): it reads the next step from the records, publishes
+  it for the bottom bar (`nextStep`, the Overview pane's `action`) and for Overview's Next
+  (`stepOf`), and draws the continue dialog and the clean's confirmation its press opens. Overview's
+  Next draws the step and presses it (`pressStep`); a drop is read from Overview's memory in the
+  visit, as before.
+- **Rationale**: on a phone only the tab shown is drawn, so the step published by Overview's
+  `NextPart` went with Overview as Steps, Sessions, Decisions, or Figures opened, though the bar is
+  meant to hold the page's action from any tab, and its dialog went with it. The pane's `action` was
+  already read for every pane of the stack, drawn or not: what it needed was a scope of the page.
+- **Alternatives considered**: each feature pane drawing the dialogs: two stacks show several panes
+  at once on a desk, and the dialog would be drawn twice. The frame drawing the feature's step
+  itself: the shell would know a screen's part.
+- **Where**: `app/ui/layout/panes.tsx` (`Around`, `aroundOf`), `app/screens/shell/Frame.tsx`,
+  `app/screens/feature/{step.tsx,Overview.tsx,panes.tsx,feature.test.tsx}`.

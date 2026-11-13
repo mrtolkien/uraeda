@@ -5,6 +5,8 @@ export * from "./layout";
 export { besideOpener, offerBeside, wholeOverKeyboard, zoomer } from "./here";
 export {
   actionOf,
+  aroundOf,
+  type Around,
   definePane,
   definePlace,
   focusPane,

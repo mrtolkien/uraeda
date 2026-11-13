@@ -1,7 +1,7 @@
 // The feature page against the sandbox (`just app-test` starts one): every pane of it draws, and
 // the keys reach each. A pane's keys are declared only once it is drawn, and a key that means two
 // things throws then, stopping the page: a hidden tab hides that until the human opens it.
-import { type App, open, test } from "nsh/test";
+import { type App, expect, open, test } from "nsh/test";
 
 /** Waits until a text of the app is `words`, whole: a word in another text does not count. */
 const says = (app: App, words: string) =>
@@ -63,6 +63,25 @@ test("on a phone, the bottom bar ends with the feature's next step, which asks a
   await app.waitFor("text:cli-tuis", { timeout: 30_000 });
   await app.press("text:cli-tuis >> nth=0");
   await says(app, "Continue, write the plan");
+  await app.press("id:bottom-bar-action");
+  await app.waitFor("id:continue-start", { timeout: 10_000 });
+});
+
+test("on a phone, the feature's next step stays in the bottom bar on each of its tabs", async () => {
+  const app = await open("../../App.tsx", { height: 844, network: "live", width: 390 });
+  await app.waitFor("text:cli-tuis", { timeout: 30_000 });
+  await app.press("text:cli-tuis >> nth=0");
+  await says(app, "Continue, write the plan");
+  // Only the tab shown is drawn: Overview goes as each other opens.
+  for (const tab of ["Steps", "Decisions", "Figures", "Sessions"]) {
+    // oxlint-disable-next-line no-await-in-loop -- tabs are opened one after the other
+    await app.press(`id:bottom-bar >> label:${tab}`);
+    // oxlint-disable-next-line no-await-in-loop -- tabs are opened one after the other
+    await app.waitUntil(() => !app.texts().includes("Continue, write the plan"), {
+      timeout: 5_000,
+    });
+    expect([tab, app.shows("id:bottom-bar-action")]).toEqual([tab, true]);
+  }
   await app.press("id:bottom-bar-action");
   await app.waitFor("id:continue-start", { timeout: 10_000 });
 });

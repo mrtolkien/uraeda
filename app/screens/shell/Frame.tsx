@@ -24,7 +24,7 @@ import { ReadAllDeclarations } from "../../extensions/ExtensionPlace";
 import { FollowKeyboard } from "../settings/follow";
 import { firstRun, missingFolder, unknownRepository } from "../repository/panes";
 import { call, device, navigate, record, redirect, route } from "../../store";
-import { type Place, placeOf, Stacks } from "../../ui/layout";
+import { type Around, aroundOf, type Place, placeOf, Stacks } from "../../ui/layout";
 import { Toasts } from "../../ui/surfaces";
 import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
 
@@ -98,6 +98,14 @@ export function Frame() {
     const own = placeOf(route());
     return own.main.length === 0 ? alone(nothingFor()) : own;
   });
+  // What the page draws beside its panes, while they are its own: kept while its key stays.
+  const around = computed((): ReadonlyArray<Around> => {
+    const own = placeOf(route());
+    const drawn = place();
+    const shared = own.main.length > 0 && drawn?.main[0]?.key === own.main[0]?.key;
+    const found = shared ? aroundOf(route()) : undefined;
+    return found === undefined ? [] : [found];
+  });
 
   const shown = () => (row()?.missing === false ? repo() : undefined);
   // The extensions of the repository shown, held here, where the keys' guards read them.
@@ -139,6 +147,9 @@ export function Frame() {
         }}
         status={{ end, mode: modeSlot(), place: repo(), start }}
       />
+      <Each key={(one: Around) => one.key} of={around()}>
+        {(one) => untracked(one).view()}
+      </Each>
       <Pickers repo={shown()} />
       <UndoKeys />
       <If when={shown()}>

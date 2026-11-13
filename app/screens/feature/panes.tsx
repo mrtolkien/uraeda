@@ -6,15 +6,16 @@
 import { definePane, definePlace } from "../../ui/layout";
 import { Decisions } from "./Decisions";
 import { Figures } from "./Figures";
-import { nextStep, Overview } from "./Overview";
+import { Overview } from "./Overview";
 import { featureOf, type FeatureArgs } from "./read";
 import { Sessions } from "./Sessions";
+import { FeatureStep, nextStep, OVERVIEW } from "./step";
 import { Steps } from "./Steps";
 
 export const featureOverview = definePane<FeatureArgs>({
   action: () => nextStep(),
   icon: "flag",
-  kind: "feature-overview",
+  kind: OVERVIEW,
   mark: (args) => {
     const status = featureOf(args)()?.status.status;
     return { needs: status === "needs-you", running: status === "working" };
@@ -62,13 +63,26 @@ export const featureFigures = definePane<FeatureArgs>({
   view: (props) => <Figures args={props.args} />,
 });
 
-definePlace("feature", (route) => {
-  const args = { folder: route.folder, repo: route.repo ?? "" };
-  return [
-    featureOverview(args),
-    featureSteps(args),
-    featureSessions(args),
-    featureDecisions(args),
-    featureFigures(args),
-  ];
-});
+definePlace(
+  "feature",
+  (route) => {
+    const args = { folder: route.folder, repo: route.repo ?? "" };
+    return [
+      featureOverview(args),
+      featureSteps(args),
+      featureSessions(args),
+      featureDecisions(args),
+      featureFigures(args),
+    ];
+  },
+  {
+    // The next step and its dialogs, which the phone's bottom bar reaches from every tab.
+    around: (route) => {
+      const args = { folder: route.folder, repo: route.repo ?? "" };
+      return {
+        key: `feature:${args.repo}/${args.folder}`,
+        view: () => <FeatureStep args={args} />,
+      };
+    },
+  },
+);

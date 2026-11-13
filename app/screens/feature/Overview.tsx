@@ -1,21 +1,20 @@
 // The feature page's subject: where the feature stands, in words with their cause, and the one
 // thing to do next, the page's main action, which breathes and takes `n`. Under it the message a
 // continue sends, what a merged feature left, and the check's notes.
-import { cleanup, effect, openUrl, signal, untracked, View } from "nsh";
-import { call, navigate, record } from "../../store";
+import { signal, View } from "nsh";
+import { call } from "../../store";
 import type { Feature } from "../../store/protocol";
-import { Banner, Button, Confirm, Heading, Refusal, StatusDot, Text } from "../../ui/controls";
-import { type PaneAction, PaneScroll, usePane } from "../../ui/layout";
+import { Banner, Button, Heading, Refusal, StatusDot, Text } from "../../ui/controls";
+import { PaneScroll, usePane } from "../../ui/layout";
 import { Collapsible } from "../../ui/lists";
 import { Pane, Well } from "../../ui/surfaces";
 import type { Tone } from "../../ui/tokens";
-import { type Next, type NextAction, nextOf } from "./next";
+import type { Next } from "./next";
 import { Drop, DroppedNote, Problems, Rename } from "./Parts";
 import { Postpone } from "./Postpone";
-import { ContinueDialog } from "../runs/ContinueDialog";
-import { ticking } from "../../ui/clock";
 import { type FeatureArgs, WithFeature } from "./read";
-import { day, endedWords, kindWord, waitWords } from "./words";
+import { ICONS, pressStep, stepOf, stepPending, stepRefusal } from "./step";
+import { day, kindWord } from "./words";
 import { plural } from "../../ui/words";
 
 /** A status's tone, as its dot shows it. */
@@ -44,32 +43,6 @@ function facts(feature: Feature): string {
   if (feature.uncommitted) parts.push("uncommitted changes");
   return parts.join(" · ");
 }
-
-/** Runs `action`; a refusal comes back in words, for under the button. */
-async function run(args: FeatureArgs, action: NextAction): Promise<void> {
-  switch (action.kind) {
-    case "open":
-      navigate(action.to);
-      return;
-    case "url":
-      await openUrl(action.url);
-      return;
-    case "clean":
-      await call("git.clean", { folder: args.folder, repo: args.repo, write: null });
-      return;
-    case "continue":
-      // The continue dialog sends it, its message and run options read first (`NextPart`).
-      return;
-  }
-}
-
-/** The icon of an action's button. */
-const ICONS = {
-  clean: "brush-cleaning",
-  continue: "play",
-  open: "arrow-right",
-  url: "external-link",
-} as const;
 
 /**
  * At the proposal's gate, its commit: the gate ends once the proposal is committed, and Next then
@@ -108,59 +81,11 @@ function proposalAt(feature: Feature): string | undefined {
   return gate ? `${feature.path}/${file}` : undefined;
 }
 
-/** The word of the phone's bottom bar's tile for each kind of next step: one, short. */
-const WORDS = { clean: "Clean", continue: "Continue", open: "Next", url: "Open" } as const;
-
-/** The next step of the feature shown, as its Next pane presses it: the phone's bottom bar's action. */
-const shownStep = signal<PaneAction | undefined>(undefined);
-
 /**
- * The bottom bar's end on a phone: the step the Next pane's button takes, which a tap there takes
- * too (the phone guide: "a feature's next step, which its Next pane's button also does").
+ * "Next": what comes next, why, and its one button, the view's main action, with `n`. The step and
+ * its dialogs are the page's (`FeatureStep`), which the phone's bottom bar presses from any tab.
  */
-export const nextStep = () => shownStep();
-
-/** "Next": what comes next, why, and its one button, the view's main action, with `n`. */
 function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
-  const pending = signal(false);
-  const refusal = signal<string | null>(null);
-  // The run the dialog asks about, kept after it closes so it leaves with its motion.
-  const asked = signal<Extract<NextAction, { kind: "continue" }> | null>(null);
-  const asking = signal(false);
-  // Cleaning removes the worktree, the branch, and the priorities' line: asked first, as the Git
-  // page's Worktrees does.
-  const cleaning = signal<NextAction | null>(null);
-  const press = async (action: NextAction, sure = false) => {
-    if (action.kind === "continue") {
-      asked.set(action);
-      asking.set(true);
-      return;
-    }
-    if (action.kind === "clean" && !sure) {
-      cleaning.set(action);
-      return;
-    }
-    if (pending()) return;
-    pending.set(true);
-    refusal.set(null);
-    try {
-      await run(props.args, action);
-    } catch (error) {
-      refusal.set((error as Error).message);
-    }
-    pending.set(false);
-  };
-  effect(() => {
-    const action = props.next.action;
-    const step: PaneAction | undefined =
-      action === undefined
-        ? undefined
-        : { icon: ICONS[action.kind], label: WORDS[action.kind], run: () => void press(action) };
-    untracked(() => shownStep.set(step));
-    cleanup(() => {
-      if (untracked(shownStep) === step) shownStep.set(undefined);
-    });
-  });
   return (
     <Pane height="raised" needs={props.next.waitsOn === "human"} title="Next">
       <View style={{ gap: 4 }}>
@@ -175,42 +100,16 @@ function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
               icon={ICONS[action().kind]}
               keys="n"
               label={action().label}
-              onPress={() => void press(action())}
-              pending={pending()}
+              onPress={() => void pressStep(props.args, action())}
+              pending={stepPending()}
               testID="feature-next"
               variant="main"
             />
-            <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
+            <If when={stepRefusal()}>{(words) => <Refusal words={words()} />}</If>
           </View>
         )}
       </If>
       <If when={props.proposal}>{(path) => <CommitProposal args={props.args} path={path()} />}</If>
-      <Confirm
-        loses
-        icon="brush-cleaning"
-        keep="Keep it"
-        keys="n"
-        label="Clean it"
-        onClose={() => cleaning.set(null)}
-        onConfirm={() => {
-          const action = cleaning();
-          if (action !== null) void press(action, true);
-        }}
-        open={cleaning() !== null}
-        title={`Clean ${props.args.folder}?`}
-        words="Its worktree, its branch, and its line of the priorities go, as ura clean does. Nothing undoes it."
-      />
-      <If when={asked()}>
-        {(next) => (
-          <ContinueDialog
-            folder={props.args.folder}
-            onClose={() => asking.set(false)}
-            open={asking()}
-            repo={props.args.repo}
-            run={next()}
-          />
-        )}
-      </If>
     </Pane>
   );
 }
@@ -253,36 +152,10 @@ function Body(props: { args: FeatureArgs; feature: () => Feature }) {
   const feature = props.feature;
   // What a drop from this pane left (`Drop`): the page then offers nothing more to do.
   const dropped = usePane().remember<string | null>("dropped", null);
-  const now = ticking(30_000);
-  const history = record("History", { id: props.args.folder, repo: props.args.repo });
-  const recommended = record("RecommendedMessage", {
-    id: props.args.folder,
-    repo: props.args.repo,
-  });
   const status = () => feature().status;
-  // The session it follows, for the account a wait is on, and the turn a failure is told by.
-  const session = () => {
-    const id = status().session;
-    return id === null ? undefined : record("Session", { id, repo: props.args.repo })();
-  };
-  const turn = () => {
-    const id = status().turn;
-    return id === null ? undefined : record("Turn", { id, repo: props.args.repo })();
-  };
-  const waits = () => {
-    const wait = status().wait;
-    return wait === null ? undefined : waitWords(wait, session()?.account ?? null, now());
-  };
-  const next = () =>
-    nextOf(feature(), {
-      ended: turn() ? endedWords(turn()!) : undefined,
-      history: history() ?? undefined,
-      now: now(),
-      recommended: recommended(),
-      waits: waits(),
-    });
+  const next = () => stepOf(props.args);
   const message = () => {
-    const action = next().action;
+    const action = next()?.action;
     return action?.kind === "continue" ? action.text : undefined;
   };
   return (
@@ -302,8 +175,8 @@ function Body(props: { args: FeatureArgs; feature: () => Feature }) {
       </View>
       <Problems feature={feature()} />
       {/* Dropped, nothing is next: its Continue would reach a worktree that is gone. */}
-      <If when={dropped() === null}>
-        <NextPart args={props.args} next={next()} proposal={proposalAt(feature())} />
+      <If when={dropped() === null ? next() : undefined}>
+        {(shown) => <NextPart args={props.args} next={shown()} proposal={proposalAt(feature())} />}
       </If>
       <If when={dropped() === null ? message() : undefined}>
         {(text) => <Message text={text()} />}
