@@ -7,7 +7,7 @@
 import { effect, untracked, View } from "nsh";
 import { imageOf, navigate, positions, route } from "../../store";
 import type { Block, FileView, SinceChange, SpanImage, VersionView } from "../../store/protocol";
-import { Banner, Button, StatusDot, Text } from "../../ui/controls";
+import { Banner, Button, Link, StatusDot, Text } from "../../ui/controls";
 import { DocumentScroll, type DocumentScrollRef } from "../../ui/document";
 import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
@@ -89,6 +89,16 @@ function Head(props: { args: FileArgs; file: FileView; onVerdict?: () => void })
           tone={status()?.tone ?? "quiet"}
         />
         <Each of={said()}>{(fact) => <Text tone="faint">{`· ${fact()}`}</Text>}</Each>
+        {/* `Space b`'s tap, on a phone, which has no keys: the file in the editor. */}
+        <If when={isNarrow()}>
+          <Text tone="faint">·</Text>
+          <Link
+            onPress={() => navigate({ page: "buffer", path: props.file.path })}
+            testID="file-edit"
+          >
+            Edit
+          </Link>
+        </If>
       </View>
       <If when={props.onVerdict !== undefined && reviewable(props.file)}>
         <View style={{ alignItems: "flex-start", gap: 6 }}>

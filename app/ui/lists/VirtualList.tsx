@@ -29,7 +29,8 @@ import {
 import type { Cursor } from "./cursor";
 import { createFollow } from "./follow";
 import { listKeys } from "./keys";
-import { besideOpener } from "../layout/here";
+import { besideOpener, PaneContext } from "../layout/here";
+import { barRoom, underBar } from "../layout/underBar";
 import type { PaneRef } from "../layout/layout";
 import { Row, rowHeight } from "./Row";
 
@@ -90,6 +91,12 @@ const ANYWHERE = 1e9;
 export function VirtualList(props: VirtualListProps) {
   const cursor = props.cursor;
   let list: ListRef | undefined;
+  // On iOS, a list that reaches its pane's foot scrolls beneath the bar that floats there.
+  const under = underBar(PaneContext()?.key, () => list?.measure());
+  effect(() => {
+    barRoom();
+    untracked(under.check);
+  });
   // The rows wholly shown, as the list last said: what a key's move must not scroll for.
   let shown = { first: 0, last: -1 };
   // A list that follows opens at its end, unless a place was kept or a row asked for, as a link to
@@ -167,6 +174,7 @@ export function VirtualList(props: VirtualListProps) {
 
   return (
     <List
+      contentInset={{ bottom: under.inset() }}
       contentOffset={props.offset === undefined ? undefined : { x: 0, y: props.offset }}
       each={cursor.items()}
       empty={props.empty}
@@ -198,6 +206,7 @@ export function VirtualList(props: VirtualListProps) {
       }}
       onLayout={(event) => {
         if (props.follow === true) follow.resized(event.bounds.size.height);
+        under.check();
       }}
       onScrollDragEnd={() => follow.hand(false)}
       onScrollDragStart={() => follow.hand(true)}

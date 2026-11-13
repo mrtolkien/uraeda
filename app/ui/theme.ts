@@ -40,9 +40,23 @@ export const shownTheme: Accessor<ThemeSource> = theme;
 /** The fonts picked, one bundled font's id for each part. */
 export const pickedFonts: Accessor<Fonts> = fonts;
 
+/** Whether the device follows the system's appearance, by its owner's choice. */
+let followsSystem = false;
+
+/**
+ * Says whether the device follows the system's appearance. Native Shell's `colorScheme()` is the
+ * appearance shown: once the app set its own, it no longer says the system's, and a device back on
+ * "System" stayed in the mode it last showed. Following, the app hands the appearance back to the
+ * system, and `colorScheme()` says the system's again.
+ */
+export function followSystem(on: boolean) {
+  followsSystem = on;
+  if (on) setColorScheme("system");
+}
+
 /** Draws what Native Shell draws itself, its own text views, editors, and menus, as the tokens. */
 function showNative(next: ThemeSource, picked: Fonts) {
-  setColorScheme(next.mode === "light" ? "light" : "dark");
+  setColorScheme(followsSystem ? "system" : next.mode === "light" ? "light" : "dark");
   const families = [fontOf("body", picked.body).family, fontOf("code", picked.code).family];
   showTheme(JSON.stringify(wholeRoles(next)), families[0]!, families[1]!).catch(
     (error: unknown) => {

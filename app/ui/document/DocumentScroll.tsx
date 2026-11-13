@@ -12,6 +12,7 @@
 // typed under its block shows whole above a phone's keyboard.
 import {
   computed,
+  effect,
   type JSX,
   List,
   type ListRef,
@@ -24,7 +25,8 @@ import {
 import type { Block, Document as Tree } from "../../store/protocol";
 import { type KeySpec, registerKey } from "../keys/registry";
 import { BlockView, read } from "./Blocks";
-import { RevealContext, revealBy, scrollerOf } from "../layout/here";
+import { PaneContext, RevealContext, revealBy, scrollerOf } from "../layout/here";
+import { barRoom, underBar } from "../layout/underBar";
 import { DocumentContext, type DocumentHands } from "./context";
 import { shared } from "./Document";
 import { BLOCK_GAP, measure } from "./look";
@@ -95,6 +97,12 @@ export function DocumentScroll(props: DocumentScrollProps) {
   const width = signal(0);
   const hands = shared(props, width);
   let list: ListRef | undefined;
+  // On iOS, a document that reaches its pane's foot scrolls beneath the bar that floats there.
+  const under = underBar(PaneContext()?.key, () => list?.measure());
+  effect(() => {
+    barRoom();
+    untracked(under.check);
+  });
   // Where it is, as the list last said: what the keys scroll from.
   const at = { height: 0, offset: props.offset ?? 0, total: 0 };
 
@@ -192,6 +200,7 @@ export function DocumentScroll(props: DocumentScrollProps) {
       <RevealContext.Provider value={(view) => void reveal(view)}>
         <View ref={(made: ViewRef) => (frame = made)} style={{ flex: 1 }}>
           <List
+            contentInset={{ bottom: under.inset() }}
             contentOffset={props.offset === undefined ? undefined : { x: 0, y: props.offset }}
             each={items()}
             estimatedItemSize={tokens.type.proseLine * 3}
@@ -200,6 +209,7 @@ export function DocumentScroll(props: DocumentScrollProps) {
             onLayout={(event) => {
               width.set(event.bounds.size.width);
               at.height = event.bounds.size.height;
+              under.check();
             }}
             onScroll={(event) => {
               at.offset = event.offset.y;

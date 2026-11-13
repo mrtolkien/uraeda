@@ -5,6 +5,7 @@ import { Switch as Base } from "nsh/base";
 import { type ChoiceProps, ChoiceLabel, choiceLooks, markColours } from "./choice";
 import { pressable } from "./press";
 import { Under } from "./Under";
+import { feltChoice } from "../native";
 import { tokens } from "../tokens";
 
 export type SwitchProps = ChoiceProps & {
@@ -16,7 +17,10 @@ export type SwitchProps = ChoiceProps & {
 const size = () => tokens.control.switch;
 
 export function Switch(props: SwitchProps) {
-  const press = pressable(props, () => props.onChange(!props.value));
+  const press = pressable(props, () => {
+    feltChoice();
+    props.onChange(!props.value);
+  });
   const colours = () => markColours(props.value, props.disabled === true);
   const travel = () => size().width - 2 - size().thumb - 2 * size().inset;
   return (

@@ -33,12 +33,14 @@ import {
   takeFocus,
 } from "./focus";
 import { backCloses } from "./backCloses";
+import { aboveHome, keyboardUp } from "./safe";
 import { swipeDown } from "./swipeDown";
 import { onChange, presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { InScope, keyScope, registerKey } from "../keys/registry";
 import type { Scope } from "../keys/store";
+import { ios } from "../native";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
 
@@ -88,6 +90,10 @@ export type FloatProps = {
 };
 
 const WHOLE = { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 } as const;
+
+/** On iOS, a sheet's corners, as the system's sheets have them, and a menu's. */
+const SHEET_RADIUS = 34;
+const MENU_RADIUS = 18;
 
 /** The keys every layer has: Escape closes it, and with a trap Tab stays in it. */
 function LayerKeys(props: { onClose: () => void; scope: Scope; stops: Stops; trap: boolean }) {
@@ -169,15 +175,28 @@ export function Float(props: FloatProps) {
     cleanup(() => change(false));
   }
 
+  // On iOS an overlay is drawn as the system's: a sheet's corners as round as the screen's, a
+  // popover's as a menu's, and its title inside it.
+  const rounded = () =>
+    ios ? (props.scrim && isNarrow() ? SHEET_RADIUS : MENU_RADIUS) : undefined;
   const box = () => (
     <Surface
       height="overlay"
+      rounded={rounded()}
       testID={props.testID}
       style={[
         { flexShrink: 1, gap: 8, padding: tokens.space.panePadding - 1 },
         // Its title's plate stands half over its top edge: what it holds starts under it.
-        props.title === undefined ? null : { paddingTop: tokens.type.line / 2 + 7 },
+        props.title === undefined || rounded() !== undefined
+          ? null
+          : { paddingTop: tokens.type.line / 2 + 7 },
+        // Under a sheet's grabber.
+        rounded() === SHEET_RADIUS ? { paddingHorizontal: 16, paddingTop: 18 } : null,
         props.style,
+        // On iOS a sheet stands on the screen's foot: what it holds ends above the home indicator.
+        ios && props.scrim && isNarrow() && !keyboardUp()
+          ? { paddingBottom: aboveHome(tokens.space.panePadding - 1) }
+          : null,
       ]}
       tab={
         props.title === undefined ? undefined : (
@@ -210,7 +229,23 @@ export function Float(props: FloatProps) {
           style={{ ...WHOLE, backgroundColor: tokens.backdrop.dim, opacity: there.style.opacity }}
         />
         <View {...swipe.props} style={[props.place().box, there.style]}>
-          <View style={{ flexShrink: 1, transform: [{ translateY: swipe.by() }] }}>{box()}</View>
+          <View style={{ flexShrink: 1, transform: [{ translateY: swipe.by() }] }}>
+            {box()}
+            {/* On iOS a sheet shows where a finger takes it, as the system's sheets do. */}
+            <If when={ios && isNarrow()}>
+              <View
+                focusable={false}
+                style={{
+                  alignSelf: "center",
+                  backgroundColor: tokens.role.inkFaint,
+                  height: 4,
+                  position: "absolute",
+                  top: 5,
+                  width: 36,
+                }}
+              />
+            </If>
+          </View>
         </View>
       </Layer>
     ) : (

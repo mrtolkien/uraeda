@@ -147,3 +147,52 @@ focus to its composer, its send button in view: "new -> pick -> composer".
 - Every keyboard action has a tap: a row's bar, a tile, a sheet.
 - Dragging works on touch after a long press, nesting included.
 - Keys still work with a keyboard attached; nothing hints them.
+
+## iOS
+
+The app on an iPhone is the phone above, with one rule taken from Apple's guidelines for Liquid
+Glass: **what navigates floats over the page in the system's glass, and what is read stays
+Uraeda's**. The glass is the system's, rounded, and used for the navigation alone: never in a pane,
+never one piece over another, and with no bar's background behind it. The page under it keeps its
+square corners, its panes, and its type ("it needs to look iOS native with the current vibe").
+[`app/ui/native.ts`](/app/ui/native.ts) says whether the app runs there, and
+[`app/ui/layout/iosBars.tsx`](/app/ui/layout/iosBars.tsx) draws the bars.
+
+- **The places are the system's tab bar**, floating at the screen's foot: Home, Inbox, Priorities,
+  Sessions, and Git, the one shown in the accent. The system draws no count on a tab, so a place's
+  count follows its name, "Inbox · 10". It goes while the keyboard is up.
+- **A page of no tab keeps the tab it was reached from lit**, a round or the settings, as a
+  section's tab stays lit over a page pushed in it. A press on the lit tab goes to its place.
+- **The page goes on beneath the bar**, to the screen's foot: a pane's list or document scrolls
+  under it, and its end comes to rest above it ([`underBar.ts`](/app/ui/layout/underBar.ts)). A pane
+  whose foot holds something that does not scroll, a session's composer, keeps it above the bar.
+- **The page's one step is a button beside the tab bar**, on glass tinted in the accent, the view's
+  one prominent action: a tab bar navigates and takes no action. It is its word alone, the step's
+  first, "Next" of "Next: Q1", as the system's "Done"; the tabs then show their names alone.
+- **The toolbar at the top has no background**: the sidebar's toggle on a round of glass, the
+  repository's name, which opens the switcher, and on one piece of glass the `…` of the places
+  seldom visited and New. The `…`'s menu is rounded as the glass it opens from.
+- **A page's panes are their stack's own tabs**, on the pane's top edge, as on a wide window: each
+  pane is named once, by its tab, and nothing above repeats it. A tab takes a thumb's height. There
+  is no bottom bar of tiles, and the tabs have no `…`: a phone's one stack has nowhere to move a
+  pane to.
+- **Every overlay is drawn as the system draws its own**: the app's glass is the system's Liquid
+  Glass already, and on iOS its corners are rounded and continuous, a sheet's as the screen's, a
+  menu's and a toast's as a menu's, its title on a row inside it, not on a plate over its edge.
+- **A sheet stands on the screen's foot**, across its width, over the tab bar, with a grabber on its
+  top edge and its title in its middle; what it holds ends above the home indicator. A selector's
+  row there has its words under its name, at the row's width.
+- **A confirmation is the system's alert.** An act that loses something for good is a sheet of
+  actions from the bottom, its button in the system's red. One that holds more than words, a list of
+  what it takes, stays the app's sheet.
+- **A swipe from the left edge goes back**, the page following the finger a little.
+- **What a key does has a tap**: a file's and a decision's "Edit" opens it in the editor, which
+  `Space b` does on a keyboard.
+- **Choices are felt**: a tab picked, a switch or a box flipped, a step taken, and a toast as it
+  shows, an error's, a warning's, or a success's.
+- **"System" follows the phone's appearance**, the status bar and the system's parts with it.
+
+A place's count rides in its tab's name: Native Shell's tab bar draws no badge, and the system's red
+badge is for what is critical, which a count of notes is not. `just package-ios` makes the app a
+device installs, with no development server: the simulator's, or a device's `.ipa` signed with the
+owner's identity and profile.

@@ -3,7 +3,7 @@
 import { colorScheme, effect, host, lifecycle } from "nsh";
 import { device } from "../../store";
 import { restoreUnsaved } from "../../ui/text";
-import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
+import { applyFonts, applyTheme, followSystem, pickTheme } from "../../ui/theme";
 import { DEFAULT_THEMES, type Mode } from "../../ui/tokens";
 
 /** The mode the host names, as a picture of each theme does: none for the app itself. */
@@ -24,8 +24,13 @@ export function scheme(): Mode {
 export const deviceTheme = () => (asked() === undefined ? device.get("theme") : undefined);
 export const keepsShownTheme = () => asked() === undefined;
 
+/** Whether this device follows the system's appearance: its owner's choice, "System" until one. */
+export const followsSystem = () =>
+  asked() === undefined && (deviceTheme()?.mode ?? "system") === "system";
+
 export async function boot() {
   await device.load();
+  followSystem(followsSystem());
   const named = keepsShownTheme() ? device.get("theme.shown") : undefined;
   applyTheme(named ?? pickTheme(Object.values(DEFAULT_THEMES), deviceTheme(), scheme()));
   applyFonts(device.get("fonts"));

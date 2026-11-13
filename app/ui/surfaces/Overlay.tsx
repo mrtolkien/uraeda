@@ -11,6 +11,7 @@ import type { SurfaceIcon } from "./mark";
 import type { Scope } from "../keys/store";
 import { Float, type Place } from "./Float";
 import { belowStatus, keyboardUp, safe } from "./safe";
+import { ios } from "../native";
 import { isNarrow } from "../width";
 import { tokens } from "../tokens";
 
@@ -19,22 +20,36 @@ const GAP = 8;
 
 /** A sheet: across the window's width, at its bottom. It rises four times what an overlay does. */
 export const sheetPlace = (scrim: boolean): Place =>
-  scrim
+  scrim && ios
     ? {
-        box: { margin: GAP, maxHeight: "85%" },
+        // On iOS a sheet stands on the screen's foot, across its width, over the floating bar:
+        // the screen's round corners would cut a square box set in from them. What it holds
+        // ends above the home indicator (`Float`).
+        box: { marginTop: GAP, maxHeight: "88%" },
         rise: tokens.motion.rise * 4,
-        // Above the home indicator, or lifted by the whole keyboard; never over the places' bar.
         window: {
           alignItems: "stretch",
           justifyContent: "flex-end",
-          paddingBottom: keyboardUp() ? safe.keyboard : safe.bottom,
+          paddingBottom: keyboardUp() ? safe.keyboard : 0,
           paddingTop: belowStatus(tokens.control.touch),
         },
       }
-    : {
-        box: { bottom: GAP, left: GAP, marginBottom: safe.bottom, right: GAP },
-        rise: tokens.motion.rise * 4,
-      };
+    : scrim
+      ? {
+          box: { margin: GAP, maxHeight: "85%" },
+          rise: tokens.motion.rise * 4,
+          // Above the home indicator, or lifted by the whole keyboard; never over the places' bar.
+          window: {
+            alignItems: "stretch",
+            justifyContent: "flex-end",
+            paddingBottom: keyboardUp() ? safe.keyboard : safe.bottom,
+            paddingTop: belowStatus(tokens.control.touch),
+          },
+        }
+      : {
+          box: { bottom: GAP, left: GAP, marginBottom: safe.bottom, right: GAP },
+          rise: tokens.motion.rise * 4,
+        };
 
 export type OverlayProps = {
   children?: JSX.Element;

@@ -6,7 +6,7 @@
 // It follows the theme picked on this device among the server's themes, and keeps the one shown
 // for the next start, which draws it from its first frame.
 import { computed, effect, Scroll, untracked, View } from "nsh";
-import { deviceTheme, keepsShownTheme, scheme } from "./boot";
+import { deviceTheme, followsSystem, keepsShownTheme, scheme } from "./boot";
 import { ShellKeys } from "./keys";
 import { NeedsYouToasts, Notifier } from "./Notifications";
 import { DroppedFiles } from "../../web/Drops";
@@ -26,7 +26,7 @@ import { firstRun, missingFolder, unknownRepository } from "../repository/panes"
 import { call, device, navigate, record, redirect, route } from "../../store";
 import { type Around, aroundOf, type Place, placeOf, Stacks } from "../../ui/layout";
 import { Toasts } from "../../ui/surfaces";
-import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
+import { applyFonts, applyTheme, followSystem, pickTheme } from "../../ui/theme";
 
 /** The repository the address names. */
 const repo = () => route().repo;
@@ -77,6 +77,8 @@ export function Frame() {
   effect(() => {
     const themes = record("Themes", null)()?.themes;
     if (themes === undefined) return;
+    // Before the system's mode is read: a device back on "System" hands the appearance back.
+    followSystem(followsSystem());
     const shown = pickTheme(themes, deviceTheme(), scheme());
     untracked(() => {
       if (applyTheme(shown) && keepsShownTheme()) device.set("theme.shown", shown);

@@ -7,6 +7,7 @@ import { type ChoiceProps, ChoiceLabel, choiceLooks, markColours } from "./choic
 import { Icon } from "./Icon";
 import { pressable } from "./press";
 import { Under } from "./Under";
+import { feltChoice } from "../native";
 import { tokens } from "../tokens";
 
 export type CheckboxProps = ChoiceProps & {
@@ -17,7 +18,10 @@ export type CheckboxProps = ChoiceProps & {
 };
 
 export function Checkbox(props: CheckboxProps) {
-  const press = pressable(props, () => props.onChange(props.mixed === true ? true : !props.value));
+  const press = pressable(props, () => {
+    feltChoice();
+    props.onChange(props.mixed === true ? true : !props.value);
+  });
   const isOn = () => props.value || props.mixed === true;
   const colours = () => markColours(isOn(), props.disabled === true);
   return (

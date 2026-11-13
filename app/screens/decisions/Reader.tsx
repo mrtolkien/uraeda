@@ -10,6 +10,7 @@ import {
   Heading,
   Icon,
   iconNamed,
+  Link,
   Spinner,
   StatusDot,
   Text,
@@ -20,6 +21,7 @@ import { askJump } from "./List";
 import { definePane, PaneScroll, usePane } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
+import { isNarrow } from "../../ui/width";
 import { Proposals } from "./Branches";
 import { decisionIn, ledgerOf, ruleCount, shortDate, statusWords } from "./ledger";
 import { follow } from "./links";
@@ -88,7 +90,19 @@ export function Scroll(
     <DocumentScroll
       document={props.document}
       footer={props.footer}
-      header={<View style={{ gap: 16 }}>{props.header}</View>}
+      header={
+        <View style={{ gap: 16 }}>
+          {props.header}
+          {/* `Space b`'s tap, on a phone, which has no keys: the decision in the editor. */}
+          <If when={isNarrow() ? path : undefined}>
+            {(file) => (
+              <Link alone onPress={() => navigate({ page: "buffer", path: file() })}>
+                Edit this decision
+              </Link>
+            )}
+          </If>
+        </View>
+      }
       ids={pastTitle(props.document)}
       mark={props.mark}
       offset={opened}

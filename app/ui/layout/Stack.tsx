@@ -17,6 +17,7 @@ import { ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { Arriving, type Landing } from "./arrival";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, type PaneHere, PaneContext, type PaneMark, titleOf } from "./panes";
+import { barRoom, reachesBar } from "./underBar";
 import { Kbd } from "../controls";
 import { KeyScope, registerKey } from "../keys/registry";
 import { Pane, type PaneTab } from "../surfaces";
@@ -188,8 +189,16 @@ function TabKeysHint() {
 }
 
 /** The padding of a pane's body: none on the sides for a pane that draws to its edges. */
-const bodyOf = (pane: PaneRef) =>
-  kindOf(pane)?.flush === true ? { paddingBottom: 1, paddingHorizontal: 0 } : undefined;
+const bodyOf = (pane: PaneRef) => {
+  const flush = kindOf(pane)?.flush === true;
+  // Under a bar that floats over the page, a pane no scroller of which goes on beneath the bar
+  // keeps its content above it (`underBar.ts`).
+  const under = reachesBar(pane.key) ? 0 : barRoom();
+  if (under === 0) return flush ? { paddingBottom: 1, paddingHorizontal: 0 } : undefined;
+  return flush
+    ? { paddingBottom: 1 + under, paddingHorizontal: 0 }
+    : { paddingBottom: tokens.space.panePadding - 1 + under };
+};
 
 /** The room a pane's menu takes at the end of its title, in points. */
 const MENU = 36;

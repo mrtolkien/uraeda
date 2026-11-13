@@ -59,6 +59,7 @@ function OptionRow(props: { at: number; held: boolean; onPick: () => void; row: 
     }
     return props.row.danger === true ? tokens.role.removed : tokens.role.ink;
   };
+  const stacked = () => isNarrow() && (props.row.hint?.length ?? 0) > 6;
   return (
     <View>
       <If when={props.row.ruled === true && props.at > 0}>
@@ -94,17 +95,35 @@ function OptionRow(props: { at: number; held: boolean; onPick: () => void; row: 
           />
         </If>
         <If when={props.row.icon}>{(icon) => <Icon colour={ink()} name={icon()} />}</If>
-        <Text colour={ink()} lines={1} style={{ flexShrink: 1 }}>
-          {props.row.label}
-        </Text>
-        <If when={props.row.hint}>
-          {(hint) => (
-            <Text lines={1} style={{ flexShrink: 1 }} tone="faint">
-              {hint()}
+        <If
+          when={stacked()}
+          else={
+            <>
+              <Text colour={ink()} lines={1} style={{ flexShrink: 1 }}>
+                {props.row.label}
+              </Text>
+              <If when={props.row.hint}>
+                {(hint) => (
+                  <Text lines={1} style={{ flexShrink: 1 }} tone="faint">
+                    {hint()}
+                  </Text>
+                )}
+              </If>
+              <View style={{ flexGrow: 1, minWidth: 16 }} />
+            </>
+          }
+        >
+          {/* On a phone, words that say more than a count go under the name, at the row's
+              width: side by side, each was cut to a few letters. */}
+          <View style={{ flexGrow: 1, flexShrink: 1, minWidth: 0, paddingVertical: 6 }}>
+            <Text colour={ink()} lines={2}>
+              {props.row.label}
             </Text>
-          )}
+            <Text lines={2} size="under" tone="faint">
+              {props.row.hint ?? ""}
+            </Text>
+          </View>
         </If>
-        <View style={{ flexGrow: 1, minWidth: 16 }} />
         {/* A phone has no keys to hint, and a row's keys ran past its screen's edge. */}
         <If when={isNarrow() ? undefined : props.row.keys}>{(keys) => <Kbd keys={keys()} />}</If>
         <If when={props.row.picked === true}>

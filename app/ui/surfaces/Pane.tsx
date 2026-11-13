@@ -13,6 +13,7 @@ import { type JSX, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { Tooltip } from "./Tooltip";
+import { ios } from "../native";
 import { alpha, tokens } from "../tokens";
 
 /** One title on a pane's edge: the pane's own, or one tab of a stack. */
@@ -101,6 +102,8 @@ function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string
   const title = (
     <View
       accessibilityLabel={props.many || props.tab.compact === true ? props.tab.title : undefined}
+      // On iOS a pane's tabs are pressed by a thumb: a thumb's height around the title's line.
+      hitSlop={ios && props.many ? { bottom: 9, top: 10 } : undefined}
       onLongPress={props.tab.onLongPress}
       onMoveShouldSetResponder={props.tab.drag === undefined ? undefined : () => true}
       onPress={props.tab.onPress}

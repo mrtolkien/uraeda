@@ -57,7 +57,36 @@ export type SurfaceProps = {
   testID?: string;
   /** The colour of a focused field's edge and glow: the editing mode's, the accent without one. */
   tone?: string;
+  /**
+   * An overlay drawn as the system draws its own, on iOS: its corners rounded by this many points,
+   * continuous, and its title on a row inside it, at its top, not on a plate over its edge.
+   */
+  rounded?: number;
 };
+
+/** A rounded overlay's title, on a row inside it: a sheet's in its middle, a menu's at its start. */
+function InsideTitle(props: { centred: boolean; children: JSX.Element }) {
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        flexDirection: "row",
+        gap: 6,
+        justifyContent: props.centred ? "center" : "flex-start",
+        minHeight: 24,
+      }}
+    >
+      {props.children}
+    </View>
+  );
+}
+
+/** The corners of a surface drawn as the system's: rounded, easing into its edges. */
+const roundedStyle = (radius: number): ViewStyle => ({
+  borderCurve: "continuous",
+  borderRadius: radius,
+  overflow: "hidden",
+});
 
 /** Every shadow of a box as one `boxShadow`, less those that are none. */
 const shadows = (...parts: Array<string | undefined>) => {
@@ -168,6 +197,7 @@ export function Surface(props: SurfaceProps) {
           borderWidth: 1,
           boxShadow: shadows(lip(), shadow()),
         },
+        props.rounded === undefined ? null : roundedStyle(props.rounded),
         props.style,
       ]}
     >
@@ -191,23 +221,29 @@ export function Surface(props: SurfaceProps) {
       <If when={isGlass()}>
         <Glass
           edge={props.height === "raised" ? tokens.role.ruleQuiet : undefined}
-          style={{
-            bottom: -1,
-            left: -1,
-            pointerEvents: "none",
-            position: "absolute",
-            right: -1,
-            top: -1,
-          }}
+          style={[
+            {
+              bottom: -1,
+              left: -1,
+              pointerEvents: "none",
+              position: "absolute",
+              right: -1,
+              top: -1,
+            },
+            props.rounded === undefined ? null : roundedStyle(props.rounded),
+          ]}
         />
       </If>
       <If when={props.running !== undefined}>
         <RunLine on={props.running === true} start={tabShape()?.[0]} />
       </If>
+      <If when={props.rounded !== undefined ? props.tab : undefined}>
+        {(tab) => <InsideTitle centred={(props.rounded ?? 0) >= 30}>{tab()}</InsideTitle>}
+      </If>
       <GroundContext.Provider value={here}>{props.children}</GroundContext.Provider>
       {/* After the children: a browser presses what is drawn last, and the body's top room,
           under the title's lower half, took every press of the title's `…` (a pane's menu). */}
-      <If when={props.tab !== undefined}>
+      <If when={props.rounded === undefined && props.tab !== undefined}>
         <View onLayout={(event) => tabWidth.set(event.bounds.size.width)} style={tabStyle()}>
           {props.tab}
         </View>

@@ -8,12 +8,14 @@
 // Enter changes nothing, as it presses Cancel; `y`, or the key that asked, confirms. Its words,
 // what is lost, sit on the error colour's quiet wash, and its button is a red tube, never the
 // lamp.
-import { type Accessor, computed, type JSX, View } from "nsh";
+import { type Accessor, computed, effect, type JSX, untracked, View } from "nsh";
+import { AlertDialog } from "nsh/base";
 import { Dialog } from "../surfaces";
 import { Button } from "./Button";
 import type { IconName } from "./Icon";
 import { Text } from "./Text";
 import { keyScope, registerKey } from "../keys/registry";
+import { feltOutcome, ios } from "../native";
 import type { Scope } from "../keys/store";
 import { tokens } from "../tokens";
 
@@ -75,7 +77,44 @@ function Lost(props: { words: string }) {
   );
 }
 
+/**
+ * The confirmation on iOS: the system's own alert, as every app's there. An act that loses
+ * something is a sheet of actions from the bottom, its button in the system's red, felt as a
+ * warning; any other is an alert. A press outside a sheet, or its Cancel, leaves everything as it
+ * was.
+ */
+function SystemConfirm(props: ConfirmProps) {
+  let asking = false;
+  effect(() => {
+    if (!props.open || asking) return;
+    asking = true;
+    untracked(() => {
+      const loses = props.loses === true;
+      if (loses) feltOutcome("warning");
+      void AlertDialog.show({
+        actions: [
+          { id: "keep", label: props.keep ?? "Cancel", role: "cancel" },
+          { id: "confirm", label: props.label, role: loses ? "destructive" : "default" },
+        ],
+        description: props.words,
+        presentation: loses ? "actionSheet" : "alert",
+        title: props.title,
+      })
+        .then(({ action }) => {
+          if (action === "confirm" && props.open) props.onConfirm();
+        })
+        .finally(() => {
+          asking = false;
+          props.onClose();
+        });
+    });
+  });
+  return null;
+}
+
 export function Confirm(props: ConfirmProps) {
+  // The system's alert holds words alone: a confirmation with a list of its own stays the app's.
+  if (ios && props.children === undefined) return <SystemConfirm {...props} />;
   const confirm = () => {
     // Once: the key and Enter may both come.
     if (!props.open) return;

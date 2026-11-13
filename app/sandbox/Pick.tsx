@@ -32,7 +32,8 @@ const SAID_MS = 2500;
  * which only ever works with a sandbox (`screens/shell/host.ts`). A test, a picture, and the app
  * a person installs are not hot, so nothing is followed there.
  */
-export const picks = followed && platform.os !== "web";
+// A phone has no pointer to follow, and its bar would cover the places' tab bar.
+export const picks = followed && platform.os !== "web" && platform.os !== "ios";
 
 /** The sandbox the app works with: `just sandbox`'s, unless `URAEDA_SANDBOX` names another. */
 const server = () => process.env.URAEDA_SANDBOX ?? "http://127.0.0.1:4420";

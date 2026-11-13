@@ -18,6 +18,7 @@ import { BottomBar, NavBar } from "./bars";
 import { kindOfKey } from "./arrangement";
 import { tabDrags } from "./drag";
 import { choices, frameState, same } from "./frame";
+import { FloatingBar, Toolbar } from "./iosBars";
 import { besideOffer } from "./here";
 import { FrameKeys } from "./keys";
 import {
@@ -36,10 +37,13 @@ import { actionOf, focusWanted, placeOf } from "./panes";
 import { Rail, type RailSlots } from "./Rail";
 import { SideRail } from "./SideRail";
 import { StackView } from "./Stack";
+import { swipeBack } from "./swipeBack";
+import { setBarRoom } from "./underBar";
 import { type StatusSlots, StatusLine } from "./StatusLine";
 import { route } from "../../store/history";
 import { IconButton, Menu, Text } from "../controls";
 import { KeyScope } from "../keys/registry";
+import { ios } from "../native";
 import { aboveHome, Backdrop, keyboardUp, safe, Sheet } from "../surfaces";
 import { tokens } from "../tokens";
 import { measured, width, windowWidth } from "../width";
@@ -129,10 +133,21 @@ export function Stacks(props: StacksProps) {
     });
   });
   const sheet: Signal<boolean> = signal(false);
+  // On iOS, a swipe from the left edge goes back, unless a sheet is over the page.
+  const swipe = swipeBack(() => ios && narrow() && !sheet());
   /** The phone's bottom bar: for several panes or a pane's action, under the keyboard while up. */
   const barShown = () =>
     !keyboardUp() &&
     (narrowed(layout()).panes.length > 1 || actionOf(narrowed(layout()).panes) !== undefined);
+  /**
+   * On iOS the navigation floats over the page, in the system's glass: the places' tab bar at the
+   * foot, which the page's content scrolls beneath, gone while the keyboard is up.
+   */
+  const floats = () => ios && props.rail !== undefined;
+  const barFloats = () => floats() && !keyboardUp();
+  effect(() => {
+    if (!barFloats()) setBarRoom(0);
+  });
 
   const stack = (name: StackName) => (
     <StackView
@@ -239,37 +254,77 @@ export function Stacks(props: StacksProps) {
                 >
                   <If when={props.rail}>
                     {(rail) => (
-                      <NavBar
-                        onSidebar={rail().sidebar === undefined ? undefined : () => sheet.set(true)}
-                        places={rail().places}
-                      />
+                      <If
+                        when={ios}
+                        else={
+                          <NavBar
+                            onSidebar={
+                              rail().sidebar === undefined ? undefined : () => sheet.set(true)
+                            }
+                            places={rail().places}
+                          />
+                        }
+                      >
+                        <Toolbar
+                          onSidebar={
+                            rail().sidebar === undefined ? undefined : () => sheet.set(true)
+                          }
+                          onTitle={rail().onTitle}
+                          places={rail().places}
+                          title={rail().title}
+                        />
+                      </If>
                     )}
                   </If>
                   <View
+                    {...swipe.props}
                     style={{
                       flex: 1,
+                      transform: [{ translateX: swipe.by() }],
                       paddingHorizontal: tokens.space.gap.phone,
-                      // The page's end above the home indicator, where no bar stands under it.
-                      paddingBottom:
-                        barShown() || keyboardUp()
+                      // Under a floating bar the page goes on to the screen's foot, its last
+                      // border past it: its content scrolls beneath the bar. Else its end is
+                      // above the home indicator, where no bar stands under it.
+                      marginBottom: barFloats() ? -2 : 0,
+                      paddingBottom: barFloats()
+                        ? 0
+                        : barShown() || keyboardUp()
                           ? tokens.space.gap.phone
                           : aboveHome(tokens.space.gap.phone),
                     }}
                   >
+                    {/* On iOS the panes are the stack's own tabs, as on a wide window: the bar
+                        at the foot is the places'. */}
                     <StackView
                       focus={layout().focus}
-                      lone
-                      menu={menu}
+                      lone={!floats()}
+                      // A phone's one stack has nowhere to move a pane to: on iOS its tabs
+                      // have no menu, which held the layout's resets alone.
+                      menu={floats() ? undefined : menu}
                       onFocus={onFocus}
-                      onTabLongPress={onTabLongPress}
+                      onTabLongPress={floats() ? undefined : onTabLongPress}
                       onShow={onShow}
                       onTabs={layout().onTabs}
                       stack={narrowed(layout())}
                       testID="stack-one"
                     />
                   </View>
-                  <If when={barShown()}>
-                    <BottomBar onShow={onShow} stack={narrowed(layout())} />
+                  <If
+                    when={floats()}
+                    else={
+                      <If when={barShown()}>
+                        <BottomBar onShow={onShow} stack={narrowed(layout())} />
+                      </If>
+                    }
+                  >
+                    <If when={barFloats()}>
+                      <View style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}>
+                        <FloatingBar
+                          action={actionOf(narrowed(layout()).panes)}
+                          places={props.rail?.places ?? []}
+                        />
+                      </View>
+                    </If>
                   </If>
                   <Sheet
                     onClose={() => sheet.set(false)}

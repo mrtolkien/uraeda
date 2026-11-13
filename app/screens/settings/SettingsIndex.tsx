@@ -9,6 +9,7 @@ import { redirect } from "../../store/history";
 import { Icon, Kbd, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { focusPane, usePane } from "../../ui/layout";
+import { isNarrow } from "../../ui/width";
 import { createCursor, Empty, List } from "../../ui/lists";
 import { landOn } from "../../ui/lists/FieldRow";
 import { TextField, type TextFieldRef } from "../../ui/text";
@@ -126,12 +127,15 @@ export function Index() {
           </If>
         )}
       />
-      <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
-        <Kbd keys="/" />
-        <Text size="under" tone="faint">
-          searches, Enter goes to the first found
-        </Text>
-      </View>
+      {/* A phone has no keys to hint. */}
+      <If when={!isNarrow()}>
+        <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
+          <Kbd keys="/" />
+          <Text size="under" tone="faint">
+            searches, Enter goes to the first found
+          </Text>
+        </View>
+      </If>
     </View>
   );
 }

@@ -1,8 +1,9 @@
 // What a screen declares: its kinds of pane, once each, with `definePane`, and the panes each of
 // its pages shows, with `definePlace`. The layout shell draws them: a screen never draws a pane's
 // frame, a tab, or a side column of its own. See the guide, `specs/ui/panes.md`.
-import { type JSX, Scroll, type ScrollProps, type ScrollRef, signal } from "nsh";
+import { effect, type JSX, Scroll, type ScrollProps, type ScrollRef, signal, untracked } from "nsh";
 import { PaneContext, RevealContext, type Revealer, revealBy, scrollerOf } from "./here";
+import { barRoom, underBar } from "./underBar";
 import { type Json, type PaneRef, paneKey, type Place, type StackName } from "./layout";
 import { entry, keep, positions } from "../../store/history";
 import type { Route, RouteOf } from "../../store/routes";
@@ -79,6 +80,12 @@ export type Placed =
   | { readonly focus?: boolean; readonly pane: PaneRef; readonly stack?: StackName };
 
 const kinds = new Map<string, PaneSpec<PaneArgs>>();
+
+/**
+ * A development run, whose hot reload runs a screen's module again: its second declaration
+ * replaces the first, where it would be a second screen's taking the name everywhere else.
+ */
+const hot = (globalThis as Record<string, unknown>)["__nsh_hot"] !== undefined;
 /**
  * What a page draws once beside its panes, while it is shown: what its panes share across its tabs,
  * as a step the phone's bottom bar presses from any of them, and the dialog that press opens. A
@@ -102,7 +109,7 @@ const places = new Map<
 export function definePane<Args extends PaneArgs = Record<string, never>>(
   spec: PaneSpec<Args>,
 ): PaneKind<Args> {
-  if (kinds.has(spec.kind)) {
+  if (kinds.has(spec.kind) && !hot) {
     throw new Error(`Two kinds of pane are named "${spec.kind}"`);
   }
   kinds.set(spec.kind, spec as unknown as PaneSpec<PaneArgs>);
@@ -136,7 +143,7 @@ export function definePlace<P extends Route["page"]>(
   panes: (route: RouteOf<P>) => ReadonlyArray<Placed>,
   options: { around?: (route: RouteOf<P>) => Around; split?: ReadonlyArray<StackName> } = {},
 ) {
-  if (places.has(page)) {
+  if (places.has(page) && !hot) {
     throw new Error(`The page "${page}" has two places`);
   }
   places.set(page, {
@@ -263,10 +270,24 @@ export function PaneScroll(props: ScrollProps & { children?: JSX.Element; name?:
     offset = Math.max(0, offset + by);
     scroll.scrollTo({ animated: true, y: offset });
   };
+  // On iOS, one that reaches its pane's foot scrolls beneath the bar that floats there.
+  const under = underBar(here?.key, () => scroll?.measure());
+  effect(() => {
+    barRoom();
+    untracked(under.check);
+  });
   return (
     <Scroll
       {...rest}
+      contentInset={{
+        ...props.contentInset,
+        bottom: (props.contentInset?.bottom ?? 0) + under.inset(),
+      }}
       contentOffset={start === undefined ? props.contentOffset : { x: 0, y: start }}
+      onLayout={(event) => {
+        props.onLayout?.(event);
+        under.check();
+      }}
       onScroll={(event) => {
         offset = event.offset.y;
         props.onScroll?.(event);

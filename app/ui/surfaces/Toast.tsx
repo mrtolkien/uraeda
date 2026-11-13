@@ -10,6 +10,7 @@ import {
   Overlay as Layer,
   type StyleProp,
   Text,
+  untracked,
   View,
   type ViewStyle,
 } from "nsh";
@@ -18,6 +19,7 @@ import { presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { safe } from "./safe";
 import { Surface } from "./Surface";
+import { feltOutcome, ios } from "../native";
 import { isNarrow } from "../width";
 import { type Tone, tokens } from "../tokens";
 
@@ -71,17 +73,32 @@ export function Toast(props: ToastProps) {
   effect(() => {
     if (props.open !== false) say(props.title);
   });
+  // On iOS it is felt as it shows: what went wrong as an error, what waits as a warning.
+  effect(() => {
+    if (props.open === false) return;
+    untracked(() =>
+      feltOutcome(
+        props.tone === "danger"
+          ? "error"
+          : props.tone === "needs" || props.tone === "caution"
+            ? "warning"
+            : "success",
+      ),
+    );
+  });
   return (
     <If when={there.shown()}>
       <View style={there.style}>
         <Surface
           height="overlay"
+          // On iOS as the system draws a banner: rounded, its title inside it.
+          rounded={ios ? 18 : undefined}
           testID={props.testID}
           style={[
             {
               gap: 8,
               padding: tokens.space.panePadding - 1,
-              paddingTop: tokens.type.line / 2 + 7,
+              paddingTop: ios ? tokens.space.panePadding - 1 : tokens.type.line / 2 + 7,
             },
             props.style,
           ]}
