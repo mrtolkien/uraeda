@@ -5,7 +5,9 @@
 //!
 //! - **Never under a running server**: a server that runs on the new data folder holds its
 //!   sessions in memory, runs their turns, and times their jobs; replacing its store under it
-//!   would mix an imported transcript into a live turn. The import is refused until it stops.
+//!   would mix an imported transcript into a live turn. The import opens the store only under the
+//!   data folder's lock, the one a server holds ([`Importing`]): it is refused while a server
+//!   runs or starts there, and a server that starts meanwhile waits for it.
 //! - **The old store is only read**: it is opened read-only, and never written.
 //! - **All or nothing**: the sessions, their turns, and their logs land in one transaction. The
 //!   images are copied inside it, and removed again when it fails, its commit included.
@@ -24,6 +26,7 @@ mod old;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io;
+use std::ops::Deref;
 use std::os::unix::fs::DirBuilderExt as _;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -95,6 +98,16 @@ pub enum ImportError {
         folder.display()
     )]
     Running { folder: PathBuf, pid: u32 },
+    /// The folder's lock is held, and no running server is named in its status file: one that
+    /// starts, or another import.
+    #[error(
+        "an Uraeda server is starting on {}, or another import runs there: stop it first, then \
+         import again",
+        folder.display()
+    )]
+    Held { folder: PathBuf },
+    #[error("cannot lock {}: {source}", path.display())]
+    Lock { path: PathBuf, source: io::Error },
     #[error("the store already holds {sessions} sessions: nothing was imported")]
     Holds { sessions: u64 },
     #[error("{} could not be read: {source}", path.display())]
@@ -108,27 +121,69 @@ pub enum ImportError {
     Store(#[from] StoreError),
 }
 
+/// A data folder's store, opened for an import under the folder's lock, which it holds until it
+/// is closed: no server opens the store meanwhile.
+pub struct Importing {
+    // Before the lock: dropped first.
+    store: Store,
+    _lock: status::Lock,
+}
+
+impl Importing {
+    /// Takes the data folder's lock, then opens its store.
+    ///
+    /// # Errors
+    ///
+    /// [`ImportError::Running`] or [`ImportError::Held`] when a server, or another import, holds
+    /// the folder, and the store's own errors.
+    pub fn open(data_dir: &Path) -> Result<Importing, ImportError> {
+        let folder = data_dir.to_owned();
+        let lock = status::lock(data_dir).map_err(|source| ImportError::Lock {
+            path: data_dir.join("run").join(status::LOCK),
+            source,
+        })?;
+        let Some(lock) = lock else {
+            return Err(match status::running(data_dir) {
+                Some(running) => ImportError::Running {
+                    folder,
+                    pid: running.pid,
+                },
+                None => ImportError::Held { folder },
+            });
+        };
+        Ok(Importing {
+            store: Store::open(data_dir)?,
+            _lock: lock,
+        })
+    }
+
+    /// Closes the store, then lets the folder go.
+    pub fn close(self) {
+        self.store.close();
+    }
+}
+
+impl Deref for Importing {
+    type Target = Store;
+
+    fn deref(&self) -> &Store {
+        &self.store
+    }
+}
+
 /// Imports every session of the Node server's data folder `from` into the store, with the chat
 /// images their messages hold. `now` ends a turn that ran with nothing to date it.
 ///
 /// # Errors
 ///
-/// [`ImportError`], and nothing is imported: a server runs on the new store's data folder, the
-/// folder has no store, its store is at another schema or cannot be read, or the new store
+/// [`ImportError`], and nothing is imported: the folder has no store, its store is at another schema or cannot be read, or the new store
 /// holds sessions and `replace` is `No`.
 pub fn import(
     from: &Path,
-    store: &Store,
+    store: &Importing,
     now: SystemTime,
     replace: Replace,
 ) -> Result<Imported, ImportError> {
-    if let Some(running) = status::running(store.data_dir()) {
-        let folder = store.data_dir().to_owned();
-        return Err(ImportError::Running {
-            folder,
-            pid: running.pid,
-        });
-    }
     let path = from.join(OLD_FILE);
     if !path.is_file() {
         let folder = from.to_owned();

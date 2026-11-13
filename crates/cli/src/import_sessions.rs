@@ -9,11 +9,12 @@ use std::process::ExitCode;
 use std::time::SystemTime;
 
 use uraeda_core::repositories;
-use uraeda_server::runner::{self, ImportError, Imported, Replace, Store};
+use uraeda_server::runner::{self, ImportError, Imported, Importing, Replace};
 
 /// Imports the sessions of the data folder `from`, the earlier server's by default, into the
 /// store of `data_dir`, the new server's by default. `from` is only read. A store that already
-/// holds sessions is refused, unless `replace` removes them first.
+/// holds sessions is refused, unless `replace` removes them first, and so is a folder a server
+/// holds.
 pub fn run(
     from: Option<PathBuf>,
     data_dir: Option<PathBuf>,
@@ -23,7 +24,9 @@ pub fn run(
     // A relative folder joins the current one.
     let from = cwd.join(from.unwrap_or_else(repositories::default_earlier_data_dir));
     let data_dir = cwd.join(data_dir.unwrap_or_else(repositories::default_data_dir));
-    let store = Store::open(&data_dir).map_err(|error| error.to_string())?;
+    // Under the data folder's lock, from before the store opens to after it closes: no server
+    // opens it meanwhile.
+    let store = Importing::open(&data_dir).map_err(|error| error.to_string())?;
     let replace = if replace { Replace::Yes } else { Replace::No };
     let imported = runner::import(&from, &store, SystemTime::now(), replace);
     store.close();

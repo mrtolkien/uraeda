@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use uraeda_server::{Options, Server, status};
+use uraeda_server::{Options, Server, runner, status};
 
 use crate::support;
 
@@ -48,7 +48,8 @@ async fn a_second_server_on_one_data_folder_is_refused() {
     assert_eq!(
         refused.to_string(),
         format!(
-            "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
+            "another Uraeda server is starting on the data folder {}, or an import of sessions \
+             runs there: wait for it, or stop it",
             data.display()
         )
     );
@@ -124,4 +125,24 @@ async fn a_start_waits_for_a_server_that_stops_and_no_longer_answers() {
     let server = setup.start().await;
     letting_go.join().unwrap();
     server.stop().await;
+}
+
+#[tokio::test]
+async fn a_start_is_refused_while_an_import_holds_the_data_folder() {
+    let setup = support::setup();
+    let data = setup.options().data_dir;
+    let importing = runner::Importing::open(&data).expect("a free folder");
+
+    let Err(refused) = Server::start(waiting_briefly(setup.options())).await else {
+        panic!("a server started on a folder an import holds");
+    };
+
+    assert!(
+        refused
+            .to_string()
+            .contains("an import of sessions runs there"),
+        "{refused}"
+    );
+    importing.close();
+    setup.start().await.stop().await;
 }

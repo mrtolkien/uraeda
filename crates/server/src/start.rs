@@ -120,7 +120,8 @@ const LOCK_POLL: Duration = Duration::from_millis(25);
 /// start asks for. Otherwise the lock is waited for: a server that stops no longer answers, and
 /// removes its status file only at the end of its stop, before it lets the lock go; another
 /// process that stops lets it go when its process ends. Only a lock still held past the wait is
-/// refused, naming the server that did not answer, or one that is starting.
+/// refused, naming the server that did not answer, or one that is starting: the lock held without
+/// a status file may also be `ura import-sessions`'s.
 async fn hold(options: &Options) -> Result<status::Lock, NotStarted> {
     let data_dir = &options.data_dir;
     let deadline = Instant::now() + options.lock_wait.unwrap_or(LOCK_WAIT);
@@ -149,7 +150,7 @@ async fn hold(options: &Options) -> Result<status::Lock, NotStarted> {
 }
 
 /// Why a start was refused a folder whose lock stayed held: the server that did not answer, or one
-/// that is starting.
+/// that is starting, or an import.
 fn held(data_dir: &Path, silent: Option<&status::Status>) -> String {
     match silent {
         Some(running) => format!(
@@ -160,7 +161,8 @@ fn held(data_dir: &Path, silent: Option<&status::Status>) -> String {
             running.pid
         ),
         None => format!(
-            "another Uraeda server is starting on the data folder {}: wait for it, or stop it",
+            "another Uraeda server is starting on the data folder {}, or an import of sessions \
+             runs there: wait for it, or stop it",
             data_dir.display()
         ),
     }

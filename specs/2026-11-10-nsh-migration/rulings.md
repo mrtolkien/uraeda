@@ -10707,3 +10707,20 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a server stuck with its port closed delays a second start by 10 seconds before the
   same refusal: lower `LOCK_WAIT`.
 - **Where**: `crates/server/src/start.rs` (`hold`), `crates/server/tests/one_server.rs`.
+
+## T204.2: `ura import-sessions` holds the data folder's lock, as a server does
+
+- **Decision**: the import opens its store as a `runner::Importing`, which takes the data folder's
+  lock (`status::lock`, R529's) before the store opens and lets it go after the store closes. Held,
+  the import is refused: "a server runs on … (process …)" when the status file names a live server,
+  otherwise "an Uraeda server is starting on …, or another import runs there", each with "stop it
+  first, then import again". `runner::import` takes an `Importing`, so no import runs without the
+  lock, and it no longer reads the status file itself. A start that finds the lock held without a
+  status file now says it may be an import of sessions, and waits for it (T204.1).
+- **Rationale**: the import checked the status file, then opened the store: a server started in
+  between opened the same store, and `--replace` deleted sessions under it. The status file is
+  written after the port is taken; the lock is the one guard taken first.
+- **Where**: `crates/server/src/runner/import.rs` (`Importing`),
+  `crates/cli/src/import_sessions.rs`, `crates/server/src/start.rs` (`held`),
+  `crates/server/tests/runner_store.rs`, `crates/server/tests/one_server.rs`,
+  `crates/cli/tests/import_sessions.rs`.

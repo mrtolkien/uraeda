@@ -46,7 +46,7 @@ pub use event::{
     Activity, BackgroundKind, BackgroundTask, ChatImage, Denial, Event, Limit, LimitKind, Origin,
     Subagent, TokenCounts, ToolKind, UsageWindow,
 };
-pub use import::{IMPORTED, ImportError, Imported, Replace, import};
+pub use import::{IMPORTED, ImportError, Imported, Importing, Replace, import};
 pub use job_runs::{JobRun, KEPT as JOB_RUNS_KEPT, NewJobRun};
 pub use log::{Appended, Growth, Logged};
 pub use manager::{

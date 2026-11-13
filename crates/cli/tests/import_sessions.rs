@@ -75,3 +75,34 @@ fn import_sessions_copies_the_earlier_servers_sessions_once() {
     );
     assert_eq!(none.code, 1);
 }
+
+// The import holds the data folder's lock, as a server does: a server holding it, even one not yet
+// in its status file, keeps the import from opening its store, and the import says how to go on.
+#[test]
+fn import_sessions_is_refused_while_a_server_holds_the_data_folder() {
+    let home = tempfile::TempDir::new().unwrap();
+    let share = home.path().join("share");
+    let (old, new) = (share.join("uraeda"), share.join("uraeda-next"));
+    fs::create_dir_all(&old).unwrap();
+    fs::copy(fixture("runner/old.sqlite"), old.join("runner.sqlite")).unwrap();
+    let held = uraeda_server::status::lock(&new)
+        .unwrap()
+        .expect("a free folder");
+
+    let refused = import(home.path(), &share, &["--replace"]);
+
+    assert_eq!(
+        refused.stderr,
+        format!(
+            "ura: an Uraeda server is starting on {}, or another import runs there: stop it first, \
+             then import again\n",
+            new.display()
+        )
+    );
+    assert_eq!(refused.code, 1);
+    assert!(
+        !new.join("sessions.sqlite").exists(),
+        "the store was opened"
+    );
+    drop(held);
+}

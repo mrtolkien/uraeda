@@ -15,8 +15,8 @@ use serde_json::{Map, Value, json};
 use tempfile::TempDir;
 use uraeda_server::runner::{
     self, Activity, Appended, BackgroundKind, BackgroundTask, ChatImage, ContinueReason, Denial,
-    Event, Growth, ImportError, Imported, Limit, LimitKind, Logged, NewSession, NewTurn, Origin,
-    Replace, Session, Store, StoreError, Subagent, TokenCounts, ToolKind, Turn, TurnKind,
+    Event, Growth, ImportError, Imported, Importing, Limit, LimitKind, Logged, NewSession, NewTurn,
+    Origin, Replace, Session, Store, StoreError, Subagent, TokenCounts, ToolKind, Turn, TurnKind,
     TurnState, UsageWindow,
 };
 
@@ -685,7 +685,7 @@ fn chat_log() -> Value {
 #[test]
 fn an_old_store_imports_with_every_session_and_event() {
     let (old, new) = (old_data(), TempDir::new().unwrap());
-    let store = Store::open(new.path()).unwrap();
+    let store = Importing::open(new.path()).unwrap();
 
     let imported = runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::No).unwrap();
 
@@ -733,7 +733,7 @@ fn an_old_store_imports_with_every_session_and_event() {
 #[test]
 fn an_imported_session_keeps_its_place_and_runs_nothing_by_itself() {
     let (old, new) = (old_data(), TempDir::new().unwrap());
-    let store = Store::open(new.path()).unwrap();
+    let store = Importing::open(new.path()).unwrap();
     runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::No).unwrap();
 
     // The sub-session keeps its parent, its role, and its worktree.
@@ -856,7 +856,7 @@ fn an_import_keeps_the_old_store_and_never_runs_twice_by_mistake() {
     let (old, new) = (old_data(), TempDir::new().unwrap());
     let file = old.path().join("runner.sqlite");
     let before = fs::read(&file).unwrap();
-    let store = Store::open(new.path()).unwrap();
+    let store = Importing::open(new.path()).unwrap();
     runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::No).unwrap();
     assert_eq!(
         fs::read(&file).unwrap(),
@@ -899,7 +899,7 @@ fn an_import_keeps_the_old_store_and_never_runs_twice_by_mistake() {
 #[test]
 fn an_import_refuses_a_store_it_cannot_read_and_imports_nothing() {
     let (old, new, empty) = (old_data(), TempDir::new().unwrap(), TempDir::new().unwrap());
-    let store = Store::open(new.path()).unwrap();
+    let store = Importing::open(new.path()).unwrap();
 
     let missing = runner::import(empty.path(), &store, at(12, 0, 0, 0), Replace::No);
     assert!(
@@ -925,26 +925,36 @@ fn an_import_refuses_a_store_it_cannot_read_and_imports_nothing() {
 }
 
 // An import never writes the store of a server that runs on the folder: that server's turns,
-// timers, and memory would no longer match its store. Stopped, the server's folder imports.
+// timers, and memory would no longer match its store. It opens the store only under the folder's
+// lock, which a server holds as it starts and runs: stopped, the server's folder imports.
 #[test]
 fn an_import_refuses_the_store_of_a_running_server() {
     let (old, new) = (old_data(), TempDir::new().unwrap());
-    let store = Store::open(new.path()).unwrap();
-    // A server of this very process runs on the folder: its status file names a live process.
+    // A server of this very process holds the folder, and names itself in its status file.
+    let held = uraeda_server::status::lock(new.path())
+        .unwrap()
+        .expect("a free folder");
     let running = uraeda_server::status::write(new.path(), 1).unwrap();
 
-    let refused = runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::Yes);
+    let refused = Importing::open(new.path()).err().expect("a refusal");
 
-    let refused = refused.expect_err("a refusal");
     assert!(
         matches!(refused, ImportError::Running { pid, .. } if pid == running.pid),
         "{refused}"
     );
     assert!(refused.to_string().contains("stop it"), "{refused}");
-    assert_eq!(store.session(&id(1)).unwrap(), None);
-    assert!(!new.path().join("images").join(IMAGE).exists());
+    assert!(
+        !new.path().join(runner::FILE).exists(),
+        "the store was opened"
+    );
 
+    // Starting, it has no status file yet.
     uraeda_server::status::remove(new.path());
+    let refused = Importing::open(new.path()).err().expect("a refusal");
+    assert!(matches!(refused, ImportError::Held { .. }), "{refused}");
+
+    drop(held);
+    let store = Importing::open(new.path()).unwrap();
     runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::Yes).unwrap();
     assert_eq!(
         store.session(&id(1)).unwrap().map(|session| session.id),
@@ -957,7 +967,7 @@ fn an_import_refuses_the_store_of_a_running_server() {
 #[test]
 fn a_failed_import_leaves_no_image_behind() {
     let (old, new) = (old_data(), TempDir::new().unwrap());
-    let store = Store::open(new.path()).unwrap();
+    let store = Importing::open(new.path()).unwrap();
     // The last thing the import reads is the old store's job runs: without them, it fails.
     let table = rusqlite::Connection::open(old.path().join("runner.sqlite")).unwrap();
     table
