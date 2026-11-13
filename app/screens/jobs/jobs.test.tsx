@@ -66,3 +66,12 @@ test("a new job's form opens typing into its name", async () => {
   await app.keyboard.press("z");
   await app.waitUntil(() => app.texts().includes("Qxz"), { timeout: 5_000 });
 });
+
+test("a job's field removed with the focus saves what was typed", async () => {
+  const app = await open("./__checks__/leave.tsx", { clock: {}, height: 600, width: 900 });
+  await app.type("id:job-name", "Weekly ");
+  // The page goes, the field with the focus: no blur reaches its owner.
+  await app.wait(3100);
+  await app.wait(100);
+  expect(app.texts()).toContain("sent: Weekly Dependencies");
+});

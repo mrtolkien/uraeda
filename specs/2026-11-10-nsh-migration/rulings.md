@@ -10750,3 +10750,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   visit: Back then shows the first sheet's page with nothing open.
 - **Where**: `app/store/history.ts`, `app/ui/surfaces/backCloses.ts`, `app/store/routes.test.ts`,
   `crates/server/tests/browser/phone_sheets.rs`.
+
+## T205.2: A field that saves as it is left saves as its page goes too
+
+- **Decision**: a job's typed fields (`Typed`) and the server's Port save in their component's
+  `cleanup` as well as on blur, as the round's comment and notes already did: a field removed with
+  the focus calls no `onBlur` of its owner since `TextField`'s `gone`. The same text asked twice is
+  one save (`unsavedText`), so a blur then the cleanup sends once. Of the other `onBlur` owners,
+  only the review's comment (`app/screens/review/Comment.tsx`) saves there, and it is left as it is:
+  closing it by Escape removes it with the focus, and a save there would add the comment to the
+  review on a key that means "not now"; its hint says the text is kept on the device until it is
+  saved, and leaving the page asks. The rest (`AddNote`, `Section`, `PickerField`, `NotePane`,
+  `FileEditor`, `NumberInput`) only clear a state of their own.
+- **Rationale**: the job's form on return showed the typed text from the device, which read as saved
+  while the job kept its old value.
+- **Where**: `app/screens/jobs/Typed.tsx`, `app/screens/settings/Server.tsx`,
+  `app/screens/jobs/__checks__/leave.tsx`, `app/screens/jobs/jobs.test.tsx`.

@@ -2,7 +2,7 @@
 // as it starts, each as the settings file holds it, with the value in force when a flag or a
 // variable sets it for this run. Removing the name this device reaches the server through asks
 // first: the server refuses this device from the next request.
-import { signal, View } from "nsh";
+import { cleanup, signal, untracked, View } from "nsh";
 import { FileProblem, savedField, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
 import { fromWords, isOverridden, onOff } from "./Row";
@@ -134,6 +134,8 @@ export function Server() {
     () => String(server()?.port.saved ?? server()?.port.inForce ?? ""),
     (typed) => call("settings.setPort", { port: typed.trim() }),
   );
+  // The page left with the port's field focused: no blur comes, and the port is saved as it goes.
+  cleanup(() => untracked(port.field.dirty) && void port.submit());
   const browser = sent(
     () => server()?.openBrowser.saved ?? server()?.openBrowser.inForce ?? true,
     (open) => call("settings.setOpenBrowser", { open }),

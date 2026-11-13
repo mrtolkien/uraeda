@@ -1,8 +1,8 @@
 // A field of a job typed in: its name, its prompt, its time. The text is kept on the device as it
-// is typed (`unsavedText`), and an existing job's is saved as the field is left, or on Enter for a
+// is typed (`unsavedText`), and an existing job's is saved as the field is left, or its page, or on Enter for a
 // line, Ctrl+Enter for the prompt: never on a key that would start a run. A refusal keeps the text
 // typed, for the human to fix, and says why under its row.
-import { untracked } from "nsh";
+import { cleanup, untracked } from "nsh";
 import type { Field, Form, Values } from "./form";
 import { TextField, type TextFieldRef, unsavedText } from "../../ui/text";
 
@@ -46,6 +46,9 @@ export function Typed(props: TypedProps) {
       if (refused !== null) throw new Error(refused);
     });
   };
+  // Left with its page, the field holding the focus: no blur comes, and the text is saved as it
+  // goes. After a blur's save, the same text joins it.
+  cleanup(() => void leave());
   return (
     <TextField
       autoFocus={props.autoFocus}
