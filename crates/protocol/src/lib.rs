@@ -1,7 +1,7 @@
 //! The protocol between Uraeda's server and its clients: the messages of the one WebSocket at
 //! `/live`, the names of the records and actions, and the TypeScript types made from them.
 //!
-//! Its contract is `specs/2026-11-10-nsh-migration/contracts/protocol.md`.
+//! Its contract is summed up in `specs/done/2026-11-10-nsh-migration.md`.
 
 mod accounts;
 mod change;

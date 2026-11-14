@@ -5,6 +5,7 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/113
 superseded-by:
   - 2026-11-08-codex-runtime
   - 2026-11-08-run-options
+  - 2026-11-10-nsh-migration
 ---
 
 # Record: Extensions system
@@ -18,6 +19,8 @@ superseded-by:
 > Superseded in part by [2026-11-08-codex-runtime](2026-11-08-codex-runtime.md).
 >
 > Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
+>
+> Superseded in part by [2026-11-10-nsh-migration](2026-11-10-nsh-migration.md).
 
 ## What and why
 
