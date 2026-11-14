@@ -7,8 +7,8 @@ branch as a pull request.
   checked and the branch has no pull request; or its open pull request has changes requested, is
   behind the default branch, or lacks the branch's latest commits; or the human's message asks to
   address its comments
-- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, the reviews'
-  `findings-NN.md`, and the draft pull request
+- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the draft pull
+  request
 - **Ends at**: the [finish](finish.md) step; a human gate, the pull request; or a new round of
   questions, when blocked
 
@@ -40,21 +40,17 @@ now.
 Build the tasks of a wave at the same time when you can hand them out, and have reviews done by a
 fresh agent: a review by the author is weaker.
 
-- **With a harness's own tools for the workflow**, `run_agent` and `review`: `run_agent` runs one
-  task as an implementer, in the task's worktree, given the task's name as the plan has it, the
-  worktree's path, and [the brief](#the-implementers-brief). Call it for every task of a wave in the
-  same turn. Asked again for the same task, it answers the first call, or resumes a stopped task:
-  each round of fixes takes a new task name, like `Fixes of wave 2`. `review` runs every reviewer
-  the human set, on the commits `base..head`, and commits their findings as the folder's next
-  `findings-NN.md`. When the human set reviews on the branch only, a wave's call answers that no
-  review runs.
-- **Otherwise**, use your harness's sub-agents, and write each review's findings yourself in the
-  folder's next `findings-NN.md`, from
-  [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/findings-01.md), a section per
-  reviewer. Commit it alone, `review(<slug>): findings 02`, before fixing any of them: a run that
-  stops then loses none.
+- **Implementers and reviewers run on their own picks**, the ones the human set for their roles, as
+  [Sessions and picks](../SKILL.md#sessions-and-picks) says: with `ura`, `ura next` prints them,
+  with the reviewers the human set and whether they review each wave or the branch only. Start each
+  as a sub-agent through the session host when it can run an agent on a pick, or else as your own
+  sub-agent, on the model closest to its pick, and say so in the pull request.
 - **Without sub-agents**, build the tasks yourself, in the plan's order, and review the branch as a
   separate pass, saying so in the pull request.
+
+A review's findings are not committed: you grade them as they come, and fix them in commits whose
+bodies say what each fixes. A run that stops before its fixes loses the findings, and the review is
+run again.
 
 ## For each wave
 
@@ -138,16 +134,16 @@ Write the parts every task shares once, in a file outside the repository.
    message. Check a box only for a step that ran: the next agent trusts it.
 
 A problem found outside the task is fixed on the branch when the feature needs it, and dropped
-otherwise, unless it passes the two tests of [agents' notes](inbox.md#agents-notes).
+otherwise, unless it passes the two tests of [agents' notes](notes.md#agents-notes).
 
 ### Review the waves
 
-Each merged wave is reviewed once, by `review` or a fresh reviewer, while the next wave is built.
-The reviewer gets the tasks' text, the spec's sections they implement with its approval comments,
-the global constraints, and the diff. A risky task gets a reviewer of its own. It works out the
-expected behaviour from the approved requirements before reading the code, and gives two verdicts:
-does it do what the spec says, and is it well built. It grades each finding, and says "none" when
-there is none.
+Each merged wave is reviewed once, by the reviewers the human set, while the next wave is built. The
+reviewer gets the tasks' text, the spec's sections they implement with its approval comments, the
+global constraints, and the diff. A risky task gets a reviewer of its own. It works out the expected
+behaviour from the approved requirements before reading the code, and gives two verdicts: does it do
+what the spec says, and is it well built. It grades each finding, and says "none" when there is
+none.
 
 Its findings are [graded](#grade-the-findings) and fixed beside the next wave, each behaviour fix
 with a test that fails first. A wave's fixes are not reviewed again as a wave: the review of the
@@ -156,31 +152,21 @@ branch covers them.
 ### Rulings
 
 Settle implementation details yourself: the spec with the human's approval comments is the
-authority, the plan argues from it, and your judgement settles the rest. Most of what you settle
-needs no record: a name, a type, a module's boundary, or a helper is read in the code, and its
-reason in the commit's body.
+authority, the plan argues from it, and your judgement settles the rest. What you settle needs no
+file: a name, a type, a module's boundary, a library call, or an alternative ruled out is read in
+the code, and its reason goes in the body of the commit that makes it.
 
 A ruling, in the feature's `rulings.md`, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), is for a reason that
-would otherwise be lost, in the same commit as the code it concerns:
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), is only for what the
+human must see, in the same commit as the code it concerns:
 
-- a departure from the spec, the plan, or a mockup, or from a decision when the human allowed it;
-- a behaviour users will notice that the spec does not state, in one line, said as what happens to
-  them: the pull request's "Decided without you" is made from these;
-- a test removed or rewritten outside the spec's list;
-- a tempting alternative ruled out, with the evidence;
-- what the human asked in a session that changes the work, in their words, when no other file holds
-  it.
+- a behaviour users will notice that the spec does not state, said as what happens to them;
+- a departure from the spec, the plan, a mockup, or a decision the human allowed;
+- a test removed or rewritten outside the spec's list.
 
-Four things a ruling is not:
-
-- **Not a decision.** It binds nothing outside this feature. When another file would have to cite
-  it, what it says belongs in a decision, a guide, or a comment in the code.
-- **Not a spec change.** When the human redirects the build in a way that changes what users get,
-  amend the spec, and say so in the pull request.
-- **Not a question.** Never write "left to the human" in a ruling: nobody reads it there. It is a
-  question in a round, or a line at the top of the pull request.
-- **Not a diary.** A bug found and fixed, a measurement, or a step done is in the commits.
+The pull request's "Decided without you" and the record's **Changes after approval** are made from
+these. A ruling is not a decision, since it binds nothing outside this feature, and never a
+question: "left to the human" is a question in a round, or a line at the top of the pull request.
 
 **Behaviour the spec did not state is shown to the human.** While building, you settle things users
 will see that no spec line covers: a default, a text, what a key does at the edge. Settle them from
@@ -233,13 +219,12 @@ it will merge.
    Resolve conflicts within the spec and the default branch's decisions:
    - in code: keep what both sides need;
    - in a generated file: take either side, then regenerate it;
-   - in a record of `specs/done/`, or in `PRIORITIES.md` and `INBOX.md`: take the default branch's;
+   - in a record of `specs/done/`: take the default branch's;
    - in a decision: when both sides' rules stand together, keep both; when they disagree in meaning,
      stop.
 4. **Repair the moved links**: the default branch may have moved or deleted a file the branch links.
-   With `ura`, `ura check --fix`; by hand, see
-   [where a moved link points](by-hand.md#where-a-moved-link-points). Commit the repairs alone,
-   `fix(<slug>): repair the links to moved files`.
+   `ura check` reports each, and [where a moved link points](by-hand.md#where-a-moved-link-points)
+   says where it went. Commit the repairs alone, `fix(<slug>): repair the links to moved files`.
 5. **Run the project's complete validation.** A failure the default branch brings in is fixed like a
    finding. A complete validation holds for the commit it ran on: do not run it again on the same
    tree.
@@ -263,21 +248,21 @@ one small request at a time.
   approved.
 - **Measure each success criterion** the spec states, on real data, and keep the number.
 
-Write what you did and what you saw in the review's `findings-NN.md`, as findings like the others.
-Anything the human would have to come back and ask for is a finding. "The product" is whatever its
-user touches: an app, a command, an API, a document. Say in the findings what you ran, on which
-runtime, at which widths and with which input, what you did, and what you saw: a defect often lives
-in one browser or one backend. When a path cannot be exercised, fix what blocks it. When you cannot,
-the feature is not ready: stop, and say what could not be used and what it risks, unless the human
-already accepted that for this feature. Never report as reviewed a feature nobody used.
+Anything the human would have to come back and ask for is a finding, graded with the reviewers'.
+"The product" is whatever its user touches: an app, a command, an API, a document. Keep what you
+ran, on which runtime, at which widths and with which input, what you did, and what you saw: the
+pull request says it, since a defect often lives in one browser or one backend. When a path cannot
+be exercised, fix what blocks it. When you cannot, the feature is not ready: stop, and say what
+could not be used and what it risks, unless the human already accepted that for this feature. Never
+report as reviewed a feature nobody used.
 
 ### Review the branch
 
-Then review the whole branch, even when each wave was reviewed: with `review` on the commits since
-the branch started, or a fresh reviewer on the most capable model available, given the diff, the
-spec and its approval comments, the plan with its **Review focus**, and `rulings.md`. A second
-reviewer from another model family finds different things on a large branch: run one when the
-project has it.
+Then review the whole branch, even when each wave was reviewed, on the commits since the branch
+started: each reviewer the human set, or else a fresh reviewer on the most capable model available,
+given the diff, the spec and its approval comments, the plan with its **Review focus**, and
+`rulings.md`. A second reviewer from another model family finds different things on a large branch:
+run one when the human set none and the session host offers one.
 
 The review covers the changed code and its callers, outside the diff too:
 
@@ -302,9 +287,9 @@ if the branch ships, whatever grade its reviewer gave:
 
 - **Critical and important**: fix them in one pass, behaviour fixes with tests that fail first.
   Commit with the feature's scope: `fix(recurring-tasks): keep the undo after a reload`. One you
-  decide not to fix is never dropped: it is a ruling, and a line of the pull request's "Look at".
+  decide not to fix is never dropped: it is a line of the pull request's "Look at", with why.
 - **Minor**: fix the ones worth fixing in the same pass, and drop the rest. A finding is fixed on
-  the branch or dropped: it is never an [agent's note](inbox.md#agents-notes), and never a list of
+  the branch or dropped: it is never an [agent's note](notes.md#agents-notes), and never a list of
   leftovers in the pull request.
 
 A maintenance defect can be important before any user sees it: a unit grown past a limit, or a copy
@@ -346,9 +331,8 @@ commit, nothing waits for them.
 ## Catch up an open pull request
 
 Runs when the pull request is open, not a draft, with no changes requested, and its branch is behind
-the default branch, by more than the default branch's own files: `PRIORITIES.md`, the inbox, the
-proposals, and the notes. It wins over the push, since it pushes too. With `ura`, `ura next` names
-it; by hand, see
+the default branch. It wins over the push, since it pushes too. With `ura`, `ura next` names it; by
+hand, see
 [whether a pull request is behind](by-hand.md#whether-a-pull-request-is-behind-or-lacks-commits).
 
 1. **Sync with the remote branch**, `git pull --rebase origin <branch>`, and note the tip.
