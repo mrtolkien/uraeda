@@ -94,7 +94,7 @@ too. It prints their address, which holds a token: keep it to yourself, as anyon
 for you.
 
 - **What waits on you**: every round, spec, and plan waiting for you, across the repositories it
-  serves and their worktrees, with each feature's track through the workflow.
+  serves and their worktrees, each with what is asked and how long it takes.
 - **A round**: one card per question, the recommended option marked. An answer is saved as soon as
   you pick it or type it. "Send answers" records the round answered.
 - **A review**: the spec or plan, what changed since your last review, and a comment on any passage
