@@ -9329,6 +9329,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "uraeda-serve"
+version = "2.0.0"
+dependencies = [
+ "axum",
+ "getrandom 0.4.3",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "toml_edit 0.25.19+spec-1.1.0",
+ "uraeda-core",
+ "ureq",
+]
+
+[[package]]
 name = "uraeda-server"
 version = "2.1.0"
 dependencies = [

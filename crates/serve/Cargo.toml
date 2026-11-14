@@ -1,0 +1,30 @@
+[package]
+name = "uraeda-serve"
+description = "The pages of `ura serve`: what waits on the human, a round, and a review, from the binary alone."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+axum.workspace = true
+getrandom.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml_edit.workspace = true
+uraeda-core.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+tokio.workspace = true
+tempfile.workspace = true
+ureq.workspace = true
+
+[lints]
+workspace = true
