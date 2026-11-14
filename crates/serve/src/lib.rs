@@ -11,6 +11,7 @@ pub mod config;
 pub mod guard;
 pub mod html;
 pub mod render;
+pub mod review;
 pub mod round;
 pub mod token;
 pub mod waiting;
@@ -75,6 +76,18 @@ pub fn router(shared: Arc<Shared>) -> Router {
         .route(
             "/{token}/{repo}/{folder}/submit",
             post(round::routes::submit),
+        )
+        .route(
+            "/{token}/{repo}/{folder}/review/{file}",
+            get(review::routes::page),
+        )
+        .route(
+            "/{token}/{repo}/{folder}/review/{file}/comment",
+            post(review::routes::comment),
+        )
+        .route(
+            "/{token}/{repo}/{folder}/review/{file}/verdict",
+            post(review::routes::verdict),
         )
         .fallback(not_found)
         .layer(axum::middleware::from_fn_with_state(

@@ -109,6 +109,7 @@ pub use reviews::{
 };
 use setup::setup_items;
 pub use setup::{SetupItem, read_setup};
+pub use since::since_commit;
 pub use start::{
     TextStart, plan_start, plan_text_start, promote_change, propose_slug, start_feature,
     start_kind, start_planned, start_text,

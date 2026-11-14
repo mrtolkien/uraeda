@@ -163,3 +163,16 @@ fn change((old, new): (Option<&Part>, Option<&Part>)) -> Option<SinceChange> {
         runs,
     })
 }
+
+/// What changed in a spec or a plan at `path` since the version of it at `commit`, the commit a
+/// review named, to `shown`, the text the page shows. Not found when the commit does not resolve,
+/// or holds no such file.
+pub fn since_commit(git: &Git, path: &str, commit: &str, shown: &str) -> SinceReview {
+    let review = ReviewItems {
+        verdict: String::new(),
+        commit: commit.to_string(),
+        summary: None,
+        comments: Vec::new(),
+    };
+    since_review(git, path, &review, shown, shown)
+}
