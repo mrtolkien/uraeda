@@ -19,6 +19,7 @@ pub mod round;
 pub mod settings;
 pub mod sync;
 pub mod token;
+pub mod vault_page;
 pub mod waiting;
 pub mod wake;
 
@@ -67,6 +68,8 @@ pub struct Shared {
     pub hashes: uraeda_vault::manifest::Hashes,
     /// When the vault's folders and links were last made again.
     pub refreshed: std::sync::Mutex<Option<std::time::Instant>>,
+    /// Uraeda's data folder, whose `Uraeda` is the vault when the settings name none.
+    pub data_dir: Option<PathBuf>,
 }
 
 impl Shared {
@@ -80,7 +83,15 @@ impl Shared {
             vault: std::sync::RwLock::new(None),
             hashes: uraeda_vault::manifest::Hashes::default(),
             refreshed: std::sync::Mutex::new(None),
+            data_dir: None,
         }
+    }
+
+    /// The same, knowing Uraeda's data folder.
+    #[must_use]
+    pub fn with_data_dir(mut self, data_dir: PathBuf) -> Shared {
+        self.data_dir = Some(data_dir);
+        self
     }
 
     /// The same, syncing `vault`.
@@ -206,6 +217,9 @@ pub fn router(shared: Arc<Shared>) -> Router {
             "/{token}/{repo}/{folder}/review/{file}/verdict",
             post(review::routes::verdict),
         )
+        .route("/{token}/vault", get(vault_page::page_route))
+        .route("/{token}/vault/place", post(vault_page::save_place))
+        .route("/{token}/vault/start.zip", get(vault_page::start_zip))
         .route("/{token}/vault/plan", post(sync::plan))
         .route(
             "/{token}/vault/file",
@@ -230,7 +244,7 @@ async fn home(State(shared): State<Arc<Shared>>) -> Html<String> {
     let body = waiting::render(&waiting).replacen(
         "</main>",
         "<p class=\"settings-link\"><a class=\"button\" href=\"settings\">Settings: how each \
-         step runs</a></p></main>",
+         step runs</a> <a class=\"button\" href=\"vault\">Your notes, and the phone</a></p></main>",
         1,
     );
     Html(html::page("What waits on you", &body))
@@ -254,7 +268,11 @@ pub fn run(options: Options) -> Result<(), ServeError> {
         .map_err(|error| ServeError::Token(options.data_dir.clone(), error))?;
     let port = options.port.or(settings.port).unwrap_or(DEFAULT_PORT);
     let vault = uraeda_vault::Vault::locate(&options.config_dir, &options.data_dir)?;
-    let shared = Arc::new(Shared::new(token, settings, options.config_dir).with_vault(vault));
+    let shared = Arc::new(
+        Shared::new(token, settings, options.config_dir)
+            .with_vault(vault)
+            .with_data_dir(options.data_dir.clone()),
+    );
     sync::refresh_now(&shared, std::time::Duration::ZERO);
     // The agents' models, listed as the server starts: the settings page finds them ready.
     let listing = Arc::clone(&shared);

@@ -107,6 +107,8 @@ sha2 = "0.10"
 serde-saphyr = "1.3.0"
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 tokio-tungstenite = "0.28"
+# The phone's starter vault, stored without compression.
+zip = { version = "9.5", default-features = false }
 toml_edit = { version = "0.25", default-features = false, features = ["parse", "display", "serde"] }
 tempfile = "3"
 thiserror = "2.0.21"

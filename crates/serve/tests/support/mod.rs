@@ -44,8 +44,17 @@ impl Server {
 
     /// A server that syncs `vault` with the phone.
     pub fn syncing(settings: Settings, vault: uraeda_vault::Vault) -> Server {
-        let token = token::new();
         let config_dir = std::env::temp_dir().join("ura-serve-tests-no-config");
+        Server::syncing_in(settings, vault, config_dir)
+    }
+
+    /// A server that syncs `vault`, its settings kept in `config_dir`.
+    pub fn syncing_in(
+        settings: Settings,
+        vault: uraeda_vault::Vault,
+        config_dir: std::path::PathBuf,
+    ) -> Server {
+        let token = token::new();
         let shared = Shared::new(token.clone(), settings, config_dir)
             .with_agents(Vec::new())
             .with_vault(vault);
