@@ -171,7 +171,8 @@ module.exports = class Uraeda extends Plugin {
       const report = await this.once();
       this.data.last =
         `${new Date().toLocaleString()}: ${report.in} in, ${report.out} out, ${report.kept} kept` +
-        (report.refused ? `, ${report.refused} to retry` : "");
+        (report.refused ? `, ${report.refused} to retry` : "") +
+        (report.error ? ` (${report.error})` : "");
       if (asked || report.kept) new Notice("Uraeda: " + this.data.last, report.kept ? 10000 : 4000);
       // Its record holds a line per file: written only when a sync changed something.
       if (asked || report.actions || this.fresh) await this.saveData(this.data);
@@ -219,12 +220,23 @@ module.exports = class Uraeda extends Plugin {
       }
       await adapter.writeBinary(path, buffer);
     };
+    // Whether the phone's file is still the one the plan was made from: an edit made since is
+    // never written over or trashed, and the next sync plans with it.
+    const still = async (path) => {
+      const stat = await adapter.stat(path);
+      if (!stat) return local[path] === undefined;
+      if (local[path] === undefined) return false;
+      const known = this.data.hashes[path];
+      if (known && known[0] === stat.size && known[1] === stat.mtime) return true;
+      return (await sha256(await adapter.readBinary(path))) === local[path];
+    };
     const act = async (a) => {
       touched.add(a.path);
       const refused = (response) => response.status !== 200 && ++report.refused;
+      const edited = async () => !(await still(a.path)) && ++report.refused;
       if (a.do === "pull") {
         const got = await this.call("GET", query(a.path));
-        if (refused(got)) return false;
+        if (refused(got) || (await edited())) return false;
         await write(a.path, got.arrayBuffer);
         base[a.path] = a.hash;
         report.in++;
@@ -238,7 +250,8 @@ module.exports = class Uraeda extends Plugin {
           "application/octet-stream",
         );
         if (refused(sent)) return false;
-        base[a.path] = a.hash;
+        // What was sent, which an edit since the plan made differ from the plan's.
+        base[a.path] = await sha256(body);
         report.out++;
       } else if (a.do === "copy") {
         touched.add(a.to);
@@ -249,6 +262,7 @@ module.exports = class Uraeda extends Plugin {
         base[a.to] = a.hash;
         report.kept++;
       } else if (a.do === "trash") {
+        if (await edited()) return false;
         if (await adapter.exists(a.path)) await adapter.trashLocal(a.path);
         delete base[a.path];
         report.in++;
@@ -268,7 +282,16 @@ module.exports = class Uraeda extends Plugin {
     const queue = [...groups.values()];
     const worker = async () => {
       for (let group = queue.shift(); group; group = queue.shift()) {
-        for (const a of group) if (!(await act(a))) break;
+        for (const a of group) {
+          // A file that fails, by a name this device refuses or a read that finds it gone, is
+          // retried by the next sync, and stops no other file.
+          const done = await act(a).catch((e) => {
+            report.refused++;
+            report.error = report.error || `${a.path}: ${e && e.message ? e.message : e}`;
+            return false;
+          });
+          if (!done) break;
+        }
       }
     };
     await Promise.all(Array.from({ length: PARALLEL }, worker));
