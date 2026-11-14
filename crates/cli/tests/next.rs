@@ -148,10 +148,12 @@ fn push_when_the_pull_request_lacks_the_latest_commit() {
         ],
     );
     let head = repo.git(&["rev-parse", "2026-10-10-cli-core"]);
-    repo.switch("2026-10-10-cli-core");
-    repo.write("src/fix.rs", "// a fix after the review\n");
-    repo.commit("fix: after the review");
-    repo.switch("main");
+    repo.write_in(
+        "2026-10-10-cli-core",
+        "src/fix.rs",
+        "// a fix after the review\n",
+    );
+    repo.commit_in("2026-10-10-cli-core", "fix: after the review");
     let path = fake_gh(
         &repo,
         &format!(

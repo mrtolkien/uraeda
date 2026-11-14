@@ -128,14 +128,7 @@ fn writes_in_a_worktree_over_uncommitted_changes() {
 #[test]
 fn writes_in_the_worktree_that_has_the_branch() {
     let repo = waiting(&["", "", ""]);
-    let worktree = repo.parent().join("uraeda-cli");
-    repo.git(&[
-        "worktree",
-        "add",
-        "--quiet",
-        worktree.to_str().unwrap(),
-        "2026-10-10-cli-core",
-    ]);
+    let worktree = repo.worktree("2026-10-10-cli-core");
 
     let output = ura(&repo, &["answer", "cli-core", "Q1", "A"]);
 

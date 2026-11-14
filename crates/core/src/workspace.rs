@@ -13,6 +13,7 @@ use crate::steps::{self, PullRequest, Step};
 use crate::today;
 
 mod branches;
+mod in_progress;
 mod links;
 mod merged;
 mod paths;
@@ -27,6 +28,7 @@ use read::read_feature;
 use reader::Reader;
 use record::record_kind;
 
+pub use in_progress::{InProgress, in_progress};
 pub use links::resolve;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
@@ -249,10 +251,7 @@ enum ReadFrom {
 struct Reading<'a> {
     git: &'a Git,
     reader: Reader<'a>,
-    root: &'a Path,
     main_root: PathBuf,
-    /// The branches checked out in other working trees, read from their disk.
-    checked_out: BTreeMap<String, PathBuf>,
     merged: Merged,
     /// The one folder read, when not the whole workspace.
     only: Option<&'a str>,
@@ -300,13 +299,6 @@ impl Workspace {
             return Err(WorkspaceError::NoSpecs(root.to_path_buf()));
         }
 
-        let checked_out: BTreeMap<String, PathBuf> = git
-            .worktrees()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|worktree| worktree.path != root && worktree.path.exists())
-            .filter_map(|worktree| Some((worktree.branch?, worktree.path)))
-            .collect();
         let reader = Reader { git };
         let remote_default_tip = default_branch.as_deref().and_then(|b| git.remote_tip(b));
         let tips: Vec<ObjectId> = [default_tip, remote_default_tip]
@@ -316,15 +308,12 @@ impl Workspace {
         let branches = git.branches()?;
         let reading = Reading {
             git,
-            merged: Merged::read(&reader, &tips, only, &branches),
+            merged: Merged::read(&reader, &tips, only),
             reader,
-            root,
             main_root: git.main_root(),
-            checked_out,
             only,
         };
-        let mut features = reading.working_tree_features(current_branch.as_deref());
-        reading.add_branch_features(&branches, &mut features);
+        let mut features = reading.worktree_features(&branches);
         reading.add_task_branches(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();
         features.extend(reading.merged_features(&branches));

@@ -156,6 +156,7 @@ pub fn branch_with(repo: &TestRepo, branch: &str, dir: &str, files: &[(&str, Str
     }
     repo.commit(&format!("work on {branch}"));
     repo.switch("main");
+    repo.worktree(branch);
 }
 
 /// Where a feature's or a change's folder lives: `change/2026-10-14-x` is
@@ -169,14 +170,13 @@ pub fn feature_path(folder: &str) -> String {
 
 /// On a feature's branch, replaces its folder with its record, and commits; then back on `main`.
 pub fn finish(repo: &TestRepo, folder: &str) {
-    repo.switch(folder);
-    repo.git(&["rm", "-r", "--quiet", &feature_path(folder)]);
-    repo.write(
+    repo.git_in(folder, &["rm", "-r", "--quiet", &feature_path(folder)]);
+    repo.write_in(
+        folder,
         &format!("specs/done/{folder}.md"),
         &record("feature", "Web UI"),
     );
-    repo.commit(&format!("finish: {folder}"));
-    repo.switch("main");
+    repo.commit_in(folder, &format!("finish: {folder}"));
 }
 
 /// Finishes a feature's branch, and merges it into `main` with a merge commit.
