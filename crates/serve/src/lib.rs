@@ -11,6 +11,7 @@ pub mod config;
 pub mod guard;
 pub mod html;
 pub mod token;
+pub mod waiting;
 pub mod wake;
 
 use std::net::{Ipv4Addr, SocketAddr};
@@ -18,6 +19,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::State;
 use axum::response::Html;
 use axum::routing::get;
 
@@ -69,11 +71,12 @@ pub fn router(shared: Arc<Shared>) -> Router {
         .with_state(shared)
 }
 
-async fn home() -> Html<String> {
-    Html(html::page(
-        "Uraeda",
-        "<main><h1>Uraeda</h1><p>Nothing waits on you.</p></main>",
-    ))
+async fn home(State(shared): State<Arc<Shared>>) -> Html<String> {
+    let settings = shared.settings.clone();
+    let waiting = tokio::task::spawn_blocking(move || waiting::read(&settings))
+        .await
+        .unwrap_or_default();
+    Html(html::page("What waits on you", &waiting::render(&waiting)))
 }
 
 async fn not_found() -> (axum::http::StatusCode, Html<String>) {

@@ -194,3 +194,51 @@ textarea {
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
+
+/* --- waiting --- */
+.waiting-list {
+  list-style: none;
+  margin: 0 0 var(--gap);
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.waiting-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 44px;
+  padding: 12px var(--gap);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--font);
+}
+.waiting-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.waiting-name {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.waiting-ask {
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+.waiting-line {
+  color: var(--muted);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+.waiting-repo h2 {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin: var(--gap) 0 8px;
+}
+.waiting-problem {
+  color: var(--bad);
+}
+/* --- end waiting --- */
