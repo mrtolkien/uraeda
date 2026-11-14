@@ -38,6 +38,13 @@ fn links_follow_the_worktrees() {
     git(&main, &["init", "--quiet", "--initial-branch", "main"]);
     fs::write(main.join("specs/CONSTITUTION.md"), "# Constitution\n").unwrap();
     fs::write(main.join("specs/decisions/stack.md"), "# Stack\n").unwrap();
+    // A folder committed on the default branch: every branch inherits it, none works on it.
+    fs::create_dir_all(main.join("specs/changes/2026-09-02-old")).unwrap();
+    fs::write(
+        main.join("specs/changes/2026-09-02-old/proposal.md"),
+        "# Old\n",
+    )
+    .unwrap();
     git(&main, &["add", "."]);
     git(&main, &["commit", "--quiet", "-m", "chore: start"]);
     let worktree = base.join("todo-recurring");
@@ -48,10 +55,18 @@ fn links_follow_the_worktrees() {
             "add",
             "--quiet",
             "-b",
-            FOLDER,
+            "light",
             worktree.to_str().unwrap(),
         ],
     );
+    // The branch's name says nothing of its folders, and a merged one has its record.
+    fs::create_dir_all(worktree.join("specs/2026-09-01-merged")).unwrap();
+    fs::create_dir_all(worktree.join("specs/done")).unwrap();
+    fs::write(
+        worktree.join("specs/done/2026-09-01-merged.md"),
+        "# Merged\n",
+    )
+    .unwrap();
     fs::create_dir_all(worktree.join("specs").join(FOLDER)).unwrap();
     fs::write(
         worktree.join("specs").join(FOLDER).join("proposal.md"),
