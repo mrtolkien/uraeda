@@ -1,6 +1,6 @@
 [package]
 name = "uraeda-server"
-description = "Uraeda's server, run as `ura serve`."
+description = "Uraeda's server, run as `ura serve-app`."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

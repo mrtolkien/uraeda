@@ -634,7 +634,7 @@ Each problem is also listed in Settings, Extensions, above the rows, until the p
 
 ### In a browser
 
-The app in a browser (`ura serve`'s page) runs the same page, with the same API and theme, in a
+The app in a browser (`ura serve-app`'s page) runs the same page, with the same API and theme, in a
 frame of its own. What differs for its author:
 
 - **A loop is not cut off.** A browser cannot stop a call that never ends. The page answers nothing,

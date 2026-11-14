@@ -28,7 +28,7 @@ pub struct Args {
 }
 
 /// Prepares the sandbox, then runs its server until it is stopped. It prints the server's
-/// address first, as `ura serve` does, then the sandbox's folder.
+/// address first, as `ura serve-app` does, then the sandbox's folder.
 pub fn run(args: Args) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let folder = args

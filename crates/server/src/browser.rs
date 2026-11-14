@@ -1,4 +1,4 @@
-//! The browser a start opens: `ura serve`, typed at a terminal of a desktop, opens the app in the
+//! The browser a start opens: `ura serve-app`, typed at a terminal of a desktop, opens the app in the
 //! owner's browser, signed in, unless the setting `open_browser` is off or the start says
 //! `--no-open`. A start by the Linux app, a service, or a script has no terminal, and opens none.
 

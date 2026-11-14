@@ -126,7 +126,7 @@ async fn serving(project: &Project) -> TestServer {
     support::setup().folder(project.repo.path()).start().await
 }
 
-/// Adds a repository to a running server's list, as a second start of `ura serve` does.
+/// Adds a repository to a running server's list, as a second start of `ura serve-app` does.
 async fn listed(server: &TestServer, repo: &TestRepo) {
     let folder = json!({ "folder": repo.path() });
     let answer = server.post("/open").bearer(&server.host_token());
@@ -776,7 +776,7 @@ async fn a_waiting_folders_preview_starts_with_the_server_and_compiles_its_stori
 
 // The stack decision: the server stops with everything it started. The look-ahead waits up to
 // three minutes for a preview to be ready: a wait on a blocking thread outlives the stop, and the
-// runtime then waits for it as it is dropped, so `ura serve` hangs on its signal until the app
+// runtime then waits for it as it is dropped, so `ura serve-app` hangs on its signal until the app
 // kills it, its other work unstopped. Here the preview never answers its index: the server and
 // its runtime are gone within a second all the same.
 #[test]

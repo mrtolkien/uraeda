@@ -20,7 +20,7 @@ mod pair;
 mod picker;
 mod review;
 mod sandbox;
-mod serve;
+mod serve_app;
 mod shell;
 mod start;
 mod status;
@@ -198,7 +198,7 @@ enum Command {
     /// Add, update, remove, and list your extensions, in the config folder's extensions/
     Extension(extension::Args),
     /// Run Uraeda's server on this machine, until it is stopped
-    Serve {
+    ServeApp {
         /// The port on 127.0.0.1: else URAEDA_PORT, else the settings' port, else 4310; 0 takes
         /// a free one
         #[arg(long)]
@@ -239,7 +239,7 @@ enum Command {
         #[arg(long)]
         replace: bool,
     },
-    /// Copy the earlier server's sessions into the store of `ura serve`, once
+    /// Copy the earlier server's sessions into the store of `ura serve-app`, once
     ImportSessions {
         /// The earlier server's data folder, which is only read
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
@@ -309,12 +309,12 @@ fn main() -> ExitCode {
         Command::Upgrade => upgrade::run(),
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
-        Command::Serve {
+        Command::ServeApp {
             port,
             data_dir,
             no_scheduled_jobs,
             no_open,
-        } => serve::run(port, data_dir, no_scheduled_jobs, no_open),
+        } => serve_app::run(port, data_dir, no_scheduled_jobs, no_open),
         Command::Sandbox(args) => sandbox::run(args),
         Command::FakeStorybook { args } => Ok(uraeda_server::sandbox::storybook::run(args)),
         Command::Pair { data_dir } => pair::run(data_dir),

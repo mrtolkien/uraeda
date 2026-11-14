@@ -66,7 +66,7 @@ editing it.
   - `compile/` (`uraeda-compile`): TypeScript to JavaScript, for an extension's server files
   - `lsp/` (`uraeda-lsp`): the `ura lsp` language server
   - `protocol/` (`uraeda-protocol`): the messages between the Rust server and its clients
-  - `server/` (`uraeda-server`): the Rust server, everything `ura serve` does
+  - `server/` (`uraeda-server`): the Rust server, everything `ura serve-app` does
   - `text/` (`uraeda-text`): what is read in a text alone, the document tree, links, and patches,
     which the core re-exports and the app's web build takes without the core
   - `vim/` (`uraeda-vim`): the Vim layer, a state machine from keys to editor commands
@@ -228,7 +228,7 @@ Running it here:
   sandbox, in `target/shots/app/`.
 - **The app in a browser is `just web-build`**, which writes `target/web/`: NSH's static site of
   `app/`, with `crates/app` compiled to WebAssembly, so that crate and what it depends on must build
-  for `wasm32-unknown-unknown`. `ura serve` serves the build it was compiled with
+  for `wasm32-unknown-unknown`. `ura serve-app` serves the build it was compiled with
   (`URAEDA_WEB_BUILD`, as `just package` sets it), or the folder that variable names as it starts:
   `URAEDA_WEB_BUILD=$PWD/target/web just sandbox --no-app`. `just web-test` opens it in the dev
   shell's headless Chromium, `web-browser`, signs in, and writes its pictures in
@@ -256,9 +256,9 @@ Running it here:
   renew it). The bundle ID is the profile's, never `app/nsh.json`'s. Extension pages run in the
   server's web build's `extension.html`: `just web-build` (with NSH's `web` component), and the
   sandbox started with `URAEDA_WEB_BUILD=$PWD/target/web`.
-- `ura serve` listens on 4310 by default, and keeps its files in `uraeda-next` of the system's data
-  folder: the earlier server's `uraeda` is only read, by `ura import-sessions`. A test or a run of
-  yours always names its own port and data folder: `--port 0 --data-dir <a temporary folder>`.
+- `ura serve-app` listens on 4310 by default, and keeps its files in `uraeda-next` of the system's
+  data folder: the earlier server's `uraeda` is only read, by `ura import-sessions`. A test or a run
+  of yours always names its own port and data folder: `--port 0 --data-dir <a temporary folder>`.
 
 ## Working with the human
 

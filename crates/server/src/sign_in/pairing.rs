@@ -142,7 +142,7 @@ pub fn pairing_code(data_dir: &Path) -> Result<Pairing, String> {
             address,
         }),
         _ => Err(format!(
-            "no server runs on {}: start one with `ura serve`",
+            "no server runs on {}: start one with `ura serve-app`",
             data_dir.display()
         )),
     }

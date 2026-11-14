@@ -47,7 +47,7 @@ const TICK: Duration = Duration::from_secs(30);
 /// Runs due together start a minute apart.
 const APART: Duration = Duration::from_secs(60);
 
-/// What `ura serve --no-scheduled-jobs` provides: no job starts at its times.
+/// What `ura serve-app --no-scheduled-jobs` provides: no job starts at its times.
 pub struct NoScheduledJobs;
 
 /// What the scheduled jobs keep in memory: `shared.get::<Scheduler>()`.

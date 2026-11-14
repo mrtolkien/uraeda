@@ -26,7 +26,7 @@ ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-c
 ura inbox                                  # every note, agents' notes included; --json for tools
 ura clean --all                            # merged features' worktrees, branches, and priorities lines
 ura upgrade                                # the latest release, then your skill
-ura serve                                  # the server, and the app in your browser
+ura serve-app                                  # the server, and the app in your browser
 ura pair                                   # a one-time code, and its QR code, to pair a device with it
 ura import-sessions                        # the earlier web UI's sessions, copied once
 ```
@@ -53,8 +53,8 @@ points at its record, keeping a question's anchor. A link to a deleted file beco
 `fixed` list of files and link counts. In the app, a done feature's page has "Fix moved links" for
 the same repair.
 
-`ura serve` runs Uraeda's server, which serves [the app](app.md) to your browser and to the desktop
-app.
+`ura serve-app` runs Uraeda's server, which serves [the app](app.md) to your browser and to the
+desktop app.
 
 - It listens on http://127.0.0.1:4310, or on `--port`, else on the port `URAEDA_PORT` gives, else on
   the settings file's `port`; `--port 0` takes a free port. A terminal's start opens the app in your
@@ -64,10 +64,10 @@ app.
   a `runner.sqlite`: see `ura import-sessions` below.
 - It reads secrets from the `.env` of your config folder only, never from a project or the folder it
   runs in, and gives them to the agents it runs.
-- Run in a repository, it adds that repository to its list. A second `ura serve` on the same data
-  folder starts nothing, whatever its port: it hands its folder to the first, prints its address,
-  and exits. When the first does not answer, it says which server holds the data folder, and exits
-  with an error.
+- Run in a repository, it adds that repository to its list. A second `ura serve-app` on the same
+  data folder starts nothing, whatever its port: it hands its folder to the first, prints its
+  address, and exits. When the first does not answer, it says which server holds the data folder,
+  and exits with an error.
 - Ctrl-C, or closing its terminal, stops it, and everything it runs.
 - Its first start in a terminal prints an access key, once: keep it in a password manager. A browser
   signs in with it. A start whose output goes to a file or another program, as a service's or the
@@ -76,8 +76,8 @@ app.
 `ura pair` pairs another device with the running server, a phone or another computer. It prints a
 code, good for one device, for 10 minutes, the address the device reaches the server at, and a QR
 code holding both. The device scans it, or you enter the code there. It then signs in with a token
-of its own, which you can revoke alone. `--data-dir` names the server's data folder when `ura serve`
-was given one.
+of its own, which you can revoke alone. `--data-dir` names the server's data folder when
+`ura serve-app` was given one.
 
 `ura key` shows an access key of the running server, once, for a browser to sign in with: the first,
 when no start showed one. Uraeda keeps only a key's hash, so it never shows a key again:
@@ -90,14 +90,14 @@ their data in `.sandbox/` of the checkout until `--reset` builds them again, and
 projects, your data, or your config. [CONTRIBUTING.md](../CONTRIBUTING.md) says how to run it.
 
 `ura import-sessions` copies the sessions of the earlier web UI, `@uraeda/ui`, with their
-transcripts and the images in their messages, into the store of `ura serve`. It reads
+transcripts and the images in their messages, into the store of `ura serve-app`. It reads
 `~/.local/share/uraeda/`, that UI's data folder, or `--from`, and never changes it. A store that
 already holds sessions is refused, unless `--replace` removes them first. It is a one-time tool,
 which goes away once it has run: [INSTALL.md](../INSTALL.md#coming-from-the-web-ui-uraedaui) has the
 steps.
 
 - It reads `runner.sqlite` in that UI's data folder, `~/.local/share/uraeda/`, or in `--from`, and
-  never writes it. It writes `sessions.sqlite` in the data folder of `ura serve`, or in
+  never writes it. It writes `sessions.sqlite` in the data folder of `ura serve-app`, or in
   `--data-dir`.
 - Sessions, turns, and messages keep their IDs. Everything lands at once, or nothing does.
 - Nothing imported runs by itself, since the earlier server may still run it: a turn that ran or
@@ -106,8 +106,8 @@ steps.
 - A second run imports nothing: a store that already holds sessions is refused. With `--replace`,
   its sessions are removed, those made since included, and the earlier ones are imported in their
   place.
-- Run it while `ura serve` is stopped: a running server shows the imported sessions only once its
-  app reads them again.
+- Run it while `ura serve-app` is stopped: a running server shows the imported sessions only once
+  its app reads them again.
 
 `ura extension` manages the extensions in your config folder's `extensions/`. It never runs their
 code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder, a

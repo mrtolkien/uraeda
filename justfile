@@ -136,7 +136,7 @@ package:
 
 # The app for a browser, in `target/web/`: Native Shell's static site of `app/`, with the app's
 # Rust as WebAssembly, the page's first paint, and every file compressed (`scripts/web-build.sh`).
-# Then what a first load weighs, against its limit. `ura serve` serves it: a server started with
+# Then what a first load weighs, against its limit. `ura serve-app` serves it: a server started with
 # `URAEDA_WEB_BUILD=target/web`, and an `ura` built with it set, as `just package` builds it.
 web-build:
     {{ heavy }} scripts/web-build.sh

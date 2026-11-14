@@ -105,7 +105,7 @@ Install `ura`, which holds the app, then the skill. [INSTALL.md](INSTALL.md) has
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-cli-installer.sh | sh
 ura install                                     # the skill, for your user
-ura serve                                       # the app, in your repository, in your browser
+ura serve-app                                       # the app, in your repository, in your browser
 ```
 
 Without `ura`, install the skill with `npx skills add mrtolkien/uraeda`
@@ -120,7 +120,7 @@ chmod +x uraeda-app-x86_64.AppImage && ./uraeda-app-x86_64.AppImage
 
 Then:
 
-1. **Add your repository.** `ura serve`, run in it, opens it in your browser.
+1. **Add your repository.** `ura serve-app`, run in it, opens it in your browser.
 2. **Set it up.** Home's Setup pane lists the files the workflow needs: a constitution, the
    project's principles, and two decisions. Press "Set up with the agent", then send the message.
 3. **Write a first proposal.** On the New page, under Feature, write what you want and why, then

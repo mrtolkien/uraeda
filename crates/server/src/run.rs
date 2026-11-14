@@ -1,4 +1,4 @@
-//! `ura serve`: a server that runs until its process is told to stop.
+//! `ura serve-app`: a server that runs until its process is told to stop.
 
 use std::io;
 

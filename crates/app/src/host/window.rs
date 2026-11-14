@@ -21,7 +21,7 @@ Usage: uraeda [--server <address>] [--data-dir <folder>] [--port <port>] [--ura 
   --server <address>   Another machine's server: https://mac.tail1234.ts.net. The app pairs
                        with it on its first start.
   --data-dir <folder>  The data folder of this machine's server: Uraeda's own unless given.
-  --port <port>        The port of a server the app starts: `ura serve`'s own, 4310 unless
+  --port <port>        The port of a server the app starts: `ura serve-app`'s own, 4310 unless
                        its settings say otherwise, unless given; 0 takes a free one.
   --ura <command>      The `ura` that serves, when the app starts the server: the one beside
                        this app, else the one on the PATH.
@@ -154,7 +154,7 @@ fn target(args: &Args, beside: Option<PathBuf>) -> Target {
     if let Some(address) = &args.server {
         return Target::Remote(address.trim_end_matches('/').to_owned());
     }
-    // The server's own data folder, as `ura serve` takes it.
+    // The server's own data folder, as `ura serve-app` takes it.
     let mut data_dir = args
         .data_dir
         .clone()

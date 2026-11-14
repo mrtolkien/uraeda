@@ -1,5 +1,5 @@
 //! The app's start of its server when the server is slow, silent, or deaf, with a stand-in of
-//! `ura` (`ura-stand-in`): it logs each start, and becomes the real `ura serve` only once the
+//! `ura` (`ura-stand-in`): it logs each start, and becomes the real `ura serve-app` only once the
 //! test opens its gate. The guarantees are about a process the app started, so each test runs
 //! one: none waits on the app's own minute.
 

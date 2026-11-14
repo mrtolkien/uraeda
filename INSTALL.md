@@ -59,10 +59,10 @@ echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 
 ## The app
 
-The app runs in any browser, a phone's too: `ura serve` serves it, as
+The app runs in any browser, a phone's too: `ura serve-app` serves it, as
 [a server alone](#a-server-alone) says, and nothing else is installed. On Linux x64, it is also a
 desktop window, and on a Mac with Apple silicon a Mac app, which this section installs. The desktop
-app holds its own `ura`: on its machine, it finds the server running, or starts `ura serve` and
+app holds its own `ura`: on its machine, it finds the server running, or starts `ura serve-app` and
 stops it when its window closes.
 
 It needs GTK 4.14 or newer and WebKitGTK 6.0, which Ubuntu 24.04, Debian 13, Fedora 40, and later
@@ -135,7 +135,7 @@ so it pairs once.
 ## A server alone
 
 Without the desktop app, or on a server or a machine without a desktop, install `ura` alone, with
-the installer script or Homebrew above, and run `ura serve`. It serves the app on
+the installer script or Homebrew above, and run `ura serve-app`. It serves the app on
 http://127.0.0.1:4310, on loopback only, until it is stopped, and a start in a terminal opens it in
 your browser. Other devices reach it through a proxy, and pair with `ura pair`, as above. Started in
 a terminal, its first start prints an access key, once, which signs a browser in: keep it in a
@@ -144,8 +144,8 @@ in a log: `ura key` on its machine shows one then, once.
 
 ## Coming from the web UI, `@uraeda/ui`
 
-Uraeda's earlier web UI came from npm, and ran its own server on Node. `ura serve` replaces it, on
-the same port, with a data folder of its own: `~/.local/share/uraeda-next/`, beside the web UI's
+Uraeda's earlier web UI came from npm, and ran its own server on Node. `ura serve-app` replaces it,
+on the same port, with a data folder of its own: `~/.local/share/uraeda-next/`, beside the web UI's
 `~/.local/share/uraeda/`, which it only reads. Once:
 
 1. Stop the web UI's server, and uninstall it: `npm uninstall -g @uraeda/ui`.
@@ -153,14 +153,14 @@ the same port, with a data folder of its own: `~/.local/share/uraeda-next/`, bes
 3. Copy its list of repositories, before the new server first starts, which would write a list of
    its own: `cp -n ~/.local/share/uraeda/repositories.json ~/.local/share/uraeda-next/`. Or skip it,
    and add each repository later with `ura add` in it.
-4. Start the new server: `ura serve` in a terminal, in a repository, or the desktop app.
-5. Sign in again. `ura serve` in a terminal prints a new access key at its first start; after the
-   desktop app's start, `ura key` prints one. Each other device pairs with `ura pair`.
+4. Start the new server: `ura serve-app` in a terminal, in a repository, or the desktop app.
+5. Sign in again. `ura serve-app` in a terminal prints a new access key at its first start; after
+   the desktop app's start, `ura key` prints one. Each other device pairs with `ura pair`.
 
 Your settings, themes, and scheduled jobs stay: both read `~/.config/uraeda/`. An extension written
 for the web UI stops loading: [its API changed](docs/extensions.md). `URAEDA_DATA_DIR`, if you set
-it for the web UI, now names the new server's folder: `ura serve` refuses the old one, so unset it
-or point it elsewhere. `ura import-sessions --from <folder>` reads an old folder kept elsewhere.
+it for the web UI, now names the new server's folder: `ura serve-app` refuses the old one, so unset
+it or point it elsewhere. `ura import-sessions --from <folder>` reads an old folder kept elsewhere.
 
 ## From source, with Nix
 

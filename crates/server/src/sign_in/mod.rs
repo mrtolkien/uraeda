@@ -7,7 +7,7 @@
 //!   and signs in with a token of its own from then on: in its `hello`, and as
 //!   `Authorization: Bearer <token>` on a route.
 //! - Everything is random, and kept only as a hash: see [`crate::secret::Hashed`].
-//! - The access key is made only where a person sees it, and nowhere else: `ura serve` at a
+//! - The access key is made only where a person sees it, and nowhere else: `ura serve-app` at a
 //!   terminal makes it at its first start, [`key_at_start`], and `ura key` asks the running
 //!   server for one, [`access_key`]. A server whose output goes to a file, as the app's, makes
 //!   none: a key in a log would rest there in clear.

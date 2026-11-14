@@ -356,7 +356,7 @@ impl TestServer {
         TestRequest::new(self.port(), method, path)
     }
 
-    /// Stops the server, as `ura serve` does on a signal.
+    /// Stops the server, as `ura serve-app` does on a signal.
     pub async fn stop(self) {
         self.server.stop().await;
     }
