@@ -25,7 +25,7 @@ pub const PICKER: &str = include_str!("../../../skills/uraeda/assets/storybook/u
 /// The address of a feature's file: the token, the repository, the folder, and the file's path.
 pub type File = Address<(String, String, String, String)>;
 
-/// `path` inside `root`, refused when it leaves it, by `..` or a link.
+/// `path` inside `root`, refused when it leaves it or reaches a hidden file, by `..` or a link.
 fn inside(root: &Path, path: &str) -> Result<PathBuf, Failure> {
     let missing = || Failure(StatusCode::NOT_FOUND, "This file does not exist.".into());
     let relative = Path::new(path);
@@ -37,7 +37,13 @@ fn inside(root: &Path, path: &str) -> Result<PathBuf, Failure> {
     }
     let root = root.canonicalize().map_err(|_| missing())?;
     let full = root.join(relative).canonicalize().map_err(|_| missing())?;
-    if !full.starts_with(&root) || !full.is_file() {
+    // A link is followed: what it leads to is held to the same rules.
+    let hidden = |inner: &Path| {
+        inner
+            .components()
+            .any(|c| c.as_os_str().to_string_lossy().starts_with('.'))
+    };
+    if !full.strip_prefix(&root).is_ok_and(|inner| !hidden(inner)) || !full.is_file() {
         return Err(missing());
     }
     Ok(full)
