@@ -70,7 +70,7 @@ A proposal is one note of `projects/<repository>/proposals/`, free form, from
 A notes app shows them as a board: an Obsidian base grouped by `status`, sorted by `rank`. No file
 lists the priorities: the proposals' fields are the list.
 
-An agent edits a proposal note in two cases only, and only its frontmatter: it sets
+An agent edits a proposal note in three cases only, and only its frontmatter: it sets
 `status: started` and `branch` when it [starts](projects.md#starting-a-feature) the feature, and
 `status: postponed` when it [postpones](projects.md#postponing-or-dropping-a-feature) it, and
 `status: done` when it finds the feature's record on the default branch and the note still

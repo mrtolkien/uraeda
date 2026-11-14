@@ -123,5 +123,5 @@ to delete. A merged feature is not dropped: it is done.
 A merged feature's worktree and branch stay until the human, or their session host, removes them:
 `git worktree remove <path>`, then `git branch -D <branch>` once every commit of the branch is on
 the default branch, as [clean up after a merge](by-hand.md#clean-up-after-a-merge) checks. The
-proposal's note in the human's notes is theirs: it says `started`, and the record in `specs/done/`
-says the rest.
+proposal's note in the human's notes says `started` until an agent finds the record in `specs/done/`
+and sets it `done`, as [Notes](notes.md#proposals-and-priorities) says.
