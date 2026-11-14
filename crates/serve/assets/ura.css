@@ -242,3 +242,118 @@ textarea {
   color: var(--bad);
 }
 /* --- end waiting --- */
+
+/* --- document --- */
+/* A workflow file drawn by `render`: callouts, task lists, footnotes, and diagrams. */
+
+.callout {
+  margin: 1em 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.callout-title + *,
+.callout > :first-child {
+  margin-top: 0;
+}
+.callout > :last-child {
+  margin-bottom: 0;
+}
+.callout-title {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.callout-note {
+  border-left-color: var(--accent);
+}
+.callout-tip {
+  border-left-color: var(--good);
+}
+.callout-important {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+.callout-warning {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+}
+.callout-caution {
+  border-left-color: var(--bad);
+  background: var(--removed);
+}
+.callout-tip .callout-title {
+  color: var(--good);
+}
+.callout-note .callout-title,
+.callout-important .callout-title {
+  color: var(--accent);
+}
+.callout-warning .callout-title {
+  color: var(--warn);
+}
+.callout-caution .callout-title {
+  color: var(--bad);
+}
+
+li.task {
+  list-style: none;
+}
+li.task input {
+  margin: 0 0.4em 0 -1.3em;
+  vertical-align: -0.1em;
+}
+
+/* A table scrolls sideways rather than break its words letter by letter. */
+th,
+td {
+  overflow-wrap: normal;
+  min-width: 6em;
+}
+
+pre code {
+  font-size: inherit;
+}
+pre.html {
+  white-space: pre-wrap;
+}
+
+.footnote {
+  display: flex;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.footnote > p {
+  margin: 0;
+}
+.footnote-label::after {
+  content: ".";
+}
+
+/* A diagram: Mermaid's neutral greys, turned over in a dark theme; a wide one scrolls. */
+.diagram {
+  margin: 1em 0;
+  overflow-x: auto;
+}
+.diagram svg {
+  display: block;
+  /* Shrunk to three quarters at most, its labels at 12 px, then scrolled. */
+  min-width: calc(var(--width, 0px) * 0.75);
+  margin: 0 auto;
+}
+@media (prefers-color-scheme: dark) {
+  .diagram svg {
+    filter: invert(0.92) hue-rotate(180deg);
+  }
+}
+.diagram-error {
+  margin: 0 0 6px;
+  color: var(--warn);
+  font-size: 0.88rem;
+}
