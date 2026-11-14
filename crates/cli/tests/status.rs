@@ -401,3 +401,48 @@ fn setup_lists_what_the_project_lacks() {
         serde_json::from_str(&ura(&set_up, &["status", "--json"]).stdout).unwrap();
     assert_eq!(json["setup"], serde_json::json!([]));
 }
+
+/// A proposal note still `started` whose branch's record is merged is listed, for an agent to set
+/// `done`; a note whose feature is still in progress is not.
+#[test]
+fn a_merged_proposal_note_still_started_is_listed() {
+    let repo = repo_with_specs();
+    feature(&repo, "2026-10-10-web-ui", &[("proposal.md", proposal())]);
+    feature(&repo, "2026-10-12-tags", &[("proposal.md", proposal())]);
+    finish_and_merge(&repo, "2026-10-10-web-ui");
+    let config = tempfile::TempDir::new().unwrap();
+    let vault = tempfile::TempDir::new().unwrap();
+    std::fs::write(
+        config.path().join("config.toml"),
+        format!("[vault]\npath = {:?}\n", vault.path().to_str().unwrap()),
+    )
+    .unwrap();
+    let name = repo.path().file_name().unwrap().to_str().unwrap();
+    let proposals = vault.path().join(format!("projects/{name}/proposals"));
+    std::fs::create_dir_all(&proposals).unwrap();
+    std::fs::write(
+        proposals.join("web-ui.md"),
+        "---\nstatus: started\nbranch: 2026-10-10-web-ui\n---\n\n# Web UI\n",
+    )
+    .unwrap();
+    std::fs::write(
+        proposals.join("tags.md"),
+        "---\nstatus: started\nbranch: 2026-10-12-tags\n---\n\n# Tags\n",
+    )
+    .unwrap();
+
+    let output = ura_in(
+        repo.path(),
+        &["status"],
+        &[("URAEDA_CONFIG_DIR", config.path().to_str().unwrap())],
+    );
+
+    assert!(
+        output.stdout.contains(&format!(
+            "  ura vault write projects/{name}/proposals/web-ui.md --set status=done\n"
+        )),
+        "{}",
+        output.stdout
+    );
+    assert!(!output.stdout.contains("tags.md"), "{}", output.stdout);
+}
