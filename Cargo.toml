@@ -145,6 +145,7 @@ uraeda-protocol = { path = "crates/protocol" }
 uraeda-serve = { path = "crates/serve" }
 uraeda-server = { path = "crates/server" }
 uraeda-text = { path = "crates/text" }
+uraeda-vault = { path = "crates/vault" }
 uraeda-vim = { path = "crates/vim" }
 
 [workspace.lints.clippy]

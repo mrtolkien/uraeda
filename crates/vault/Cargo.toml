@@ -1,0 +1,21 @@
+[package]
+name = "uraeda-vault"
+description = "The human's notes: one vault for every repository, its layout, its links to the specs, and its sync with the phone."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+thiserror.workspace = true
+toml_edit.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
