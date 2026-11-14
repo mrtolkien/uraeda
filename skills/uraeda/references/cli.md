@@ -115,4 +115,5 @@ configuration file names, with paths relative to it, as [Notes](notes.md#the-lay
 note from standard input, or sets one frontmatter field with `--set <field>=<value>`, leaving the
 rest of the note byte for byte. `rm` moves a note to the vault's `.trash/`, as Obsidian does.
 `check` reports wikilinks that resolve to no note, and wiki notes without a `description`. None of
-them touches git.
+them touches git. An existing note's path may leave out its `.md`, as Obsidian's "Copy path" gives
+it; a new note's path names its `.md`.

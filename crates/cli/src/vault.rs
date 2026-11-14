@@ -33,7 +33,8 @@ enum Command {
     },
     /// Write a note from standard input, or set one frontmatter field and leave the rest as it was
     Write {
-        /// The note, from the vault's folder: `inbox/sort-completed-tasks.md`
+        /// The note, from the vault's folder: `inbox/sort-completed-tasks.md`, its `.md` optional
+        /// when the note exists
         path: String,
         /// Set this field instead, as `name=value`: `--set status=started`
         #[arg(long, value_name = "FIELD=VALUE")]
@@ -41,7 +42,7 @@ enum Command {
     },
     /// Delete a note: it moves to the vault's `.trash/`
     Rm {
-        /// The note, from the vault's folder
+        /// The note, from the vault's folder, its `.md` optional
         path: String,
     },
     /// Report wikilinks that resolve to no note, and wiki notes without a description
