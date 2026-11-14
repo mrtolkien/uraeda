@@ -95,8 +95,8 @@ the small `ura`, and `ura serve` takes the place of `ura serve-app`'s pages. Del
 if you installed it, by hand.
 
 `ura` 3 reads `config.toml` in `~/.config/uraeda/` as before, and keeps its token and the default
-vault in `~/.local/share/uraeda-next/`. The 2.x server's sessions and list of repositories there are
-no longer read: name the repositories `ura serve` shows in `[serve] repositories`.
+vault in `~/.local/share/uraeda/`. What the 2.x servers kept there and in `uraeda-next` is no longer
+read, and can go: name the repositories `ura serve` shows in `[serve] repositories`.
 
 Your agents run where you run them: Claude Code, Codex, or any agent that reads the skill, in a
 terminal or a session host. With T3 Code, `ura serve` can tell the feature's session to continue

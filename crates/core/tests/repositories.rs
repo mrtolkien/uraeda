@@ -14,22 +14,18 @@ type DataDirCase = (
 fn the_data_folder_follows_the_platform() {
     let cases: [DataDirCase; 7] = [
         (&[("URAEDA_DATA_DIR", "/data")], "linux", "/data"),
-        (&[("XDG_DATA_HOME", "/xdg")], "linux", "/xdg/uraeda-next"),
-        (&[], "linux", "/home/me/.local/share/uraeda-next"),
+        (&[("XDG_DATA_HOME", "/xdg")], "linux", "/xdg/uraeda"),
+        (&[], "linux", "/home/me/.local/share/uraeda"),
         (
             &[("XDG_DATA_HOME", "")],
             "linux",
-            "/home/me/.local/share/uraeda-next",
+            "/home/me/.local/share/uraeda",
         ),
-        (
-            &[],
-            "macos",
-            "/home/me/Library/Application Support/uraeda-next",
-        ),
+        (&[], "macos", "/home/me/Library/Application Support/uraeda"),
         (
             &[("APPDATA", "C:\\Users\\me\\AppData\\Roaming")],
             "windows",
-            "C:\\Users\\me\\AppData\\Roaming\\uraeda-next",
+            "C:\\Users\\me\\AppData\\Roaming\\uraeda",
         ),
         (
             &[("URAEDA_DATA_DIR", "/data"), ("XDG_DATA_HOME", "/xdg")],

@@ -112,16 +112,16 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
   at a desk's width and a phone's. Stop a sandbox you started by its process id.
 - Every test and sandbox recipe, and whatever `hidden-display` runs, goes through
   `scripts/isolated.sh`: its data, configuration, cache, and state folders are temporary, and the
-  run fails when it wrote in the person's `uraeda-next` folders (ruling R356).
+  run fails when it wrote in the person's `uraeda` folders (ruling R356).
 - **Never open a window on the human's screen without asking.** On Linux, `hidden-display <command>`
   runs a command on an X display of 1400 by 800 that no screen shows, with a session bus of its own,
   so a notification sent there reaches no desktop. It is how Obsidian is run to check the vault's
   sync: the command loses the session's Wayland display, so Electron apps take
   `--ozone-platform=x11`, as in `hidden-display obsidian --ozone-platform=x11`, on a vault in a
   temporary folder, never the human's.
-- `ura serve` listens on 4310 by default, keeps its token in `uraeda-next` of the system's data
-  folder, and reads `config.toml` in `~/.config/uraeda/`. A test or a run of yours always names its
-  own port and data folder, `--port 0 --data-dir <a temporary folder>`, and its own config folder,
+- `ura serve` listens on 4310 by default, keeps its token in `uraeda` of the system's data folder,
+  and reads `config.toml` in `~/.config/uraeda/`. A test or a run of yours always names its own port
+  and data folder, `--port 0 --data-dir <a temporary folder>`, and its own config folder,
   `URAEDA_CONFIG_DIR`: never the human's settings or vault.
 
 ## Working with the human

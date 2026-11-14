@@ -179,7 +179,7 @@ in progress in its worktrees, to read: `ura serve` makes those links again as wo
 
 `ura vault` reads and writes your notes for an agent, as the skill's
 [Notes](../skills/uraeda/references/notes.md) lays them out. They are one vault for every
-repository, `Uraeda` in Uraeda's data folder (`~/.local/share/uraeda-next/Uraeda` on Linux), or the
+repository, `Uraeda` in Uraeda's data folder (`~/.local/share/uraeda/Uraeda` on Linux), or the
 folder `[vault] path` of the settings file names. Paths are from the vault's folder, and it never
 touches git.
 
