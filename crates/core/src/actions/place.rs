@@ -1,5 +1,5 @@
-//! Where an action writes: the working tree that has the branch, or a worktree created for it at
-//! `.worktrees/<branch>/`, never by switching the user's checkout (see `specs/decisions/git.md`).
+//! Where an action writes: the working tree that holds the branch. `ura` never makes a worktree,
+//! switches a checkout, or commits: the human's session host, or the next agent step, does.
 
 use std::path::PathBuf;
 
@@ -9,32 +9,22 @@ use crate::git::{Git, GitError};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Place {
     pub root: PathBuf,
-    /// Whether the worktree was created to reach the branch.
-    pub created: bool,
-    /// The branch this working tree was switched to, with `--switch` only.
-    pub switched: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlaceError {
     #[error(transparent)]
     Git(#[from] GitError),
+    #[error("no worktree holds the branch {0}: check it out in a worktree first")]
+    NoWorktree(String),
 }
 
-/// Where a branch's worktree goes: `<main checkout>/.worktrees/<branch>`.
-pub fn worktree_path(git: &Git, branch: &str) -> PathBuf {
-    git.main_root().join(".worktrees").join(branch)
-}
-
-/// Reaches a branch: this working tree when it has it, another one that has it, or a worktree
-/// created for it at `.worktrees/<branch>/`. Refused, before anything is written, when the
-/// checkout reached has a pull or a merge stopped.
+/// Reaches a branch: this working tree when it has it, else another that has it. Refused, before
+/// anything is written, when none does, or when the checkout reached has a pull or a merge stopped.
 pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
-    let place = reached(git, branch)?;
-    if !place.created {
-        Git::open(&place.root)?.ensure_not_stopped()?;
-    }
-    Ok(place)
+    let root = holder(git, branch)?.ok_or_else(|| PlaceError::NoWorktree(branch.to_string()))?;
+    Git::open(&root)?.ensure_not_stopped()?;
+    Ok(Place { root })
 }
 
 /// A checkout holds the branch checked out, or the one a stopped rebase replays: its writes are
@@ -57,36 +47,6 @@ pub(crate) fn holder(git: &Git, branch: &str) -> Result<Option<PathBuf>, GitErro
                 && worktree.branch.clone().or_else(held).as_deref() == Some(branch)
         })
         .map(|worktree| worktree.path))
-}
-
-fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
-    if let Some(root) = holder(git, branch)? {
-        return Ok(Place {
-            root,
-            created: false,
-            switched: None,
-        });
-    }
-    let path = worktree_path(git, branch);
-    if path.exists() {
-        return Err(GitError::WorktreeExists(format!(".worktrees/{branch}")).into());
-    }
-    git.exclude_worktrees()?;
-    git.add_worktree(&path, branch)?;
-    let root = std::fs::canonicalize(&path).unwrap_or(path);
-    Ok(Place {
-        root,
-        created: true,
-        switched: None,
-    })
-}
-
-/// Switches a working tree back to the branch it was on, after an action that switched it was
-/// refused before writing anything.
-pub fn switch_back(git: &Git, place: &Place, previous: Option<&str>) {
-    if let (Some(_), Some(previous)) = (&place.switched, previous) {
-        let _ = git.switch(previous);
-    }
 }
 
 /// A file's committed text, at `HEAD` of the working tree, from its top level.

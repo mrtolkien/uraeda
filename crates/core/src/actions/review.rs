@@ -15,7 +15,7 @@ mod decision;
 mod verdict;
 
 pub use decision::DecisionTarget;
-pub use verdict::{Tier, approve, approve_and_commit, request_changes, request_changes_and_commit};
+pub use verdict::{Tier, approve, request_changes};
 
 /// The file of a feature waiting for a review: the one named, or the one at its gate.
 pub fn reviewed_file(feature: &Feature, named: Option<&str>) -> Result<String, ActionError> {

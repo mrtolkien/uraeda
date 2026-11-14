@@ -127,8 +127,12 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
         let found = exists(file, &resolved);
         // A record is history: what it names may be gone since, and stays in git. A file git saw
         // move is still relinked.
-        let past =
-            matches!(file.kind, super::Checked::Record) && file.finder.went(&resolved).is_none();
+        let past = matches!(file.kind, super::Checked::Record)
+            && !found
+            && matches!(
+                file.finder.went(&resolved),
+                None | Some(crate::moves::Went::Deleted { .. })
+            );
         if !found && past {
             continue;
         }

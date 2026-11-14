@@ -53,24 +53,9 @@ pub(crate) fn run(program: &str, args: &[&str], dir: &Path) -> Result<Vec<u8>, F
     run_command(command(program, args, dir))
 }
 
-/// Runs `git` with `args` in `dir` for a write the human asked for, which must never wait on
-/// someone at a terminal: no stdin, no credential prompt (`GIT_TERMINAL_PROMPT=0`), and no editor
-/// (`GIT_EDITOR=true` keeps the message git prepared). Its output is streamed to `on_line` when
-/// one is given, as [`stream_command`] does; else it returns stdout once it succeeds, as [`run`].
-pub(crate) fn git_write(
-    args: &[&str],
-    dir: &Path,
-    on_line: Option<&dyn Fn(&str)>,
-) -> Result<Vec<u8>, Failure> {
-    let git = write_command(args, dir);
-    match on_line {
-        Some(on_line) => stream_command(git, on_line, None),
-        None => run_command(git),
-    }
-}
-
-/// Runs `git` with `args` in `dir` as [`git_write`] does, its output streamed to `on_line`, and
-/// stops it, with every process it started, like `ssh`, once it runs past `deadline`: a remote
+/// Runs `git` with `args` in `dir` for a write that must never wait on someone at a terminal: no
+/// stdin, no credential prompt (`GIT_TERMINAL_PROMPT=0`), and no editor (`GIT_EDITOR=true`). Its
+/// output is streamed to `on_line`, and it stops it, with every process it started, like `ssh`, once it runs past `deadline`: a remote
 /// that never answers fails it with [`Failure::Deadline`].
 pub(crate) fn git_write_within(
     args: &[&str],
@@ -81,7 +66,7 @@ pub(crate) fn git_write_within(
     stream_command(write_command(args, dir), on_line, Some(deadline))
 }
 
-/// `git` with `args`, to run in `dir` for a write: see [`git_write`].
+/// `git` with `args`, to run in `dir` for a write: see [`git_write_within`].
 fn write_command(args: &[&str], dir: &Path) -> Command {
     let mut git = command("git", args, dir);
     git.env("GIT_TERMINAL_PROMPT", "0")
@@ -307,39 +292,5 @@ mod tests {
         };
         assert_eq!((message.as_str(), output.as_str()), ("err", "out\nerr"));
         assert_eq!(lines.into_inner().unwrap(), ["out", "err"]);
-    }
-
-    /// A write never waits on a terminal: git sees no prompt and no editor, streamed or not.
-    #[test]
-    fn a_write_runs_git_without_a_prompt_or_an_editor() {
-        // SAFETY: nextest runs each test in a process of its own. Without these in the test's own
-        // environment, only `git_write` can set them for git.
-        unsafe {
-            std::env::remove_var("GIT_TERMINAL_PROMPT");
-            std::env::remove_var("GIT_EDITOR");
-        }
-        let env = ["-c", "alias.env=!env", "env"];
-        let lines = Mutex::new(Vec::new());
-        let streamed = git_write(
-            &env,
-            Path::new("."),
-            Some(&|line| {
-                lines.lock().unwrap().push(line.to_string());
-            }),
-        )
-        .unwrap();
-        let ran = String::from_utf8(git_write(&env, Path::new("."), None).unwrap()).unwrap();
-
-        for output in [ran, String::from_utf8(streamed).unwrap()] {
-            let lines: Vec<&str> = output.lines().collect();
-            assert!(lines.contains(&"GIT_TERMINAL_PROMPT=0"), "{output}");
-            assert!(lines.contains(&"GIT_EDITOR=true"), "{output}");
-        }
-        assert!(
-            lines
-                .into_inner()
-                .unwrap()
-                .contains(&"GIT_EDITOR=true".to_string())
-        );
     }
 }

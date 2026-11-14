@@ -132,8 +132,6 @@ pub async fn write<T: Send + 'static>(
 pub fn place(located: &Located) -> Place {
     Place {
         root: located.root.clone(),
-        created: false,
-        switched: None,
     }
 }
 

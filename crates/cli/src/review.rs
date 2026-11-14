@@ -17,7 +17,6 @@ pub struct Options {
     pub request_changes: bool,
     pub summary: Option<String>,
     pub tier: Tier,
-    pub no_commit: bool,
 }
 
 /// `50`, `50-52`, or `general`.
@@ -56,12 +55,8 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         .branch
         .clone()
         .ok_or_else(|| format!("{} has no branch", feature.folder))?;
-    let previous = git.current_branch();
     let place = place::reach(&git, &branch).map_err(|error| error.to_string())?;
-    let refused = |error: String| {
-        place::switch_back(&git, &place, previous.as_deref());
-        error
-    };
+    let refused = |error: String| error;
     if let Some(comment) = &options.comment {
         let [range, text] = comment.as_slice() else {
             return Err(
@@ -95,24 +90,16 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
     } else {
         format!("Changes requested on {file}")
     };
-    if options.no_commit {
-        let change = if options.approve {
-            review::approve(&place, feature, &file, summary, &options.tier, today)
-        } else {
-            review::request_changes(&place, feature, &file, summary, today)
-        }
-        .map_err(|e| refused(e.to_string()))?;
-        output::say_place(&git, &place);
-        println!("{done}: commit {}.", list(&change.paths));
+    let change = if options.approve {
+        review::approve(&place, feature, &file, summary, &options.tier, today)
     } else {
-        let committed = if options.approve {
-            review::approve_and_commit(&place, feature, &file, summary, &options.tier, today)
-        } else {
-            review::request_changes_and_commit(&place, feature, &file, summary, today)
-        }
-        .map_err(|e| refused(output::action_error(e)))?;
-        output::say_place(&git, &place);
-        println!("{done}, committed as \"{}\".", committed.change.subject);
+        review::request_changes(&place, feature, &file, summary, today)
     }
+    .map_err(|e| refused(e.to_string()))?;
+    output::say_place(&git, &place);
+    println!(
+        "{done} in {}: the next step commits it.",
+        list(&change.paths)
+    );
     Ok(ExitCode::SUCCESS)
 }

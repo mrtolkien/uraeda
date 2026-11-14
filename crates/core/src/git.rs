@@ -5,7 +5,6 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-mod commit;
 mod diff;
 mod history;
 mod log;
@@ -15,12 +14,14 @@ mod status;
 mod stopped;
 mod worktrees;
 
-pub use commit::{OnOutput, others_staged};
 pub use diff::text_patch;
 pub use history::{CommitInfo, CommitPaths, Mark, Range};
 pub use stopped::{Stopped, StoppedKind};
 
 pub use gix::ObjectId;
+
+/// Called with each line a git command prints, as it prints it.
+pub type OnOutput<'a> = Option<&'a dyn Fn(&str)>;
 
 /// Failing to read or write git.
 #[derive(Debug, thiserror::Error)]
@@ -36,12 +37,8 @@ pub enum GitError {
         message: String,
         output: String,
     },
-    #[error("git not found: install git to commit")]
+    #[error("git not found: install git")]
     GitNotFound,
-    #[error("other files are staged: {}: commit or unstage them first", .0.join(", "))]
-    OtherStagedFiles(Vec<String>),
-    #[error("cannot create the worktree: {0} exists")]
-    WorktreeExists(String),
     /// A write refused before running, its text the whole message, like "A pull is stopped:
     /// continue or abort it first."
     #[error("{0}")]
@@ -285,11 +282,6 @@ impl Git {
             .map_err(read_error(what.as_str()))
     }
 
-    /// Deletes a local branch, once the caller checked its commits are merged.
-    pub fn delete_branch(&self, branch: &str) -> Result<(), GitError> {
-        self.run("branch", &["branch", "--quiet", "-D", branch])
-    }
-
     /// The tracked files that differ from `HEAD` here, staged or not, sorted. Untracked files are
     /// not listed.
     pub fn changed_files(&self) -> Result<Vec<String>, GitError> {
@@ -309,20 +301,6 @@ impl Git {
             .ok()?
             .modified()
             .ok()
-    }
-
-    /// Switches this working tree to an existing branch, local or on `origin`.
-    pub fn switch(&self, branch: &str) -> Result<(), GitError> {
-        self.run("switch", &["switch", branch])
-    }
-
-    /// Creates `branch` from `from`, and switches this working tree to it.
-    pub fn switch_new(&self, branch: &str, from: &str) -> Result<(), GitError> {
-        self.run("switch", &["switch", "--create", branch, from])
-    }
-
-    fn run(&self, subcommand: &str, args: &[&str]) -> Result<(), GitError> {
-        self.output(subcommand, args).map(|_| ())
     }
 
     /// Runs `git`, and returns its stdout.

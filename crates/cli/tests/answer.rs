@@ -51,7 +51,7 @@ fn writes_one_answer_without_committing() {
 }
 
 #[test]
-fn submit_records_the_block_and_commits() {
+fn submit_records_the_block_and_commits_nothing() {
     let repo = waiting(&["A", "B", "A"]);
     repo.switch("2026-10-10-cli-core");
 
@@ -60,15 +60,11 @@ fn submit_records_the_block_and_commits() {
     let text = repo.read(FILE);
     assert!(text.starts_with("---\nstatus: answered\n---\n"));
     assert!(text.contains("> [!NOTE]\n>\n> Answered on 2026-10-11.\n>\n> - A point.\n"));
-    assert_eq!(
-        repo.subjects("HEAD")[0],
-        "discovery(cli-core): answer round 01"
-    );
-    assert_eq!(repo.changed_in("HEAD"), [FILE]);
-    assert_eq!(repo.hook_runs(), 1);
+    assert_eq!(repo.subjects("HEAD").len(), 3);
+    assert_eq!(repo.hook_runs(), 0);
     assert_eq!(
         output.stdout,
-        "Round 01 answered, committed as \"discovery(cli-core): answer round 01\".\n"
+        format!("Round 01 answered in {FILE}: the next step commits it.\n")
     );
 }
 
@@ -86,15 +82,16 @@ fn submit_refuses_blank_answers() {
 }
 
 #[test]
-fn writes_in_a_new_worktree_from_main() {
+fn writes_in_the_worktree_from_main_and_commits_nothing() {
     let repo = waiting(&["A", "B", "A"]);
 
     let output = ura(&repo, &["answer", "cli-core", "--submit"]);
 
     assert_eq!(repo.current_branch(), "main");
+    assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(
         repo.subjects("2026-10-10-cli-core")[0],
-        "discovery(cli-core): answer round 01"
+        "work on 2026-10-10-cli-core"
     );
     assert!(
         output
@@ -103,7 +100,14 @@ fn writes_in_a_new_worktree_from_main() {
         "{}",
         output.stdout
     );
-    assert_eq!(repo.hook_runs(), 1);
+    let written = std::fs::read_to_string(
+        repo.path()
+            .join(".worktrees/2026-10-10-cli-core")
+            .join(FILE),
+    )
+    .unwrap();
+    assert!(written.contains("status: answered"));
+    assert_eq!(repo.hook_runs(), 0);
 }
 
 #[test]
@@ -173,51 +177,7 @@ fn refuses_markdown_structure_in_an_answer() {
 }
 
 #[test]
-fn hook_reformatting_leaves_a_clean_tree() {
-    let repo = waiting(&["A", "B", "A"]);
-    repo.switch("2026-10-10-cli-core");
-    repo.set_hook(
-        "for f in $(git diff --cached --name-only); do echo >> \"$f\"; git add \"$f\"; done",
-    );
-
-    let output = ura(&repo, &["answer", "--submit"]);
-
-    assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(repo.porcelain(), "");
-}
-
-#[test]
-fn a_failing_hook_keeps_the_files() {
-    let repo = waiting(&["A", "B", "A"]);
-    repo.switch("2026-10-10-cli-core");
-    repo.set_hook("echo boom >&2; exit 1");
-
-    let output = ura(&repo, &["answer", "--submit"]);
-
-    assert_eq!(
-        output.stderr,
-        "ura: git commit failed: boom\nura: commit failed: fix the hook's error, then commit\n"
-    );
-    assert!(repo.read(FILE).contains("status: answered"));
-    assert_eq!(output.code, 1);
-}
-
-#[test]
-fn no_commit_leaves_the_files() {
-    let repo = waiting(&["A", "B", "A"]);
-    repo.switch("2026-10-10-cli-core");
-
-    let output = ura(&repo, &["answer", "--submit", "--no-commit"]);
-
-    assert_eq!(
-        output.stdout,
-        format!("Round 01 answered in {FILE}: commit it.\n")
-    );
-    assert_eq!(repo.subjects("HEAD").len(), 3);
-}
-
-#[test]
-fn no_commit_names_the_images_to_commit() {
+fn submit_names_the_images_the_next_step_commits() {
     let repo = waiting(&["A", "B", ""]);
     repo.switch("2026-10-10-cli-core");
     ura(
@@ -226,11 +186,13 @@ fn no_commit_names_the_images_to_commit() {
     );
     repo.write("specs/2026-10-10-cli-core/images/one.webp", "one");
 
-    let output = ura(&repo, &["answer", "--submit", "--no-commit"]);
+    let output = ura(&repo, &["answer", "--submit"]);
 
     assert_eq!(
         output.stdout,
-        format!("Round 01 answered in {FILE}: commit it with specs/2026-10-10-cli-core/images.\n")
+        format!(
+            "Round 01 answered in {FILE}, with specs/2026-10-10-cli-core/images: the next step commits them.\n"
+        )
     );
     assert_eq!(repo.subjects("HEAD").len(), 3);
 }
