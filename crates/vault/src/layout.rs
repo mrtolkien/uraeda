@@ -25,6 +25,30 @@ pub fn ensure(vault: &Vault, projects: &[&str]) -> io::Result<()> {
     Ok(())
 }
 
+/// The layout's folders that exist, from the vault's: `inbox`, `wiki/apps`,
+/// `projects/todo/proposals`.
+pub fn folders(vault: &Vault) -> Vec<String> {
+    let root = vault.root();
+    let mut out = vec!["inbox".to_string()];
+    out.extend(WIKI_FOLDERS.iter().map(|f| format!("wiki/{f}")));
+    if let Ok(entries) = std::fs::read_dir(root.join("projects")) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.starts_with('.') || !entry.path().is_dir() {
+                continue;
+            }
+            out.extend(
+                PROJECT_FOLDERS
+                    .iter()
+                    .map(|f| format!("projects/{name}/{f}")),
+            );
+        }
+    }
+    out.retain(|f| root.join(f).is_dir());
+    out.sort();
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -37,6 +61,7 @@ mod tests {
         std::fs::write(vault.root().join("inbox/a.md"), "mine").unwrap();
         ensure(&vault, &["todo"]).unwrap();
         ensure(&vault, &["todo"]).unwrap();
+        assert!(folders(&vault).contains(&"projects/todo/research".to_string()));
         for folder in [
             "wiki/gotchas",
             "projects/todo/proposals",

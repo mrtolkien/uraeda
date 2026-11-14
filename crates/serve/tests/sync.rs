@@ -35,7 +35,15 @@ fn a_first_sync_pulls_the_notes_and_the_repositorys_files() {
         .map(|a| a["path"].as_str().unwrap())
         .collect();
     let proposal = format!("projects/todo/specs/{FOLDER}/proposal.md");
-    assert_eq!(pulled, ["inbox/a.md", proposal.as_str()]);
+    assert_eq!(
+        pulled,
+        [
+            ".obsidian/plugins/uraeda/main.js",
+            ".obsidian/plugins/uraeda/manifest.json",
+            "inbox/a.md",
+            proposal.as_str()
+        ]
+    );
     assert!(actions.iter().all(|a| a["do"] == "pull"));
     assert!(vault.root().join("wiki/gotchas").is_dir());
     assert!(vault.root().join("projects/todo/proposals").is_dir());
