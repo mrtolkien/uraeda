@@ -17,6 +17,7 @@
 
 pub mod config;
 pub mod layout;
+pub mod links;
 pub mod paths;
 
 use std::path::{Path, PathBuf};
