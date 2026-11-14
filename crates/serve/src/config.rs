@@ -46,6 +46,9 @@ pub struct Settings {
     /// The host names the pages answer at besides this machine's own, lower case: the name
     /// `tailscale serve` gives, like `laptop.tail1234.ts.net`. Any other `Host` is refused.
     pub hosts: Vec<String>,
+    /// T3 Code's data folder, whose providers the settings page offers: `T3CODE_HOME`, else
+    /// `~/.t3`, when unset.
+    pub t3_home: Option<PathBuf>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -199,6 +202,7 @@ mod tests {
                 repositories: vec![PathBuf::from("/h/a"), PathBuf::from("/b")],
                 wake: Some(Wake::t3()),
                 hosts: Vec::new(),
+                t3_home: None,
             })
         );
     }
