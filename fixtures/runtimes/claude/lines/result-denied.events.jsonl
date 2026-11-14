@@ -1,1 +1,0 @@
-{"costUsd":0.1160696,"denials":[{"input":{"command":"gh pr create --draft","description":"Create a draft pull request"},"tool":"Bash"}],"errors":[],"ok":true,"type":"result","interrupted":false}

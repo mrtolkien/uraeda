@@ -4,5 +4,3 @@ coverage/
 # `just sandbox`'s sample projects and data.
 /.sandbox/
 /.sandbox-*
-# Native Shell's generated files: types, the runners' sources, and builds.
-.nsh/

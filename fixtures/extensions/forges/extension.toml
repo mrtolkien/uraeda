@@ -1,6 +1,0 @@
-name = "forges"
-title = "Forges"
-description = "A page that forges messages for other pages, for the browser's tests of extension pages."
-version = "0.1.0"
-api = 1
-page = "page.tsx"

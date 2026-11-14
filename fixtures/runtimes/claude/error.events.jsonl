@@ -1,8 +1,0 @@
-{"id":"fc9121ce-5bae-426f-96af-9152a45b7feb","type":"accepted"}
-{"sessionId":"51a87980-1485-4aae-bc94-b1335001668d","type":"init"}
-{"activity":{"kind":"tool","name":"Bash"},"type":"activity"}
-{"id":"toolu_01D99dvM514os5qcLoRUBXUT","input":{"command":"echo ok"},"kind":"execute","name":"Bash","type":"toolStart","target":"echo ok"}
-{"type":"usage","windows":[{"id":"five_hour","label":"5h","resetsAt":"2026-11-11T05:00:00.000Z","used":0.16},{"id":"seven_day","label":"Week","resetsAt":"2026-11-11T12:00:00.000Z","used":0.25}]}
-{"id":"toolu_01D99dvM514os5qcLoRUBXUT","isError":false,"output":"ok","type":"toolEnd"}
-{"total":{"cacheRead":15029,"cacheWrite":6263,"input":2,"output":50},"type":"tokens"}
-{"costUsd":0.0270589,"denials":[],"errors":["Reached maximum number of turns (1)"],"models":["claude-sonnet-5-5"],"ok":false,"type":"result","interrupted":false}

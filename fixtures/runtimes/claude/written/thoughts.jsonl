@@ -1,6 +1,0 @@
-{"message":{"content":[{"signature":"s","thinking":"","type":"thinking"}],"role":"assistant"},"parent_tool_use_id":null,"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","type":"assistant"}
-{"message":{"content":[{"signature":"s","thinking":"Check the rule's shape","type":"thinking"}],"role":"assistant"},"parent_tool_use_id":null,"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","type":"assistant"}
-{"message":{"content":[{"signature":"s","thinking":"","type":"thinking"}],"role":"assistant"},"parent_tool_use_id":"toolu_1","session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","type":"assistant"}
-{"message":{"content":[{"signature":"s","thinking":"A sub-agent's","type":"thinking"}],"role":"assistant"},"parent_tool_use_id":"toolu_1","session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","type":"assistant"}
-{"message":{"content":[{"data":"abc","type":"redacted_thinking"}],"role":"assistant"},"parent_tool_use_id":null,"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","type":"assistant"}
-{"message":{"content":[{"thinking":3,"type":"thinking"},{"text":"After it.","type":"text"}],"role":"assistant"},"parent_tool_use_id":null,"session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25","type":"assistant"}

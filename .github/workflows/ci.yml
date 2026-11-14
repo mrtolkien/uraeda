@@ -17,30 +17,15 @@ permissions:
 
 # `ready` runs the full pass, every check of the repository, then fails when its checks changed a
 # file, such as a generated one left uncommitted: `crates/xtask/tests/toolchain.rs` checks that a
-# job runs it. `web` builds the app for a browser and opens it, and `release` checks the release's
-# plan and packages the Linux app, and `macos` packages the Mac app. Validation runs on Linux x64
-# only; the release matrix builds the other platforms.
+# job runs it. `release` checks the release's plan and prints the size of `ura`. Validation runs on
+# Linux x64 only; the release matrix builds the other platforms.
 jobs:
   ready:
     runs-on: ubuntu-latest
-    # Its first run builds Native Shell's crates, the app's headless runner, and every test: on
-    # a 32-thread development machine, cold, about 95 minutes of processor time, then
-    # `just app-test`, one test at a time, for 5 1/2 minutes. On a runner's four
-    # cores, an estimated 45 to 60 minutes; with the cache, far less.
-    timeout-minutes: 90
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - name: Allow the user namespaces of WebKit's sandbox
-        # The web view check of `crates/app/tests/outside.rs` starts WebKitGTK, whose page runs in
-        # bubblewrap's sandbox, which needs unprivileged user namespaces. Ubuntu 24.04 lets only
-        # the programs AppArmor profiles create them, and the dev shell's `bwrap` is Nix's, which
-        # none does: the check would fail on CI alone. The runner is a machine of its own for this
-        # job, so the restriction is lifted there, and WebKit's sandbox stays on, as the app runs it.
-        run: |
-          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
-            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          fi
       - name: Run every check
         # nextest's `ci` profile reports every failure at once.
         env:
@@ -51,31 +36,9 @@ jobs:
           git status --porcelain
           test -z "$(git status --porcelain)"
 
-  web:
-    runs-on: ubuntu-latest
-    # Its first run builds Native Shell's engine and the app's Rust for WebAssembly, then the
-    # server's tests: about 30 minutes of processor time, cold.
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Build the web app
-        # The app for a browser, as `ura serve` serves it, then what a first load weighs.
-        run: nix develop --command just web-build
-      - name: Open it in a browser
-        # The dev shell's headless Chromium signs in and opens the home page.
-        run: nix develop --command just web-test
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
   release:
     runs-on: ubuntu-latest
-    # The Linux app's package builds the app's crates in release, from a cold cache at first: 98
-    # minutes of processor time, cold, then `ura` with full link-time optimisation, 30 more, most
-    # of it on one core.
-    timeout-minutes: 90
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
@@ -85,40 +48,14 @@ jobs:
         # shell's cargo-dist, at the version dist-workspace.toml pins.
         run: nix develop --command just release-plan
 
-      - name: Package the Linux app
-        # As the release builds it (`build-app.yml`): the tarball and the AppImage, whose sizes
-        # it prints.
-        run: nix develop --command just package
-
       - name: Print the size of ura
-        # Printed on every run, never tested: see the CLI decision. The `ura` a release ships:
-        # cargo-dist's profile, with the web build `just package` made.
-        env:
-          URAEDA_WEB_BUILD: ${{ github.workspace }}/target/web
+        # Printed on every run, never tested: see the CLI decision. The `ura` a release ships,
+        # with cargo-dist's profile.
         run: |
           nix develop --command cargo build --profile dist -p uraeda-cli
           size=$(stat -c %s target/dist/ura)
           echo "ura: $size bytes"
 
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  macos:
-    # The Mac app's package, on Apple silicon, as the release builds it (`build-app-macos.yml`):
-    # the app's crates and NSH's AppKit runner in release, `ura` with link-time optimisation, and
-    # the web build `ura` holds.
-    runs-on: macos-15
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Check the app's types on macOS
-        # The app's crate builds there with the Mac's server start and keychain (`local.rs`).
-        run: nix develop --command just app-check
-      - name: Package the Mac app
-        run: nix develop --command just package-macos
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain

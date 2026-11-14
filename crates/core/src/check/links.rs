@@ -136,6 +136,13 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
         if !found && on_a_branch {
             continue;
         }
+        // A record is history: the code it names may be gone since, and stays in git.
+        let past = matches!(file.kind, super::Checked::Record)
+            && !in_specs
+            && file.finder.went(&resolved).is_none();
+        if !found && past {
+            continue;
+        }
         if !found {
             problems.push(missing(file, link.line, path, &resolved));
             continue;

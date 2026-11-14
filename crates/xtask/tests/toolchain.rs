@@ -95,23 +95,12 @@ fn run_commands(workflow: &str) -> Vec<String> {
 fn ready_runs_every_check_and_ci_runs_ready() {
     let recipes = recipes(&read("justfile"));
     let ready = runs(&recipes, "ready");
-    let checks = [
-        "fmt-check",
-        "lint",
-        "lint-app",
-        "lint-workflows",
-        "specs",
-        "test",
-        "app-check",
-        "app-test",
-    ];
+    let checks = ["fmt-check", "lint", "lint-workflows", "specs", "test"];
     for check in checks {
         assert!(ready.contains(check), "`just ready` does not run `{check}`");
     }
-    // A run that never ends, or opens the app, is no check: nothing waits for it.
-    for never in ["app", "app-dev", "gallery", "sandbox"] {
-        assert!(!ready.contains(never), "`just ready` runs `{never}`");
-    }
+    // A run that never ends is no check: nothing waits for it.
+    assert!(!ready.contains("sandbox"), "`just ready` runs `sandbox`");
     // The Rust tests are the whole workspace's: no package or filter narrows them.
     let test = &recipes["test"].lines;
     assert_eq!(test.len(), 1, "{test:?}");
@@ -137,11 +126,7 @@ fn the_reader_of_a_workflow_takes_commands_and_no_name_or_comment() {
     );
 }
 
-/// The one exception to "a test runs once" (ruling R111): the checks that draw in real GTK
-/// windows on a hidden display, which fail when other builds saturate the machine.
-const RETRIED: &str = "package(uraeda-app) & binary(tests) & test(/^outside::/)";
-
-/// The problems of cargo-nextest's configuration: a retry anywhere but the exception.
+/// The problems of cargo-nextest's configuration: a retry anywhere.
 fn retried(nextest: &str) -> Vec<String> {
     let document: DocumentMut = nextest.parse().expect("nextest.toml reads");
     let mut found = Vec::new();
@@ -161,7 +146,7 @@ fn retried(nextest: &str) -> Vec<String> {
                 .get("filter")
                 .and_then(Item::as_str)
                 .unwrap_or_default();
-            if table.contains_key("retries") && filter != RETRIED {
+            if table.contains_key("retries") {
                 found.push(format!("the profile `{name}` retries `{filter}`"));
             }
         }
@@ -170,7 +155,7 @@ fn retried(nextest: &str) -> Vec<String> {
 }
 
 #[test]
-fn no_test_is_retried_but_the_checks_that_draw_in_real_windows() {
+fn no_test_is_retried() {
     let profile = "[profile.default]\nretries = 2\n";
     assert_eq!(
         retried(profile),
@@ -224,16 +209,16 @@ fn every_library_crate_turns_its_doctests_off() {
             folder.display()
         );
     }
-    assert!(libraries >= 8, "the crates were not read: {libraries}");
+    assert!(libraries >= 4, "the crates were not read: {libraries}");
 }
 
-/// Whether a recipe's line runs tests: the Rust tests, or the app's on Native Shell's runner.
+/// Whether a recipe's line runs the Rust tests.
 fn runs_tests(line: &str) -> bool {
     let rust = ["cargo nextest", "cargo test", "cargo llvm-cov nextest"];
-    rust.iter().any(|runner| line.contains(runner)) || line.contains("{{ nsh }} test")
+    rust.iter().any(|runner| line.contains(runner))
 }
 
-// Ruling R356: a run that is not a person's use of the app has data, configuration, cache, and
+// Ruling R356: a run that is not a person's use of `ura` has data, configuration, cache, and
 // state folders of its own, and the heavy ones share the machine's two slots.
 #[test]
 fn every_recipe_that_runs_tests_is_isolated_and_the_heavy_ones_take_a_slot() {
@@ -249,12 +234,11 @@ fn every_recipe_that_runs_tests_is_isolated_and_the_heavy_ones_take_a_slot() {
             );
         }
     }
-    assert!(seen >= 8, "the recipes' test lines were not read: {seen}");
+    assert!(seen >= 4, "the recipes' test lines were not read: {seen}");
     let heavy = [
         ("lint", "cargo clippy"),
         ("test", "cargo nextest"),
         ("task", "cargo nextest"),
-        ("app-test", "{{ nsh }} test"),
     ];
     for (name, command) in heavy {
         let lines = &recipes[name].lines;

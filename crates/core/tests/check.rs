@@ -2431,3 +2431,21 @@ fn a_callout_with_its_text_in_a_separate_quote_warns() {
         "{problems:#?}"
     );
 }
+
+/// A record is history: a link to code removed since is no problem, and a link into `specs/`
+/// still is.
+#[test]
+fn a_records_link_to_removed_code_is_no_problem() {
+    let example = Example::new();
+    let record = example.read(RECORD);
+    let linked =
+        format!("{record}\nThe [old guide](/docs/removed.md) and [a spec](/specs/gone.md).\n");
+    example.write(RECORD, &linked);
+
+    let problems = summary(&example.problems());
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(
+        problems[0].contains("no file /specs/gone.md"),
+        "{problems:?}"
+    );
+}
