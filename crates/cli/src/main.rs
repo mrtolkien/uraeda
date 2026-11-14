@@ -20,6 +20,7 @@ mod pair;
 mod picker;
 mod review;
 mod sandbox;
+mod serve;
 mod serve_app;
 mod shell;
 mod start;
@@ -197,7 +198,17 @@ enum Command {
     },
     /// Add, update, remove, and list your extensions, in the config folder's extensions/
     Extension(extension::Args),
-    /// Run Uraeda's server on this machine, until it is stopped
+    /// Serve the pages to answer rounds and review specs and plans, from a phone too, until it is
+    /// stopped. Prints the address, with its token
+    Serve {
+        /// The port on 127.0.0.1: else the settings' port, else 4320; 0 takes a free one
+        #[arg(long)]
+        port: Option<u16>,
+        /// The folder the token is kept in
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+    },
+    /// Run Uraeda's earlier server on this machine, until it is stopped
     ServeApp {
         /// The port on 127.0.0.1: else URAEDA_PORT, else the settings' port, else 4310; 0 takes
         /// a free one
@@ -309,6 +320,7 @@ fn main() -> ExitCode {
         Command::Upgrade => upgrade::run(),
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
+        Command::Serve { port, data_dir } => serve::run(port, data_dir),
         Command::ServeApp {
             port,
             data_dir,

@@ -9263,6 +9263,7 @@ dependencies = [
  "tempfile",
  "uraeda-core",
  "uraeda-lsp",
+ "uraeda-serve",
  "uraeda-server",
 ]
 
