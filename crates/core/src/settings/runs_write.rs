@@ -9,14 +9,12 @@ use super::runs::{ReviewerOptions, RunOptions, RunPick, StepOptions, check_run_o
 use super::{Settings, change_path, nested, set};
 use crate::api::ApiError;
 
-/// Replaces the run options of `dir`'s file with `options`, writing only the values set, and
-/// removes the old `build_in_fresh_session`. Every other key of `[runs]`, its comments, and its
-/// order stay. Refused when the options do not pass `check_run_options`, or the file cannot be
+/// Replaces the run options of `dir`'s file with `options`, writing only the values set. Every
+/// other key of `[runs]`, its comments, and its order stay. Refused when the options do not pass `check_run_options`, or the file cannot be
 /// read.
 pub fn set_run_options(dir: &Path, options: &RunOptions) -> Result<Settings, ApiError> {
     check_run_options(options)?;
     change_path(dir, &["runs"], |runs| {
-        runs.remove("build_in_fresh_session");
         put(runs, "review_depth", options.review_depth.as_deref());
         write_steps(dir, runs, &options.steps)?;
         write_implementers(dir, runs, options.implementers.as_ref())?;

@@ -77,13 +77,7 @@ pub async fn page(State(shared): State<Arc<Shared>>) -> Response {
         let text = file_text(&dir);
         let read = settings::read(&dir);
         let body = match read {
-            Ok(read) => main(
-                &read.runs.options,
-                &serve,
-                held.agents(),
-                &dir,
-                &version_of(&text),
-            ),
+            Ok(read) => main(&read.runs, &serve, held.agents(), &dir, &version_of(&text)),
             Err(error) => format!(
                 "<main class=\"settings\"><nav class=\"crumbs\"><a href=\"./\">‹ What waits on \
                  you</a></nav><h1>Settings</h1><p class=\"error\">The settings file could not be \

@@ -76,7 +76,7 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
     };
     let feature = index.map(|index| &workspace.features[index]);
     let options = settings::read(&settings::default_config_dir())
-        .map(|read| read.runs.options)
+        .map(|read| read.runs)
         .map_err(|error| error.to_string())?;
     let run = feature.and_then(|feature| run_of(&feature.step, &options));
     if json {

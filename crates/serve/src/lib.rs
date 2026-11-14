@@ -35,8 +35,8 @@ use axum::routing::{get, post};
 
 pub use config::Settings;
 
-/// The port `ura serve` listens on when nothing names another: today's server keeps 4310.
-pub const DEFAULT_PORT: u16 = 4320;
+/// The port `ura serve` listens on when nothing names another.
+pub const DEFAULT_PORT: u16 = 4310;
 
 /// How `ura serve` starts.
 pub struct Options {

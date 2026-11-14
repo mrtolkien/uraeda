@@ -50,21 +50,10 @@ fn command_reviewer(command: &str) -> ReviewerOptions {
     }
 }
 
-/// The plan's step, starting a new session or not.
-fn plan(new_session: bool) -> RunOptions {
-    RunOptions {
-        steps: vec![StepOptions {
-            new_session: Some(new_session),
-            ..step("plan")
-        }],
-        ..RunOptions::default()
-    }
-}
-
 #[test]
 fn writes_a_step_in_its_own_table() {
     let dir = tempdir();
-    write(dir.path(), "# mine\n[runs]\ncontinue_after_limit = false\n");
+    write(dir.path(), "# mine\n[runs]\nkept = false\n");
     let options = RunOptions {
         steps: vec![StepOptions {
             agent: Some("claude".into()),
@@ -80,16 +69,16 @@ fn writes_a_step_in_its_own_table() {
 
     assert_eq!(
         text(dir.path()),
-        "# mine\n[runs]\ncontinue_after_limit = false\n\n[runs.steps.spec]\nagent = \"claude\"\nmodel = \"opus\"\neffort = \"high\"\nnew_session = true\n"
+        "# mine\n[runs]\nkept = false\n\n[runs.steps.spec]\nagent = \"claude\"\nmodel = \"opus\"\neffort = \"high\"\nnew_session = true\n"
     );
-    assert_eq!(saved.runs.options, options);
-    assert_eq!(settings::read(dir.path()).unwrap().runs.options, options);
+    assert_eq!(saved.runs, options);
+    assert_eq!(settings::read(dir.path()).unwrap().runs, options);
 }
 
 #[test]
 fn writes_the_implementers_and_reviewers_and_reads_them_back() {
     let dir = tempdir();
-    write(dir.path(), "[runs]\nautomatic_continues = 3\n");
+    write(dir.path(), "[runs]\nkept = 3\n");
     let options = RunOptions {
         steps: vec![],
         implementers: Some(RunPick {
@@ -110,53 +99,12 @@ fn writes_the_implementers_and_reviewers_and_reads_them_back() {
 
     assert_eq!(
         text(dir.path()),
-        "[runs]\nautomatic_continues = 3\nreview_depth = \"branch\"\n\n[runs.implementers]\nagent = \"codex\"\n\n[[runs.reviewers]]\nagent = \"claude\"\ninstructions = \"Check the tests.\"\n\n[[runs.reviewers]]\ncommand = \"cargo clippy\"\n"
+        "[runs]\nkept = 3\nreview_depth = \"branch\"\n\n[runs.implementers]\nagent = \"codex\"\n\n[[runs.reviewers]]\nagent = \"claude\"\ninstructions = \"Check the tests.\"\n\n[[runs.reviewers]]\ncommand = \"cargo clippy\"\n"
     );
-    assert_eq!(settings::read(dir.path()).unwrap().runs.options, options);
+    assert_eq!(settings::read(dir.path()).unwrap().runs, options);
     let cleared = settings::set_run_options(dir.path(), &RunOptions::default()).unwrap();
-    assert_eq!(cleared.runs.options, RunOptions::default());
-    assert_eq!(text(dir.path()), "[runs]\nautomatic_continues = 3\n");
-}
-
-#[test]
-fn migrates_the_old_switch() {
-    let dir = tempdir();
-    let rows: [(&str, RunOptions); 4] = [
-        ("[runs]\nbuild_in_fresh_session = false\n", plan(false)),
-        (
-            "[runs]\nbuild_in_fresh_session = true\n",
-            RunOptions::default(),
-        ),
-        (
-            "[runs]\nbuild_in_fresh_session = false\n\n[runs.steps.plan]\nnew_session = true\n",
-            plan(true),
-        ),
-        (
-            "[runs]\nbuild_in_fresh_session = false\n\n[runs.steps.plan]\nagent = \"codex\"\n",
-            RunOptions {
-                steps: vec![StepOptions {
-                    agent: Some("codex".into()),
-                    new_session: Some(false),
-                    ..step("plan")
-                }],
-                ..RunOptions::default()
-            },
-        ),
-    ];
-    for (contents, expected) in rows {
-        write(dir.path(), contents);
-
-        let read = settings::read(dir.path()).unwrap().runs.options;
-        assert_eq!(read, expected, "for {contents:?}");
-
-        settings::set_run_options(dir.path(), &read).unwrap();
-        assert!(
-            !text(dir.path()).contains("build_in_fresh_session"),
-            "for {contents:?}"
-        );
-        let again = settings::read(dir.path()).unwrap().runs.options;
-        assert_eq!(again, expected, "for {contents:?}");
-    }
+    assert_eq!(cleared.runs, RunOptions::default());
+    assert_eq!(text(dir.path()), "[runs]\nkept = 3\n");
 }
 
 #[test]
@@ -206,129 +154,6 @@ fn reports_where_a_run_option_is_wrong() {
             error.message.ends_with(&format!(": {problem}")),
             "for {contents:?}: {}",
             error.message
-        );
-    }
-}
-
-/// The settings' run options a feature's are merged over.
-fn settings_options() -> RunOptions {
-    RunOptions {
-        steps: vec![
-            StepOptions {
-                agent: Some("claude".into()),
-                effort: Some("high".into()),
-                ..step("spec")
-            },
-            StepOptions {
-                new_session: Some(false),
-                ..step("plan")
-            },
-        ],
-        implementers: Some(RunPick {
-            agent: Some("codex".into()),
-            model: Some("gpt-5".into()),
-            ..RunPick::default()
-        }),
-        reviewers: Some(vec![agent_reviewer("claude"), agent_reviewer("codex")]),
-        review_depth: Some("waves".into()),
-    }
-}
-
-#[test]
-fn merges_a_feature_over_the_settings() {
-    let defaults = settings_options();
-    let codex_spec = StepOptions {
-        agent: Some("codex".into()),
-        ..step("spec")
-    };
-    let claude_low = RunPick {
-        agent: Some("claude".into()),
-        effort: Some("low".into()),
-        ..RunPick::default()
-    };
-    let feature_spec = StepOptions {
-        model: Some("opus".into()),
-        ..step("spec")
-    };
-    let rows: [(RunOptions, RunOptions); 5] = [
-        (
-            RunOptions {
-                steps: vec![codex_spec.clone()],
-                implementers: Some(claude_low.clone()),
-                ..RunOptions::default()
-            },
-            RunOptions {
-                steps: vec![codex_spec, defaults.steps[1].clone()],
-                implementers: Some(claude_low),
-                ..defaults.clone()
-            },
-        ),
-        (
-            RunOptions {
-                reviewers: Some(vec![]),
-                ..RunOptions::default()
-            },
-            defaults.clone(),
-        ),
-        (
-            RunOptions {
-                steps: vec![feature_spec],
-                ..RunOptions::default()
-            },
-            RunOptions {
-                steps: vec![
-                    StepOptions {
-                        agent: Some("claude".into()),
-                        model: Some("opus".into()),
-                        effort: Some("high".into()),
-                        ..step("spec")
-                    },
-                    defaults.steps[1].clone(),
-                ],
-                ..defaults.clone()
-            },
-        ),
-        (
-            RunOptions {
-                reviewers: Some(vec![command_reviewer("make check")]),
-                implementers: Some(RunPick {
-                    effort: Some("low".into()),
-                    ..RunPick::default()
-                }),
-                review_depth: Some("branch".into()),
-                ..RunOptions::default()
-            },
-            RunOptions {
-                reviewers: Some(vec![command_reviewer("make check")]),
-                implementers: Some(RunPick {
-                    agent: Some("codex".into()),
-                    model: Some("gpt-5".into()),
-                    effort: Some("low".into()),
-                }),
-                review_depth: Some("branch".into()),
-                ..defaults.clone()
-            },
-        ),
-        (
-            RunOptions {
-                steps: vec![step("build")],
-                ..RunOptions::default()
-            },
-            RunOptions {
-                steps: vec![
-                    defaults.steps[0].clone(),
-                    defaults.steps[1].clone(),
-                    step("build"),
-                ],
-                ..defaults.clone()
-            },
-        ),
-    ];
-    for (feature, expected) in rows {
-        assert_eq!(
-            settings::merge_run_options(&defaults, &feature),
-            expected,
-            "for {feature:?}"
         );
     }
 }
@@ -439,7 +264,7 @@ fn refuses_to_write_options_that_do_not_pass_the_check() {
 #[test]
 fn a_write_keeps_the_unknown_keys_and_comments() {
     let dir = tempdir();
-    let reviewers = "[runs]\nautomatic_continues = 3\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n";
+    let reviewers = "[runs]\nkept = 3\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n";
     let rows: [(&str, RunOptions, &str); 3] = [
         (
             "# my spec\n[runs.steps.spec]\nagent = \"claude\"\nnotes = \"keep\"\n\n[runs.implementers]\nagent = \"codex\"\nnotes = \"keep too\"\n",
@@ -455,7 +280,7 @@ fn a_write_keeps_the_unknown_keys_and_comments() {
                 ]),
                 ..RunOptions::default()
             },
-            "[runs]\nautomatic_continues = 3\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\n",
+            "[runs]\nkept = 3\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\n",
         ),
         (
             reviewers,
@@ -470,7 +295,7 @@ fn a_write_keeps_the_unknown_keys_and_comments() {
                 ]),
                 ..RunOptions::default()
             },
-            "[runs]\nautomatic_continues = 3\n\n[[runs.reviewers]]\nagent = \"codex\"\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\nmodel = \"opus\"\n",
+            "[runs]\nkept = 3\n\n[[runs.reviewers]]\nagent = \"codex\"\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\nmodel = \"opus\"\n",
         ),
     ];
     for (before, options, after) in rows {
@@ -480,7 +305,7 @@ fn a_write_keeps_the_unknown_keys_and_comments() {
 
         assert_eq!(text(dir.path()), after, "for {before:?}");
         assert_eq!(
-            settings::read(dir.path()).unwrap().runs.options,
+            settings::read(dir.path()).unwrap().runs,
             options,
             "for {before:?}"
         );
