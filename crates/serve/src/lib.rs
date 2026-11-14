@@ -11,6 +11,7 @@ pub mod config;
 pub mod guard;
 pub mod html;
 pub mod token;
+pub mod wake;
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::PathBuf;

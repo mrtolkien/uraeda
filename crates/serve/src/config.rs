@@ -20,10 +20,20 @@ use uraeda_core::git::Git;
 pub const FILE: &str = "config.toml";
 
 /// Who is told when the human hands work back.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Wake {
-    /// T3 Code, through its `t3` command.
-    T3,
+    /// T3 Code, through its `t3` command: `program` is the command, `t3` found on the `PATH`
+    /// unless a test names another.
+    T3 { program: PathBuf },
+}
+
+impl Wake {
+    /// T3 Code through the `t3` found on the `PATH`.
+    pub fn t3() -> Wake {
+        Wake::T3 {
+            program: PathBuf::from("t3"),
+        }
+    }
 }
 
 /// `ura serve`'s settings.
@@ -106,7 +116,7 @@ pub fn parse(text: &str, home: &Path) -> Result<Settings, Problem> {
     }
     if let Some(wake) = section.get("wake") {
         settings.wake = match wake.as_str() {
-            Some("t3") => Some(Wake::T3),
+            Some("t3") => Some(Wake::t3()),
             Some("") | Some("none") => None,
             _ => return Err(Problem::Value("wake is \"t3\" or \"none\"".into())),
         };
@@ -143,7 +153,7 @@ mod tests {
             Ok(Settings {
                 port: Some(4400),
                 repositories: vec![PathBuf::from("/h/a"), PathBuf::from("/b")],
-                wake: Some(Wake::T3),
+                wake: Some(Wake::t3()),
             })
         );
     }
