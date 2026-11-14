@@ -27,14 +27,17 @@ The spec is built on everything the human wrote for this feature, not on the ans
   often carry requirements no question asked. A note starting with a settled point's bold subject
   answers that point. See [answers](writing.md#answers) for letters, own words, and follow-ups.
 - **Review comments** on this feature, from this review and the earlier ones.
-- **What they wrote in the session**, when there was one.
+- **What they wrote in the session**, when there was one. A round asked in the session has no file:
+  its answers are the human's words in the session, and the spec keeps them, quoted where it relies
+  on them, under **Assumptions**, so the record and the next agent find them.
 
 When an answer can be read more than one way and the readings differ a lot, start a new round, with
 your reading as the recommended option. When they differ little, pick one, and give the block an
 item the human flips in a word: "Read as X. The other reading, Y, would [cost]."
 
 Turn the answered round's block into a note, as [the block](writing.md#the-block) says, in the
-spec's commit.
+spec's commit, after the human's answers were
+[committed first](../SKILL.md#the-humans-work-is-committed-first).
 
 ## Is the scope clear?
 

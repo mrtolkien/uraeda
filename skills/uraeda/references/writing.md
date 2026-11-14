@@ -1,7 +1,7 @@
 # Writing for the human
 
-How every file the human reads is written: a round of questions, the inbox triage, a spec, a
-decision, a plan to review, and a pull request. The steps link here instead of repeating it.
+How every file the human reads is written: a round of questions, a spec, a decision, a plan to
+review, and a pull request. The steps link here instead of repeating it.
 
 The human reads a file once, top to bottom, when they have time, often days after the step that
 wrote it, and often with three other features in their head. They have not read the discovery, the
@@ -78,8 +78,6 @@ a change's. In order, a round holds:
 - the questions, `## Q1: ...`, each followed by its follow-ups, `### Q1.B: ...`;
 - `## Settled without the human`, the other settled points, as one list, left out when empty;
 - the line `**Notes:**`, left empty for the human.
-
-The inbox triage follows the same rules, with a free Context and no settled points.
 
 ### The round's block
 

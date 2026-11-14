@@ -188,7 +188,8 @@ Read the spec again, check the plan against it, and fix what you find:
 
 Planning settles many small choices the spec leaves open: a library call, a data structure, a file's
 name. Settle them: that is the plan's job, and the plan's text records them. Write a
-[ruling](implementation.md#rulings) only for a choice whose reason would otherwise be lost.
+[ruling](implementation.md#rulings) only for what the human must see: a behaviour users will notice
+that the spec does not state, or a test removed outside its list.
 
 ## Stopping to go back to the human
 

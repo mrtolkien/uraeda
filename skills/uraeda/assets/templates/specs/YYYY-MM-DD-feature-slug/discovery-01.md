@@ -7,25 +7,15 @@ round 01.]
 
 ## Summary
 
-[What this kind of feature usually looks like, in a few sentences: its parts, and where established
-products differ. What the proposal asks for within that range. What the code has today, and what is
-in the way.]
+[What this kind of feature usually looks like, in a few sentences, and what the proposal asks for
+within that range. What the code has today, and what is in the way. The full research: [Optional:
+the research report's name in the human's notes, `projects/<repository>/research/<folder>-NN.md`].]
 
-## How other products do it
+## Findings
 
-### [Product]
+### [A finding a question or a settled point rests on]
 
-- [How the feature works there, with its source, official help first](https://...)
-
-### What they have in common
-
-[The capabilities users may expect, whether or not the proposal mentions them.]
-
-## Standards and libraries
-
-### [Standard, library, or documentation]
-
-- [What is relevant to this feature, with its source](https://...)
+- [What was found, in a few lines, with its source: the page read, never the wiki](https://...)
 
 ## The code
 
@@ -46,8 +36,8 @@ in the way.]
 
 ### Likely changes
 
-- [`path`](/path): [what changes, and why. Under every option, or "with option [X] of
-  [topic](#topic)"]
+- [`path`](/path): [what changes, and why. Under every option, or "with option [X] of the question
+  it depends on"]
 - [Optional: each test that guards behaviour the feature changes, by file and name]
 
 ## The proposal
@@ -62,26 +52,6 @@ in the way.]
 checked, with how, or, when no experiment in reach can settle it, unverified, with why and what the
 plan must check first. Each guard an option relaxes, as what an attacker could then do. Left out
 when the feature is small and relies on nothing new.]
-
-## Approaches
-
-Criteria come from [the proposal, the constitution, and the decisions: list them, with links].
-
-### [Topic]
-
-[What this topic is about, in one sentence. Links to the sections above it relies on.]
-
-[Optional: "Only with option A of [topic](#topic).", when this topic depends on another one.]
-
-| Option | [Criterion] | [Criterion] | [Criterion] |
-| ------ | ----------- | ----------- | ----------- |
-| A. ... |             |             |             |
-| B. ... |             |             |             |
-
-### Needs no choice
-
-- [Optional: each capability from "What they have in common" that gets no topic above, and why it
-  needs no choice here]
 
 ## Not checked
 

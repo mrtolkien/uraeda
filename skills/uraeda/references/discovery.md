@@ -110,7 +110,7 @@ findings.
 - Check recent commits on the files you read: they explain choices the code does not.
 
 A problem you meet outside the feature is dropped, unless it passes the two tests of
-[agents' notes](inbox.md#agents-notes).
+[agents' notes](notes.md#agents-notes).
 
 **Outside the code**
 
