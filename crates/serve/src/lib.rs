@@ -11,7 +11,6 @@ pub mod config;
 pub mod files;
 pub mod guard;
 pub mod html;
-pub mod providers;
 pub mod render;
 pub mod review;
 pub mod round;
