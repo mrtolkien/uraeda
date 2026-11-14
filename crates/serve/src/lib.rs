@@ -270,6 +270,8 @@ pub fn run(options: Options) -> Result<(), ServeError> {
         let port = listener.local_addr()?.port();
         println!("http://127.0.0.1:{port}/{}/", shared.token);
         if let Some(vault) = shared.vault() {
+            let pages = format!("http://127.0.0.1:{port}/{}/", shared.token);
+            let _ = uraeda_vault::plugin::configure_desktop(&vault, &pages);
             println!("vault: {}", vault.root().display());
         }
         axum::serve(listener, router(shared))

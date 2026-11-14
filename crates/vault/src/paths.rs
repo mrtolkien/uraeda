@@ -6,7 +6,7 @@ pub const PLUGIN_DIR: &str = ".obsidian/plugins/uraeda";
 
 /// The plugin's files the sync carries: never its `data.json`, which holds each device's own
 /// settings.
-pub const PLUGIN_FILES: [&str; 3] = ["main.js", "manifest.json", "styles.css"];
+pub const PLUGIN_FILES: [&str; 2] = ["main.js", "manifest.json"];
 
 /// Where a deletion moves a file, on either side: Obsidian's own trash folder.
 pub const TRASH: &str = ".trash";

@@ -23,6 +23,7 @@ pub mod manifest;
 pub mod notes;
 pub mod paths;
 pub mod plan;
+pub mod plugin;
 pub mod walk;
 
 use std::path::{Path, PathBuf};

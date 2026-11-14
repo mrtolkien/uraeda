@@ -27,7 +27,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uraeda_vault::manifest::{Manifest, hash_file};
 use uraeda_vault::plan::{Action, plan as decide};
-use uraeda_vault::{Vault, layout, links, notes, paths};
+use uraeda_vault::{Vault, layout, links, notes, paths, plugin};
 
 use crate::{Shared, waiting};
 
@@ -46,6 +46,9 @@ pub struct PlanRequest {
 #[derive(Serialize)]
 pub struct PlanResponse {
     actions: Vec<Action>,
+    /// The vault's folders, which the phone makes when missing: an empty `inbox/` is there to
+    /// write in.
+    folders: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -90,11 +93,13 @@ pub async fn plan(State(shared): State<Arc<Shared>>, body: Bytes) -> Response {
     let answer = tokio::task::spawn_blocking(move || {
         refresh_now(&held, Duration::from_secs(5));
         let desktop = held.hashes.manifest(&vault);
-        decide(&desktop, &request.files, &request.base, &request.stamp)
+        let actions = decide(&desktop, &request.files, &request.base, &request.stamp);
+        let folders = layout::folders(&vault);
+        PlanResponse { actions, folders }
     })
     .await;
     match answer {
-        Ok(actions) => Json(PlanResponse { actions }).into_response(),
+        Ok(response) => Json(response).into_response(),
         Err(_) => failure(StatusCode::INTERNAL_SERVER_ERROR, "The plan failed.").into_response(),
     }
 }
@@ -229,7 +234,7 @@ pub fn refresh_now(shared: &Shared, every: Duration) {
     let Some(vault) = shared.vault() else { return };
     let names = waiting::repository_names(&shared.settings());
     let projects: Vec<&str> = names.iter().map(|(name, _)| name.as_str()).collect();
-    if layout::ensure(&vault, &projects).is_err() {
+    if layout::ensure(&vault, &projects).is_err() || plugin::install(&vault).is_err() {
         return;
     }
     for (name, path) in &names {
