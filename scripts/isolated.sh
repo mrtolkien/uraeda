@@ -8,8 +8,8 @@
 #   `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`), so `ura`'s folders, and every other
 #   tool's that follows them, stay out of the person's home. `HOME` stays: Cargo finds its caches
 #   there, and every tool these runs start follows the four.
-# - Then it checks that the person's folders of `ura`, `uraeda` in the configuration folder and
-#   `uraeda-next` in the four real ones, are as they were, and fails, naming what changed, when the
+# - Then it checks that the person's folders of `ura`, `uraeda` in each of the four real ones, are
+#   as they were, and fails, naming what changed, when the
 #   command created or changed a file there: a tool that ignored the variables. `ura` run by a
 #   person at the same time changes them too, and fails the check the same way.
 # - It ignores the host's git: its configuration, so the tests' repositories get git's defaults,
@@ -67,10 +67,10 @@ trap 'rm -rf "$run"' EXIT
 mkdir "$run/tmp" "$run/data" "$run/config" "$run/cache" "$run/state"
 
 # The person's folders of `ura`, and what each file in them is now.
-watched=("${XDG_CONFIG_HOME:-$HOME/.config}/uraeda")
+watched=()
 for base in "${XDG_DATA_HOME:-$HOME/.local/share}" "${XDG_CONFIG_HOME:-$HOME/.config}" \
   "${XDG_CACHE_HOME:-$HOME/.cache}" "${XDG_STATE_HOME:-$HOME/.local/state}"; do
-  watched+=("$base/uraeda-next")
+  watched+=("$base/uraeda")
 done
 state() {
   for folder in "${watched[@]}"; do

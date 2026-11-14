@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 /// The name of Uraeda's folder in the operating system's folder for application data.
-const FOLDER: &str = "uraeda-next";
+const FOLDER: &str = "uraeda";
 
 /// Uraeda's data folder for the user: `URAEDA_DATA_DIR`, or else the operating system's default for
 /// application data. `var` reads the environment, an empty value counting as unset; `os` is
