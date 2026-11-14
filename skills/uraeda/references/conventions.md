@@ -22,8 +22,8 @@ plus these extensions, which stay readable where they do not render:
   or a `stateDiagram-v2`. Never an image of a diagram, or an ASCII drawing.
 - **Images**: `![alt](images/name.webp)`, in the `images/` folder next to the file, committed with
   it, re-encoded once as WebP without metadata, at most 2576 pixels on its long edge. An animated
-  GIF stays a GIF. A proposal or note file that gets an image becomes a folder, `<slug>/proposal.md`
-  or `<slug>/note.md`.
+  GIF stays a GIF. In the human's notes, images stay as the notes app saved them, beside their note:
+  they are re-encoded when a feature's start copies them into git.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 
@@ -66,7 +66,6 @@ Workflow files track their state in frontmatter fields.
 | `plan.md`              | `status`          | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested`                 |
 | `plan.md`              | `spec-revision`   | the spec `revision` it implements     |                                                   |
 | `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                                     |
-| `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                                        |
 | `decisions/preview.md` | `preview-folder`  | where the preview runs: `.`, `web`    |                                                   |
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                                   |
 
@@ -74,11 +73,14 @@ A decision has no status: the one on the default branch is in force. A branch th
 changes a decision edits it in place, and the default branch keeps its text until the branch merges.
 The human approves the difference with the spec, or in a change's round.
 
+The human sets their statuses by editing the file, or through a page like `ura serve`'s, which edits
+it for them: nothing is committed until the next agent step
+[commits it first](../SKILL.md#the-humans-work-is-committed-first).
+
 **Set a human status only when the human expressly asks you to in the session**, "the spec is
-approved". Commit with the message a tool would write, `spec(recurring-tasks): approve`, and say so
-in its body: "Approved by the human in the session." A gate the human waived is recorded the same
-way, in their words. With `ura`, pass `--no-commit` to `ura answer` or `ura review`, and commit with
-that message and body.
+approved". Commit it as their work, `spec(recurring-tasks): approve`, and say so in its body:
+"Approved by the human in the session." A gate the human waived is recorded the same way, in their
+words. With `ura`, `ura answer` and `ura review` write the same files a page does.
 
 ## A file in an old format
 
@@ -94,7 +96,9 @@ file exists only when the latest review has comments: the next review replaces i
 earlier ones. The reviewed file keeps its `status`, the source of truth.
 
 - **Frontmatter**: `verdict`, `pending` while the human writes it, then `approved` or
-  `changes-requested`; and `commit`, the short hash of the version reviewed.
+  `changes-requested`; and `commit`, the short hash of the version reviewed. `ura review` writes it.
+  By hand it may stay empty: the version reviewed is then the commit the human's work follows, since
+  every agent step commits before it stops at a gate.
 - **Comments**: `## C1: ...`, numbered from C1. A comment points to
   `Lines 50–52, under "<heading>"`, `Line 50, under "<heading>"`, or `General`, and quotes its lines
   as a quote block, then says what it has to say.
@@ -110,29 +114,22 @@ earlier ones. The reviewed file keeps its `status`, the source of truth.
   answers a block item, or adds a case, does not need a request for changes.
 
 With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"`, then records the verdict,
-`--approve` or `--request-changes`.
+`--approve` or `--request-changes`, and commits nothing.
 
 ## Branches
 
-Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`). The
-proposal is committed on the default branch when the feature
-[starts](projects.md#starting-postponing-and-dropping-a-feature), and the branch starts from there.
-It holds everything after: discovery, questions, spec, decisions, plan, and code, until its folder
-is [finished](finish.md) into a record. Its pull request merges all of it at once. A change lives on
-`change/YYYY-MM-DD-<slug>`, with its folder in `specs/changes/`. Run every step on the target's
-branch: the human answers and approves on it too.
+Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`), in a
+worktree of its own. Its first commit is its proposal, made when it
+[starts](projects.md#starting-a-feature), and it holds everything after: discovery, questions, spec,
+decisions, plan, and code, until its folder is [finished](finish.md) into a record. Its pull request
+merges all of it at once. A change lives on `change/YYYY-MM-DD-<slug>`, with its folder in
+`specs/changes/`. Run every step in the target's worktree: the human answers and approves there too.
 
-**A branch never writes `PRIORITIES.md` or `INBOX.md`.** The human writes them on the default
-branch, so parallel branches never conflict there. An agent's note is a
-[note file of its own](inbox.md#agents-notes).
+**The default branch gets nothing but merges.** No step commits on it: ideas, priorities, and
+proposals live in the human's notes, and a feature's folder reaches it as a record.
 
-**Never switch the human's checkout to reach a branch.** Write where the branch is checked out, the
-checkout itself or a worktree, or else in a new worktree at `.worktrees/<branch>/`, at the root of
-the main checkout, created with `git worktree add`. Keep `.worktrees/` out of `git status` through
-`.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path, commit in a
-worktree with it made absolute from the main checkout, so the same hooks run. A new worktree has
-none of the project's dependencies: set it up as the project asks before running anything in it.
-`ura start` does all of this.
+**Never switch the human's checkout to reach a branch.** Write where the branch is checked out, or
+in a new worktree, as [starting a feature](projects.md#starting-a-feature) makes one.
 
 ## Commits
 
@@ -142,22 +139,23 @@ changed after. Messages follow [Conventional Commits](https://www.conventionalco
 one extra type per workflow step. The scope is the feature's or the change's slug, its folder's name
 without the date.
 
-| Type         | Step                                         | Example                                            |
-| ------------ | -------------------------------------------- | -------------------------------------------------- |
-| `discovery:` | A round of questions, and its research       | `discovery(recurring-tasks): recurring tasks`      |
-| `spec:`      | Write or revise a spec and its decisions     | `spec(recurring-tasks): recurring tasks`           |
-| `plan:`      | Write or revise a plan                       | `plan(recurring-tasks): split the store migration` |
-| `review:`    | Commit a review's findings, `findings-NN.md` | `review(recurring-tasks): findings 02`             |
-| `finish:`    | Replace the folder with its record           | `finish(recurring-tasks): recurring tasks`         |
+| Type         | Step                                     | Example                                            |
+| ------------ | ---------------------------------------- | -------------------------------------------------- |
+| `discovery:` | A round of questions, and its research   | `discovery(recurring-tasks): recurring tasks`      |
+| `spec:`      | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
+| `plan:`      | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
+| `finish:`    | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
 
 Code commits use the plan's messages, with the standard types and the same scope:
 `feat(recurring-tasks): repeat menu`. A change's code commits use `fix(<slug>):` for a bug and
 `feat(<slug>):` for a change. A commit that waits for the human has the block's first line as its
 body.
 
-A human's status is committed as `discovery(<slug>): answer round 01`, `spec(<slug>): approve`, or
-`plan(<slug>): request changes`. The messages a tool writes for the human's other commits, on the
-priorities, the inbox, and the proposals, are in
-[By hand](by-hand.md#commits-a-human-or-a-tool-makes).
+The human's work, committed first by the next step, takes the type of what it answers:
+`discovery(<slug>): answer round 01`, `spec(<slug>): approve`, `spec(<slug>): request changes`,
+`plan(<slug>): approve`. Its body says who wrote it: "Answered by the human, committed by the next
+step." The start's commit is `chore(<slug>): proposal`.
+
+Agents make every commit. A tool that writes the human's files, like `ura`, commits nothing.
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.
