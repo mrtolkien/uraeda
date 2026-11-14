@@ -167,6 +167,99 @@
     field.dispatchEvent(new Event("input"));
   }
 
+  // --- The settings ----------------------------------------------------------------------------
+
+  const settingsMain = $("main.settings[data-version]");
+  if (settingsMain) settingsPage(settingsMain);
+
+  function settingsPage(main) {
+    const line = $(".saved", main);
+    let version = main.dataset.version;
+    let saving = Promise.resolve();
+    const queue = (work) => (saving = saving.then(work));
+
+    const pickOf = (el) => ({
+      agent: $(".agent", el).value,
+      model: $(".model", el).value,
+      effort: $(".effort", el).value,
+    });
+
+    function collect() {
+      const steps = $$("li.step", main).map((step) => {
+        const cut = $(`button.cut[data-step="${step.dataset.step}"]`, main);
+        return {
+          step: step.dataset.step,
+          ...pickOf($(":scope > .pick", step)),
+          new_session: cut ? cut.getAttribute("aria-pressed") === "true" : false,
+        };
+      });
+      const implementers = pickOf($(".implementers .pick", main));
+      const reviewers = $$(".reviewer-list > li", main).map((item) => ({
+        ...pickOf($(".pick", item)),
+        instructions: $(".instructions", item).value,
+        command: item.dataset.kind === "command" ? $(".command", item).value : "",
+      }));
+      const depth = ($('input[name="depth"]:checked', main) || {}).value || "waves";
+      return { steps, implementers, reviewers, depth };
+    }
+
+    function write(path, body) {
+      return queue(async () => {
+        say(line, "Saving…");
+        try {
+          const data = await post(path, { ...body, version });
+          version = data.version;
+          say(line, "Saved");
+        } catch (error) {
+          say(line, error.message, error);
+        }
+      });
+    }
+
+    const saveRuns = () => write("settings/runs", { options: collect() });
+    const typed = debounce(saveRuns, 600);
+
+    main.addEventListener("change", (event) => {
+      if (event.target.classList.contains("wake")) {
+        write("settings/serve", { wake: event.target.checked });
+      } else if (event.target.matches("select, input[type=radio]")) {
+        saveRuns();
+      }
+    });
+    main.addEventListener("input", (event) => {
+      if (event.target.matches(".model, .instructions, .command")) typed();
+    });
+    main.addEventListener("focusout", (event) => {
+      if (event.target.matches(".model, .instructions, .command")) typed.now();
+    });
+    main.addEventListener("click", (event) => {
+      const cut = event.target.closest("button.cut");
+      if (cut) {
+        const on = cut.getAttribute("aria-pressed") !== "true";
+        cut.setAttribute("aria-pressed", String(on));
+        $(".label", cut).textContent = on ? "✂ New session" : "Same session";
+        saveRuns();
+        return;
+      }
+      const item = event.target.closest(".reviewer-list > li");
+      if (event.target.closest(".add-reviewer")) {
+        const list = $(".reviewer-list", main);
+        list.append($(".reviewer-template", main).content.firstElementChild.cloneNode(true));
+        saveRuns();
+      } else if (item && event.target.closest(".drop")) {
+        item.parentNode.removeChild(item);
+        saveRuns();
+      } else if (item && event.target.closest(".kind-agent, .kind-command")) {
+        const kind = event.target.closest(".kind-agent") ? "agent" : "command";
+        item.dataset.kind = kind;
+        $(".kind-agent", item).setAttribute("aria-pressed", String(kind === "agent"));
+        $(".kind-command", item).setAttribute("aria-pressed", String(kind === "command"));
+        if (kind === "command") $(".command", item).focus();
+        saveRuns();
+      }
+    });
+  }
+
   // --- The review ------------------------------------------------------------------------------
 
   const review = $("main.review");

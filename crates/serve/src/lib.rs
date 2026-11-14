@@ -14,6 +14,7 @@ pub mod html;
 pub mod render;
 pub mod review;
 pub mod round;
+pub mod settings;
 pub mod token;
 pub mod waiting;
 pub mod wake;
@@ -101,6 +102,9 @@ pub fn router(shared: Arc<Shared>) -> Router {
     Router::new()
         .route("/{token}/", get(home))
         .route("/{token}/a/{version}/{name}", get(assets::serve))
+        .route("/{token}/settings", get(settings::page))
+        .route("/{token}/settings/runs", post(settings::save_runs))
+        .route("/{token}/settings/serve", post(settings::save_serve))
         .route("/{token}/{repo}/{folder}/round", get(round::routes::page))
         .route("/{token}/{repo}/{folder}/file/{*path}", get(files::page))
         .route("/{token}/{repo}/{folder}/raw/{*path}", get(files::raw))
@@ -139,7 +143,13 @@ async fn home(State(shared): State<Arc<Shared>>) -> Html<String> {
     let waiting = tokio::task::spawn_blocking(move || waiting::read(&settings))
         .await
         .unwrap_or_default();
-    Html(html::page("What waits on you", &waiting::render(&waiting)))
+    let body = waiting::render(&waiting).replacen(
+        "</main>",
+        "<p class=\"settings-link\"><a class=\"button\" href=\"settings\">Settings: how each \
+         step runs</a></p></main>",
+        1,
+    );
+    Html(html::page("What waits on you", &body))
 }
 
 async fn not_found() -> (axum::http::StatusCode, Html<String>) {
