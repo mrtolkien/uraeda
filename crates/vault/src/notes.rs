@@ -16,6 +16,8 @@ pub enum NoteError {
     Path(String),
     #[error("{0} is git's or ura's, and read only in the vault")]
     ReadOnly(String),
+    #[error("{0} is behind a link, and read only in the vault")]
+    Linked(String),
     #[error("no note {0}")]
     Missing(String),
     #[error("a field is set as name=value, on one line")]
@@ -200,10 +202,25 @@ fn valid_name(name: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-fn writable(vault: &Vault, path: &str) -> Result<PathBuf, NoteError> {
+/// The file a write or a deletion of `path` touches: refused for a path neither `ura vault` nor
+/// the phone writes, and for one that goes through a link, which could lead out of the vault or
+/// into a repository's files.
+pub fn writable(vault: &Vault, path: &str) -> Result<PathBuf, NoteError> {
     let clean = paths::clean(path).ok_or_else(|| NoteError::Path(path.into()))?;
     if !paths::is_writable(&clean) {
         return Err(NoteError::ReadOnly(path.into()));
+    }
+    let mut at = vault.root().to_path_buf();
+    for part in clean.split('/') {
+        at.push(part);
+        match std::fs::symlink_metadata(&at) {
+            Ok(meta) if meta.file_type().is_symlink() => {
+                return Err(NoteError::Linked(path.into()));
+            }
+            Ok(_) => {}
+            // Nothing there yet, nor below it.
+            Err(_) => break,
+        }
     }
     Ok(vault.root().join(clean))
 }
@@ -267,6 +284,29 @@ mod tests {
             write(&vault, "../x.md", b""),
             Err(NoteError::Path(_))
         ));
+        #[cfg(unix)]
+        {
+            let outside = tempfile::tempdir().unwrap();
+            std::fs::write(outside.path().join("kept.md"), "kept").unwrap();
+            std::os::unix::fs::symlink(outside.path(), dir.path().join("inbox")).unwrap();
+            std::os::unix::fs::symlink(
+                outside.path().join("kept.md"),
+                dir.path().join("wiki/one.md"),
+            )
+            .unwrap();
+            for path in ["inbox/new.md", "inbox/kept.md", "wiki/one.md"] {
+                assert!(
+                    matches!(write(&vault, path, b"x"), Err(NoteError::Linked(_))),
+                    "{path}"
+                );
+                assert!(
+                    matches!(rm(&vault, path), Err(NoteError::Linked(_))),
+                    "{path}"
+                );
+            }
+            assert_eq!(read(&vault, "inbox/kept.md").unwrap(), "kept");
+            assert!(!outside.path().join("new.md").exists());
+        }
         rm(&vault, "wiki/apps/a.md").unwrap();
         write(&vault, "wiki/apps/a.md", b"again").unwrap();
         rm(&vault, "wiki/apps/a.md").unwrap();

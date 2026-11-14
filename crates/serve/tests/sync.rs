@@ -108,6 +108,43 @@ fn writes_hold_to_what_the_phone_expects() {
     assert_eq!(server.plugin("GET", &file("../etc/passwd", ""), b"").0, 404);
 }
 
+#[cfg(unix)]
+#[test]
+fn a_write_or_a_deletion_never_goes_through_a_link() {
+    let dir = tempfile::tempdir().unwrap();
+    let outside = dir.path().join("outside");
+    std::fs::create_dir(&outside).unwrap();
+    std::fs::write(outside.join("kept.md"), "kept").unwrap();
+    let vault = Vault::new(dir.path().join("Uraeda"));
+    let server = Server::syncing(Default::default(), vault.clone());
+    std::fs::create_dir_all(vault.root().join("inbox")).unwrap();
+    std::os::unix::fs::symlink(&outside, vault.root().join("inbox/alias")).unwrap();
+    let file = |path: &str, expect: &str| {
+        format!("/{}/vault/file?path={path}&expect={expect}", server.token)
+    };
+    let kept = hash_bytes(b"kept");
+    assert_eq!(
+        server
+            .plugin("PUT", &file("inbox/alias/new.md", ""), b"x")
+            .0,
+        403
+    );
+    assert_eq!(
+        server
+            .plugin("PUT", &file("inbox/alias/kept.md", &kept), b"x")
+            .0,
+        403
+    );
+    assert_eq!(
+        server
+            .plugin("DELETE", &file("inbox/alias/kept.md", &kept), b"")
+            .0,
+        403
+    );
+    assert!(!outside.join("new.md").exists());
+    assert_eq!(std::fs::read(outside.join("kept.md")).unwrap(), b"kept");
+}
+
 #[test]
 fn a_write_without_the_bearer_or_the_pages_origin_is_refused() {
     let dir = tempfile::tempdir().unwrap();
