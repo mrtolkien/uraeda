@@ -177,31 +177,12 @@
     let version = main.dataset.version;
     let saving = Promise.resolve();
     const queue = (work) => (saving = saving.then(work));
-
-    const pickOf = (el) => ({
-      agent: $(".agent", el).value,
-      model: $(".model", el).value,
-      effort: $(".effort", el).value,
-    });
-
-    function collect() {
-      const steps = $$("li.step", main).map((step) => {
-        const cut = $(`button.cut[data-step="${step.dataset.step}"]`, main);
-        return {
-          step: step.dataset.step,
-          ...pickOf($(":scope > .pick", step)),
-          new_session: cut ? cut.getAttribute("aria-pressed") === "true" : false,
-        };
-      });
-      const implementers = pickOf($(".implementers .pick", main));
-      const reviewers = $$(".reviewer-list > li", main).map((item) => ({
-        ...pickOf($(".pick", item)),
-        instructions: $(".instructions", item).value,
-        command: item.dataset.kind === "command" ? $(".command", item).value : "",
-      }));
-      const depth = ($('input[name="depth"]:checked', main) || {}).value || "waves";
-      return { steps, implementers, reviewers, depth };
-    }
+    const { agents, marks } = JSON.parse($("#providers", main).textContent);
+    const agentOf = (id) => agents.find((a) => a.id === id);
+    const modelOf = (agent, id) =>
+      agent && agent.models.find((m) => m.slug === id || m.aliases.includes(id));
+    const usualModel = (agent) => agent && (agent.models.find((m) => m.default) || agent.models[0]);
+    const markOf = (id) => marks[id === "command" || id === "" ? id : agentOf(id) ? id : "other"];
 
     function write(path, body) {
       return queue(async () => {
@@ -216,58 +197,244 @@
       });
     }
 
-    const saveRuns = () => write("settings/runs", { options: collect() });
-
-    // T3 Code's providers: picking another agent offers its models, another model its efforts.
-    const providers = JSON.parse(($("#providers", main) || { textContent: "[]" }).textContent);
-    const fill = (select, items, first) => {
-      select.innerHTML = "";
-      for (const [value, label] of [["", first], ...items]) {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        select.append(option);
+    /** A row drawn again from its pick, its `data-` values. */
+    function drawRow(row) {
+      const { agent, model, effort } = row.dataset;
+      $(".mark", row).innerHTML = markOf(agent);
+      const effortBox = $(".effort", row);
+      if (agent === "command") {
+        const command = row.closest("li.reviewer").dataset.command;
+        $(".what", row).textContent = command || "A command";
+        if (effortBox) effortBox.hidden = true;
+        return;
       }
-    };
-    function refill(pick, agentChanged) {
-      const provider = providers.find((p) => p.id === $(".agent", pick).value);
-      const models = provider ? provider.models : [];
-      if (agentChanged)
-        fill(
-          $(".model", pick),
-          models.map((m) => [m.slug, m.name]),
-          "Default",
-        );
-      const model =
-        models.find((m) => m.slug === $(".model", pick).value) ||
-        models.find((m) => m.default) ||
-        models[0];
-      const efforts = model ? model.efforts : [];
-      const usual = efforts.find((e) => e.default);
-      fill(
-        $(".effort", pick),
-        efforts.map((e) => [e.id, e.label]),
-        usual ? `Default (${usual.label})` : "Default",
-      );
+      if (effortBox) effortBox.hidden = false;
+      const a = agentOf(agent);
+      const m = modelOf(a, model);
+      let name;
+      if (!a) name = agent ? `${agent} (not listed)` : "Default";
+      else if (!model) {
+        const usual = a.models.find((x) => x.default);
+        name = usual ? `${usual.name} · default` : a.name;
+      } else name = m ? m.name : `${model} (not offered)`;
+      $(".what", row).textContent = name;
+      const shown = m || usualModel(a);
+      const efforts = shown ? shown.efforts : [];
+      const at = effort
+        ? efforts.findIndex((e) => e.id === effort)
+        : efforts.findIndex((e) => e.default);
+      const meter = $(".meter", row);
+      meter.innerHTML = "";
+      efforts.forEach((_, i) => {
+        const cell = document.createElement("i");
+        if (at >= 0 && i <= at) cell.className = "on";
+        meter.append(cell);
+      });
+      $(".effort-name", row).textContent = at >= 0 ? efforts[at].label : effort;
+      effortBox.classList.toggle("usual", !effort);
     }
+
+    function collect() {
+      const pickOf = (row) => ({
+        agent: row.dataset.agent === "command" ? "" : row.dataset.agent,
+        model: row.dataset.model || "",
+        effort: row.dataset.effort || "",
+      });
+      const steps = $$("li.step", main).map((step) => {
+        const cut = $(`button.cut[data-step="${step.dataset.step}"]`, main);
+        return {
+          step: step.dataset.step,
+          ...pickOf($(":scope > .row", step)),
+          new_session: cut ? cut.getAttribute("aria-pressed") === "true" : false,
+        };
+      });
+      const implementers = pickOf($(".implementers .row", main));
+      const reviewers = $$(".reviewers > li.reviewer", main).map((item) => {
+        const row = $(".row", item);
+        const command = row.dataset.agent === "command";
+        return {
+          ...pickOf(row),
+          instructions: command ? "" : item.dataset.instructions,
+          command: command ? item.dataset.command : "",
+        };
+      });
+      const chosen = $('.depth [aria-checked="true"]', main);
+      return { steps, implementers, reviewers, depth: chosen ? chosen.dataset.depth : "waves" };
+    }
+
+    const saveRuns = () => write("settings/runs", { options: collect() });
     const typed = debounce(saveRuns, 600);
+
+    // --- The picker: the agents as marks, the agent's models, the model's efforts.
+    const dialog = $("dialog.picker", main);
+    const body = $(".picker-body", dialog);
+
+    const button = (label, pressed, act, role = "radio") => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", role);
+      b.setAttribute("aria-checked", String(pressed));
+      if (typeof label === "string") b.textContent = label;
+      else b.append(...label);
+      b.addEventListener("click", (event) => {
+        event.preventDefault();
+        act();
+      });
+      return b;
+    };
+    const section = (title, className, children) => {
+      const box = document.createElement("section");
+      box.className = className;
+      const head = document.createElement("h3");
+      head.textContent = title;
+      const group = document.createElement("div");
+      group.className = "choices-of";
+      group.setAttribute("role", "radiogroup");
+      group.setAttribute("aria-label", title);
+      group.append(...children);
+      box.append(head, group);
+      return box;
+    };
+    const markSpan = (id) => {
+      const span = document.createElement("span");
+      span.className = "mark";
+      span.innerHTML = markOf(id);
+      return span;
+    };
+    const text = (value, className) => {
+      const span = document.createElement("span");
+      span.className = className;
+      span.textContent = value;
+      return span;
+    };
+
+    function openPicker(row) {
+      const item = row.closest("li.reviewer");
+      $("#picker-title", dialog).textContent = row.dataset.name;
+      const change = (values) => {
+        Object.assign(row.dataset, values);
+        drawRow(row);
+        saveRuns();
+        render();
+      };
+      function render() {
+        body.innerHTML = "";
+        const { agent, model, effort } = row.dataset;
+        if (item) {
+          const command = agent === "command";
+          body.append(
+            section("Reviews with", "kinds-of segmented", [
+              button("An agent", !command, () => change({ agent: "", model: "", effort: "" })),
+              button("A command", command, () =>
+                change({ agent: "command", model: "", effort: "" }),
+              ),
+            ]),
+          );
+          if (command) {
+            const field = document.createElement("input");
+            field.type = "text";
+            field.className = "command-field";
+            field.placeholder = "just review";
+            field.value = item.dataset.command;
+            field.setAttribute("aria-label", "The command, run in the feature's worktree");
+            field.addEventListener("input", () => {
+              item.dataset.command = field.value;
+              drawRow(row);
+              typed();
+            });
+            const box = document.createElement("section");
+            box.append(text("Run in the feature's worktree", "hint muted small"), field);
+            body.append(box);
+            body.append(removeButton(item));
+            return;
+          }
+        }
+        const usualAgent = button([markSpan(""), text("Default", "label")], !agent, () =>
+          change({ agent: "", model: "", effort: "" }),
+        );
+        const agentButtons = agents.map((a) => {
+          const b = button([markSpan(a.id), text(a.name, "label")], agent === a.id, () =>
+            change({ agent: a.id, model: "", effort: "" }),
+          );
+          if (a.problem) {
+            b.disabled = true;
+            b.title = a.problem;
+          }
+          return b;
+        });
+        body.append(section("Agent", "agents-of", [usualAgent, ...agentButtons]));
+        const a = agentOf(agent);
+        if (a) {
+          const usual = usualModel(a);
+          const current = modelOf(a, model);
+          const models = [
+            button(usual ? `Default · ${usual.name}` : "Default", !model, () =>
+              change({ model: "", effort: "" }),
+            ),
+            ...a.models.map((m) =>
+              button(m.name, current === m, () => {
+                const keeps = m.efforts.some((e) => e.id === row.dataset.effort);
+                change({ model: m.slug, effort: keeps ? row.dataset.effort : "" });
+              }),
+            ),
+          ];
+          body.append(section("Model", "models-of", models));
+          const shown = current || usual;
+          if (shown && shown.efforts.length) {
+            const usualEffort = shown.efforts.find((e) => e.default);
+            const efforts = [
+              button(usualEffort ? `Default · ${usualEffort.label}` : "Default", !effort, () =>
+                change({ effort: "" }),
+              ),
+              ...shown.efforts.map((e) =>
+                button(e.label, effort === e.id, () => change({ effort: e.id })),
+              ),
+            ];
+            body.append(section("Effort", "efforts-of segmented", efforts));
+          }
+        }
+        if (item) {
+          const field = document.createElement("textarea");
+          field.rows = 2;
+          field.value = item.dataset.instructions;
+          field.setAttribute("aria-label", "Instructions for the reviewer, optional");
+          field.placeholder = "Instructions, optional";
+          field.addEventListener("input", () => {
+            item.dataset.instructions = field.value;
+            typed();
+          });
+          const box = document.createElement("section");
+          box.append(field);
+          body.append(box, removeButton(item));
+        }
+      }
+      render();
+      dialog.showModal();
+    }
+
+    function removeButton(item) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "remove-reviewer";
+      b.textContent = "Remove this reviewer";
+      b.addEventListener("click", (event) => {
+        event.preventDefault();
+        item.parentNode.removeChild(item);
+        saveRuns();
+        dialog.close();
+      });
+      return b;
+    }
+
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener("close", () => typed.now());
 
     main.addEventListener("change", (event) => {
       if (event.target.classList.contains("wake")) {
         write("settings/serve", { wake: event.target.checked });
-      } else if (event.target.matches("select, input[type=radio]")) {
-        const pick = event.target.closest(".pick");
-        if (pick && event.target.matches(".agent, .model")) {
-          refill(pick, event.target.matches(".agent"));
-        }
-        saveRuns();
       }
-    });
-    main.addEventListener("input", (event) => {
-      if (event.target.matches(".instructions, .command")) typed();
-    });
-    main.addEventListener("focusout", (event) => {
-      if (event.target.matches(".instructions, .command")) typed.now();
     });
     main.addEventListener("click", (event) => {
       const cut = event.target.closest("button.cut");
@@ -278,22 +445,24 @@
         saveRuns();
         return;
       }
-      const item = event.target.closest(".reviewer-list > li");
-      if (event.target.closest(".add-reviewer")) {
-        const list = $(".reviewer-list", main);
-        list.append($(".reviewer-template", main).content.firstElementChild.cloneNode(true));
+      const depth = event.target.closest(".depth [data-depth]");
+      if (depth) {
+        for (const b of $$(".depth [data-depth]", main)) {
+          b.setAttribute("aria-checked", String(b === depth));
+        }
         saveRuns();
-      } else if (item && event.target.closest(".drop")) {
-        item.parentNode.removeChild(item);
-        saveRuns();
-      } else if (item && event.target.closest(".kind-agent, .kind-command")) {
-        const kind = event.target.closest(".kind-agent") ? "agent" : "command";
-        item.dataset.kind = kind;
-        $(".kind-agent", item).setAttribute("aria-pressed", String(kind === "agent"));
-        $(".kind-command", item).setAttribute("aria-pressed", String(kind === "command"));
-        if (kind === "command") $(".command", item).focus();
-        saveRuns();
+        return;
       }
+      if (event.target.closest(".add-reviewer")) {
+        const list = $(".reviewers", main);
+        const item = $(".reviewer-template", main).content.firstElementChild.cloneNode(true);
+        list.append(item);
+        saveRuns();
+        openPicker($(".row", item));
+        return;
+      }
+      const row = event.target.closest("button.row");
+      if (row && !dialog.contains(row)) openPicker(row);
     });
   }
 

@@ -88,21 +88,30 @@ fn the_page_draws_each_step_its_sessions_and_the_reviewers() {
         "Discovery",
         "Comments",
         "Implementers",
-        "Reviewers",
-        "The branch only",
+        "+ Reviewer",
+        "Branch only",
     ] {
         assert!(page.contains(word), "{word}");
     }
-    // The spec's agent, model, and effort, as the agents list them.
+    // The spec's row: Claude Code's mark, its model's name, and its effort on the meter.
+    let spec = page.find("data-step=\"spec\"><button").unwrap();
+    let row = &page[spec..page[spec..]
+        .find("</li>")
+        .map_or(page.len(), |end| spec + end)];
     assert!(
-        page.contains("<option value=\"claude\" selected>Claude Code</option>"),
-        "{page}"
+        row.contains("data-agent=\"claude\" data-model=\"fable\" data-effort=\"high\""),
+        "{row}"
     );
-    assert!(page.contains("<option value=\"codex\">Codex</option>"));
-    assert!(page.contains("<option value=\"fable\" selected>Fable 5.2</option>"));
-    assert!(page.contains("<option value=\"high\" selected>high</option>"));
-    assert!(page.contains("Default (medium)"));
-    assert!(page.contains("id=\"providers\""));
+    assert!(row.contains("<span class=\"what\">Fable 5.2</span>"));
+    assert!(row.contains(
+        "<i class=\"on\"></i><i class=\"on\"></i></span><span class=\"effort-name\">high"
+    ));
+    assert!(row.contains("<svg"), "the agent's mark");
+    assert!(page.contains("<dialog class=\"picker\""));
+    assert!(
+        page.contains("\"name\":\"Codex\""),
+        "the agents, for the picker"
+    );
     // Plan starts a new session by default; the other joints join.
     assert!(
         page.contains("aria-pressed=\"true\" data-step=\"plan\""),

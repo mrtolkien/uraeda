@@ -718,151 +718,154 @@ details.general > summary {
 /* --- end mockups --- */
 
 /* --- settings --- */
-main.settings ol.steps {
+/* The workflow as a track: one compact row per step, a thin joint between two, and what runs
+   under Build and Review indented beneath. */
+.track {
   list-style: none;
-  margin: 0;
+  margin: 16px 0;
   padding: 0;
-}
-main.settings li.step {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 4px var(--gap) var(--gap);
+  overflow: hidden;
 }
-main.settings li.step h3 {
-  margin: 0.6em 0 0;
+.track ul.under {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 28px;
+  border-top: 1px dashed var(--line);
 }
-main.settings li.step .head p {
-  margin: 2px 0 8px;
+.track ul.under > li + li {
+  border-top: 1px dashed var(--line);
 }
-.pick {
+button.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  justify-content: flex-start;
+}
+button.row:hover {
+  background: var(--accent-soft);
+}
+.row .mark,
+.picker .mark {
+  flex: none;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
 }
-@media (max-width: 520px) {
-  .pick {
-    grid-template-columns: 1fr 1fr;
-  }
-  .pick .field:nth-child(2) {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
+.row .mark svg,
+.picker .mark svg {
+  width: 18px;
+  height: 18px;
 }
-.field {
+.row .body {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  gap: 2px;
-  font-size: 0.85rem;
+}
+.row .name {
+  font-weight: 600;
+  line-height: 1.25;
+}
+.row .what {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row .effort {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.row .effort.usual {
   color: var(--muted);
 }
-.field.wide {
-  margin-top: 8px;
+.meter {
+  display: flex;
+  gap: 2px;
 }
-.field select,
-.field input {
-  font: inherit;
-  font-size: 1rem;
-  color: var(--text);
-  background: var(--bg);
-  min-height: 44px;
-  padding: 6px 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  width: 100%;
+.meter i {
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.meter i.on {
+  background: var(--accent);
+}
+.row .effort.usual .meter i.on {
+  background: var(--muted);
+}
+.row .chevron {
+  color: var(--muted);
+  font-size: 1.2rem;
 }
 li.joint {
   display: flex;
   justify-content: center;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
 }
 button.cut {
+  min-height: 32px;
   border: 0;
   background: transparent;
   color: var(--muted);
-  flex-direction: column;
-  gap: 0;
-  padding: 0 12px;
-  font-size: 0.85rem;
-}
-button.cut .line {
-  width: 2px;
-  height: 14px;
-  background: var(--line);
+  font-size: 0.8rem;
+  padding: 2px 12px;
 }
 button.cut[aria-pressed="true"] {
   color: var(--accent);
   font-weight: 600;
 }
-button.cut[aria-pressed="true"] .line {
-  background: transparent;
-  border-left: 2px dashed var(--accent);
-  width: 0;
-}
-.under {
-  border-top: 1px solid var(--line);
-  margin-top: 14px;
-  padding-top: 4px;
-}
-.under h4 {
-  margin: 0.6em 0 0;
-}
-.under > p {
-  margin: 2px 0 8px;
-}
-.reviewer-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-.reviewer-list > li {
-  border: 1px dashed var(--line);
-  border-radius: var(--radius);
-  padding: 10px;
-}
-.kinds {
+.review-more {
   display: flex;
-  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-.kinds button[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.kinds .drop {
-  margin-left: auto;
-}
-.reviewer[data-kind="agent"] .as-command,
-.reviewer[data-kind="command"] .as-agent {
-  display: none;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 10px 42px;
+  border-top: 1px dashed var(--line);
 }
 .add-reviewer {
-  margin-top: 10px;
+  font-size: 0.9rem;
 }
-fieldset.depth {
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.segmented > button,
+.segmented .choices-of > button {
   border: 0;
-  padding: 0;
-  margin: 12px 0 0;
-  display: grid;
-  gap: 4px;
+  border-radius: 0;
+  font-size: 0.9rem;
 }
-fieldset.depth legend {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-fieldset.depth label,
-label.switch {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  min-height: 44px;
-}
-fieldset.depth input,
-label.switch input {
-  width: 22px;
-  height: 22px;
-  flex: none;
+.segmented [aria-checked="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
 }
 section.pages {
   background: var(--surface);
@@ -871,7 +874,136 @@ section.pages {
   padding: 4px var(--gap) var(--gap);
   margin: var(--gap) 0;
 }
+label.switch {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+label.switch input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
 .settings-link {
   margin-top: 2em;
+}
+
+/* The picker: a dialog at a desk, a sheet from the bottom on a phone. */
+dialog.picker {
+  width: min(32rem, calc(100vw - 32px));
+  max-height: min(42rem, calc(100vh - 48px));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3);
+}
+dialog.picker::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+dialog.picker form {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+dialog.picker header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+dialog.picker header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.picker-body {
+  overflow-y: auto;
+  padding: 4px 14px 16px;
+}
+.picker-body h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 16px 0 6px;
+}
+.agents-of .choices-of {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 8px;
+}
+.agents-of button {
+  justify-content: flex-start;
+  min-height: 52px;
+  gap: 10px;
+}
+.agents-of button[aria-checked="true"],
+.models-of button[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.models-of .choices-of {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.models-of button {
+  border: 0;
+  border-radius: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+.models-of button + button {
+  border-top: 1px solid var(--line);
+}
+.efforts-of .choices-of {
+  display: flex;
+  flex-wrap: wrap;
+}
+.efforts-of .choices-of > button {
+  flex: 1 1 auto;
+}
+.efforts-of.segmented,
+.kinds-of.segmented {
+  display: block;
+  border: 0;
+}
+.efforts-of .choices-of,
+.kinds-of .choices-of {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.picker-body textarea,
+.picker-body .command-field {
+  margin-top: 12px;
+  width: 100%;
+  font: inherit;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+}
+.remove-reviewer {
+  margin-top: 16px;
+  color: var(--bad);
+}
+@media (max-width: 560px) {
+  dialog.picker {
+    width: 100vw;
+    max-width: 100vw;
+    margin: auto 0 0;
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 /* --- end settings --- */
