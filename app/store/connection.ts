@@ -1,5 +1,5 @@
 // The client's connection to `ura serve`: one WebSocket at `/live`, as the protocol's contract
-// says (`specs/2026-11-10-nsh-migration/contracts/protocol.md`). It says `hello`, subscribes to
+// says (`specs/done/2026-11-10-nsh-migration.md`). It says `hello`, subscribes to
 // the records something reads, applies their changes, runs calls, and, when the line drops,
 // connects again after a wait that grows from 0.5 s to 10 s and resumes each record it holds.
 //

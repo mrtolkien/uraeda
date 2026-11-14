@@ -97,8 +97,8 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
 ## Native Shell (NSH)
 
 The UI is built on [Native Shell](https://nsh.dev) (NSH), a young framework: assume you know nothing
-about it, and read before writing. The [migration plan](specs/2026-11-10-nsh-migration/plan.md) says
-what is built on it, and what the spikes measured.
+about it, and read before writing. The [migration's record](specs/done/2026-11-10-nsh-migration.md)
+says what is built on it, and what the spikes measured.
 
 - **Start here**: <https://nsh.dev/llms.txt> lists every page of the documentation with one line
   each. Every page is also served as Markdown, at its address plus `.md`.

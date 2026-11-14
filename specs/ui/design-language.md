@@ -4,8 +4,10 @@ The look of the Native Shell app: **a terminal, lit**. It keeps the terminal's g
 corners, and its titled panes. It adds depth, glass, and light, and gives each of them one meaning.
 The [UI components](../decisions/ui-components.md) and
 [Colour themes](../decisions/colour-themes.md) decisions hold the boundaries; this guide is the
-look. A [browser mockup](../2026-11-10-nsh-migration/mockups/design-language.html) shows it, and its
-values were tuned there, over four rounds with the human. A browser is not the real renderer: eight
+look. A browser mockup, made during the migration to Native Shell, showed it: the heights, edges and
+light, buttons and keys, the status line, overlays, type, and the phone. Its values were tuned
+there, over four rounds with the human; it is in git, with the
+[migration's record](../done/2026-11-10-nsh-migration.md). A browser is not the real renderer: eight
 samples then drew it on GTK, in both themes, and the values below are the ones that passed there.
 They are the tokens, in [`app/ui/tokens/`](/app/ui/tokens/). The samples are gone: the
 [gallery](/app/gallery/) draws every component with them, and `just gallery-shots` takes its

@@ -28,7 +28,7 @@ state, hides what is happening. Sending changes, not whole values, is also what 
 within the [Performance](performance.md) decision's frame. The project is early, with one user:
 "it's really ok to break compatibility, no one really uses the tool atm". Updating both sides
 together costs less than a second version kept alive. History:
-[the move to Native Shell](../2026-11-10-nsh-migration/spec.md).
+[the move to Native Shell](../done/2026-11-10-nsh-migration.md).
 
 ## Alternatives considered
 

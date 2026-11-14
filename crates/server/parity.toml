@@ -2,7 +2,7 @@
 # the name this server serves it by, or `dropped: ` and why. The Node server is gone: the keys are
 # its names, frozen as its code had them when it went, 46 records, 114 mutations, and 29 routes.
 # `tests/parity.rs` fails on a new name this server does not serve, and on a line that went.
-# Rulings are in `specs/2026-11-10-nsh-migration/rulings.md`.
+# The rulings are the migration's: `specs/done/2026-11-10-nsh-migration.md` says how to read them.
 
 # fate's views, by type. A record keeps fate's name (R6), and takes the arguments of R52 and R58.
 [records]

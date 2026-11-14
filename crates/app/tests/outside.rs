@@ -1,8 +1,8 @@
 //! What the migration assumes of Native Shell and of the Linux desktop, which the spikes did not
 //! verify: each test runs the real library in a GTK window, on a display no screen shows. A test
 //! that fails after an upgrade of NSH names an assumption that no longer holds: the rulings R22 to
-//! R26 of `specs/2026-11-10-nsh-migration/rulings.md`, and R156 for the fonts, say what was built
-//! on each, and R21 how the tests run.
+//! R26 of the migration (`specs/done/2026-11-10-nsh-migration.md`), and R156 for the fonts, say
+//! what was built on each, and R21 how the tests run.
 //!
 //! Each test's body runs in a process of its own, which `display.rs` starts: GTK keeps the thread
 //! that started it, and a check's clicks and keys go to its own display.
