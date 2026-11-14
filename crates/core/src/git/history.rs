@@ -29,17 +29,6 @@ pub struct CommitInfo {
     pub committed: i64,
 }
 
-/// Where a commit of the checked-out branch's history is against its `origin` branch.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Mark {
-    /// On both, or there is no `origin` branch to compare with.
-    None,
-    /// Only on `origin`: a pull brings it.
-    ToPull,
-    /// Only local: a push sends it.
-    ToPush,
-}
-
 /// The paths of the `specs/` folders, the top level's and any nested one, one commit added,
 /// deleted, or renamed, renames found by git's similarity.
 #[derive(Clone, Debug, PartialEq, Eq)]
