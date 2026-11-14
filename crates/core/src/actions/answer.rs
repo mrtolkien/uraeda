@@ -29,40 +29,9 @@ pub fn round_path(feature: &Feature) -> Result<String, ActionError> {
     Ok(format!("{}/{name}", feature.path))
 }
 
-/// The file a round's answers are written in: a feature's latest round, or a file by its path from
-/// the top level, as the inbox's triage, `specs/INBOX-TRIAGE.md`. Both take the same rules.
-pub trait RoundFile {
-    /// The file's path, from the top level.
-    fn path(&self) -> Result<String, ActionError>;
-}
-
-impl RoundFile for Feature {
-    fn path(&self) -> Result<String, ActionError> {
-        round_path(self)
-    }
-}
-
-impl RoundFile for str {
-    fn path(&self) -> Result<String, ActionError> {
-        Ok(self.to_string())
-    }
-}
-
 /// A file's name, the last part of its path.
 pub fn name_of(file: &str) -> &str {
     file.rsplit('/').next().unwrap_or(file)
-}
-
-/// Refuses a round that is not the feature's latest: only the latest is answered and submitted.
-pub fn ensure_latest(feature: &Feature, name: &str) -> Result<(), ActionError> {
-    let (latest, _) = latest_round(feature)?;
-    if latest == name {
-        Ok(())
-    } else {
-        Err(ActionError::Refused(format!(
-            "{name} is not the latest round: {latest} is"
-        )))
-    }
 }
 
 /// Refuses a round that is not `awaiting-human`: an answered round is a record.
@@ -89,7 +58,7 @@ pub struct Written {
 /// Writes one answer, or the notes with `notes`, in the round. Commits nothing.
 pub fn write(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     id: &str,
     answer: &str,
 ) -> Result<Written, ActionError> {
@@ -102,10 +71,10 @@ pub fn write(
 /// refuses or returns the text to write. Commits nothing.
 fn edit(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     change: impl FnOnce(&str, &str) -> Result<String, ActionError>,
 ) -> Result<Written, ActionError> {
-    let file = round.path()?;
+    let file = round_path(round)?;
     let path = place.root.join(&file);
     let text = fs::read_to_string(&path)?;
     waiting(&text, name_of(&file))?;
@@ -198,13 +167,13 @@ pub fn submit(
 /// elsewhere, and nothing is written. Commits nothing.
 pub fn save(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     id: &str,
     letters: &[String],
     comment: &str,
     previous: &str,
 ) -> Result<Written, ActionError> {
-    let file = round.path()?;
+    let file = round_path(round)?;
     let text = fs::read_to_string(place.root.join(&file))?;
     let current = clarifications::parse(&text)
         .into_iter()
@@ -231,7 +200,7 @@ fn round_notes(text: &str) -> Result<RoundNotes, ActionError> {
 /// Commits nothing.
 pub fn save_notes(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     notes: &str,
     previous: &str,
 ) -> Result<Written, ActionError> {
@@ -248,7 +217,7 @@ pub fn save_notes(
 /// Commits nothing.
 pub fn add_settled_comment(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     subject: &str,
     text: &str,
 ) -> Result<Written, ActionError> {
@@ -274,7 +243,7 @@ pub fn add_settled_comment(
 /// the notes changed elsewhere, as a comment removed renumbers the ones after it.
 fn change_settled_comment(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     number: u32,
     (subject, previous): (&str, &str),
     change: impl FnOnce(&mut Vec<(String, String)>, usize),
@@ -300,7 +269,7 @@ fn change_settled_comment(
 /// nothing.
 pub fn edit_settled_comment(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     number: u32,
     subject: &str,
     text: &str,
@@ -321,7 +290,7 @@ pub fn edit_settled_comment(
 /// nothing.
 pub fn remove_settled_comment(
     place: &Place,
-    round: &(impl RoundFile + ?Sized),
+    round: &Feature,
     number: u32,
     subject: &str,
     previous: &str,

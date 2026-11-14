@@ -7,10 +7,7 @@ const FILE: &str = "specs/2026-10-10-cli-core/clarifications-01.md";
 
 fn waiting(answers: &[&str]) -> TestRepo {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -28,10 +25,7 @@ fn waiting(answers: &[&str]) -> TestRepo {
 #[test]
 fn check_accepts_priorities_links_to_features_on_their_branches() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n- [Tags](/specs/2026-10-11-tags/proposal.md)\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
 
     let output = ura(&repo, &["check"]);
 
@@ -66,10 +60,7 @@ fn other_staged_files_stay_out_of_the_answer() {
 
 fn spec_waiting() -> TestRepo {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     let mut text = spec("awaiting-human", 1, 1);
     text.push_str("\n## User stories\n\n### US1: One (P1)\n\nLine A.\nLine B.\n");
     feature(
@@ -235,10 +226,7 @@ fn a_deleted_file_is_an_uncommitted_change() {
 #[test]
 fn a_submitted_round_takes_no_answer() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",

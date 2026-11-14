@@ -15,8 +15,6 @@ pub enum Purpose {
     Review,
     /// Any feature or change, to read it.
     Inspect,
-    /// A proposal file to start.
-    Start,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -25,8 +23,6 @@ pub enum Target {
     Feature(usize),
     /// A file of a feature or change, by name.
     File(usize, String),
-    /// A proposal file or postponed folder, from the top level: `specs/proposals/x.md`.
-    Proposal(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -72,7 +68,7 @@ pub fn resolve(
 ) -> Result<Target, TargetError> {
     match target {
         Some(target) if looks_like_a_path(target) => by_path(workspace, cwd, target, purpose),
-        Some(name) => by_name(workspace, name, purpose),
+        Some(name) => by_name(workspace, name),
         None => waiting(workspace, purpose),
     }
 }
@@ -81,7 +77,7 @@ fn by_path(
     workspace: &Workspace,
     cwd: &Path,
     target: &str,
-    purpose: Purpose,
+    _purpose: Purpose,
 ) -> Result<Target, TargetError> {
     let root = workspace
         .root
@@ -95,18 +91,6 @@ fn by_path(
         .to_string_lossy()
         .trim_end_matches('/')
         .to_string();
-    if purpose == Purpose::Start {
-        return workspace
-            .proposals
-            .iter()
-            .find(|proposal| {
-                **proposal == relative
-                    || proposal.strip_suffix("/proposal.md") == Some(relative.as_str())
-                    || relative.strip_suffix("/proposal.md") == Some(proposal.as_str())
-            })
-            .map(|proposal| Target::Proposal(proposal.clone()))
-            .ok_or_else(|| TargetError::NoPath(target.to_string()));
-    }
     for (index, feature) in workspace.features.iter().enumerate() {
         if relative == feature.path && !feature.is_finished() {
             return Ok(Target::Feature(index));
@@ -118,67 +102,13 @@ fn by_path(
     Err(TargetError::NoPath(target.to_string()))
 }
 
-/// The folder of proposal files, from the top level, on the default branch.
-pub const PROPOSALS: &str = "specs/proposals/";
-/// The folder of note files, from the top level: on the default branch, and, for an agent's note,
-/// on its feature's or change's branch until it merges.
-pub const NOTES: &str = "specs/notes/";
-
-/// Whether a path from the top level is under `specs/proposals/`: a proposal file, a postponed
-/// folder, or a file of one, all written on the default branch.
-pub fn is_proposal_file(path: &str) -> bool {
-    path.starts_with(PROPOSALS)
-}
-
-/// Whether a path from the top level is under `specs/notes/`: a note file, its folder, or a file of
-/// it, written on the default branch, or, for an agent's note, on its branch.
-pub fn is_note_file(path: &str) -> bool {
-    path.starts_with(NOTES)
-}
-
-/// Whether a path from the top level is a file the lists link and the default branch holds: a
-/// proposal file or a note file, or a file of their folders.
-pub fn is_linked_file(path: &str) -> bool {
-    is_proposal_file(path) || is_note_file(path)
-}
-
-/// The proposal a path under `specs/proposals/` starts, from the top level: the file itself, or
-/// the postponed folder that holds it. `None` for any other path.
-pub fn proposal_to_start(path: &str) -> Option<String> {
-    let rest = path.strip_prefix(PROPOSALS)?;
-    match rest.split_once('/') {
-        Some((postponed, _)) => Some(format!("{PROPOSALS}{postponed}")),
-        None if rest.is_empty() => None,
-        None => Some(path.to_string()),
-    }
-}
-
-/// A proposal file's name: its file's stem, or its postponed folder's name.
-pub fn proposal_name(proposal: &str) -> &str {
-    let last = proposal.rsplit('/').next().unwrap_or(proposal);
-    last.strip_suffix(".md").unwrap_or(last)
-}
-
-fn by_name(workspace: &Workspace, name: &str, purpose: Purpose) -> Result<Target, TargetError> {
-    let items: Vec<(String, Target)> = if purpose == Purpose::Start {
-        workspace
-            .proposals
-            .iter()
-            .map(|proposal| {
-                (
-                    proposal_name(proposal).to_string(),
-                    Target::Proposal(proposal.clone()),
-                )
-            })
-            .collect()
-    } else {
-        workspace
-            .features
-            .iter()
-            .enumerate()
-            .map(|(index, feature)| (feature.folder.clone(), Target::Feature(index)))
-            .collect()
-    };
+fn by_name(workspace: &Workspace, name: &str) -> Result<Target, TargetError> {
+    let items: Vec<(String, Target)> = workspace
+        .features
+        .iter()
+        .enumerate()
+        .map(|(index, feature)| (feature.folder.clone(), Target::Feature(index)))
+        .collect();
     let exact: Vec<&(String, Target)> = items
         .iter()
         .filter(|(item, target)| {
@@ -213,7 +143,7 @@ pub fn waits_for(feature: &Feature, purpose: Purpose) -> bool {
         && match purpose {
             Purpose::Answers => file.starts_with("clarifications-"),
             Purpose::Review => ["spec.md", "plan.md"].contains(&file),
-            _ => false,
+            Purpose::Inspect => false,
         }
 }
 
@@ -233,7 +163,6 @@ fn waiting(workspace: &Workspace, purpose: Purpose) -> Result<Target, TargetErro
         [] => Err(TargetError::NothingWaits(match purpose {
             Purpose::Answers => "no round of questions waits for answers",
             Purpose::Review => "no spec or plan waits for a review",
-            Purpose::Start => "name a proposal: ura start <proposal>",
             Purpose::Inspect => "name a feature or a change",
         })),
         several => Err(TargetError::SeveralWaiting(

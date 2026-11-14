@@ -5,35 +5,20 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-mod amend;
-mod branches;
-mod checkout;
 mod commit;
 mod diff;
 mod history;
 mod log;
-mod message;
-mod pin;
 pub(crate) mod process;
-mod refresh;
 mod remote;
-mod resolve;
-mod staging;
 mod status;
 mod stopped;
 mod worktrees;
 
-pub use amend::Latest;
-pub use checkout::{CheckoutState, Conflict, ConflictKind, FileChange, FileState, Staged};
-pub use commit::{OnOutput, Stage, others_staged};
-pub use diff::{CommitFiles, DIFF_CAP, DiffOf, FileDiff, text_patch};
+pub use commit::{OnOutput, others_staged};
+pub use diff::text_patch;
 pub use history::{CommitInfo, CommitPaths, Mark, Range};
-pub use pin::{Pinned, clone_pinned};
-pub use process::set_environment;
-pub use remote::{FETCH_DEADLINE, SYNC_DEADLINE};
-pub use resolve::Resolution;
 pub use stopped::{Stopped, StoppedKind};
-pub use worktrees::{Worktree, WorktreeRecord};
 
 pub use gix::ObjectId;
 
@@ -110,17 +95,6 @@ impl Git {
     /// The top level of this working tree.
     pub fn root(&self) -> &Path {
         &self.root
-    }
-
-    /// The folder git shares between working trees: `.git` of the main one.
-    pub fn common_dir(&self) -> PathBuf {
-        let common = self.repo.common_dir();
-        std::fs::canonicalize(common).unwrap_or_else(|_| common.to_path_buf())
-    }
-
-    /// This working tree's own git folder: `.git` of the main one, `.git/worktrees/<name>` else.
-    pub fn git_dir(&self) -> PathBuf {
-        self.repo.git_dir().to_path_buf()
     }
 
     /// The top level of the main working tree, where `.worktrees/` lives.
@@ -263,29 +237,6 @@ impl Git {
         Some(entry.object_id())
     }
 
-    /// The id a commit's root tree would have without its top-level entry `name`, hashed but not
-    /// written: the tree's own id when it has no such entry.
-    pub fn tree_id_without(&self, commit: ObjectId, name: &str) -> Result<ObjectId, GitError> {
-        use gix::objs::WriteTo;
-        let what = commit.to_hex_with_len(7).to_string();
-        let tree = self.tree(commit)?;
-        let mut owned: gix::objs::Tree = tree.decode().map_err(read_error(what.as_str()))?.into();
-        owned.entries.retain(|entry| entry.filename != name);
-        let mut data = Vec::new();
-        owned
-            .write_to(&mut data)
-            .map_err(read_error(what.as_str()))?;
-        gix::objs::compute_hash(self.repo.object_hash(), gix::objs::Kind::Tree, &data)
-            .map_err(read_error(what.as_str()))
-    }
-
-    /// The mode of the entry at `path` in a commit's tree, `None` when it has none.
-    fn entry_mode(&self, commit: ObjectId, path: &str) -> Option<gix::object::tree::EntryMode> {
-        let tree = self.tree(commit).ok()?;
-        let entry = tree.lookup_entry_by_path(path).ok()??;
-        Some(entry.mode())
-    }
-
     /// Every file under `dir` at a commit, with paths from the top level, sorted.
     pub fn list_files(&self, commit: ObjectId, dir: &str) -> Result<Vec<String>, GitError> {
         let tree = self.tree(commit)?;
@@ -332,18 +283,6 @@ impl Git {
             .map_err(read_error(what.as_str()))?
             .tree()
             .map_err(read_error(what.as_str()))
-    }
-
-    /// Whether this working tree has changes to tracked files, staged or not, or untracked files.
-    /// Ignored files do not count.
-    pub fn has_local_changes(&self) -> Result<bool, GitError> {
-        let mut items =
-            self.status_items("the working tree", gix::status::UntrackedFiles::Files)?;
-        Ok(items
-            .next()
-            .transpose()
-            .map_err(read_error("the working tree"))?
-            .is_some())
     }
 
     /// Deletes a local branch, once the caller checked its commits are merged.

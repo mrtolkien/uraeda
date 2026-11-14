@@ -100,8 +100,7 @@ fn folder_uncommitted(
 }
 
 /// A feature or change, from its folder, or its record when the folder is gone. Read from disk, its
-/// step is read from `committed`, its latest commit, with the writes of Uraeda's still landing on
-/// top, while its files stay the disk's (R4): a hand edit does not move the step until committed.
+/// step is read from `committed`, its latest commit, while its files stay the disk's (R4): a hand edit does not move the step until committed.
 pub(super) fn read_feature(
     reader: &Reader<'_>,
     kind: Kind,
@@ -121,46 +120,10 @@ pub(super) fn read_feature(
             ReadFrom::Commit(commit),
             committed,
         );
-        let at_tip = with_pending(reader, kind, folder, at_tip);
         feature.step = at_tip.step.clone();
         feature.at_tip = Some(Box::new(at_tip));
     }
     feature
-}
-
-/// The feature `at_tip`, read from its latest commit, with the files its deferred commits
-/// not landed yet wrote in the working tree `reader` reads on top: the step a write still landing
-/// gives. A repository that does not defer its commits, as `ura`'s, has none.
-fn with_pending(reader: &Reader<'_>, kind: Kind, folder: &str, at_tip: Feature) -> Feature {
-    if at_tip.is_finished() {
-        return at_tip;
-    }
-    let root = reader.git.root();
-    let pending = reader.pending.files(root, &at_tip.path);
-    if pending.is_empty() {
-        return at_tip;
-    }
-    let mut texts = at_tip.texts.clone();
-    overlay(&mut texts, pending);
-    let mut queued = Feature::from_texts(kind, folder, texts);
-    queued.branch = at_tip.branch.clone();
-    queued.source = at_tip.source;
-    queued.proposal_committed = at_tip.proposal_committed;
-    queued.step = steps::step(&queued, PullRequest::Unknown);
-    queued
-}
-
-/// Puts the pending texts over `texts`: a text replaces the file's, `None` removes it.
-fn overlay(texts: &mut BTreeMap<String, String>, pending: BTreeMap<String, Option<String>>) {
-    for (name, text) in pending {
-        if FileKind::of(&name).is_none() {
-            continue;
-        }
-        match text {
-            Some(text) => texts.insert(name, text),
-            None => texts.remove(&name),
-        };
-    }
 }
 
 /// A feature or change, from its folder, or its record when the folder is gone.

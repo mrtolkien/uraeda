@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use serde::Serialize;
 use uraeda_core::steps::{self, Step, WaitsOn};
 use uraeda_core::target::{Purpose, Target};
-use uraeda_core::workspace::{Feature, Workspace};
+use uraeda_core::workspace::Feature;
 
 use crate::output;
 use crate::status;
@@ -23,7 +23,6 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
     let index = match target {
         Some(target) => match output::target(&workspace, Some(&target), Purpose::Inspect)? {
             Target::Feature(index) | Target::File(index, _) => Some(index),
-            Target::Proposal(proposal) => return Err(format!("{proposal} is not started")),
         },
         None => steps::next_target(&workspace),
     };
@@ -35,29 +34,16 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
             step: feature.map_or_else(Step::none, |f| f.step.clone()),
         });
     } else {
-        print!("{}", render(&workspace, feature));
-    }
-    for feature in &workspace.features {
-        if let Some(left) = status::leftovers(&workspace, feature) {
-            eprintln!(
-                "ura: {} is merged, with its {left} left: run ura clean",
-                status::name(feature)
-            );
-        }
+        print!("{}", render(feature));
     }
     Ok(ExitCode::SUCCESS)
 }
 
-fn render(workspace: &Workspace, feature: Option<&Feature>) -> String {
+fn render(feature: Option<&Feature>) -> String {
     let Some(feature) = feature else {
-        return "Nothing for an agent: every feature in Now waits on you. Run ura status.\n"
-            .to_string();
+        return "Nothing for an agent: every feature waits on you. Run ura status.\n".to_string();
     };
-    let mut text = format!(
-        "{}: {}\n",
-        status::name(feature),
-        status::describe(workspace, feature)
-    );
+    let mut text = format!("{}: {}\n", status::name(feature), status::describe(feature));
     if let Some(branch) = &feature.branch {
         text.push_str(&format!("  branch     {branch}\n"));
     }

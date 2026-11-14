@@ -3,11 +3,10 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{Duration, Instant};
 
 use tempfile::TempDir;
+use uraeda_core::check;
 use uraeda_core::workspace::Severity;
-use uraeda_core::{api, check};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -83,7 +82,7 @@ fn sc001_drift_is_never_a_problem() {
                 continue;
             }
             snapshots += 1;
-            let found = check::check_files(dir.path(), &path).unwrap();
+            let found = check::check(dir.path(), &path).unwrap();
             with_errors += usize::from(found.iter().any(|p| p.severity == Severity::Error));
             let blocking: Vec<_> = found.iter().filter(|p| p.blocks()).collect();
             blocked += usize::from(!blocking.is_empty());
@@ -100,78 +99,4 @@ fn sc001_drift_is_never_a_problem() {
     }
     println!("{snapshots} snapshots, {with_errors} with errors, {blocked} with a blocking result");
     assert!(snapshots > 0, "no branch has a commit in the window");
-}
-
-/// SC-004: 25 of the 30 records of `specs/done/` show timed stages. Prints the slowest read too,
-/// for SC-002 on an old feature: measured, not asserted, as this repository's history grows.
-#[test]
-#[ignore = "this repository's history"]
-fn sc004_past_features_show_timed_stages() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let mut folders: Vec<String> = std::fs::read_dir(root.join("specs/done"))
-        .unwrap()
-        .filter_map(|entry| {
-            let name = entry.ok()?.file_name().into_string().ok()?;
-            name.strip_suffix(".md").map(String::from)
-        })
-        .collect();
-    folders.sort();
-
-    let mut timed = 0;
-    let mut without = Vec::new();
-    let mut slowest = (Duration::ZERO, "");
-    for folder in &folders {
-        let start = Instant::now();
-        let history = api::read_history(&root, folder).unwrap();
-        slowest = slowest.max((start.elapsed(), folder.as_str()));
-        let started = history
-            .stages
-            .iter()
-            .filter(|stage| stage.started.is_some());
-        if started.count() >= 2 {
-            timed += 1;
-        } else {
-            without.push(folder.as_str());
-        }
-    }
-
-    println!("{timed} of {} records show timed stages", folders.len());
-    println!("Without: {}", without.join(", "));
-    println!("Slowest read: {} in {:?}", slowest.1, slowest.0);
-    assert!(
-        timed >= 25,
-        "{timed} records with timed stages; without: {without:?}"
-    );
-}
-
-/// US2 on this repository's rebased features: the lines, files, and decisions of each record read
-/// over every run of its commits on `main`, its review fixes included, with the time of each read.
-/// Printed, for the pull request: `2026-10-17-redesign-specs` holds about +13,263 −4,053 over 208
-/// files and 18 decisions.
-#[test]
-#[ignore = "this repository's history"]
-fn rebased_features_count_every_run() {
-    let root = root();
-    for folder in [
-        "2026-10-17-redesign-specs",
-        "2026-10-16-redesign-interface",
-        "2026-10-17-redesign-clarifications",
-    ] {
-        let start = Instant::now();
-        let history = api::read_history(&root, folder).unwrap();
-        let elapsed = start.elapsed();
-        let lines = history.lines.as_ref().unwrap();
-        println!(
-            "{folder}: +{} −{} over {} files, {} decisions, merged {:?}, in {elapsed:?}",
-            lines.added,
-            lines.removed,
-            lines.files,
-            history.decisions.len(),
-            history
-                .stages
-                .last()
-                .and_then(|stage| stage.started.as_deref()),
-        );
-        assert!(history.found, "{folder}");
-    }
 }

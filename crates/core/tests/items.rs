@@ -1091,8 +1091,6 @@ fn the_verdicts_edges() {
         verdict_of("> [!IMPORTANT]\n>\n> - Verdict: maybe later, too soon.\n"),
         None
     );
-    let triage = std::fs::read_to_string(common::fixture("INBOX-TRIAGE.md")).unwrap();
-    assert_eq!(round_of("clarifications-01.md", &triage).0.verdict, None);
 
     let noted =
         verdict_of("> [!NOTE]\n>\n> - Verdict: worth building, with changes: smaller.\n").unwrap();
@@ -1117,86 +1115,6 @@ fn an_example_only_before_the_options_and_the_answer() {
     assert_eq!(q1.example, None);
     let context: Vec<String> = q1.context.iter().map(|&b| doc.text(b)).collect();
     assert_eq!(context, ["A context."]);
-}
-
-/// The data model's sections and tables, read from `fixture`'s `data-model.md` or from a text.
-fn data_model(
-    text: &str,
-) -> (
-    uraeda_core::files::items::DataModelItems,
-    document::Document,
-) {
-    let doc = document::parse(text, "specs/x");
-    (items("data-model.md", text, &doc).data_model.unwrap(), doc)
-}
-
-/// The changes of a table, as each row's first cell and its change.
-fn row_changes(
-    doc: &document::Document,
-    table: &uraeda_core::files::items::DataTable,
-) -> Vec<(String, String)> {
-    table
-        .changes
-        .iter()
-        .map(|change| {
-            let first = doc.children(change.row).next().unwrap();
-            (plain(&first.spans), change.kind.as_str().to_string())
-        })
-        .collect()
-}
-
-/// US1 more 1, 2: a data model reads as its sections, in order, each table's rows with the change
-/// its "Change" column gives.
-#[test]
-fn data_model_sections() {
-    let text = std::fs::read_to_string(common::fixture(
-        "spec-page/branch/specs/2026-10-17-spec-page/data-model.md",
-    ))
-    .unwrap();
-    let (model, doc) = data_model(&text);
-
-    let titles: Vec<&str> = model.sections.iter().map(|s| s.title.as_str()).collect();
-    assert_eq!(titles, ["Task", "Repeat rule"]);
-    assert_eq!(model.sections[1].anchor, "repeat-rule");
-    assert_eq!(
-        plain(&doc.blocks[model.intro[0] as usize].spans),
-        "Entities that the feature adds or changes."
-    );
-    assert_eq!(model.intro.len(), 1);
-    let task = &model.sections[0];
-    assert_eq!(task.tables.len(), 1);
-    assert_eq!(task.blocks, [task.tables[0].block]);
-    assert_eq!(task.tables[0].column, Some(3));
-    assert_eq!(
-        row_changes(&doc, &task.tables[0]),
-        [
-            ("dueDate".to_string(), "changed".to_string()),
-            ("repeat".to_string(), "new".to_string()),
-        ]
-    );
-    let rule = row_changes(&doc, &model.sections[1].tables[0]);
-    assert_eq!(rule.len(), 4);
-    assert!(rule.iter().all(|(_, kind)| kind == "new"));
-}
-
-/// The change is read from the column headed "Change" alone, wherever it is, and a section's
-/// other blocks and sub-headings are its own.
-#[test]
-fn data_model_reads_the_change_column() {
-    let (model, doc) = data_model(
-        "# Data model: X\n\n## Old\n\nGone.\n\n### Notes\n\n\
-         | Field | Change | Note    |\n| ----- | ------ | ------- |\n\
-         | `a`   | Removed | New    |\n| `b`   |        | Changed |\n",
-    );
-
-    assert!(model.intro.is_empty());
-    let old = &model.sections[0];
-    assert_eq!(old.blocks.len(), 3);
-    assert_eq!(old.tables[0].column, Some(1));
-    assert_eq!(
-        row_changes(&doc, &old.tables[0]),
-        [("a".to_string(), "removed".to_string())]
-    );
 }
 
 /// R1: a plan's lead paragraphs, by their bold label.

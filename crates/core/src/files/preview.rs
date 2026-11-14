@@ -4,24 +4,12 @@
 
 use std::path::{Component, Path};
 
-use serde::Serialize;
-
-use super::frontmatter::{self, Frontmatter, Value};
+use super::frontmatter::{Frontmatter, Value};
 
 const FOLDER: &str = "preview-folder";
 const COMMAND: &str = "preview-command";
 const FOLDER_RULE: &str = "frontmatter.preview-folder";
 const COMMAND_RULE: &str = "frontmatter.preview-command";
-
-/// A checkout's preview, from its preview decision.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Preview {
-    /// The folder the command runs in, from the repository's top level: `.` for the top level.
-    pub folder: String,
-    /// The command, holding `{port}` where the port goes.
-    pub command: String,
-}
 
 /// The preview fields' problems, each with its rule and message: both fields or neither, a command
 /// holding `{port}`, and a folder that is `.` or a relative path without `..` parts.
@@ -48,18 +36,6 @@ pub fn field_problems(front: &Frontmatter) -> Vec<(&'static str, String)> {
         Some(_) => {}
     }
     problems
-}
-
-/// The preview of a preview decision's text: `None` unless both fields are valid.
-pub fn preview_of(text: &str) -> Option<Preview> {
-    let front = frontmatter::parse(text).ok()?;
-    if !field_problems(&front).is_empty() {
-        return None;
-    }
-    Some(Preview {
-        folder: written(&front, FOLDER)?,
-        command: written(&front, COMMAND)?,
-    })
 }
 
 /// A field's value as text, as written when YAML reads it as a number or a boolean.

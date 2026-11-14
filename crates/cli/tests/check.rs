@@ -22,10 +22,7 @@ fn the_skill_example_has_no_problems() {
 #[test]
 fn problems_exit_with_one() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     repo.write(
         "specs/2026-10-10-x/clarifications-02.md",
         "---\nstatus: done\n---\n\n# Clarifications, round 02: X\n",
@@ -48,10 +45,7 @@ fn problems_exit_with_one() {
 #[test]
 fn a_round_without_its_sources_fails() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     let round = clarifications("awaiting-human", "1 question, about 5 minutes.", &[""]);
     assert!(round.contains("### Sources\n"), "{round}");
     repo.write(
@@ -72,10 +66,7 @@ fn a_round_without_its_sources_fails() {
 #[test]
 fn warnings_print_after_errors_and_exit_with_success() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     let path = "specs/2026-10-10-x/clarifications-01.md";
     let round = clarifications(
         "awaiting-human",
@@ -117,17 +108,25 @@ fn warnings_print_after_errors_and_exit_with_success() {
 #[test]
 fn json_lists_problems() {
     let repo = TestRepo::new();
-    specs(&repo, "# Priorities\n\n## Now\n\n## Next\n");
+    specs(&repo);
+    repo.write(
+        "specs/done/2026-10-10-cli-core.md",
+        &record("feature", "CLI core").replace("kind: feature", "kind: other"),
+    );
+    repo.commit("finish(cli-core): CLI core");
 
     let output = ura(&repo, &["check", "--json"]);
 
     let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
     assert_eq!(json["version"], 1);
-    assert_eq!(json["problems"][0]["file"], "specs/PRIORITIES.md");
-    assert_eq!(json["problems"][0]["rule"], "sections.missing");
+    assert_eq!(
+        json["problems"][0]["file"],
+        "specs/done/2026-10-10-cli-core.md"
+    );
+    assert_eq!(json["problems"][0]["rule"], "frontmatter.kind");
     assert_eq!(
         json["problems"][0]["message"],
-        "missing section \"## Later\""
+        "kind \"other\" is not one of feature, change"
     );
     assert_eq!(output.code, 1);
 }
@@ -168,10 +167,7 @@ fn missing_target() {
 #[test]
 fn a_finished_features_check_covers_its_record_only() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     repo.write(
         "specs/done/2026-10-10-cli-core.md",
         &record("feature", "CLI core"),
@@ -191,41 +187,12 @@ fn a_finished_features_check_covers_its_record_only() {
     assert_eq!(output.code, 0, "{}", output.stderr);
 }
 
-/// Two categories with the same name, written by hand.
-#[test]
-fn a_repeated_inbox_category_is_a_problem() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
-    repo.write(
-        "specs/INBOX.md",
-        "# Inbox\n\n## UI\n\n- a\n\n## UI\n\n- b\n",
-    );
-
-    let output = ura(&repo, &["check", "--json"]);
-
-    let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
-    assert_eq!(json["problems"][0]["file"], "specs/INBOX.md");
-    assert_eq!(json["problems"][0]["line"], 7);
-    assert_eq!(json["problems"][0]["rule"], "inbox.category");
-    assert_eq!(
-        json["problems"][0]["message"],
-        "the category \"UI\" is repeated"
-    );
-    assert_eq!(output.code, 1);
-}
-
 /// `--fix` relinks a link to a moved file, prints each file it changed, and exits as the check
 /// after it; its JSON lists them in `fixed`.
 #[test]
 fn fix_rewrites_and_reports_each_file() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     let path = "specs/done/2026-10-10-cli-core.md";
     repo.write("specs/proposals/thing.md", &proposal());
     repo.write(

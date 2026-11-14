@@ -308,8 +308,7 @@ fn an_open_pull_request_and_the_implementation_keep_their_steps() {
 enum Gain {
     /// `src/a.rs`, in a commit `feat: code`, pushed to `origin/main`.
     Code,
-    /// A line of `specs/PRIORITIES.md`, and `specs/proposals/y.md` renamed to a started folder's
-    /// `proposal.md`, as `chore(<slug>): start` does, pushed.
+    /// A started folder's `proposal.md`, as `chore(<slug>): start` writes it, pushed.
     OwnFiles,
     /// `specs/decisions/x.md`, in a commit `decision: x`, pushed.
     Decision,
@@ -322,7 +321,7 @@ enum Gain {
     /// The code commit, pushed, then merged into `origin/<branch>`, as GitHub's "Update branch"
     /// does, the local branch left where it was.
     CodeRemoteMerged,
-    /// The code commit, pushed, merged into the branch, then a line of `specs/PRIORITIES.md`,
+    /// The code commit, pushed, merged into the branch, then a started folder's `proposal.md`,
     /// pushed.
     CodeMergedThenOwn,
     /// `README.md` renamed to a note, in a commit `chore: note`, pushed.
@@ -341,8 +340,6 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
     let before = repo.git(&["rev-parse", "main"]).trim().to_string();
     match gain {
         Gain::OwnFiles => {
-            repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n\n- Y\n");
-            repo.remove("specs/proposals/y.md");
             repo.write("specs/2026-10-11-y/proposal.md", "# Y\n\nWhy y.\n");
             repo.commit("chore(y): start");
         }
@@ -396,8 +393,8 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
             repo.switch(branch);
             repo.git(&["merge", "--quiet", "--no-edit", "main"]);
             repo.switch("main");
-            repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n\n- Y\n");
-            repo.commit("chore: prioritize");
+            repo.write("specs/2026-10-12-z/proposal.md", "# Z\n\nWhy z.\n");
+            repo.commit("chore(z): start");
             repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
         }
         Gain::MergedThenRemoteAhead => {
@@ -431,7 +428,7 @@ fn behind_rows() -> [BehindRow; 13] {
     [
         ("main gained code", false, Gain::Code, "{b}", code),
         (
-            "only priorities and a started proposal",
+            "only a started proposal",
             false,
             Gain::OwnFiles,
             "{b}",
@@ -481,7 +478,7 @@ fn behind_rows() -> [BehindRow; 13] {
             None,
         ),
         (
-            "merged main, then main gained only priorities",
+            "merged main, then main gained only a started proposal",
             false,
             Gain::CodeMergedThenOwn,
             "{b}",
@@ -519,8 +516,8 @@ fn behind_rows() -> [BehindRow; 13] {
 fn a_pull_request_behind_the_default_branch_catches_up() {
     for (name, is_change, moved, head, catches_up) in behind_rows() {
         let repo = TestRepo::new();
-        repo.write("specs/proposals/y.md", "# Y\n\nWhy y.\n");
-        repo.commit("proposal(y): add");
+        repo.write("specs/README.md", "# Specs\n");
+        repo.commit("chore: specs");
         let branch = if is_change {
             "change/2026-10-10-x"
         } else {
@@ -565,8 +562,8 @@ fn a_pull_request_behind_the_default_branch_catches_up() {
 fn behind_reads_once_per_pair_of_tips() {
     let repo = TestRepo::new();
     branch(&repo);
-    repo.write("specs/PRIORITIES.md", "# Priorities\n");
-    repo.commit("chore: prioritize");
+    repo.write("specs/2026-10-12-z/proposal.md", "# Z\n\nWhy z.\n");
+    repo.commit("chore(z): start");
     repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
     let git = Git::discover(repo.path()).unwrap();
     let before = behind::diffs();
@@ -607,7 +604,7 @@ fn a_diff_git_cannot_read_is_not_kept() {
 }
 
 /// Review: a `proposal.md` is the default branch's own only in a started folder, a feature's or a
-/// change's, which the start renames from `specs/proposals/`; not in another folder of `specs/`.
+/// change's; not in another folder of `specs/`.
 #[test]
 fn only_a_started_folders_proposal_is_the_default_branchs_own() {
     let rows = [

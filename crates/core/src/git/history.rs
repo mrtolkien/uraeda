@@ -5,10 +5,7 @@
 use gix::revision::walk::Sorting;
 use gix::traverse::commit::simple::CommitTimeOrder;
 
-use std::path::Path;
-
 use super::{Git, GitError, ObjectId, output_in, read_error};
-use crate::changes::ChangedFile;
 
 /// The commits a diff compares.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -98,73 +95,6 @@ impl Git {
         Ok(commits)
     }
 
-    /// A page of `count` commits of the checked-out branch's history, after the commit `after`, or
-    /// from the first: the commits its `origin` branch has that it lacks first, each `ToPull`,
-    /// then those of `HEAD`, the ones `origin` lacks `ToPush`, each run newest first. During a
-    /// stopped rebase, the branch replayed is the one compared. Refused when `after` is not in it,
-    /// as when the branch moved since the page was read.
-    pub fn history_page(
-        &self,
-        after: Option<ObjectId>,
-        count: usize,
-    ) -> Result<Vec<(CommitInfo, Mark)>, GitError> {
-        let Some(head) = self.head() else {
-            return Ok(Vec::new());
-        };
-        let branch = self.current_branch().or_else(|| self.rebasing());
-        let remote = branch.as_deref().and_then(|branch| self.remote_tip(branch));
-        let to_push: std::collections::HashSet<ObjectId> = match remote {
-            Some(remote) => self
-                .walk(head, Some(remote))?
-                .map(|info| info.map(|info| info.id))
-                .collect::<Result<_, _>>()?,
-            None => Default::default(),
-        };
-        let pulls = match remote {
-            Some(remote) => Some(self.walk(remote, Some(head))?),
-            None => None,
-        };
-        let pulls = pulls.into_iter().flatten().map(|info| (info, Mark::ToPull));
-        let local = self.walk(head, None)?.map(|info| {
-            let pushed = info.as_ref().is_ok_and(|info| to_push.contains(&info.id));
-            (info, if pushed { Mark::ToPush } else { Mark::None })
-        });
-        let mut rows = pulls.chain(local);
-        if let Some(after) = after {
-            let mut found = false;
-            for (info, _) in rows.by_ref() {
-                if info?.id == after {
-                    found = true;
-                    break;
-                }
-            }
-            if !found {
-                return Err(GitError::Refused(format!(
-                    "{after} is not in this history."
-                )));
-            }
-        }
-        rows.take(count)
-            .map(|(info, mark)| Ok((info?, mark)))
-            .collect()
-    }
-
-    /// The commits of `tip` that `hidden` lacks, newest committed first.
-    fn walk(
-        &self,
-        tip: ObjectId,
-        hidden: Option<ObjectId>,
-    ) -> Result<impl Iterator<Item = Result<CommitInfo, GitError>> + '_, GitError> {
-        let walk = self
-            .repo
-            .rev_walk([tip])
-            .with_hidden(hidden)
-            .sorting(Sorting::ByCommitTime(CommitTimeOrder::NewestFirst))
-            .all()
-            .map_err(read_error("the history"))?;
-        Ok(walk.map(|info| commit_info_of(&info.map_err(read_error("the history"))?)))
-    }
-
     /// Whether the history of the commit whose full hash is `head` holds `commit`: `head` is it,
     /// or one of its descendants. `None` when the repository does not have `head`, as a pull
     /// request's head pushed from elsewhere and never fetched, or when their history cannot be
@@ -177,38 +107,6 @@ impl Git {
         self.repo.find_commit(head).ok()?;
         let base = self.merge_base(head, commit).ok()?;
         Some(base == Some(commit))
-    }
-
-    /// `git diff --numstat` between two commits, renames followed.
-    pub fn numstat(
-        &self,
-        base: ObjectId,
-        tip: ObjectId,
-        range: Range,
-    ) -> Result<Vec<ChangedFile>, GitError> {
-        numstat_in(&self.root, base, tip, range)
-    }
-
-    /// `numstat` of each of `diffs`, `(base, tip, range)`, their processes run at once, each with
-    /// its own result.
-    pub fn numstats(
-        &self,
-        diffs: &[(ObjectId, ObjectId, Range)],
-    ) -> Vec<Result<Vec<ChangedFile>, GitError>> {
-        let root = self.root.as_path();
-        std::thread::scope(|scope| {
-            let reads: Vec<_> = diffs
-                .iter()
-                .map(|&(base, tip, range)| scope.spawn(move || numstat_in(root, base, tip, range)))
-                .collect();
-            reads
-                .into_iter()
-                .map(|read| {
-                    read.join()
-                        .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
-                })
-                .collect()
-        })
     }
 }
 
@@ -229,49 +127,6 @@ fn commit_info_of(info: &gix::revision::walk::Info<'_>) -> Result<CommitInfo, Gi
         authored: author.seconds(),
         committed: committer.seconds(),
     })
-}
-
-fn numstat_in(
-    root: &Path,
-    base: ObjectId,
-    tip: ObjectId,
-    range: Range,
-) -> Result<Vec<ChangedFile>, GitError> {
-    let (base, tip) = (base.to_string(), tip.to_string());
-    let three_dot = format!("{base}...{tip}");
-    let mut args = vec!["diff", "--numstat", "-z", "-M", "--no-ext-diff"];
-    match range {
-        Range::TwoDot => args.extend([base.as_str(), tip.as_str()]),
-        Range::ThreeDot => args.push(&three_dot),
-    }
-    Ok(parse(&output_in(root, "diff", &args)?))
-}
-
-/// NUL-separated records: `added\tremoved\tpath`, or, for a rename, `added\tremoved\t` followed by
-/// the old and the new path. A binary file counts `-` lines.
-fn parse(output: &str) -> Vec<ChangedFile> {
-    let mut fields = output.split('\0');
-    let mut files = Vec::new();
-    while let Some(record) = fields.next() {
-        let mut parts = record.splitn(3, '\t');
-        let (Some(added), Some(removed), Some(path)) = (parts.next(), parts.next(), parts.next())
-        else {
-            continue;
-        };
-        let path = if path.is_empty() {
-            // A rename: the old path, then the new one.
-            fields.next();
-            fields.next().unwrap_or_default()
-        } else {
-            path
-        };
-        files.push(ChangedFile {
-            path: path.to_string(),
-            added: added.parse().ok(),
-            removed: removed.parse().ok(),
-        });
-    }
-    files
 }
 
 /// NUL-separated fields, read by their place: each commit's full hash and subject, then each
@@ -317,44 +172,4 @@ fn is_status(field: &str) -> bool {
     let mut chars = field.chars();
     chars.next().is_some_and(|first| first.is_ascii_uppercase())
         && chars.all(|char| char.is_ascii_digit())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_reads_plain_binary_renamed_and_unusual_paths() {
-        let output = concat!(
-            "3\t1\tsrc/a.rs\0",
-            "-\t-\tshot.png\0",
-            "0\t0\t\0old.txt\0new.txt\0",
-            "2\t0\tdocs/a\tb é.md\0",
-        );
-        assert_eq!(
-            parse(output),
-            vec![
-                ChangedFile {
-                    path: "src/a.rs".into(),
-                    added: Some(3),
-                    removed: Some(1)
-                },
-                ChangedFile {
-                    path: "shot.png".into(),
-                    added: None,
-                    removed: None
-                },
-                ChangedFile {
-                    path: "new.txt".into(),
-                    added: Some(0),
-                    removed: Some(0)
-                },
-                ChangedFile {
-                    path: "docs/a\tb é.md".into(),
-                    added: Some(2),
-                    removed: Some(0)
-                },
-            ]
-        );
-    }
 }

@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::{Git, GitError, ObjectId, process, read_error};
+use super::{Git, GitError, process, read_error};
 
 /// What a commit staged, for [`Git::commit_stage`]: the paths `git add` took, and whether they
 /// are committed alone.
@@ -165,25 +165,6 @@ impl Git {
         let staged = self.stage(paths, true)?;
         self.commit_stage(&staged, subject, body, amend, on_output)
             .inspect_err(|_| drop(self.unstage_stage(&staged)))
-    }
-
-    /// Commits what is staged, the Git page's commit, with `message` as typed, through the hooks
-    /// and signing as configured, and returns the new commit. Refuses an empty message, and an
-    /// index with nothing staged. A commit the hooks refuse leaves its files staged.
-    pub fn commit_index(&self, message: &str, on_output: OnOutput) -> Result<ObjectId, GitError> {
-        if message.trim().is_empty() {
-            return Err(GitError::Refused(
-                "Write a commit message first.".to_string(),
-            ));
-        }
-        if self.staged_files()?.is_empty() {
-            return Err(GitError::Refused("Nothing is staged.".to_string()));
-        }
-        self.commit_staged(&[], message, None, on_output)?;
-        self.head().ok_or_else(|| GitError::Read {
-            what: "HEAD".to_string(),
-            message: "no commit after the commit".to_string(),
-        })
     }
 
     /// Runs `git commit` with the hooks, `extra` after its message, its output streamed to

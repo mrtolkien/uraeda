@@ -4,10 +4,7 @@ use common::*;
 
 fn two_features() -> TestRepo {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     for folder in ["2026-10-10-web-ui", "2026-10-12-web-editing"] {
         feature(
             &repo,

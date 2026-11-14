@@ -48,7 +48,7 @@ fn top_section(doc: &Document, title: &str) -> Option<usize> {
         .map(|(index, _, _)| index)
 }
 
-/// The round's context parts: its `###` sub-headings, or the triage's one free part.
+/// The round's context parts: its `###` sub-headings, or one free part without them.
 fn context_parts(doc: &Document) -> Vec<ContextPart> {
     parts(doc, "Context")
         .into_iter()

@@ -17,10 +17,6 @@ pub struct Place {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlaceError {
-    #[error("detached HEAD: switch to a branch first")]
-    Detached,
-    #[error("cannot switch to {branch}: uncommitted changes in {}", .files.join(", "))]
-    Uncommitted { branch: String, files: Vec<String> },
     #[error(transparent)]
     Git(#[from] GitError),
 }
@@ -32,14 +28,12 @@ pub fn worktree_path(git: &Git, branch: &str) -> PathBuf {
 
 /// Reaches a branch: this working tree when it has it, another one that has it, or a worktree
 /// created for it at `.worktrees/<branch>/`. Refused, before anything is written, when the
-/// checkout reached has a pull or a merge stopped. In a repository that defers its commits,
-/// records what the place's `specs/` holds, for the undo of a refused commit.
+/// checkout reached has a pull or a merge stopped.
 pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     let place = reached(git, branch)?;
     if !place.created {
         Git::open(&place.root)?.ensure_not_stopped()?;
     }
-    super::deferred::record(git, &place);
     Ok(place)
 }
 
@@ -84,36 +78,6 @@ fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
         root,
         created: true,
         switched: None,
-    })
-}
-
-/// Reaches a branch by switching this working tree to it when it has no uncommitted change, for
-/// the commands the human runs with `--switch`.
-pub fn reach_switching(git: &Git, branch: &str) -> Result<Place, PlaceError> {
-    let current = git.current_branch();
-    if current.as_deref() == Some(branch) {
-        git.ensure_not_stopped()?;
-        return Ok(Place {
-            root: git.root().to_path_buf(),
-            created: false,
-            switched: None,
-        });
-    }
-    if current.is_none() {
-        return Err(PlaceError::Detached);
-    }
-    let files = git.changed_files()?;
-    if !files.is_empty() {
-        return Err(PlaceError::Uncommitted {
-            branch: branch.to_string(),
-            files,
-        });
-    }
-    git.switch(branch)?;
-    Ok(Place {
-        root: git.root().to_path_buf(),
-        created: false,
-        switched: Some(branch.to_string()),
     })
 }
 

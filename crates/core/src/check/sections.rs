@@ -5,11 +5,10 @@
 //! round 02` only in a first round. `settled.subject`: a round's settled points each start with
 //! their bold subject.
 
-use crate::actions::triage;
 use crate::embedded;
 use crate::files::document;
 use crate::files::markdown::{Document, Heading};
-use crate::files::{clarifications, inbox, items};
+use crate::files::{clarifications, items};
 use crate::workspace::{FileKind, Problem};
 
 use super::{Checked, File};
@@ -27,7 +26,6 @@ fn template_path(kind: Checked) -> Option<&'static str> {
         Checked::Workflow(FileKind::Findings) => "YYYY-MM-DD-feature-slug/findings-01.md",
         Checked::Decision | Checked::PreviewDecision => "decisions/decision-topic.md",
         Checked::Record => "done/YYYY-MM-DD-feature-slug.md",
-        Checked::Triage => triage::FILE_NAME,
         _ => return None,
     };
     Some(path)
@@ -368,34 +366,6 @@ pub(super) fn check_settled_subjects(
             "settled.subject",
             "a settled point without its bold subject: start it with one, \"- **Subject** what was chosen and why\"",
         ));
-    }
-}
-
-/// `inbox.*`: the inbox is titled `# Inbox`, and names each category once. Tools add to a repeated
-/// category's first heading, so the second is reported. An empty heading names no category.
-pub(super) fn check_inbox(file: &File<'_>, document: &Document, problems: &mut Vec<Problem>) {
-    let title = document.headings.iter().find(|h| h.level == 1);
-    if title.is_none_or(|title| title.text != "Inbox") {
-        problems.push(file.problem(
-            title.map(|title| title.line),
-            "inbox.title",
-            "the title is \"# Inbox\"",
-        ));
-    }
-    let mut seen = Vec::new();
-    for (line, name) in inbox::category_headings(file.text) {
-        if name.is_empty() {
-            continue;
-        }
-        if seen.contains(&name) {
-            problems.push(file.problem(
-                Some(line),
-                "inbox.category",
-                format!("the category \"{name}\" is repeated"),
-            ));
-        } else {
-            seen.push(name);
-        }
     }
 }
 

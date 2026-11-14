@@ -62,21 +62,6 @@ impl StepName {
         StepName::ALL.into_iter().find(|step| step.as_str() == name)
     }
 
-    /// The run step this workflow step belongs to: see `Step::run_step`.
-    pub fn run_step(&self) -> Option<&'static str> {
-        match self {
-            StepName::Discovery => Some("discovery"),
-            StepName::Spec | StepName::SpecRevision => Some("spec"),
-            StepName::Plan | StepName::PlanRevision => Some("plan"),
-            StepName::Implementation | StepName::Change => Some("build"),
-            StepName::FinalReview | StepName::Finish | StepName::PullRequestUnknown => {
-                Some("review")
-            }
-            StepName::PullRequestChanges | StepName::Push | StepName::CatchUp => Some("comments"),
-            StepName::HumanGate | StepName::PullRequest | StepName::Done | StepName::None => None,
-        }
-    }
-
     /// Every step, in the enum's order.
     const ALL: [StepName; 17] = [
         StepName::HumanGate,
@@ -217,13 +202,6 @@ impl Step {
             implemented: true,
             ..Step::new(StepName::Done, WaitsOn::Nobody)
         }
-    }
-
-    /// The run step this workflow step belongs to, whose agent, model, effort, and session it runs
-    /// on: `discovery`, `spec`, `plan`, `build`, `review`, or `comments`. A step no agent runs, as a
-    /// gate, an open pull request, or the end, belongs to none.
-    pub fn run_step(&self) -> Option<&'static str> {
-        self.name.run_step()
     }
 
     /// Whether the pull request's state decides this step.
@@ -443,17 +421,10 @@ fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     }
 }
 
-/// The skill's target rule: the first feature of **Now** whose step waits on an agent.
+/// The skill's target rule: the first feature whose step waits on an agent.
 pub fn next_target(workspace: &crate::workspace::Workspace) -> Option<usize> {
-    use crate::files::priorities::Section;
-    workspace
-        .priorities
-        .iter()
-        .filter(|proposal| proposal.section == Section::Now)
-        .filter_map(|proposal| proposal.feature.as_deref())
-        .filter_map(|folder| workspace.features.iter().position(|f| f.folder == folder))
-        .find(|&index| {
-            let step = &workspace.features[index].step;
-            step.waits_on == WaitsOn::Agent && step.name != StepName::None
-        })
+    workspace.features.iter().position(|feature| {
+        let step = &feature.step;
+        step.waits_on == WaitsOn::Agent && step.name != StepName::None
+    })
 }

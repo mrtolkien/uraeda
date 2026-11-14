@@ -1,31 +1,24 @@
-//! Uraeda's workflow logic, shared by the `ura` CLI and the server.
+//! Uraeda's workflow logic, shared by the `ura` CLI and its `ura serve` pages.
 
 pub mod actions;
 pub mod api;
 pub mod behind;
-pub mod cache;
-pub mod changes;
 pub mod check;
 mod compare;
 pub mod decisions;
 pub mod embedded;
-pub mod extensions;
 pub mod files;
 pub mod gates;
 pub mod git;
-pub mod history;
 pub mod images;
-pub mod jobs;
+mod lock;
 pub mod moves;
-pub mod offers;
 pub mod pulls;
 pub mod repositories;
 pub mod settings;
 pub mod slug;
 pub mod steps;
 pub mod target;
-pub mod themes;
 pub mod today;
 pub mod view;
-pub mod watch;
 pub mod workspace;

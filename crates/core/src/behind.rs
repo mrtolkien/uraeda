@@ -7,10 +7,8 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use crate::actions::{inbox, priorities, triage};
 use crate::git::{Git, ObjectId};
 use crate::steps::CatchUp;
-use crate::target::{NOTES, PROPOSALS};
 use crate::workspace::{folder_slug, path_folder};
 
 /// The most answers kept: past it, they are forgotten and computed again.
@@ -93,17 +91,9 @@ fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> Option<bool> {
 }
 
 /// Whether the default branch alone writes the file at `path`, from the top level, so a branch
-/// lacking a change of it needs no catch-up: the priorities, the inbox and its triage, the proposal
-/// and note files, and a started folder's `proposal.md`, a dated feature's or change's, which the
-/// start renames from `specs/proposals/`.
+/// lacking a change of it needs no catch-up: a started folder's `proposal.md`, a dated feature's or
+/// change's.
 pub fn default_branch_own(path: &str) -> bool {
-    if [priorities::PATH, inbox::PATH, triage::PATH].contains(&path)
-        || [PROPOSALS, NOTES]
-            .iter()
-            .any(|folder| path.starts_with(folder))
-    {
-        return true;
-    }
     path_folder(path)
         .is_some_and(|(_, folder, inside)| inside == "proposal.md" && folder_slug(folder).is_some())
 }

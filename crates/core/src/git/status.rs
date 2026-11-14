@@ -76,58 +76,6 @@ impl Git {
             .any(|entry| !entry.starts_with("AD ")))
     }
 
-    /// The untracked files at or under `paths`, ignored files left out.
-    pub fn untracked(&self, paths: &[&str]) -> Result<Vec<String>, GitError> {
-        let mut args = vec!["ls-files", "--others", "--exclude-standard", "-z", "--"];
-        args.extend(paths);
-        let output = self.output("ls-files", &args)?;
-        Ok(output
-            .split('\0')
-            .filter(|path| !path.is_empty())
-            .map(str::to_string)
-            .collect())
-    }
-
-    /// The operation in progress here, other than a stopped pull or merge, that a commit of some
-    /// files alone cannot run over, as its name in a sentence: a cherry-pick, where git refuses
-    /// one, a revert, which one would end, or applying patches, which it would leave half applied.
-    /// A merge or a rebase is a stop, refused by [`Git::ensure_not_stopped`]; a bisect detaches
-    /// `HEAD`, so this checkout is on no branch to commit to.
-    pub fn operation_in_progress(&self) -> Option<&'static str> {
-        use gix::state::InProgress;
-        match self.repo.state()? {
-            InProgress::CherryPick | InProgress::CherryPickSequence => Some("a cherry-pick"),
-            InProgress::Revert | InProgress::RevertSequence => Some("a revert"),
-            InProgress::ApplyMailbox => Some("applying patches"),
-            InProgress::Merge
-            | InProgress::Rebase
-            | InProgress::RebaseInteractive
-            | InProgress::ApplyMailboxRebase
-            | InProgress::Bisect => None,
-        }
-    }
-
-    /// Whether the file at `path` is as `HEAD` has it in both the index and the working tree, a
-    /// missing file as `HEAD` has none: a change staged then undone on disk is still a change,
-    /// and so is a file git ignores.
-    pub fn as_committed(&self, path: &str) -> Result<bool, GitError> {
-        let output = self.output(
-            "status",
-            &[
-                "--no-optional-locks",
-                "status",
-                "--porcelain=v1",
-                "-z",
-                "--untracked-files=all",
-                "--ignored=matching",
-                "--no-renames",
-                "--",
-                path,
-            ],
-        )?;
-        Ok(output.split('\0').all(|entry| entry.is_empty()))
-    }
-
     /// Whether the index holds `path`, or files under it.
     pub(crate) fn in_index(&self, path: &str) -> Result<bool, GitError> {
         let index = self

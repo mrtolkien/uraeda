@@ -8,7 +8,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use super::Result;
-use super::ledger::{checkout_of, lossy};
+use super::{checkout_of, lossy};
 use crate::embedded::{has_placeholder_span, reference_labels};
 use crate::git::Git;
 

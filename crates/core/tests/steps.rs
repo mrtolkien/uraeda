@@ -6,8 +6,7 @@ use common::repo::TestRepo;
 use common::texts::*;
 use uraeda_core::git::Git;
 use uraeda_core::pulls::{PullRequestState, PullRequestView, PullRequests};
-use uraeda_core::steps::{PullRequest, Step, StepName, TaskProgress, WaitsOn};
-use uraeda_core::view::{NextStepView, StepView};
+use uraeda_core::steps::{PullRequest, StepName, TaskProgress, WaitsOn};
 use uraeda_core::workspace::{Feature, Kind};
 
 /// A feature's files: names and texts.
@@ -302,99 +301,6 @@ fn pull_request_rows() {
         };
         assert_eq!(feature.pull_request, known, "{name}");
     }
-}
-
-/// A step at a gate, or at an agent's step, for its order.
-fn step_at(name: StepName, file: Option<&str>) -> Step {
-    Step {
-        name,
-        waits_on: WaitsOn::Agent,
-        reference: None,
-        file: file.map(String::from),
-        task: None,
-        progress: None,
-        implemented: false,
-        pull_request: None,
-        plan_review: None,
-        catch_up: None,
-    }
-}
-
-/// Each step's position in the workflow, a gate placed by the file it waits on.
-#[test]
-fn order_follows_the_workflow() {
-    let gate = |file| step_at(StepName::HumanGate, Some(file));
-    let agent = |name| step_at(name, None);
-    let rows = [
-        (gate("proposal.md"), 0),
-        (agent(StepName::Discovery), 1),
-        (gate("clarifications-02.md"), 2),
-        (agent(StepName::Spec), 3),
-        (agent(StepName::SpecRevision), 3),
-        (gate("spec.md"), 4),
-        (agent(StepName::Plan), 5),
-        (agent(StepName::PlanRevision), 5),
-        (gate("plan.md"), 6),
-        (agent(StepName::Implementation), 7),
-        (agent(StepName::Change), 7),
-        (agent(StepName::FinalReview), 8),
-        (agent(StepName::Finish), 9),
-        (agent(StepName::PullRequestChanges), 10),
-        (agent(StepName::PullRequest), 11),
-        (agent(StepName::PullRequestUnknown), 11),
-        (agent(StepName::Push), 11),
-        (agent(StepName::CatchUp), 11),
-        (agent(StepName::Done), 12),
-        (agent(StepName::None), 13),
-    ];
-    for (step, expected) in rows {
-        let name = format!("{} {:?}", step.name.as_str(), step.file);
-
-        assert_eq!(StepView::from(&step).order, expected, "{name}");
-    }
-}
-
-/// The run step each workflow step belongs to, as `NextView.step.runStep` gives it,
-/// and `runStepOf` by the step's name: a step outside every run, as a gate, belongs to none.
-#[test]
-fn each_step_belongs_to_its_run_step() {
-    let rows = [
-        (StepName::HumanGate, None),
-        (StepName::Discovery, Some("discovery")),
-        (StepName::Spec, Some("spec")),
-        (StepName::SpecRevision, Some("spec")),
-        (StepName::Plan, Some("plan")),
-        (StepName::PlanRevision, Some("plan")),
-        (StepName::Implementation, Some("build")),
-        (StepName::Change, Some("build")),
-        (StepName::FinalReview, Some("review")),
-        (StepName::Finish, Some("review")),
-        (StepName::PullRequestUnknown, Some("review")),
-        (StepName::PullRequestChanges, Some("comments")),
-        (StepName::Push, Some("comments")),
-        (StepName::CatchUp, Some("comments")),
-        (StepName::PullRequest, None),
-        (StepName::Done, None),
-        (StepName::None, None),
-    ];
-    for (name, expected) in rows {
-        let step = step_at(name, None);
-
-        assert_eq!(step.run_step(), expected, "{}", name.as_str());
-        assert_eq!(
-            StepName::parse(name.as_str()).and_then(|parsed| parsed.run_step()),
-            expected,
-            "{}",
-            name.as_str()
-        );
-        assert_eq!(
-            NextStepView::from(&step).run_step.as_deref(),
-            expected,
-            "{}",
-            name.as_str()
-        );
-    }
-    assert_eq!(StepName::parse("assess"), None);
 }
 
 #[test]
@@ -924,40 +830,6 @@ fn finish_follows_its_reference() {
         feature.step.reference.as_deref(),
         Some("skills/uraeda/references/finish.md")
     );
-}
-
-/// What a human gate asks, named from the step alone: the kind of the file it waits on, which the
-/// web UI's "Answer questions", "Review the spec", and "Review the plan" are read from.
-#[test]
-fn a_gate_names_the_kind_of_its_file() {
-    let questions = vec![
-        ("proposal.md", proposal()),
-        ("clarifications-01.md", waiting()),
-    ];
-    let spec_waits = vec![
-        ("proposal.md", proposal()),
-        ("clarifications-01.md", answered()),
-        ("spec.md", spec("awaiting-human", 1, 1)),
-    ];
-    let plan_waits = vec![
-        ("proposal.md", proposal()),
-        ("clarifications-01.md", answered()),
-        ("spec.md", spec("approved", 1, 1)),
-        ("plan.md", plan("awaiting-human", 1, &[("One", 0, 1)])),
-    ];
-    let rows: Vec<(Files, Option<&str>)> = vec![
-        (questions, Some("clarifications")),
-        (spec_waits, Some("spec")),
-        (plan_waits, Some("plan")),
-        (vec![("proposal.md", proposal())], None),
-    ];
-    for (files, expected) in rows {
-        let feature = feature(Kind::Feature, &files);
-
-        let step = StepView::from(&feature.step);
-
-        assert_eq!(step.file_kind.as_deref(), expected, "{:?}", step.file);
-    }
 }
 
 /// An approved spec and plan under way, then a second round answered: with `extra` in its front

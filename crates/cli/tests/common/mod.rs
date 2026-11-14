@@ -135,10 +135,9 @@ pub fn skill_files() -> usize {
 }
 
 /// The repository's `specs/` folder, with a constitution and priorities.
-pub fn specs(repo: &TestRepo, priorities: &str) {
+pub fn specs(repo: &TestRepo) {
     repo.write("specs/README.md", "# Specs\n");
     repo.write("specs/CONSTITUTION.md", "# Constitution\n");
-    repo.write("specs/PRIORITIES.md", priorities);
     repo.commit("chore: specs");
 }
 

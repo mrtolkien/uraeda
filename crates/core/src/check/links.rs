@@ -125,17 +125,6 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
             continue;
         }
         let found = exists(file, &resolved);
-        // PRIORITIES.md and INBOX.md link to started features, whose files live on their own
-        // branches.
-        let on_a_branch = matches!(
-            file.kind,
-            super::Checked::Priorities | super::Checked::Inbox
-        ) && resolved
-            .split('/')
-            .any(|part| crate::workspace::folder_slug(part).is_some());
-        if !found && on_a_branch {
-            continue;
-        }
         // A record is history: the code it names may be gone since, and stays in git.
         let past = matches!(file.kind, super::Checked::Record)
             && !in_specs

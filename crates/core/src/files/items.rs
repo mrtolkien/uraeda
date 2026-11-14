@@ -12,7 +12,7 @@ mod data_model;
 mod round;
 mod spec;
 
-pub use data_model::{DataModelItems, DataSection, DataTable, RowChange, RowChangeKind};
+pub use data_model::DataModelItems;
 pub(crate) use round::round;
 pub(crate) use round::settled_points;
 pub(crate) use round::subjectless_items;
@@ -128,7 +128,7 @@ pub struct RoundVerdict {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextPart {
-    /// Its heading's block, or none for the triage's one free part.
+    /// Its heading's block, or none for a context without sub-headings.
     pub heading: Option<u32>,
     /// Its heading's text, empty without a heading.
     pub title: String,

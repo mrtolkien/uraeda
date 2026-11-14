@@ -6,7 +6,6 @@ use crate::files::document::{Block, BlockKind, Document, LineRange, parse, plain
 /// A paragraph or list item of one version.
 pub(crate) struct Part {
     pub(crate) text: String,
-    pub(crate) item: bool,
     pub(crate) lines: LineRange,
     /// The text of the nearest heading above it, at any level; empty before the first.
     pub(crate) heading: String,
@@ -39,11 +38,6 @@ impl Version {
         };
         &mut self.sections[index].1
     }
-}
-
-/// The parts of a file's text, its frontmatter left out.
-pub(crate) fn version(text: &str) -> Version {
-    read(text, false)
 }
 
 /// The parts of a file's text, its frontmatter left out, each heading of level 3 or deeper a part
@@ -94,14 +88,11 @@ fn read(text: &str, headings: bool) -> Version {
 /// code or HTML block, each with its text; a quote or a callout holds its children's.
 /// `heading` is the nearest heading above it.
 fn collect(document: &Document, block: &Block, heading: &str, parts: &mut Vec<Part>) {
-    let part = |text: String, item: bool| Part {
-        item,
-        ..part(block, heading, text)
-    };
+    let part = |text: String| part(block, heading, text);
     match block.kind {
-        BlockKind::Paragraph => parts.push(part(joined(&plain(&block.spans)), false)),
+        BlockKind::Paragraph => parts.push(part(joined(&plain(&block.spans)))),
         BlockKind::Item => {
-            parts.push(part(joined(&plain(&block.spans)), true));
+            parts.push(part(joined(&plain(&block.spans))));
             for child in document.children(block.id) {
                 collect(document, child, heading, parts);
             }
@@ -113,18 +104,15 @@ fn collect(document: &Document, block: &Block, heading: &str, parts: &mut Vec<Pa
                 .collect();
             // A client splits a row's runs back into cells on this join, a lone "|" word
             // between kept words.
-            parts.push(part(cells.join(" | "), false));
+            parts.push(part(cells.join(" | ")));
         }
         BlockKind::Code | BlockKind::Html => {
-            parts.push(part(
-                joined(block.text.as_deref().unwrap_or_default()),
-                false,
-            ));
+            parts.push(part(joined(block.text.as_deref().unwrap_or_default())));
         }
         BlockKind::Callout => {
             let title = joined(&plain(&block.spans));
             if !title.is_empty() {
-                parts.push(part(title, false));
+                parts.push(part(title));
             }
             for child in document.children(block.id) {
                 collect(document, child, heading, parts);
@@ -139,11 +127,10 @@ fn collect(document: &Document, block: &Block, heading: &str, parts: &mut Vec<Pa
     }
 }
 
-/// A block's part, not an item, under `heading`.
+/// A block's part under `heading`.
 fn part(block: &Block, heading: &str, text: String) -> Part {
     Part {
         text,
-        item: false,
         lines: LineRange {
             start: block.start_line,
             end: block.end_line,

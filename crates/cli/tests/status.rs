@@ -2,17 +2,15 @@ mod common;
 
 use common::*;
 
-const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli-core/proposal.md)\n\n## Next\n\n- [Git listener](proposals/git-listener.md)\n- Claude Code runner\n\n## Later\n\n## Blocked\n";
-
-fn repo_with_priorities() -> TestRepo {
+fn repo_with_specs() -> TestRepo {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     repo
 }
 
 #[test]
 fn waiting_on_you_across_branches() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -35,14 +33,14 @@ fn waiting_on_you_across_branches() {
             "clarifications-01.md: 16 questions, about 50 minutes."
         ]
     );
-    let now = output.stdout.find("Now").unwrap();
-    assert!(now < output.stdout.find("2026-10-10-cli-core").unwrap());
+    let working = output.stdout.find("In progress").unwrap();
+    assert!(working < output.stdout.find("2026-10-10-cli-core").unwrap());
     assert_eq!(output.code, 0, "{}", output.stderr);
 }
 
 #[test]
 fn waiting_on_an_agent() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -65,30 +63,8 @@ fn waiting_on_an_agent() {
 }
 
 #[test]
-fn not_started_proposal() {
-    let repo = repo_with_priorities();
-
-    let output = ura(&repo, &["status"]);
-
-    assert_eq!(
-        output.row("git-listener"),
-        [
-            "git-listener",
-            "-",
-            "not started (proposals/git-listener.md)"
-        ]
-    );
-    assert_eq!(
-        output.row("Claude Code runner"),
-        ["Claude Code runner", "-", "not started"]
-    );
-    let next = output.stdout.find("Next").unwrap();
-    assert!(next < output.stdout.find("git-listener").unwrap());
-}
-
-#[test]
 fn uncommitted_changes_on_the_current_branch() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -114,11 +90,11 @@ fn uncommitted_changes_on_the_current_branch() {
     );
 }
 
-/// US1.3: merged features show once, under Done, read from the default branch, even with their
-/// remote branch left.
+/// US1.3: merged features are read from the default branch, even with their remote branch left,
+/// and shown only with their local branch left.
 #[test]
 fn merged_features_are_done() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     for folder in ["2026-10-10-stack-decision", "2026-10-10-cli-core"] {
         feature(&repo, folder, &[("proposal.md", proposal())]);
         finish(&repo, folder);
@@ -129,18 +105,23 @@ fn merged_features_are_done() {
 
     let output = ura(&repo, &["status"]);
 
-    assert!(output.stdout.contains("\nDone\n"), "{}", output.stdout);
+    assert!(
+        output
+            .stdout
+            .contains("\nMerged, with a worktree or a branch left\n"),
+        "{}",
+        output.stdout
+    );
     let rows: Vec<&str> = output
         .stdout
         .lines()
         .filter(|line| line.contains("stack-decision") || line.contains("cli-core"))
         .collect();
-    assert_eq!(rows.len(), 2, "{}", output.stdout);
+    assert_eq!(rows.len(), 1, "{}", output.stdout);
     assert!(
-        rows[0].ends_with("-      merged: branch and line in the priorities left, run ura clean"),
+        rows[0].ends_with("-      merged: its branch left"),
         "{rows:?}"
     );
-    assert!(rows[1].ends_with("-      merged"), "{rows:?}");
 
     let json = ura(&repo, &["status", "--json"]);
     let json: serde_json::Value = serde_json::from_str(&json.stdout).unwrap();
@@ -160,7 +141,7 @@ fn merged_features_are_done() {
 
 #[test]
 fn json_has_version_and_features() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(&repo, "2026-10-10-cli-core", &[("proposal.md", proposal())]);
 
     let output = ura(&repo, &["status", "--json"]);
@@ -173,12 +154,11 @@ fn json_has_version_and_features() {
     assert_eq!(feature["slug"], "cli-core");
     assert_eq!(feature["step"]["name"], "discovery");
     assert_eq!(feature["step"]["waits-on"], "agent");
-    assert_eq!(json["priorities"][0]["feature"], "2026-10-10-cli-core");
 }
 
 #[test]
 fn behind_its_remote() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(
         &repo,
         "2026-10-12-git-listener",
@@ -209,7 +189,7 @@ fn behind_its_remote() {
 
 #[test]
 fn invalid_files_instead_of_a_step() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -232,7 +212,7 @@ fn invalid_files_instead_of_a_step() {
 
 #[test]
 fn impossible_date_is_skipped() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(&repo, "2026-13-99-x", &[("proposal.md", proposal())]);
 
     let output = ura(&repo, &["status"]);
@@ -258,7 +238,7 @@ fn no_specs_folder() {
 
 #[test]
 fn branch_with_a_slash() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(
         &repo,
         "change/2026-10-14-reappear",
@@ -267,8 +247,8 @@ fn branch_with_a_slash() {
 
     let output = ura(&repo, &["status"]);
 
-    let not_in_priorities = output.stdout.find("Not in priorities").unwrap();
-    assert!(not_in_priorities < output.stdout.find("change/2026-10-14-reappear").unwrap());
+    let working = output.stdout.find("In progress").unwrap();
+    assert!(working < output.stdout.find("change/2026-10-14-reappear").unwrap());
     assert_eq!(
         output.row("change/2026-10-14-reappear")[1..],
         ["agent", "change"]
@@ -279,7 +259,7 @@ fn branch_with_a_slash() {
 /// item.
 #[test]
 fn an_uncommitted_proposal_is_no_item() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     repo.switch_new("2026-10-11-runner");
     repo.write("specs/2026-10-11-runner/proposal.md", &proposal());
 
@@ -293,26 +273,10 @@ fn an_uncommitted_proposal_is_no_item() {
     );
 }
 
-#[test]
-fn long_proposals_are_cut() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n- Use a small model for one-shot classification of decisions: is it relevant?\n\n## Next\n",
-    );
-
-    let output = ura(&repo, &["status"]);
-
-    assert_eq!(
-        output.row("Use a small"),
-        ["Use a small model for one-shot…", "-", "not started"]
-    );
-}
-
 const WEB_UI: &str = "2026-10-11-web-ui";
 
 fn merged_web_ui() -> TestRepo {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(&repo, WEB_UI, &[("proposal.md", proposal())]);
     finish_and_merge(&repo, WEB_UI);
     repo
@@ -326,7 +290,10 @@ fn a_merged_record_is_done() {
 
     let output = ura(&repo, &["status"]);
 
-    assert_eq!(output.row(WEB_UI), [WEB_UI, "-", "merged"]);
+    assert!(!output.stdout.contains(WEB_UI), "{}", output.stdout);
+    let json: serde_json::Value =
+        serde_json::from_str(&ura(&repo, &["status", "--json"]).stdout).unwrap();
+    assert_eq!(json["features"][0]["step"]["name"], "done");
 }
 
 /// US2.2
@@ -345,11 +312,7 @@ fn a_merged_feature_with_leftovers_says_so() {
 
     assert_eq!(
         output.row(WEB_UI),
-        [
-            WEB_UI,
-            "-",
-            "merged: worktree and branch left, run ura clean"
-        ]
+        [WEB_UI, "-", "merged: its worktree and branch left"]
     );
     let json: serde_json::Value =
         serde_json::from_str(&ura(&repo, &["status", "--json"]).stdout).unwrap();
@@ -364,44 +327,19 @@ fn a_merged_feature_with_leftovers_says_so() {
     assert_eq!(feature["left-branch"], WEB_UI);
 }
 
-/// US1.2, US1.3: a merged feature with only its line left in the priorities hints `ura clean`,
-/// as one with its branch left does.
-#[test]
-fn a_merged_feature_with_only_its_line_left() {
-    let repo = repo_with_priorities();
-    let folder = "2026-10-10-cli-core";
-    feature(&repo, folder, &[("proposal.md", proposal())]);
-    finish_and_merge(&repo, folder);
-    repo.delete_branch(folder);
-
-    let output = ura(&repo, &["status"]);
-
-    assert_eq!(
-        output.row(folder),
-        [
-            folder,
-            "-",
-            "merged: line in the priorities left, run ura clean"
-        ]
-    );
-}
-
 #[test]
 fn a_merged_feature_with_only_its_branch_left() {
     let repo = merged_web_ui();
 
     let output = ura(&repo, &["status"]);
 
-    assert_eq!(
-        output.row(WEB_UI),
-        [WEB_UI, "-", "merged: branch left, run ura clean"]
-    );
+    assert_eq!(output.row(WEB_UI), [WEB_UI, "-", "merged: its branch left"]);
 }
 
 /// US1.5: without `gh`, a finished branch's step is the pull request's unknown state.
 #[test]
 fn a_finished_branch_without_gh_has_its_pull_request_unknown() {
-    let repo = repo_with_priorities();
+    let repo = repo_with_specs();
     feature(&repo, WEB_UI, &[("proposal.md", proposal())]);
     finish(&repo, WEB_UI);
 
@@ -451,7 +389,7 @@ fn setup_lists_what_the_project_lacks() {
     );
     assert_eq!(json["setup"].as_array().unwrap().len(), 4, "{json}");
 
-    let set_up = repo_with_priorities();
+    let set_up = repo_with_specs();
     set_up.write(
         "specs/CONSTITUTION.md",
         "# Todo constitution\n\n- Keep it small.\n",
