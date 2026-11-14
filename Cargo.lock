@@ -3744,7 +3744,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "uraeda-cli"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "clap",
  "clap_complete",
@@ -3759,7 +3759,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-core"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "gix",
  "include_dir",
@@ -3776,7 +3776,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-serve"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "axum",
  "getrandom 0.4.3",
@@ -3798,7 +3798,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-text"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "gix-imara-diff",
  "pulldown-cmark",
@@ -3808,7 +3808,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-vault"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -3822,7 +3822,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-xtask"
-version = "2.1.0"
+version = "3.0.0"
 dependencies = [
  "toml_edit",
 ]

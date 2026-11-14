@@ -1,5 +1,45 @@
 # Changelog
 
+## 3.0.0 - Uraeda Light
+
+Released on 2026-11-14.
+
+### Features
+
+- **[Uraeda light, step 3: remove what `ura` no longer does](https://github.com/mrtolkien/uraeda/blob/v3.0.0/specs/done/2026-11-14-uraeda-light-removal.md)**
+  ([#125](https://github.com/mrtolkien/uraeda/pull/125)): Steps 0 to 2 of Uraeda light moved the
+  workflow into the skill, the pages into `ura serve`, and the human's notes into a vault. Step 3
+  removes everything those steps made useless: the server that ran and showed agent sessions, the
+  Linux, web, and iOS apps, the protocol, extensions, the Vim layer, text editing, the language
+  server, and what only they used. What stays is a small `ura`: it parses, checks, says the next
+  step, records answers and reviews, reads git, serves the pages, and syncs the vault. The owner is
+  the only user and the project is very early, so nothing was kept for compatibility, and "I want a
+  clean codebase" settled each doubt toward removal.
+- **[Uraeda light, step 1: the pages of `ura serve`](https://github.com/mrtolkien/uraeda/blob/v3.0.0/specs/done/2026-11-14-uraeda-light-serve.md)**
+  ([#125](https://github.com/mrtolkien/uraeda/pull/125)): The human answers rounds and reviews specs
+  from their phone, over their own network. `ura serve` draws the pages for it from the `ura` binary
+  alone: what waits on them, a round, a spec or a plan to review, mockups in both, and, added while
+  it was built, a settings page for how each step of the workflow runs. The pages write files and
+  never commit: the next agent step commits the human's work. The workflow never needs them, since
+  by hand the human edits the same files. The proposal had no clarifications, spec, or plan: the
+  human worked it in a chat session, and the answers are the rounds below.
+- **[Uraeda light, step 2: the vault and its sync](https://github.com/mrtolkien/uraeda/blob/v3.0.0/specs/done/2026-11-14-uraeda-light-vault.md)**
+  ([#125](https://github.com/mrtolkien/uraeda/pull/125)): `ura` keeps one Obsidian vault for every
+  repository, in a folder of its own, and syncs it with Obsidian on the human's phone. On the
+  desktop, Obsidian opens that folder as it is. The notes change daily, from a phone, so they stay
+  out of git: nothing in git depends on them, and without them an agent says in its last message
+  what it would have written. The sync is free: `ura serve` on the desktop and a small plugin on the
+  phone, over Tailscale. The human did not want one `inbox.md` per project piling up, so there is
+  one shared `inbox/`, a note per capture. The human works in a chat session: there was no spec and
+  no plan, and the proposal is the human's words.
+- **[Uraeda light, step 0: the workflow](https://github.com/mrtolkien/uraeda/blob/v3.0.0/specs/done/2026-11-14-uraeda-light-workflow.md)**
+  ([#125](https://github.com/mrtolkien/uraeda/pull/125)): Uraeda becomes a workflow, a small `ura`
+  binary, and other people's tools: Obsidian for the human's notes, T3 Code for sessions and agents.
+  The human wanted the workflow written down first, as the one that stands once the three steps
+  after it are done, because those steps are built from it: what `ura` must do, and nothing more, is
+  read from the skill. This step rewrote the skill, its templates, its example, and the
+  constitution. It changed no code.
+
 ## 2.1.0 - Last of the full Uraeda
 
 Released on 2026-11-14.
