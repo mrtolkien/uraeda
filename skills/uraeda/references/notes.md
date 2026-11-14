@@ -31,11 +31,17 @@ vault/
       keyboard-shortcuts.md
     research/                    # agents: each discovery's long report
       2026-10-06-recurring-tasks-01.md
+    specs/                       # with ura's sync: the repository's workflow files, to read
   inspiration/   docs/           # the human's own folders: read them, never write there
 ```
 
 The [example's notes](../assets/example/notes/) are a filled-in vault: the proposals and inbox of a
 todo app, the research of its recurring tasks, and the wiki notes it wrote.
+
+`projects/<repository>/specs/` exists only where a sync shows the repository's workflow files in the
+notes: the constitution, the decisions, and the folders of features in progress, from their
+worktrees. They are git's files, read there: a round is answered and a spec reviewed as the workflow
+says, and an agent never edits them through the notes.
 
 `<repository>` is the repository's folder name. Each folder has one owner. The human owns the inbox,
 the proposals, and their own folders: an agent writes there only what this file names. Agents own
@@ -53,21 +59,22 @@ A proposal is one note of `projects/<repository>/proposals/`, free form, from
 [the template](../assets/templates/notes/proposal.md): its title, a **What**, a **Why**, optional
 **Notes**, and the images it links beside it, in a folder of its own. Its frontmatter is the board:
 
-| Field       | Values                                 | Set by                                |
-| ----------- | -------------------------------------- | ------------------------------------- |
-| `discovery` | `low`, `medium`, `high`                | the human: how far the research goes  |
-| `status`    | `idea`, `later`, `next`, `now`         | the human                             |
-| `status`    | `started`, `postponed`                 | the agent that starts or postpones it |
-| `rank`      | a number, lowest first within a status | the human                             |
-| `branch`    | the feature's branch, once started     | the agent that starts it              |
+| Field       | Values                                 | Set by                                               |
+| ----------- | -------------------------------------- | ---------------------------------------------------- |
+| `discovery` | `low`, `medium`, `high`                | the human: how far the research goes                 |
+| `status`    | `idea`, `later`, `next`, `now`         | the human                                            |
+| `status`    | `started`, `postponed`, `done`         | the agent that starts, postpones, or finds it merged |
+| `rank`      | a number, lowest first within a status | the human                                            |
+| `branch`    | the feature's branch, once started     | the agent that starts it                             |
 
 A notes app shows them as a board: an Obsidian base grouped by `status`, sorted by `rank`. No file
 lists the priorities: the proposals' fields are the list.
 
 An agent edits a proposal note in two cases only, and only its frontmatter: it sets
 `status: started` and `branch` when it [starts](projects.md#starting-a-feature) the feature, and
-`status: postponed` when it [postpones](projects.md#postponing-or-dropping-a-feature) it. The
-human's words are never changed.
+`status: postponed` when it [postpones](projects.md#postponing-or-dropping-a-feature) it, and
+`status: done` when it finds the feature's record on the default branch and the note still
+`started`. The human's words are never changed.
 
 ## The inbox
 

@@ -166,24 +166,25 @@ runs in this session or a new one, and `ura status` lists every worktree with it
    and run the first row that matches. A change has its own table, in
    [Change](references/change.md#finding-the-step).
 
-| State of the feature's checkout                                                      | Step                                                                   |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| The human answered or reviewed, and it is not committed                              | [Commit it first](#the-humans-work-is-committed-first), then go on     |
-| `proposal.md` is not committed                                                       | [Commit the proposal](references/projects.md#starting-a-feature) alone |
-| The record is there, and no pull request is ready                                    | [Finish](references/finish.md)                                         |
-| The record, and the pull request has changes requested                               | [Comments](references/implementation.md#comments-on-the-pull-request)  |
-| The record, and the open pull request is behind the default branch                   | [Catch up](references/implementation.md#catch-up-an-open-pull-request) |
-| The record, and the open pull request lacks the branch's latest commits              | [Push](references/implementation.md#push)                              |
-| The record, and the pull request is ready                                            | **Human gate**: the review happens on the pull request                 |
-| A file has `status: awaiting-human`                                                  | **Human gate**: stop                                                   |
-| No `clarifications-01.md`, and no `spec.md`                                          | [Discovery](references/discovery.md), round 01                         |
-| Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec](references/spec.md)                                             |
-| `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md#revising), revision                          |
-| `spec.md` is `approved`, and there is no `plan.md`, or its `spec-revision` is behind | [Plan](references/plan.md)                                             |
-| `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md#revising), revision                          |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                     | [Implementation](references/implementation.md)                         |
-| Every step is checked, and the branch has no pull request                            | [Final review](references/implementation.md#final-review)              |
-| Every step is checked, and the pull request is a draft                               | [Finish](references/finish.md)                                         |
+| State of the feature's checkout                                                      | Step                                                                     |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| The human answered or reviewed, and it is not committed                              | [Commit it first](#the-humans-work-is-committed-first), then go on       |
+| `proposal.md` is not committed                                                       | [Commit the proposal](references/projects.md#starting-a-feature) alone   |
+| The record is there, and no pull request is ready                                    | [Finish](references/finish.md)                                           |
+| The record, and the pull request has changes requested                               | [Comments](references/implementation.md#comments-on-the-pull-request)    |
+| The record, and the open pull request is behind the default branch                   | [Catch up](references/implementation.md#catch-up-an-open-pull-request)   |
+| The record, and the open pull request lacks the branch's latest commits              | [Push](references/implementation.md#push)                                |
+| The record, and the pull request is ready                                            | **Human gate**: the review happens on the pull request                   |
+| A file has `status: awaiting-human`                                                  | **Human gate**: stop                                                     |
+| `discovery-NN.md` without its `clarifications-NN.md`, and no `spec.md` of that round | A round asked in a session and lost: ask it again, or write it as a file |
+| No `clarifications-01.md`, and no `spec.md`                                          | [Discovery](references/discovery.md), round 01                           |
+| Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec](references/spec.md)                                               |
+| `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md#revising), revision                            |
+| `spec.md` is `approved`, and there is no `plan.md`, or its `spec-revision` is behind | [Plan](references/plan.md)                                               |
+| `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md#revising), revision                            |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                     | [Implementation](references/implementation.md)                           |
+| Every step is checked, and the branch has no pull request                            | [Final review](references/implementation.md#final-review)                |
+| Every step is checked, and the pull request is a draft                               | [Finish](references/finish.md)                                           |
 
 A feature whose pull request was opened before its record follows the same rows without the record.
 Without `gh`, `ura next` cannot see the pull request, and says so: check it yourself.
@@ -211,6 +212,10 @@ own commit.
 
 Uncommitted edits that set no status, a round half answered, are the human's work in progress: leave
 them, and stop as the gate says.
+
+Uncommitted files an agent writes, a new `spec.md` or `discovery-02.md`, are a stopped step's: no
+human edits a file before its step commits it. Read them, then finish that step from them, or delete
+them and run it again.
 
 ### Sessions and picks
 

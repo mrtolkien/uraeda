@@ -61,8 +61,9 @@ saw the folder. Write what they could not get from the code:
   human's words, quoted where they are the decision. A follow-up shows only when it applied. The
   human's notes go under `#### Notes`. A round's Context or settled points, when quoted, go under
   `#### Context`, `#### Check these`, or `#### Settled without the human`, their sub-headings at
-  level 5: a level-3 or level-4 heading there would read as a round or a question. A change that
-  asked nothing has no Questions.
+  level 5: a level-3 or level-4 heading there would read as a round or a question. A round asked in
+  the session has no file: its `### Round NN` gives the answers as the spec quoted them, one line
+  each. A change that asked nothing has no Questions.
 - **Decisions**: each decision the feature made or changed, linked.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
   approval, and the changes asked on the pull request, each in words, never by a ruling's number.

@@ -44,13 +44,13 @@ whom, and what success looks like. The product it names as its model, if any.]
 the proposal, or a default they will meet every day.]
 
 - **[The point]** [what you chose, as a sentence that continues the point, and why]. See
-  [discovery](discovery-01.md#topic).
+  [discovery](discovery-01.md#finding).
 
 ## Q1: [Question]
 
 [As much context as deciding needs: what exists today and how others do it, with links or quotes of
 the sources. Tables, quotes, and diagrams where they help. Dependencies on other questions, if any.]
-More in [discovery](discovery-01.md#topic).
+More in [discovery](discovery-01.md#finding).
 
 Why it matters: [what this decides, and what it costs later].
 
