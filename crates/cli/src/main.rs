@@ -227,17 +227,10 @@ enum Command {
         #[arg(long)]
         no_open: bool,
     },
-    /// Run the server over sample projects and a fake agent, without sign-in, for Uraeda's own
-    /// development: from a checkout of Uraeda, until it is stopped
+    /// Run `ura serve` over sample projects, for Uraeda's own development: from a checkout of
+    /// Uraeda, until it is stopped
     #[command(hide = true)]
     Sandbox(sandbox::Args),
-    /// Play Storybook for the sandbox's stories: a page for each story, and their index
-    #[command(hide = true, disable_help_flag = true)]
-    FakeStorybook {
-        /// The fake's own arguments: see `uraeda_server::sandbox::storybook`
-        #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
-        args: Vec<String>,
-    },
     /// Show a one-time code, and its QR code, that pairs another device with the running server
     Pair {
         /// The data folder of the server to pair with
@@ -337,7 +330,6 @@ fn run(command: Command) -> Result<ExitCode, String> {
             no_open,
         } => serve_app::run(port, data_dir, no_scheduled_jobs, no_open),
         Command::Sandbox(args) => sandbox::run(args),
-        Command::FakeStorybook { args } => Ok(uraeda_server::sandbox::storybook::run(args)),
         Command::Pair { data_dir } => pair::run(data_dir),
         Command::Key { data_dir, replace } => key::run(data_dir, replace),
         Command::ImportSessions {
