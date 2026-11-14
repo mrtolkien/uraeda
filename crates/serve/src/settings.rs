@@ -285,7 +285,7 @@ fn main(options: &RunOptions, serve: &config::Settings, dir: &Path, version: &st
          on Default runs on its session's agent and model.</p>\
          <p class=\"saved small muted\" aria-live=\"polite\"></p>",
         version = escape(version),
-        file = escape(&dir.join(config::FILE).display().to_string()),
+        file = escape(&shown(&dir.join(config::FILE))),
     );
     out.push_str(
         "<section class=\"runs\" id=\"runs\"><h2>How each step runs</h2><ol class=\"steps\">",
@@ -344,12 +344,21 @@ fn main(options: &RunOptions, serve: &config::Settings, dir: &Path, version: &st
         repositories = serve
             .repositories
             .iter()
-            .map(|r| format!("<li><code>{}</code></li>", escape(&r.display().to_string())))
+            .map(|r| format!("<li><code>{}</code></li>", escape(&shown(r))))
             .collect::<String>(),
     );
     known.datalists(&mut out);
     out.push_str("</main>");
     out
+}
+
+/// A path as the page shows it, the home folder as `~`.
+fn shown(path: &Path) -> String {
+    let home = std::env::home_dir().unwrap_or_default();
+    match path.strip_prefix(&home) {
+        Ok(rest) if !home.as_os_str().is_empty() => format!("~/{}", rest.display()),
+        _ => path.display().to_string(),
+    }
 }
 
 /// The reviewers under the review step: each on its pick or a command, then their depth.

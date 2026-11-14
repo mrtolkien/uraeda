@@ -254,8 +254,14 @@ pub fn render(waiting: &Waiting) -> String {
              <p class=\"muted\">New questions and specs to review appear here.</p>",
         );
     }
-    let grouped = waiting.repositories.len() > 1;
-    for repository in &waiting.repositories {
+    // A repository with nothing waiting and nothing wrong takes no place on the page.
+    let shown: Vec<&Repository> = waiting
+        .repositories
+        .iter()
+        .filter(|r| !r.items.is_empty() || r.problem.is_some())
+        .collect();
+    let grouped = shown.len() > 1;
+    for repository in shown {
         if grouped {
             out.push_str(&format!(
                 "<section class=\"waiting-repo\"><h2>{}</h2>",
