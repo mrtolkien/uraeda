@@ -66,10 +66,10 @@ for you.
   you tap, or on words you select. Then approve, or request changes.
 - **Mockups**: "See it" draws a mockup of the feature in place. "Pick an element" starts a comment
   on the element you tap.
-- **Settings**: how each step of the workflow runs, its agent, model, and effort, and which steps
-  share a session; the build's implementers; the reviewers, and whether they review each wave or the
-  branch only. Each change is saved at once in the `[runs]` of the settings file, the rest of the
-  file kept as it was.
+- **Settings**: how each step of the workflow runs, its agent, model, and effort, chosen among the
+  models Claude Code and Codex list, and which steps share a session; the build's implementers; the
+  reviewers, and whether they review each wave or the branch only. Each change is saved at once in
+  the `[runs]` of the settings file, the rest of the file kept as it was.
 
 The pages write the workflow's files and never commit: the next agent step commits your work. It
 listens on 127.0.0.1, port 4320 or `--port`: to reach it from your phone, put it on your own
