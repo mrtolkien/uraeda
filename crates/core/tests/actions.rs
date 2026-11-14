@@ -155,27 +155,21 @@ fn refuses_a_heading_in_an_answer() {
     assert_eq!(read(&place, ROUND), before);
 }
 
-/// US2.9 and SC-003
+/// US2.9: submitting writes the record in the worktree and commits nothing.
 #[test]
-fn submits_and_commits_on_the_features_branch() {
+fn submits_in_the_worktree_and_commits_nothing() {
     let repo = repo_with(&round("B", "A", "A"));
     let (feature, place) = reach(&repo);
+    let head = repo.git(&["rev-parse", FOLDER]);
 
-    let committed = answer::submit_and_commit(&place, &feature, today(), false).unwrap();
+    let change = answer::submit(&place, &feature, today(), false).unwrap();
 
-    assert_eq!(
-        committed.change.subject,
-        "discovery(web-ui): answer round 01"
-    );
-    assert_eq!(
-        repo.subjects(FOLDER)[0],
-        "discovery(web-ui): answer round 01"
-    );
-    assert_eq!(committed.commit.len(), 7);
+    assert_eq!(change.subject, "discovery(web-ui): answer round 01");
+    assert_eq!(repo.git(&["rev-parse", FOLDER]), head);
     let text = read(&place, ROUND);
     assert!(text.starts_with("---\nstatus: answered\n---\n"));
     assert!(text.contains("> Answered on 2026-10-11.\n"));
-    assert_eq!(repo.hook_runs(), 1);
+    assert_eq!(repo.hook_runs(), 0);
     assert_eq!(repo.current_branch(), "main");
 }
 
@@ -190,7 +184,7 @@ fn submitting_keeps_the_verdict() {
     ));
     let (feature, place) = reach(&repo);
 
-    answer::submit_and_commit(&place, &feature, Date::parse("2026-10-18").unwrap(), false).unwrap();
+    answer::submit(&place, &feature, Date::parse("2026-10-18").unwrap(), false).unwrap();
 
     let text = read(&place, ROUND);
     assert!(
@@ -773,14 +767,24 @@ fn approving_with_a_higher_tier_leaves_the_plan_review_off() {
         plan_review: None,
     };
 
-    review::approve_and_commit(&place, &feature, "spec.md", None, &tier, today()).unwrap();
+    let head = repo.git(&["rev-parse", FOLDER]);
 
+    review::approve(&place, &feature, "spec.md", None, &tier, today()).unwrap();
+
+    assert_eq!(repo.git(&["rev-parse", FOLDER]), head);
     let text = read(&place, SPEC);
     assert!(text.contains("status: approved\n"));
     assert!(text.contains("risk-tier: high\n"));
     assert!(text.contains("plan-review: false\n"));
-    assert_eq!(repo.subjects(FOLDER)[0], "spec(web-ui): approve");
+    assert_eq!(repo.subjects(FOLDER)[0], "spec(web-ui): web UI");
     assert_eq!(repo.current_branch(), "main");
+}
+
+/// The paths a verdict or a submission names, sorted.
+fn sorted(change: &uraeda_core::actions::Change) -> Vec<String> {
+    let mut paths = change.paths.clone();
+    paths.sort();
+    paths
 }
 
 const PROPOSAL: &str = "specs/2026-10-11-web-ui/proposal.md";
@@ -801,7 +805,7 @@ fn append(place: &Place, path: &str, line: &str) {
 
 /// US3.3
 #[test]
-fn us3_3_a_verdict_commits_the_review_images() {
+fn us3_3_a_verdict_names_the_review_images() {
     let repo = spec_repo();
     let git = Git::discover(repo.path()).unwrap();
     let (feature, place) = reach(&repo);
@@ -817,16 +821,12 @@ fn us3_3_a_verdict_commits_the_review_images() {
     .unwrap();
     put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
 
-    review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
-        .unwrap();
+    let change =
+        review::approve(&place, &feature, "spec.md", None, &Tier::default(), today()).unwrap();
 
     assert_eq!(
-        repo.changed_in(FOLDER),
-        [
-            format!("{IMAGES}/shot.webp"),
-            REVIEW.to_string(),
-            SPEC.to_string()
-        ]
+        sorted(&change),
+        [IMAGES.to_string(), REVIEW.to_string(), SPEC.to_string()]
     );
 }
 
@@ -863,16 +863,16 @@ fn a_replaced_review_keeps_images_another_file_links() {
     let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.", None).unwrap();
     assert!(replaced.replaced);
 
-    review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
-        .unwrap();
+    let change =
+        review::approve(&place, &feature, "spec.md", None, &Tier::default(), today()).unwrap();
 
-    assert_eq!(repo.changed_in(FOLDER), [REVIEW, SPEC]);
+    assert_eq!(sorted(&change), [IMAGES, REVIEW, SPEC]);
     assert!(place.root.join(IMAGES).join("shot.webp").exists());
 }
 
 /// US4.3
 #[test]
-fn us4_3_submitted_answers_commit_their_images() {
+fn us4_3_submitted_answers_name_their_images() {
     let repo = repo_with(&round(
         "B",
         "A",
@@ -882,16 +882,9 @@ fn us4_3_submitted_answers_commit_their_images() {
     put(&place, &format!("{IMAGES}/one.webp"), b"one");
     put(&place, &format!("{IMAGES}/two.webp"), b"two");
 
-    answer::submit_and_commit(&place, &feature, today(), false).unwrap();
+    let change = answer::submit(&place, &feature, today(), false).unwrap();
 
-    assert_eq!(
-        repo.changed_in(FOLDER),
-        [
-            ROUND.to_string(),
-            format!("{IMAGES}/one.webp"),
-            format!("{IMAGES}/two.webp")
-        ]
-    );
+    assert_eq!(sorted(&change), [ROUND.to_string(), IMAGES.to_string()]);
 }
 
 /// A replaced review's image that no other file links goes with the verdict.
@@ -920,15 +913,15 @@ fn a_replaced_review_drops_the_images_only_it_linked() {
     let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.", None).unwrap();
     assert!(replaced.replaced);
 
-    review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
-        .unwrap();
+    let change =
+        review::approve(&place, &feature, "spec.md", None, &Tier::default(), today()).unwrap();
 
-    assert_eq!(repo.changed_in(FOLDER), [REVIEW, SPEC]);
+    assert_eq!(sorted(&change), [REVIEW, SPEC]);
     assert!(!place.root.join(IMAGES).exists());
 }
 
 #[test]
-fn a_request_for_changes_commits_the_review_images() {
+fn a_request_for_changes_names_the_review_images() {
     let repo = spec_repo();
     let git = Git::discover(repo.path()).unwrap();
     let (feature, place) = reach(&repo);
@@ -945,15 +938,11 @@ fn a_request_for_changes_commits_the_review_images() {
     put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
     put(&place, &format!("{IMAGES}/old.webp"), b"old");
 
-    review::request_changes_and_commit(&place, &feature, "spec.md", None, today()).unwrap();
+    let change = review::request_changes(&place, &feature, "spec.md", None, today()).unwrap();
 
     assert_eq!(
-        repo.changed_in(FOLDER),
-        [
-            format!("{IMAGES}/shot.webp"),
-            REVIEW.to_string(),
-            SPEC.to_string()
-        ]
+        sorted(&change),
+        [IMAGES.to_string(), REVIEW.to_string(), SPEC.to_string()]
     );
     assert!(!place.root.join(IMAGES).join("old.webp").exists());
 }
@@ -969,7 +958,7 @@ fn a_rounds_last_answer_ends_at_the_notes() {
     let repo = repo_with(&unsettled);
     let (feature, place) = reach(&repo);
 
-    let blank = answer::submit_and_commit(&place, &feature, today(), false).unwrap_err();
+    let blank = answer::submit(&place, &feature, today(), false).unwrap_err();
     answer::save(&place, &feature, "Q2", &letters(&["A"]), "", "").unwrap();
     answer::save_notes(&place, &feature, "Fine.", "").unwrap();
 
@@ -998,7 +987,7 @@ fn submitting_to_resume_marks_the_round_when_the_implementation_is_under_way() {
     repo.worktree(FOLDER);
     let (feature, place) = reach(&repo);
 
-    answer::submit_and_commit(&place, &feature, today(), true).unwrap();
+    answer::submit(&place, &feature, today(), true).unwrap();
 
     let text = read(&place, ROUND);
     assert!(
@@ -1012,7 +1001,7 @@ fn submitting_to_resume_is_refused_before_the_implementation_is_under_way() {
     let repo = repo_with(&round("B", "A", "A"));
     let (feature, place) = reach(&repo);
 
-    let error = answer::submit_and_commit(&place, &feature, today(), true).unwrap_err();
+    let error = answer::submit(&place, &feature, today(), true).unwrap_err();
 
     assert!(matches!(error, ActionError::Refused(_)), "{error}");
     assert!(read(&place, ROUND).contains("status: awaiting-human"));
@@ -1029,7 +1018,7 @@ fn submitting_without_resuming_removes_the_key_of_a_reopened_round() {
     let repo = repo_with(&reopened);
     let (feature, place) = reach(&repo);
 
-    answer::submit_and_commit(&place, &feature, today(), false).unwrap();
+    answer::submit(&place, &feature, today(), false).unwrap();
 
     assert!(!read(&place, ROUND).contains("resumes"));
 }

@@ -50,16 +50,13 @@ enum Command {
         /// notes), and the answer
         #[arg(add = complete::questions())]
         arguments: Vec<String>,
-        /// Submit the round: set it answered, record its block, and commit
+        /// Submit the round: set it answered, and record its block
         #[arg(long)]
         submit: bool,
         /// With --submit, mark the round answered to continue the implementation: the spec stays
         /// as approved
         #[arg(long)]
         resume: bool,
-        /// Leave the files for you to commit
-        #[arg(long)]
-        no_commit: bool,
     },
     /// Review a spec or a plan: comment, then approve or request changes
     Review {
@@ -75,7 +72,7 @@ enum Command {
         /// Request changes, with the pending comments
         #[arg(long)]
         request_changes: bool,
-        /// A summary of the review, for its record and its commit
+        /// A summary of the review, for its record
         #[arg(long)]
         summary: Option<String>,
         /// Change the spec's risk tier on approval: low, medium, or high
@@ -87,9 +84,6 @@ enum Command {
         /// false with a new --risk-tier, whatever the tier
         #[arg(long)]
         plan_review: Option<bool>,
-        /// Leave the files for you to commit
-        #[arg(long)]
-        no_commit: bool,
     },
     /// Check workflow files against the skill's rules
     Check {
@@ -167,7 +161,6 @@ fn run(command: Command) -> Result<ExitCode, String> {
             summary,
             risk_tier,
             plan_review,
-            no_commit,
         } => review::run(review::Options {
             target,
             comment,
@@ -178,13 +171,11 @@ fn run(command: Command) -> Result<ExitCode, String> {
                 risk_tier,
                 plan_review,
             },
-            no_commit,
         }),
         Command::Answer {
             arguments,
             submit,
             resume,
-            no_commit,
-        } => answer::run(arguments, submit, resume, no_commit),
+        } => answer::run(arguments, submit, resume),
     }
 }

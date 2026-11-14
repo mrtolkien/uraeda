@@ -305,14 +305,3 @@ pub fn remove_settled_comment(
         },
     )
 }
-
-/// Submits the latest round and commits it alone: files the human staged stay staged, out of it.
-pub fn submit_and_commit(
-    place: &Place,
-    feature: &Feature,
-    today: Date,
-    resumes: bool,
-) -> Result<super::Committed, ActionError> {
-    let change = submit(place, feature, today, resumes)?;
-    super::commit::commit_only(place, &change)
-}

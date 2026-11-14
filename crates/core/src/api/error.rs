@@ -3,8 +3,7 @@
 use crate::actions::{ActionError, place};
 use crate::git::GitError;
 
-/// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
-/// or `hook` for a commit a hook refused, with its whole `output`.
+/// An operation refused or failed: `code` is `refused`, or `conflict` for a change made elsewhere.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiError {
     pub code: &'static str,
@@ -33,11 +32,6 @@ impl From<ActionError> for ApiError {
                 code: "conflict",
                 message: error.to_string(),
                 output: None,
-            },
-            ActionError::Hook { message, output } => ApiError {
-                code: "hook",
-                message: format!("git commit failed: {message}"),
-                output: Some(output),
             },
             error => refused(error.to_string()),
         }

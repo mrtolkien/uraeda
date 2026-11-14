@@ -78,7 +78,6 @@ fn the_six_incidents_are_fixed() {
     repo.commit("finish(cli-core): CLI core");
     repo.remove("specs/2026-11-05-dark-mode/proposal.md");
     repo.commit("chore(dark-mode): drop Dark mode");
-    let dropped = repo.git(&["rev-parse", "--short=7", "HEAD"]);
 
     let found = broken(&repo);
     assert!(
@@ -87,11 +86,11 @@ fn the_six_incidents_are_fixed() {
         )),
         "{found:#?}"
     );
+    // A record's link to a file deleted since is history, never reported.
     assert!(
-        found.iter().any(|line| line.ends_with(&format!(
-            "no file /specs/2026-11-05-dark-mode/proposal.md: deleted in {} (chore(dark-mode): drop Dark mode)",
-            dropped.trim()
-        ))),
+        !found
+            .iter()
+            .any(|line| line.contains("2026-11-05-dark-mode")),
         "{found:#?}"
     );
 

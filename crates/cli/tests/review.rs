@@ -98,15 +98,11 @@ fn request_changes_commits_the_spec_and_its_review() {
         repo.read(REVIEW)
             .contains("# Review: Spec, Feature\n\nName the field\n\n## C1")
     );
-    assert_eq!(repo.subjects("HEAD")[0], "spec(cli-core): request changes");
-    assert_eq!(
-        repo.git(&["log", "-1", "--format=%b"]).trim(),
-        "Name the field"
-    );
-    assert_eq!(repo.changed_in("HEAD"), [REVIEW, SPEC]);
+    assert_eq!(repo.subjects("HEAD").len(), 3);
+    assert_eq!(repo.hook_runs(), 0);
     assert_eq!(
         output.stdout,
-        "Changes requested on spec.md, committed as \"spec(cli-core): request changes\".\n"
+        format!("Changes requested on spec.md in {REVIEW} and {SPEC}: the next step commits it.\n")
     );
 }
 
@@ -141,11 +137,10 @@ fn approve_deletes_an_old_review() {
             .contains("> [!NOTE]\n>\n> Approved on 2026-10-11.\n")
     );
     assert!(!repo.exists(REVIEW));
-    assert_eq!(repo.subjects("HEAD")[0], "spec(cli-core): approve");
-    assert_eq!(repo.changed_in("HEAD"), [REVIEW, SPEC]);
+    assert_eq!(repo.subjects("HEAD")[0], "old review");
     assert_eq!(
         output.stdout,
-        "spec.md approved, committed as \"spec(cli-core): approve\".\n"
+        format!("spec.md approved in {REVIEW} and {SPEC}: the next step commits it.\n")
     );
 }
 
@@ -402,7 +397,7 @@ fn a_pending_review_of_an_older_version_is_replaced() {
 }
 
 #[test]
-fn no_commit_names_the_images_to_commit() {
+fn approve_names_the_images_the_next_step_commits() {
     let repo = waiting();
     ura(
         &repo,
@@ -416,12 +411,12 @@ fn no_commit_names_the_images_to_commit() {
     );
     repo.write("specs/2026-10-10-cli-core/images/shot.webp", "shot");
 
-    let output = ura(&repo, &["review", "cli-core", "--approve", "--no-commit"]);
+    let output = ura(&repo, &["review", "cli-core", "--approve"]);
 
     assert_eq!(
         output.stdout,
         format!(
-            "spec.md approved: commit specs/2026-10-10-cli-core/images, {REVIEW}, and {SPEC}.\n"
+            "spec.md approved in specs/2026-10-10-cli-core/images, {REVIEW}, and {SPEC}: the next step commits it.\n"
         )
     );
     assert_eq!(repo.subjects("HEAD").len(), 3);

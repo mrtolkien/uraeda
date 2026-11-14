@@ -43,21 +43,6 @@ fn a_refused_answer_leaves_the_checkout() {
     assert_eq!(output.stdout, "");
 }
 
-/// Final review I4: other staged files stay staged, out of the answer's commit.
-#[test]
-fn other_staged_files_stay_out_of_the_answer() {
-    let repo = waiting(&["A", "B", "A"]);
-    repo.switch("2026-10-10-cli-core");
-    repo.write("other.md", "x\n");
-    repo.git(&["add", "other.md"]);
-
-    let output = ura(&repo, &["answer", "--submit"]);
-
-    assert_eq!(output.code, 0, "{}", output.stderr);
-    assert!(repo.read(FILE).contains("status: answered"));
-    assert_eq!(repo.porcelain(), "A  other.md\n");
-}
-
 fn spec_waiting() -> TestRepo {
     let repo = TestRepo::new();
     specs(&repo);

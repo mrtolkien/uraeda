@@ -4,7 +4,6 @@ use std::io::IsTerminal;
 use std::process::ExitCode;
 
 use serde::Serialize;
-use uraeda_core::actions::ActionError;
 use uraeda_core::actions::place::Place;
 use uraeda_core::git::Git;
 use uraeda_core::target::{self, Purpose, Target};
@@ -94,8 +93,8 @@ pub fn target(
     target::resolve(workspace, &cwd, target, purpose).map_err(|error| error.to_string())
 }
 
-/// Says where an action wrote, when it is not this working tree: the worktree created or found
-/// for its branch, from the main checkout, or the branch this one was switched to.
+/// Says where an action wrote, when it is not this working tree: the worktree that holds its
+/// branch, from the main checkout.
 pub fn say_place(git: &Git, place: &Place) {
     if let Some(message) = place_message(git, place) {
         println!("{message}");
@@ -105,9 +104,6 @@ pub fn say_place(git: &Git, place: &Place) {
 /// Where an action wrote, when it is not this working tree: a worktree under the main checkout by
 /// its path from there, and the main checkout itself by its full path.
 pub fn place_message(git: &Git, place: &Place) -> Option<String> {
-    if let Some(branch) = &place.switched {
-        return Some(format!("switched to {branch}"));
-    }
     if place.root == git.root() {
         return None;
     }
@@ -117,15 +113,4 @@ pub fn place_message(git: &Git, place: &Place) -> Option<String> {
         _ => &place.root,
     };
     Some(format!("wrote in {}", shown.display()))
-}
-
-/// The message of a committing action's error: a hook's refusal is printed, then explained.
-pub fn action_error(error: ActionError) -> String {
-    match error {
-        error @ ActionError::Hook { .. } => {
-            eprintln!("ura: {error}");
-            "commit failed: fix the hook's error, then commit".to_string()
-        }
-        error => error.to_string(),
-    }
 }

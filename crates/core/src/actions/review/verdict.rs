@@ -152,28 +152,3 @@ pub fn request_changes(
         body: summary.map(String::from),
     })
 }
-
-/// Approves a file and commits it.
-pub fn approve_and_commit(
-    place: &Place,
-    feature: &Feature,
-    file: &str,
-    summary: Option<&str>,
-    tier: &Tier,
-    today: Date,
-) -> Result<super::super::Committed, ActionError> {
-    let change = approve(place, feature, file, summary, tier, today)?;
-    super::super::commit::commit_only(place, &change)
-}
-
-/// Requests changes on a file and commits it.
-pub fn request_changes_and_commit(
-    place: &Place,
-    feature: &Feature,
-    file: &str,
-    summary: Option<&str>,
-    today: Date,
-) -> Result<super::super::Committed, ActionError> {
-    let change = request_changes(place, feature, file, summary, today)?;
-    super::super::commit::commit_only(place, &change)
-}

@@ -1,6 +1,6 @@
-//! What differs from `HEAD` under a path, and which paths of a commit git can add.
+//! What differs from `HEAD` under a path.
 
-use super::{Git, GitError, others_staged, read_error};
+use super::{Git, GitError, read_error};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 impl Git {
@@ -31,24 +31,6 @@ impl Git {
                 message: message.into(),
             }
         })?
-    }
-
-    /// The paths of a commit git can add: a deletion already staged, by the human, is
-    /// not one, whether a file or a folder whose files the index no longer holds.
-    pub(super) fn addable<'a>(
-        &self,
-        paths: &'a [String],
-        staged: &[String],
-    ) -> Result<Vec<&'a str>, GitError> {
-        let mut addable = Vec::new();
-        for path in paths {
-            let staged_under =
-                others_staged(staged, std::slice::from_ref(path)).len() < staged.len();
-            if self.root.join(path).exists() || !staged_under || self.in_index(path)? {
-                addable.push(path.as_str());
-            }
-        }
-        Ok(addable)
     }
 
     /// Whether the files at or under `path` differ between `HEAD` and the working tree, as

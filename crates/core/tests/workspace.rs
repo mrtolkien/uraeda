@@ -37,7 +37,9 @@ fn workspace(repo: &TestRepo) -> Workspace {
 #[test]
 fn a_feature_checked_out_in_a_worktree_is_read_from_its_disk() {
     let repo = repo();
-    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let place = place::Place {
+        root: repo.worktree(FOLDER),
+    };
     let round = place
         .root
         .join("specs/2026-10-11-web-ui/clarifications-01.md");
@@ -142,7 +144,7 @@ fn a_record_on_the_default_branch_is_a_merged_feature() {
 #[test]
 fn a_merged_feature_names_its_branch_and_worktree_left() {
     let repo = finished_and_merged();
-    place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    repo.worktree(FOLDER);
 
     let feature = feature(&repo, FOLDER);
 
@@ -285,7 +287,7 @@ fn an_old_fix_branch_is_no_item() {
     repo.write(&format!("specs/bugs/{CHANGE}/report.md"), "# Crash\n");
     repo.commit("chore: report");
     repo.switch("main");
-    place::reach(&Git::discover(repo.path()).unwrap(), &branch).unwrap();
+    repo.worktree(&branch);
 
     let workspace = workspace(&repo);
 
@@ -477,7 +479,9 @@ fn uncommitted_round(repo: &TestRepo) -> std::path::PathBuf {
     );
     repo.commit("discovery(web-ui): answer round 01");
     repo.switch("main");
-    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let place = place::Place {
+        root: repo.worktree(FOLDER),
+    };
     let round = place
         .root
         .join("specs/2026-10-11-web-ui/clarifications-02.md");
@@ -535,7 +539,9 @@ fn a_pull_request_keeps_the_commits_step() {
     repo.commit("feat(web-ui): every task");
     repo.switch("main");
     let git = Git::discover(repo.path()).unwrap();
-    let place = place::reach(&git, FOLDER).unwrap();
+    let place = place::Place {
+        root: repo.worktree(FOLDER),
+    };
     std::fs::write(
         place.root.join(format!("{folder}/plan.md")),
         plan("approved", 1, &[("One", 1, 2)]),
@@ -565,7 +571,7 @@ fn a_pull_request_keeps_the_commits_step() {
 #[test]
 fn a_folder_read_alone_is_the_workspaces() {
     let repo = finished_and_merged();
-    place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    repo.worktree(FOLDER);
     repo.switch_new("2026-10-12-other");
     repo.write("specs/2026-10-12-other/proposal.md", &proposal());
     repo.commit("chore(other): start Other");
