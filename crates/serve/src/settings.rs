@@ -27,7 +27,7 @@ use crate::html::escape;
 use crate::providers::{self, Provider};
 use crate::review::routes::version_of;
 use crate::round::routes::Failure;
-use crate::{Shared, html};
+use crate::{Shared, html, marks};
 
 /// The agent an agent reviewer runs on when none is picked.
 const REVIEWER_AGENT: &str = "claude";
@@ -273,7 +273,7 @@ pub async fn save_serve(
     .map_err(|e| Failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
 }
 
-/// The page's `<main>`.
+/// The page's `<main>`: the workflow as a track of steps, each a row that opens the picker.
 fn main(
     options: &RunOptions,
     serve: &config::Settings,
@@ -288,15 +288,13 @@ fn main(
         "<main class=\"settings\" data-version=\"{version}\">\
          <nav class=\"crumbs\"><a href=\"./\">‹ What waits on you</a></nav>\
          <h1>Settings</h1>\
-         <p class=\"muted small\">Each change is saved at once, in <code>{file}</code>. The models are \
-         the ones Claude Code and Codex list. A step left on Default runs on its session's agent and model.</p>\
+         <p class=\"muted small\">How each step runs: tap one to pick its agent, model, and effort. \
+         Saved at once in <code>{file}</code>.</p>\
          <p class=\"saved small muted\" aria-live=\"polite\"></p>",
         version = escape(version),
         file = escape(&shown(&dir.join(config::FILE))),
     );
-    out.push_str(
-        "<section class=\"runs\" id=\"runs\"><h2>How each step runs</h2><ol class=\"steps\">",
-    );
+    out.push_str("<ol class=\"track\" aria-label=\"How each step runs\">");
     for (index, step) in STEPS.iter().enumerate() {
         let set = options.steps.iter().find(|s| s.step == *step);
         let pick = set.map_or_else(Pick::default, |s| Pick::of(&s.agent, &s.model, &s.effort));
@@ -305,7 +303,7 @@ fn main(
             let _ = write!(
                 out,
                 "<li class=\"joint\"><button type=\"button\" class=\"cut\" aria-pressed=\"{cut}\" \
-                 data-step=\"{step}\"><span class=\"line\" aria-hidden=\"true\"></span>\
+                 data-step=\"{step}\" title=\"Whether this step starts a new session\">\
                  <span class=\"label\">{label}</span></button></li>",
                 label = if cut {
                     "✂ New session"
@@ -317,9 +315,8 @@ fn main(
         let (name, what) = step_words(step);
         let _ = write!(
             out,
-            "<li class=\"step\" data-step=\"{step}\"><div class=\"head\"><h3>{name}</h3>\
-             <p class=\"muted small\">{what}</p></div>{fields}",
-            fields = fields(&pick, &format!("{name}'s"), &choices),
+            "<li class=\"step\" data-step=\"{step}\">{row}",
+            row = row(&pick, name, what, &choices),
         );
         if *step == "build" {
             let implementers = options
@@ -328,9 +325,13 @@ fn main(
                 .map_or_else(Pick::default, |p| Pick::of(&p.agent, &p.model, &p.effort));
             let _ = write!(
                 out,
-                "<div class=\"under implementers\"><h4>Implementers</h4><p class=\"muted small\">\
-                 Build the tasks, each in its own session</p>{}</div>",
-                fields(&implementers, "the implementers'", &choices)
+                "<ul class=\"under\"><li class=\"implementers\">{}</li></ul>",
+                row(
+                    &implementers,
+                    "Implementers",
+                    "Build the tasks, each in its own session",
+                    &choices
+                )
             );
         }
         if *step == "review" {
@@ -338,21 +339,22 @@ fn main(
         }
         out.push_str("</li>");
     }
-    out.push_str("</ol></section>");
+    out.push_str("</ol>");
     let _ = write!(
         out,
         "<section class=\"pages\" id=\"pages\"><h2>These pages</h2>\
          <label class=\"switch\"><input type=\"checkbox\" class=\"wake\"{checked}> \
          <span>Tell the feature's T3 Code session to continue when you send answers or a verdict\
-         </span></label><h3>Repositories</h3><ul class=\"muted\">{repositories}</ul>\
-         <p class=\"muted small\">The repositories and the port are set in the file: a change \
-         takes effect when <code>ura serve</code> starts again.</p></section>",
+         </span></label><p class=\"muted small\">Repositories: {repositories}. They and the port \
+         are set in the file, and take effect when <code>ura serve</code> starts again.</p>\
+         </section>",
         checked = if serve.wake.is_some() { " checked" } else { "" },
         repositories = serve
             .repositories
             .iter()
-            .map(|r| format!("<li><code>{}</code></li>", escape(&shown(r))))
-            .collect::<String>(),
+            .map(|r| format!("<code>{}</code>", escape(&shown(r))))
+            .collect::<Vec<_>>()
+            .join(", "),
     );
     for agent in &choices.providers {
         if let Some(problem) = &agent.problem {
@@ -364,6 +366,11 @@ fn main(
             );
         }
     }
+    out.push_str(
+        "<dialog class=\"picker\" aria-labelledby=\"picker-title\"><form method=\"dialog\">\
+         <header><h2 id=\"picker-title\"></h2><button class=\"picker-done primary\" value=\"done\">Done\
+         </button></header><div class=\"picker-body\"></div></form></dialog>",
+    );
     choices.script(&mut out);
     out.push_str("</main>");
     out
@@ -378,137 +385,107 @@ fn shown(path: &Path) -> String {
     }
 }
 
-/// The reviewers under the review step: each on its pick or a command, then their depth.
+/// The reviewers under the review step, each a row, then when they review.
 fn reviewers(out: &mut String, options: &RunOptions, choices: &Choices) {
-    out.push_str(
-        "<div class=\"under reviewers\"><h4>Reviewers</h4><p class=\"muted small\">Review the \
-         build. None: one reviewer on the review step's agent.</p><ol class=\"reviewer-list\">",
-    );
+    out.push_str("<ul class=\"under reviewers\">");
     for reviewer in options.reviewers.iter().flatten() {
         out.push_str(&reviewer_item(reviewer, choices));
     }
+    let branch = options.review_depth.as_deref() == Some("branch");
     let _ = write!(
         out,
-        "</ol><template class=\"reviewer-template\">{}</template>\
-         <button type=\"button\" class=\"add-reviewer\">Add a reviewer</button>\
-         <fieldset class=\"depth\"><legend>When they review</legend>\
-         <label><input type=\"radio\" name=\"depth\" value=\"waves\"{waves}> Each wave, then the \
-         branch</label><label><input type=\"radio\" name=\"depth\" value=\"branch\"{branch}> The \
-         branch only</label></fieldset></div>",
-        reviewer_item(&ReviewerOptions::default(), choices),
-        waves = if options.review_depth.as_deref() == Some("branch") {
-            ""
-        } else {
-            " checked"
-        },
-        branch = if options.review_depth.as_deref() == Some("branch") {
-            " checked"
-        } else {
-            ""
-        },
+        "</ul><div class=\"review-more\"><button type=\"button\" class=\"add-reviewer small\">+ \
+         Reviewer</button><div class=\"segmented depth\" role=\"radiogroup\" aria-label=\"When \
+         the reviewers review\"><button type=\"button\" role=\"radio\" data-depth=\"waves\" \
+         aria-checked=\"{waves}\">Each wave</button><button type=\"button\" role=\"radio\" \
+         data-depth=\"branch\" aria-checked=\"{branch}\">Branch only</button></div></div>\
+         <template class=\"reviewer-template\">{template}</template>",
+        waves = !branch,
+        template = reviewer_item(&ReviewerOptions::default(), choices),
     );
 }
 
-/// A reviewer's item: its pick and instructions, or its command.
+/// A reviewer's row: an agent on its pick, with its instructions, or a command.
 fn reviewer_item(reviewer: &ReviewerOptions, choices: &Choices) -> String {
     let command = reviewer.command.clone().unwrap_or_default();
-    let pick = Pick::of(&reviewer.agent, &reviewer.model, &reviewer.effort);
+    let instructions = reviewer.instructions.clone().unwrap_or_default();
+    let row = if command.is_empty() {
+        let pick = Pick::of(&reviewer.agent, &reviewer.model, &reviewer.effort);
+        row(&pick, "Reviewer", "", choices)
+    } else {
+        format!(
+            "<button type=\"button\" class=\"row\" data-agent=\"command\"><span class=\"mark\">\
+             {mark}</span><span class=\"body\"><span class=\"name\">Reviewer</span><span \
+             class=\"what\"><code>{command}</code></span></span></button>",
+            mark = marks::of("command"),
+            command = escape(&command),
+        )
+    };
     format!(
-        "<li class=\"reviewer\" data-kind=\"{kind}\"><div class=\"kinds\" role=\"group\" \
-         aria-label=\"Kind of reviewer\"><button type=\"button\" class=\"kind-agent\" \
-         aria-pressed=\"{agent}\">An agent</button><button type=\"button\" class=\"kind-command\" \
-         aria-pressed=\"{is_command}\">A command</button><button type=\"button\" class=\"drop\">\
-         Remove</button></div><div class=\"as-agent\">{fields}<label class=\"field wide\">\
-         <span>Instructions, optional</span><textarea rows=\"2\" class=\"instructions\">\
-         {instructions}</textarea></label></div><label class=\"field wide as-command\">\
-         <span>Command, run in the feature's worktree</span><input type=\"text\" class=\"command\" \
-         value=\"{command}\" placeholder=\"just review\"></label></li>",
-        kind = if command.is_empty() {
-            "agent"
-        } else {
-            "command"
-        },
-        agent = command.is_empty(),
-        is_command = !command.is_empty(),
-        fields = fields(&pick, "the reviewer's", choices),
-        instructions = escape(reviewer.instructions.as_deref().unwrap_or_default()),
+        "<li class=\"reviewer\" data-command=\"{command}\" data-instructions=\"{instructions}\">\
+         {row}</li>",
         command = escape(&command),
+        instructions = escape(&instructions),
     )
 }
 
-/// The agent, model, and effort fields of a pick: the agents, then the models of the
-/// one picked, then the efforts of the model picked. A value no provider offers, written by hand,
-/// stays offered, marked.
-fn fields(pick: &Pick, whose: &str, choices: &Choices) -> String {
+/// A pick's row: the agent's mark, the name of what runs, the model, and the effort as a meter.
+/// Its `data-` values are the pick, which the script reads and the picker changes.
+fn row(pick: &Pick, name: &str, what: &str, choices: &Choices) -> String {
     let provider = providers::find(&choices.providers, &pick.agent);
-    let mut agents = option("", "Default", pick.agent.is_empty());
-    for p in &choices.providers {
-        agents.push_str(&option(
-            &p.id,
-            &p.name,
-            provider.is_some_and(|f| f.id == p.id),
-        ));
-    }
-    if provider.is_none() && !pick.agent.is_empty() {
-        agents.push_str(&option(
-            &pick.agent,
-            &format!("{} (not installed)", pick.agent),
-            true,
-        ));
-    }
     let model = provider.and_then(|p| providers::model(p, &pick.model));
-    let mut models = option("", "Default", pick.model.is_empty());
-    for m in provider.map(|p| p.models.as_slice()).unwrap_or_default() {
-        models.push_str(&option(
-            &m.slug,
-            &m.name,
-            model.is_some_and(|f| f.slug == m.slug),
-        ));
-    }
-    if model.is_none() && !pick.model.is_empty() {
-        models.push_str(&option(
-            &pick.model,
-            &format!("{} (not offered)", pick.model),
-            true,
-        ));
-    }
+    let model_name = match (provider, model) {
+        (None, _) if pick.agent.is_empty() => "Default".to_string(),
+        (None, _) => format!("{} (not listed)", pick.agent),
+        (Some(p), None) if pick.model.is_empty() => {
+            let usual = p.models.iter().find(|m| m.default);
+            usual.map_or_else(|| p.name.clone(), |m| format!("{} · default", m.name))
+        }
+        (Some(_), None) => format!("{} (not offered)", pick.model),
+        (Some(_), Some(m)) => m.name.clone(),
+    };
     let shown = model.or_else(|| {
         provider.and_then(|p| p.models.iter().find(|m| m.default).or(p.models.first()))
     });
-    let efforts_of = shown.map(|m| m.efforts.as_slice()).unwrap_or_default();
-    let default_effort = efforts_of.iter().find(|e| e.default).map_or_else(
-        || "Default".to_string(),
-        |e| format!("Default ({})", e.label),
-    );
-    let mut efforts = option("", &default_effort, pick.effort.is_empty());
-    for e in efforts_of {
-        efforts.push_str(&option(&e.id, &e.label, e.id == pick.effort));
-    }
-    if !pick.effort.is_empty() && !efforts_of.iter().any(|e| e.id == pick.effort) {
-        efforts.push_str(&option(
-            &pick.effort,
-            &format!("{} (not offered)", pick.effort),
-            true,
-        ));
-    }
+    let efforts = shown.map(|m| m.efforts.as_slice()).unwrap_or_default();
+    let at = if pick.effort.is_empty() {
+        efforts.iter().position(|e| e.default)
+    } else {
+        efforts.iter().position(|e| e.id == pick.effort)
+    };
+    let effort_name = match (pick.effort.is_empty(), at) {
+        (_, Some(i)) => efforts[i].label.clone(),
+        (true, None) => String::new(),
+        (false, None) => pick.effort.clone(),
+    };
+    let meter: String = (0..efforts.len())
+        .map(|i| {
+            format!(
+                "<i{}></i>",
+                if at.is_some_and(|at| i <= at) {
+                    " class=\"on\""
+                } else {
+                    ""
+                }
+            )
+        })
+        .collect();
     format!(
-        "<div class=\"pick\"><label class=\"field\"><span>Agent</span><select class=\"agent\" \
-         aria-label=\"{whose} agent\">{agents}</select></label>\
-         <label class=\"field\"><span>Model</span><select class=\"model\" \
-         aria-label=\"{whose} model\">{models}</select></label>\
-         <label class=\"field\"><span>Effort</span><select class=\"effort\" \
-         aria-label=\"{whose} effort\">{efforts}</select></label></div>",
-        whose = escape(whose),
-    )
-}
-
-/// An `<option>`.
-fn option(value: &str, label: &str, selected: bool) -> String {
-    format!(
-        "<option value=\"{}\"{}>{}</option>",
-        escape(value),
-        if selected { " selected" } else { "" },
-        escape(label)
+        "<button type=\"button\" class=\"row\" data-agent=\"{agent}\" data-model=\"{model}\" \
+         data-effort=\"{effort}\" data-name=\"{name}\" title=\"{what}\"><span class=\"mark\">\
+         {mark}</span><span class=\"body\"><span class=\"name\">{name}</span><span \
+         class=\"what\">{model_name}</span></span><span class=\"effort{dim}\"><span \
+         class=\"meter\">{meter}</span><span class=\"effort-name\">{effort_name}</span></span>\
+         <span class=\"chevron\" aria-hidden=\"true\">›</span></button>",
+        agent = escape(&pick.agent),
+        model = escape(&pick.model),
+        effort = escape(&pick.effort),
+        name = escape(name),
+        what = escape(what),
+        mark = marks::of(provider.map_or(pick.agent.as_str(), |p| p.id.as_str())),
+        model_name = escape(&model_name),
+        dim = if pick.effort.is_empty() { " usual" } else { "" },
+        effort_name = escape(&effort_name),
     )
 }
 
@@ -518,14 +495,17 @@ struct Choices {
 }
 
 impl Choices {
-    /// The providers as the page's script reads them, to fill a model's and an effort's choices
-    /// when another agent or model is picked.
+    /// The agents, their models, and their marks, as the picker reads them.
     fn script(&self, out: &mut String) {
-        let json = serde_json::to_string(&self.providers).unwrap_or_else(|_| "[]".into());
+        let marks: serde_json::Map<String, Value> = ["claude", "codex", "command", "", "other"]
+            .iter()
+            .map(|agent| ((*agent).to_string(), Value::String(marks::of(agent))))
+            .collect();
+        let data = json!({ "agents": self.providers, "marks": marks });
         let _ = write!(
             out,
             "<script type=\"application/json\" id=\"providers\">{}</script>",
-            json.replace("</", "<\\/")
+            data.to_string().replace("</", "<\\/")
         );
     }
 }
