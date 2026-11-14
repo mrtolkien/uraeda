@@ -16,16 +16,15 @@ make a mock."
 ## Rules
 
 - Every rule the CLI checks or enforces is written in the skill, beside the way to do the step by
-  hand. _So:_ `ura check` once checked the four sections of the priorities file, which the skill did
-  not name. The fix was a sentence in the skill.
+  hand. _So:_ `ura next` names a step's pick and session from the settings, and the skill's
+  "Sessions and picks" says how to run without them; every link `ura check --fix` repairs, the
+  skill's "By hand" repairs the same way.
 - An agent never meets a prompt it cannot answer: every action of a TUI is also a command with
-  flags. _So:_ adding an extension asks where to turn it on in a terminal, and takes `--all`,
-  `--here`, or `--repo` without one.
-
+  flags. _So:_ `ura install` asks for its scope and folders in a terminal, and takes `--user`,
+  `--repo`, `--agents`, and `--claude` without one; `--no-input` fails and names the flags missing.
 - Every interactive screen of `ura`, a one-question picker included, is drawn with ratatui, and no
   other prompt or terminal library is added. _So:_ the two pickers of `ura install` were written by
-  hand on ratatui, though dialoguer had them ready at a sixth of the size: the planned answer and
-  review screens need ratatui, and a second library would look different.
+  hand on ratatui, though dialoguer had them ready at a sixth of the size.
 - A terminal screen uses the terminal's own colours, never colours of its own. _So:_ it follows the
   user's theme, and everyone else's, rather than matching one theme exactly.
 
@@ -40,9 +39,8 @@ its run. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 - Rules living in the CLI only, with agents told never to edit a workflow file by hand. It gives the
   fewest agent errors, but the workflow then needs the tool, against the constitution.
-
-- dialoguer for the pickers: ready select prompts, but a second library once the planned screens use
-  ratatui.
+- dialoguer for the pickers: ready select prompts, but a second library beside ratatui, which looks
+  different.
 
 ## Applies to
 

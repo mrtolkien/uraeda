@@ -7,38 +7,36 @@ icon: folder-git-2
 > "Repositories are not config but data. I think a repositories.json is nice and this way it can
 > easily be edited by a human or coding agent."
 
-The repositories are the git repositories the human added to Uraeda. One server works on all of
-them. Their list is kept outside any of them, in Uraeda's data folder: the folder of the machine
-where Uraeda keeps what is not in a repository.
+The repositories are the git repositories whose features `ura serve` shows. One `ura serve` works on
+all of them. Their list is a plain-text line of the settings file, `[serve] repositories` in
+`config.toml`, which a human or an agent edits by hand.
 
 ## Rules
 
-- The list of repositories is data: one plain-text file in Uraeda's data folder, which a human or an
-  agent reads and edits by hand. It is never a setting, and never in a cache that can be lost. _So:_
-  `ura add` in a terminal and the app's form write the same file, and a running server shows the new
-  repository within a second.
-- One server serves every repository on the list. _So:_ a scheduled job names the repositories it
-  runs in, and adding a repository never starts a second server.
-- Two repositories never mix: every page, link, and live update carries its repository, under a name
-  a human can read. _So:_ an address reads `/r/uraeda/inbox`, never an opaque ID, and a change in
-  one repository refreshes no page of another.
+- The list of repositories is one plain-text list, which a human or an agent reads and edits by
+  hand, outside every repository. _So:_ `ura serve` reads `[serve] repositories` of `config.toml`,
+  and serves the repository it starts in when the list is empty.
+- One `ura serve` serves every repository on the list. _So:_ the page of what waits lists every
+  repository's rounds, specs, and plans, and the vault holds one `projects/<repository>/` for each.
+- Two repositories never mix: every page and link carries its repository, under a name a human can
+  read. _So:_ a round's address reads `/<token>/uraeda/<folder>/round`, never an opaque ID.
 
 ## Why
 
-The human runs several projects from one place, often from a phone, and adds one from a terminal or
-from the app. A list that both write, and that a human can fix by hand, is data, kept where it
+The human runs several projects from one place, often from a phone. A list a human can fix by hand
 survives a lost cache. A page that showed one repository's features under another's name would make
 the human approve the wrong thing. So the repository travels with everything, under a name they can
 read and share. History: [Multi-repo server](../done/2026-10-13-multi-repo-server.md).
 
 ## Alternatives considered
 
-- The config folder, beside the settings: where the system's conventions put a user's list, but the
-  human sees the list as data, and it is one more folder to know.
+- `repositories.json` in Uraeda's data folder, the 2.x way and the human's words above: data, apart
+  from the settings, written by `ura add` and the app's form. Uraeda light has neither, and its one
+  list is written by hand, beside the other settings of `ura serve`.
 - An opaque ID in addresses: it survives a rename, but nobody can read the link.
 
 ## Applies to
 
-- [`crates/core/`](/crates/core/), [`crates/cli/`](/crates/cli/), and
-  [`crates/server/`](/crates/server/), and every feature that keeps something outside a repository
-- [`app/`](/app/), and every feature that adds a page, a link, or a live update
+- [`crates/core/`](/crates/core/), [`crates/serve/`](/crates/serve/), and
+  [`crates/vault/`](/crates/vault/), and every feature that adds a page or a link, or keeps
+  something per repository

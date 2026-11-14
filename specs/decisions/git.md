@@ -7,51 +7,42 @@ icon: git-branch
 > "… super destructive action without validation (discard) … forms and all just edit and save file,
 > and committing is its own dedicated view/flow."
 
-Said of a commit bar that sat on every page, with a Discard that asked nothing. Uraeda's tools leave
-the human's repository as the human would: nothing lost, nothing removed, nothing committed that
-they did not ask for. A tool here is Uraeda's own code: the `ura` CLI, the server, and the app. What
-an agent may run in its session is the human's to allow, and no part of this decision.
+Said of a commit bar that sat on every page, with a Discard that asked nothing. The owner's proposal
+for Uraeda light took it further: "Agents make every commit." and "`ura` never commits, branches, or
+makes a worktree." A tool here is Uraeda's own code: `ura`, its pages, and the vault's sync. What an
+agent may run in its session is the human's to allow, and no part of this decision.
 
 ## Rules
 
-- Tools never lose the user's work: no force-removed worktree, no force-push, and no deleted branch
-  with commits the default branch lacks. _So:_ a pushed commit is never amended, since only a forced
-  push could send it again. A removed note keeps its file while the file holds text never committed.
-- Tools remove or delete only when a human asks. _So:_ a merged feature's worktree and branch stay
-  until the human runs `ura clean`, and a worktree with uncommitted work is reported and left alone.
-- Tools write git as the user would, through the system `git`, never around their hooks, signing, or
-  credentials. _So:_ a commit made from the app runs the user's pre-commit hook, and fails when the
-  hook refuses it. No `--no-verify`, and no commit written by a library.
-- Tools never switch the user's checkout unless the human asks. _So:_ a new feature starts in a
-  worktree of its own. An answer for a branch that is not checked out is written in that branch's
-  worktree.
-- Tools never commit the human's edits unless they ask for that commit, on the Git page or by an
-  action that says it commits. _So:_ saving the priorities only saves the file, and "Commit answers"
-  commits a round. Starting a feature commits by itself, which the human allowed: "that much is ok".
+- Tools never write git: no commit, branch, worktree, checkout switch, fetch, or push. They write
+  files, and the next agent step commits them. _So:_ "Send answers" on a round's page writes the
+  round's file and sets it `answered`, and the agent's next step commits it first, unchanged.
+- Tools read git without running it or its hooks. _So:_ `ura` reads branches, commits, and what
+  changed since a review in process, with gix, and a repository's hooks never run because a page was
+  opened.
+- Tools never lose the user's work. _So:_ `ura vault rm`, and a deletion the sync carries, move the
+  file to the vault's `.trash/`. An answer or a review written on a version of the file that has
+  changed since is refused, never written over.
 
 ## Why
 
 Uraeda works in the human's own repository, beside their editor, their hooks, and their habits. A
-lost commit, or a note never committed, cannot come back, so removal waits for the human. Writes go
-through `git` itself, so hooks, signing, and credentials behave as they do by hand. The app writes
-on every branch from one checkout, so it works through worktrees. A commit made behind an edit hides
-what it holds. History: [CLI core](../done/2026-10-10-cli-core.md).
+commit made behind an edit hides what it holds, and a tool that commits needs its own answers to
+hooks, signing, and conflicts. Agents commit at the end of every step anyway, so the human's work
+waits for the next one. Reading in process is fast across many branches, and runs nothing the
+repository holds. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 ## Alternatives considered
 
 - The system `git` for reads too: proposed first, and refused by the human for speed across many
-  branches. Reads are in process, with the gix library, wherever it can do them.
+  branches.
 - Switching the user's checkout to write: the first choice, abandoned when the app had to write on
   every branch.
-- Committing an edit as it is saved: every page grew a commit bar, and the human could not see what
-  a commit held.
+- Tools that commit, as the 2.x app did: first each edit as it was saved, where every page grew a
+  commit bar and the human could not see what a commit held, then answers and new features, a second
+  committer beside the agents.
 
 ## Applies to
 
-- [`crates/`](/crates/) and [`app/`](/app/), and every feature that reads or writes git: the CLI,
-  the server, the app's Git page
-
-## Revisit when
-
-Uraeda removes merged worktrees and branches by itself. The human expects to automate that cleanup
-later: until then, the second rule holds as written.
+- [`crates/`](/crates/), and every feature that reads git or writes a file in a repository or the
+  vault
