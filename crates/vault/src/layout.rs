@@ -21,8 +21,24 @@ pub fn ensure(vault: &Vault, projects: &[&str]) -> io::Result<()> {
         for folder in PROJECT_FOLDERS {
             std::fs::create_dir_all(root.join("projects").join(project).join(folder))?;
         }
+        let board = root.join("projects").join(project).join("Board.base");
+        if !board.exists() {
+            crate::notes::write_atomic(&board, board_text(project).as_bytes())?;
+        }
     }
     Ok(())
+}
+
+/// A project's board, written once and the human's afterwards: an Obsidian base of its proposals
+/// as a kanban, a column per `status`, sorted by `rank`.
+pub fn board_text(project: &str) -> String {
+    format!(
+        "filters:\n  and:\n    - file.inFolder(\"projects/{project}/proposals\")\nviews:\n  - type: \
+         kanban\n    name: Board\n    groupBy:\n      property: note.status\n      direction: ASC\n    \
+         groupOrder:\n      - now\n      - next\n      - later\n      - idea\n      - started\n      \
+         - postponed\n      - done\n    order:\n      - file.name\n      - rank\n    sort:\n      - \
+         property: note.rank\n        direction: ASC\n"
+    )
 }
 
 /// The layout's folders that exist, from the vault's: `inbox`, `wiki/apps`,
@@ -62,6 +78,11 @@ mod tests {
         ensure(&vault, &["todo"]).unwrap();
         ensure(&vault, &["todo"]).unwrap();
         assert!(folders(&vault).contains(&"projects/todo/research".to_string()));
+        let board = std::fs::read_to_string(vault.root().join("projects/todo/Board.base")).unwrap();
+        assert!(
+            board.contains("file.inFolder(\"projects/todo/proposals\")"),
+            "{board}"
+        );
         for folder in [
             "wiki/gotchas",
             "projects/todo/proposals",

@@ -245,8 +245,30 @@ pub fn readable(slug: &str) -> String {
     }
 }
 
-/// The home page's body.
-pub fn render(waiting: &Waiting) -> String {
+/// An `obsidian://` link opening a file of the vault named `vault`.
+pub fn obsidian(vault: &str, path: &str) -> String {
+    format!(
+        "obsidian://open?vault={}&file={}",
+        encode(vault),
+        encode(path)
+    )
+}
+
+/// Text in a link's query: every byte but letters, digits, and `-_.~` written as `%XX`.
+fn encode(text: &str) -> String {
+    text.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                (b as char).to_string()
+            }
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
+}
+
+/// The home page's body. With the vault's name, each card links its file in Obsidian, and each
+/// repository its board of proposals.
+pub fn render(waiting: &Waiting, vault: Option<&str>) -> String {
     let mut out = String::from("<main><h1>What waits on you</h1>");
     if waiting.is_empty() && waiting.repositories.iter().all(|r| r.problem.is_none()) {
         out.push_str(
@@ -277,7 +299,7 @@ pub fn render(waiting: &Waiting) -> String {
         if !repository.items.is_empty() {
             out.push_str("<ul class=\"waiting-list\">");
             for item in &repository.items {
-                out.push_str(&card(item));
+                out.push_str(&card(item, &repository.name, vault));
             }
             out.push_str("</ul>");
         }
@@ -285,20 +307,47 @@ pub fn render(waiting: &Waiting) -> String {
             out.push_str("</section>");
         }
     }
+    if let Some(vault) = vault {
+        let boards: Vec<String> = waiting
+            .repositories
+            .iter()
+            .map(|r| {
+                let path = format!("projects/{}/Board.base", r.name);
+                format!(
+                    "<a href=\"{}\">{}</a>",
+                    escape(&obsidian(vault, &path)),
+                    escape(&r.name)
+                )
+            })
+            .collect();
+        out.push_str(&format!(
+            "<p class=\"waiting-boards small\">Proposals, in Obsidian: {}</p>",
+            boards.join(", ")
+        ));
+    }
     out.push_str("</main>");
     out
 }
 
-fn card(item: &Item) -> String {
+fn card(item: &Item, repo: &str, vault: Option<&str>) -> String {
     let line = item
         .waiting_line
         .as_deref()
         .map(|l| format!("<span class=\"waiting-line\">{}</span>", escape(l)))
         .unwrap_or_default();
+    let open = vault
+        .map(|vault| {
+            let path = format!("projects/{repo}/specs/{}/{}", item.folder, item.file);
+            format!(
+                "<a class=\"waiting-obsidian small\" href=\"{}\">Open in Obsidian</a>",
+                escape(&obsidian(vault, &path))
+            )
+        })
+        .unwrap_or_default();
     format!(
         "<li><a class=\"waiting-card\" href=\"{}\">\
          <span class=\"waiting-name\">{}</span>\
-         <span class=\"waiting-ask\">{}</span>{line}</a></li>",
+         <span class=\"waiting-ask\">{}</span>{line}</a>{open}</li>",
         escape(&item.address),
         escape(&readable(&item.slug)),
         escape(&item.ask.words()),
