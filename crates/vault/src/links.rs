@@ -8,11 +8,12 @@
 //!
 //! Only links are made and removed here: a real file or folder of `specs/` is never touched.
 
+use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use uraeda_core::git::Git;
-use uraeda_core::workspace::Workspace;
 
 use crate::Vault;
 
@@ -25,11 +26,15 @@ pub struct Link {
     pub target: PathBuf,
 }
 
-/// The links of the repository whose main checkout is `main`. Reads git with gix, and never runs
-/// it. Blocks on disk.
+/// The links of the repository whose main checkout is `main`: its constitution and decisions,
+/// then every folder in progress of its worktrees, `specs/<date>-<slug>/` and
+/// `specs/changes/<date>-<slug>/`, whatever their branch but the default one, a detached checkout
+/// left out, and a folder the default branch holds too. A folder is finished once the main
+/// checkout or its own worktree holds its record, `specs/done/<folder>.md`. A folder in two
+/// worktrees is linked from the one changed last. Reads git with gix, and never runs it. Blocks on
+/// disk.
 pub fn of_repository(main: &Path) -> Result<Vec<Link>, String> {
     let git = Git::open(main).map_err(|e| e.to_string())?;
-    let workspace = Workspace::read(&git).map_err(|e| e.to_string())?;
     let main = git.main_root();
     let mut links = Vec::new();
     for name in ["CONSTITUTION.md", "decisions"] {
@@ -41,22 +46,78 @@ pub fn of_repository(main: &Path) -> Result<Vec<Link>, String> {
             });
         }
     }
-    for feature in &workspace.features {
-        let Some(worktree) = feature.worktree.as_deref() else {
-            continue;
-        };
-        if feature.is_finished() || links.iter().any(|l| l.name == feature.folder) {
+    let mut folders: BTreeMap<String, (SystemTime, PathBuf)> = BTreeMap::new();
+    let default = git.default_branch();
+    let default_tip = default.as_deref().and_then(|branch| git.tip(branch));
+    // A folder the default branch holds is the default branch's, inherited by every branch.
+    let on_default = |path: &str| default_tip.is_some_and(|tip| git.entry_id(tip, path).is_some());
+    for worktree in git.worktrees().map_err(|e| e.to_string())? {
+        // Work in progress is on a branch of its own: not on the default branch, nor in a
+        // detached checkout, an old version looked at.
+        if worktree.branch.is_none() || worktree.branch == default {
             continue;
         }
-        let target = main.join(worktree).join(&feature.path);
-        if target.is_dir() {
-            links.push(Link {
-                name: feature.folder.clone(),
-                target,
-            });
+        let specs = worktree.path.join("specs");
+        for (dir, under) in [
+            (specs.clone(), "specs"),
+            (specs.join("changes"), "specs/changes"),
+        ] {
+            let Ok(entries) = std::fs::read_dir(&dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                let record = format!("specs/done/{name}.md");
+                if !dated(&name)
+                    || !entry.path().is_dir()
+                    || on_default(&format!("{under}/{name}"))
+                    || main.join(&record).exists()
+                    || worktree.path.join(&record).exists()
+                {
+                    continue;
+                }
+                let changed = newest(&entry.path());
+                if folders.get(&name).is_none_or(|(at, _)| changed > *at) {
+                    folders.insert(name, (changed, entry.path()));
+                }
+            }
         }
     }
+    links.extend(
+        folders
+            .into_iter()
+            .map(|(name, (_, target))| Link { name, target }),
+    );
     Ok(links)
+}
+
+/// Whether a folder's name starts with a day, `2026-11-14-`.
+fn dated(name: &str) -> bool {
+    let bytes = name.as_bytes();
+    bytes.len() > 11
+        && bytes[..10].iter().enumerate().all(|(i, b)| {
+            if i == 4 || i == 7 {
+                *b == b'-'
+            } else {
+                b.is_ascii_digit()
+            }
+        })
+        && bytes[10] == b'-'
+}
+
+/// When a folder or a file in it last changed.
+fn newest(dir: &Path) -> SystemTime {
+    let time = |path: &Path| {
+        std::fs::metadata(path)
+            .and_then(|m| m.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH)
+    };
+    std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| time(&entry.path()))
+        .fold(time(dir), SystemTime::max)
 }
 
 /// The folder of a repository's links in the vault.
