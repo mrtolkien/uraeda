@@ -20,9 +20,6 @@ pub(super) fn merge_main(repo: &Repo, branch: &str) -> Result<(), String> {
     merged.map(drop)
 }
 
-/// The line of `specs/PRIORITIES.md` the sample's own commit and its `origin`'s both change.
-const PRIORITY_LINE: &str = "- Claude Code runner (triggered manually)";
-
 /// `origin`, a bare repository beside the project: one commit to pull, and one to push, each
 /// changing the same line, so a pull stops on a conflict.
 pub(super) fn origin(repo: &Repo) -> Result<(), String> {
@@ -77,17 +74,10 @@ pub(super) fn origin(repo: &Repo) -> Result<(), String> {
     )
 }
 
-/// Replaces the priority line in a checkout of `main`, and commits it.
+/// Writes a line of `NOTES.md` in a checkout of `main`, and commits it: the sample's own commit
+/// and its `origin`'s each write one.
 fn change_priority(repo: &Repo, line: &str, message: &str) -> Result<(), String> {
-    let file = repo.path.join("specs/PRIORITIES.md");
-    let read = fs::read_to_string(&file).map_err(|error| error.to_string())?;
-    if !read.contains(PRIORITY_LINE) {
-        return Err(format!(
-            "specs/PRIORITIES.md has no line \"{PRIORITY_LINE}\""
-        ));
-    }
-    let written = read.replacen(PRIORITY_LINE, line, 1);
-    let files = vec![text("specs/PRIORITIES.md", written)];
+    let files = vec![text("NOTES.md", format!("{line}\n"))];
     repo.commits("main", vec![Commit::new(message, None, files)])
 }
 
