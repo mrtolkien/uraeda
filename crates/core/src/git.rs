@@ -9,13 +9,12 @@ mod diff;
 mod history;
 mod log;
 pub(crate) mod process;
-mod remote;
 mod status;
 mod stopped;
 mod worktrees;
 
 pub use diff::text_patch;
-pub use history::{CommitInfo, CommitPaths, Mark, Range};
+pub use history::{CommitInfo, CommitPaths, Range};
 pub use stopped::{Stopped, StoppedKind};
 
 pub use gix::ObjectId;
