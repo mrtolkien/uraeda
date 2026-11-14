@@ -80,7 +80,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
 /// Whether a change's folder, `specs/changes/<folder>/`, holds an entry of this name: its proposal,
 /// its rounds, its rulings, and its `images/`, `mockups/`, and
 /// `screenshots/` folders. The one home
-/// of the rule, for `ura check` and for `ura start --change`.
+/// of the rule, for `ura check`.
 pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
     if is_dir {
         entry == "images" || entry == "mockups" || entry == "screenshots"
