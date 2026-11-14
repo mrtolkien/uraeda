@@ -3,6 +3,10 @@
 //! carry an `Origin` whose host is the request's own `Host`, and a browser's `Sec-Fetch-Site`, when
 //! it sends one, must say `same-origin`: a page of another site cannot write, even with the token.
 //!
+//! The phone's plugin sends no `Origin`: a write of the vault's sync, `/<token>/vault/...`, may
+//! carry the token in `Authorization: Bearer` instead, which a page of another site cannot send
+//! without CORS, which nothing here allows.
+//!
 //! A `Host` other than this machine's own, or a name of `[serve] hosts`, is refused: a page of
 //! another site whose name was pointed at this machine reaches nothing.
 //!
@@ -35,7 +39,11 @@ pub async fn guard(State(shared): State<Arc<Shared>>, request: Request, next: Ne
         return (StatusCode::FORBIDDEN, "Forbidden host").into_response();
     }
     let reads = matches!(*request.method(), Method::GET | Method::HEAD);
-    if !reads && !same_origin(request.headers()) {
+    let sync = request.uri().path().split('/').nth(2) == Some("vault");
+    if !reads
+        && !same_origin(request.headers())
+        && !(sync && bearer(request.headers(), &shared.token))
+    {
         return (StatusCode::FORBIDDEN, "Forbidden origin").into_response();
     }
     let mut response = next.run(request).await;
@@ -66,6 +74,15 @@ pub fn allowed_host(headers: &HeaderMap, hosts: &[String]) -> bool {
             .map_or(host.as_str(), |(name, _)| name),
     };
     matches!(name, "127.0.0.1" | "localhost" | "::1") || hosts.iter().any(|allowed| allowed == name)
+}
+
+/// Whether the request carries the token in `Authorization: Bearer`.
+pub fn bearer(headers: &HeaderMap, token: &str) -> bool {
+    headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .is_some_and(|given| token::matches(token, given.trim()))
 }
 
 /// Whether a write comes from the page's own origin: its `Origin`'s host and port are the

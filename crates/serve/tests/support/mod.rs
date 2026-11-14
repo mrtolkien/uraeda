@@ -38,7 +38,22 @@ impl Server {
         agents: Vec<uraeda_serve::providers::Provider>,
     ) -> Server {
         let token = token::new();
-        let shared = Arc::new(Shared::new(token.clone(), settings, config_dir).with_agents(agents));
+        let shared = Shared::new(token.clone(), settings, config_dir).with_agents(agents);
+        Server::of(token, shared)
+    }
+
+    /// A server that syncs `vault` with the phone.
+    pub fn syncing(settings: Settings, vault: uraeda_vault::Vault) -> Server {
+        let token = token::new();
+        let config_dir = std::env::temp_dir().join("ura-serve-tests-no-config");
+        let shared = Shared::new(token.clone(), settings, config_dir)
+            .with_agents(Vec::new())
+            .with_vault(vault);
+        Server::of(token, shared)
+    }
+
+    fn of(token: String, shared: Shared) -> Server {
+        let shared = Arc::new(shared);
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
@@ -65,6 +80,19 @@ impl Server {
 
     pub fn url(&self, path: &str) -> String {
         format!("http://{}{path}", self.host())
+    }
+
+    /// A request as the phone's plugin sends it: no `Origin`, and the token as a bearer.
+    pub fn plugin(&self, method: &str, path: &str, body: &[u8]) -> (u16, Vec<u8>) {
+        let request = ureq::http::Request::builder()
+            .method(method)
+            .uri(self.url(path))
+            .header("authorization", format!("Bearer {}", self.token))
+            .body(body.to_vec())
+            .unwrap();
+        let mut response = Server::agent().run(request).unwrap();
+        let status = response.status().as_u16();
+        (status, response.body_mut().read_to_vec().unwrap())
     }
 
     fn agent() -> ureq::Agent {
