@@ -24,29 +24,32 @@ The README is for someone discovering Uraeda. In order, it lets them understand 
 it, and start:
 
 - **The order is the product's identity**: a workflow first, then `ura`, the CLI that enforces it,
-  then the app that drives it. The web UI of the quote is the app today. A README that opens on the
-  app, or lists the three as equals, says something else about what Uraeda is.
-- **It shows the app**, under the banner: "Add a few screenshots generated from the sandbox
-  "realistic" env, for both 1440px and mobile. Show a few pages." A picture shows what matters on
-  its page, "Questions should show Q3 and not the start of the page".
+  then the pages that drive it. The web UI of the quote is `ura serve`'s pages today, which are part
+  of `ura`: since version 3, Uraeda has no app. A README that opens on `ura`, or lists the parts as
+  equals, says something else about what Uraeda is.
+- **It shows what a person will use**: the human once asked for screenshots of the app, "generated
+  from the sandbox "realistic" env, for both 1440px and mobile". They went with the app. Pictures of
+  `ura serve`'s pages, from `just sandbox`, would take their place, at a desk's width and a phone's,
+  each showing what matters on its page: "Questions should show Q3 and not the start of the page".
 - **Its install is a few commands**, and links the rest: "Quick install guidelines should be in the
   README.md. Very short guidelines though, with an extra INSTALL.md."
-- **It says plainly what Uraeda needs and does not ship**. The proposal asked to "Highlight that at
-  the moment it relies on a local Claude Code install ONLY", and the human's own edit made it a
-  warning block, in one line.
+- **It says plainly what Uraeda needs and does not ship**. The proposal once asked to "Highlight
+  that at the moment it relies on a local Claude Code install ONLY", when the app ran the agents.
+  `ura` runs none now, so the README says that agents run in the person's own terminal or session
+  host.
 - **No flourish.** The human's edit of the first README, named "unslop readme", cut the tagline's
   gloss of the name and a paragraph on another product's plans. A line that does not help someone
   understand, install, or start goes.
 
 ## What goes where
 
-| Page                         | Its reader              | It holds                                                           |
-| ---------------------------- | ----------------------- | ------------------------------------------------------------------ |
-| `README.md`                  | someone discovering it  | what Uraeda is, what it looks like, a quick install, how to start  |
-| `INSTALL.md`                 | someone installing it   | every way to install                                               |
-| `docs/`                      | someone using it        | reference: the app, the `ura` CLI, the `specs/` folder, extensions |
-| `CONTRIBUTING.md`            | someone building Uraeda | building, testing, releasing                                       |
-| [the skill](/skills/uraeda/) | an agent                | the workflow, and nothing about the app                            |
+| Page                         | Its reader              | It holds                                                          |
+| ---------------------------- | ----------------------- | ----------------------------------------------------------------- |
+| `README.md`                  | someone discovering it  | what Uraeda is, what it looks like, a quick install, how to start |
+| `INSTALL.md`                 | someone installing it   | every way to install                                              |
+| `docs/`                      | someone using it        | reference: the `ura` CLI and its pages, the `specs/` folder       |
+| `CONTRIBUTING.md`            | someone building Uraeda | building, testing, releasing                                      |
+| [the skill](/skills/uraeda/) | an agent                | the workflow, naming tools only as examples                       |
 
 The README links the others, and holds none of their content beyond the quick install.
 
@@ -60,12 +63,13 @@ rule of the skill, or a fact of another page, wherever its reader needs it. A fa
 less than a link they must follow. The cost is a page that goes stale when the skill changes: a
 change that makes a page wrong updates it in the same pull request.
 
-It runs one way. The documentation may explain the workflow, and the skill never describes the app:
-"The web ui is its own thing. Don't mix both."
+It runs one way. The documentation may explain the workflow, and the skill never describes a tool's
+screens: "The web ui is its own thing. Don't mix both." The skill names `ura`'s commands, and its
+pages only as one way to answer.
 
 ## Habits and rules
 
 - **Asked for by the human, in these words**: the README's order, the quick install with
-  `INSTALL.md` beside it, the screenshots, and that repeating is fine.
+  `INSTALL.md` beside it, pictures of what a person uses, and that repeating is fine.
 - **Habits, to change when a better place appears**: the names of the other pages, and one page per
   tool under `docs/`.
