@@ -15,10 +15,13 @@
 //! The skill's `references/notes.md` is the contract: who owns each folder, and what an agent may
 //! write there.
 
+pub mod check;
 pub mod config;
 pub mod layout;
 pub mod links;
+pub mod notes;
 pub mod paths;
+pub mod walk;
 
 use std::path::{Path, PathBuf};
 

@@ -27,6 +27,7 @@ mod start;
 mod status;
 mod terminal;
 mod upgrade;
+mod vault;
 
 use std::process::ExitCode;
 
@@ -208,6 +209,8 @@ enum Command {
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         data_dir: Option<std::path::PathBuf>,
     },
+    /// Read and write the human's notes, the vault `ura serve` syncs with their phone
+    Vault(vault::Args),
     /// Run Uraeda's earlier server on this machine, until it is stopped
     ServeApp {
         /// The port on 127.0.0.1: else URAEDA_PORT, else the settings' port, else 4310; 0 takes
@@ -276,7 +279,12 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let result = match cli.command {
+    run(cli.command).unwrap_or_else(|message| output::fail(&message))
+}
+
+/// Runs a command.
+fn run(command: Command) -> Result<ExitCode, String> {
+    match command {
         Command::Init { no_input } => init::run(no_input),
         Command::Install(flags) => install::run(flags),
         Command::Expand { text, no_edit } => expand::run(text, no_edit),
@@ -321,6 +329,7 @@ fn main() -> ExitCode {
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
         Command::Serve { port, data_dir } => serve::run(port, data_dir),
+        Command::Vault(args) => vault::run(args),
         Command::ServeApp {
             port,
             data_dir,
@@ -363,6 +372,5 @@ fn main() -> ExitCode {
             resume,
             no_commit,
         } => answer::run(arguments, submit, resume, no_commit),
-    };
-    result.unwrap_or_else(|message| output::fail(&message))
+    }
 }

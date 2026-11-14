@@ -23,6 +23,7 @@ uraeda-core.workspace = true
 uraeda-lsp.workspace = true
 uraeda-serve.workspace = true
 uraeda-server.workspace = true
+uraeda-vault.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
