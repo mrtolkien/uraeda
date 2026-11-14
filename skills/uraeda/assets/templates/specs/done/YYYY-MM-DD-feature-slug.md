@@ -3,7 +3,6 @@ kind: [feature | change]
 finished: [YYYY-MM-DD: the day of the finishing commit]
 pull-request: [Optional: the pull request's URL]
 supersedes: [] # Optional: the older records whose behaviour this one replaces, by name
-superseded-by: [] # Optional, added after the merge: the newer records that replace this one
 ---
 
 # Record: [Feature name]
@@ -13,9 +12,6 @@ superseded-by: [] # Optional, added after the merge: the newer records that repl
 > The record of a merged [feature | change], not instructions to follow. Started on [YYYY-MM-DD],
 > finished on [YYYY-MM-DD], in [its pull request](https://...). Its full files are in git:
 > `git log -- [specs/ | specs/changes/]YYYY-MM-DD-feature-slug/`.
->
-> [Optional, one line for each `superseded-by`, the last paragraph of this block: Superseded in part
-> by [YYYY-MM-DD-newer-slug](YYYY-MM-DD-newer-slug.md).]
 
 ## What and why
 
@@ -71,4 +67,5 @@ changes asked on the pull request, one line each, said in words, without ruling 
 
 ## Follow-ups
 
-[Optional: the agents' notes the feature added to the inbox, and the work left, one line each.]
+[Optional: the agents' notes the feature added to the human's notes, and the work left, one line
+each.]

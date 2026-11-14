@@ -35,7 +35,7 @@ whom, and what success looks like. The product it names as its model, if any.]
 
 ### Sources
 
-- [The code, the products, and the documentation read.] The full investigation is in
+- [The code, the products, and the documentation read.] What the questions rely on is in
   [discovery](discovery-01.md).
 
 ## Check these

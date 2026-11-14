@@ -5,8 +5,8 @@ writes the pull request's body and marks it ready for the human.
 
 - **Runs when**: the final review of a feature, or the review of a change, is done and its pull
   request is a draft; or the branch has the record, and its pull request is not ready yet
-- **Writes**: `specs/done/YYYY-MM-DD-<slug>.md`, the deletion of the folder, the links into it, the
-  records it supersedes, and the pull request's body
+- **Writes**: `specs/done/YYYY-MM-DD-<slug>.md`, the deletion of the folder, the links into it, and
+  the pull request's body
 - **Ends at**: a human gate, the pull request
 
 A merged folder is mostly process: discovery notes, questions with their options, a plan with every
@@ -66,7 +66,8 @@ saw the folder. Write what they could not get from the code:
 - **Decisions**: each decision the feature made or changed, linked.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
   approval, and the changes asked on the pull request, each in words, never by a ruling's number.
-- **Follow-ups**: the agents' notes the feature added, and work the human chose to leave.
+- **Follow-ups**: the [agents' notes](notes.md#agents-notes) the feature added, and work the human
+  chose to leave.
 
 A section with nothing to say is left out, when the template marks it optional. The record links no
 image: the folder's `images/` is deleted with it. Say in words what an image showed, when the record
@@ -74,16 +75,10 @@ needs it.
 
 ## Point to the records it replaces
 
-A feature or a change that replaces the behaviour of older records names them on both sides, in the
-finishing commit:
-
-- **The new record's `supersedes`** lists each older record, by name. They come from the spec's
-  replaced behaviour, and from the records the code's history leads to.
-- **Each older record** gains `superseded-by`, and one line, the last paragraph of its opening
-  block:
-  `> Superseded in part by [2026-10-26-testing-communication](2026-10-26-testing-communication.md).`,
-  or "Superseded by" when all its behaviour is replaced. Nothing else in it changes. A record
-  superseded again lists every newer record, with a line for each.
+A feature or a change that replaces the behaviour of older records lists them in its record's
+`supersedes`, by name. They come from the spec's replaced behaviour, and from the records the code's
+history leads to. The older records are not edited: a reader finds what replaced one by searching
+`specs/done/` for its name.
 
 ## Rewrite the links
 
@@ -91,15 +86,13 @@ Every link into the folder, in any file of the branch, now points to the record.
 question keeps its anchor. A link to any other file or section points to the first question whose
 text links that same place, or else to the record without an anchor.
 
-Then repair every other link of `specs/` that no longer resolves: with `ura`, `ura check --fix`; by
-hand, see [where a moved link points](by-hand.md#where-a-moved-link-points).
+Then repair every other link of `specs/` that no longer resolves, which `ura check` reports, as
+[where a moved link points](by-hand.md#where-a-moved-link-points) says.
 
 ## The finishing commit
 
-One commit: the record, the deletion of the whole folder, the rewritten links, and the older
-records' `superseded-by`. Its message is `finish(<slug>): <feature name>`, and its body the pull
-request's first line. It never touches `PRIORITIES.md` or `INBOX.md`: a branch writes neither, so
-parallel branches never conflict there.
+One commit: the record, the deletion of the whole folder, and the rewritten links. Its message is
+`finish(<slug>): <feature name>`, and its body the pull request's first line.
 
 ## Mark the pull request ready
 
@@ -118,15 +111,16 @@ into the finishing commit.
      to start the product; a goal the feature missed, with its number; an important finding left
      unfixed; a test removed by ruling; a new dependency; a function or file grown past a limit; a
      spec amended during the build; how a review comment was carried out; a failure that was already
-     there; what could not be reproduced or started; a review done without a fresh reviewer.
+     there; what could not be reproduced or started; a review done without a fresh reviewer or on
+     another pick than the human's; an agent's note the feature added.
    - **Decided without you**: every behaviour users will notice that the approved request left open,
      and every departure from what was approved, one line each, said as what happens to them and
      why. This is where the human checks your reading. Nothing they would be surprised by is
      anywhere else. A choice that needed their authority was asked before this point: this list
      never stands for permission.
    - **Measured**: each success criterion with its number, when the spec has some.
-   - its last line: "Once merged, run `ura clean` to remove the worktree, the branch, and the line
-     in the priorities."
+   - **Used**: what you ran while [using it](implementation.md#use-it), on which runtime, at which
+     widths and with which input, in a line or two.
 2. **One screenshot per new or changed view**, taken of the running product while
    [using it](implementation.md#use-it), into a file outside the repository, attached with
    `gh pr edit <number> --body-file <body> --attach '<path>#<view>'`. Never commit the image. When
@@ -161,12 +155,11 @@ Once the feature is built again, it is finished again, from this file's first st
 
 ## After the merge
 
-Records are frozen once merged: edit one only to fix a broken link, or to add `superseded-by` and
-its line. A later feature that changes the behaviour says so in its own record.
+Records are frozen once merged: edit one only to fix a broken link. A later feature that changes the
+behaviour says so in its own record.
 
-The branch, its worktree, and its line in `PRIORITIES.md` stay until the human cleans them. When you
-find a merged feature with one of them left, tell the human to run `ura clean`; by hand, see
-[clean up after a merge](by-hand.md#clean-up-after-a-merge).
+The branch and its worktree stay until the human or their session host removes them, as
+[after the merge](projects.md#after-the-merge) says.
 
 ## Commit
 

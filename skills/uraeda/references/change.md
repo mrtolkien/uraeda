@@ -5,8 +5,8 @@ the change with tests that fail first, uses it, has it reviewed, and opens a pul
 
 - **Runs when**: a change branch, `change/YYYY-MM-DD-<slug>`, is at its `change` step, or its pull
   request has changes requested, is behind the default branch, or lacks the branch's latest commits
-- **Writes**: the code and its tests, `rulings.md`, the review's `findings-NN.md`, a round of
-  questions when one is needed, and the draft pull request
+- **Writes**: the code and its tests, `rulings.md`, a round of questions when one is needed, and the
+  draft pull request
 - **Ends at**: the [finish](finish.md) step; a human gate, a round of questions; or an offer to make
   the change a feature
 
@@ -28,14 +28,15 @@ commit each, one pull request. A proposal that needs more is an [upgrade](#upgra
 Typos, formatting, and comments need no flow at all.
 
 A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
-`clarifications-NN.md`, `rulings.md`, `findings-NN.md`, `images/`, and `mockups/`, nothing else.
+`clarifications-NN.md`, `rulings.md`, `images/`, and `mockups/`, nothing else.
 
 ## Starting a change
 
-Only when a human asks: with `ura start <proposal> --slug <slug> --change`, or
-[by hand](by-hand.md#start-postpone-or-drop-a-feature-or-a-change).
+Only when a human asks, as [starting a change](projects.md#starting-a-feature) says: a worktree on
+`change/YYYY-MM-DD-<slug>`, whose first commit is the proposal, from a note of theirs or from their
+words.
 
-**From a session on the main checkout**, a request for a code change is offered as a change, not
+**From a session on the default branch**, a request for a code change is offered as a change, not
 committed to the default branch. Offer it once, with its proposal in the human's own words, its
 `# Title` first:
 
@@ -45,20 +46,21 @@ committed to the default branch. Offer it once, with its proposal in the human's
 After signing in, the app shows the home page, then the sign-in page again.
 ```
 
-Change no file before the human says yes. On their yes, commit its proposal file on the default
-branch, `chore: expand <title>`, start it, and run the change in its worktree.
+Change no file before the human says yes. On their yes, start it with that text as its proposal, and
+run the change in its worktree.
 
 A run the human scheduled is their yes, given in advance, for the change that run offers, unless its
 message says it only reports. A feature is never started this way.
 
 ## Finding the step
 
-With `ura`, `ura next <slug>` names the step. By hand, on the change's branch, run the first row
+With `ura`, `ura next <slug>` names the step. By hand, in the change's worktree, run the first row
 that matches.
 
-| State of the change's branch                                       | Step                                                                    |
+| State of the change's checkout                                     | Step                                                                    |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| `proposal.md` is not committed, and there is no record             | **Human gate**: the human writes it                                     |
+| The human answered a round, and it is not committed                | [Commit it first](../SKILL.md#the-humans-work-is-committed-first)       |
+| `proposal.md` is not committed                                     | [Commit the proposal](projects.md#starting-a-feature) alone             |
 | The record is there, and no pull request is ready                  | [Finish](finish.md)                                                     |
 | The record, and the pull request has changes requested             | [The pull request](#the-pull-request), comments                         |
 | The record, and the open pull request is behind the default branch | [Catch up](implementation.md#catch-up-an-open-pull-request)             |
@@ -79,9 +81,9 @@ the branch. Each item committed is done, and its commit's body says what was fou
 
 ## Investigating
 
-Read the proposal, and what started it: an inbox triage's answer, or the note it came from, is the
-human's intent for this change. Read the constitution, the decisions and guides that cover the code
-involved, and the record of the feature the change touches.
+Read the proposal, and what started it: the note it came from, in the human's notes, or what they
+said in the session, is the human's intent for this change. Read the constitution, the decisions and
+guides that cover the code involved, and the record of the feature the change touches.
 
 **A bug.** No fix without the root cause, and no fix of a bug you reproduced without the test that
 reproduces it. A fix guessed from the symptom hides the bug and adds new ones.
@@ -151,17 +153,16 @@ Offer to make the change a feature when it needs:
 - another fix, after several failed the reproduction test.
 
 The size of the diff is never a reason. When one item of a batch needs it, offer to split that item
-out, as a proposal of its own: on yes, write the item's text as `specs/proposals/<item-slug>.md` on
-the default branch, add it to **Now**, commit `chore: expand <Name>`, and make the other items.
+out, as a proposal of its own: on yes, write the item's text as a new proposal in the human's notes,
+`status: now`, or give it in your last message without notes, and make the other items.
 
 Offer it, and never make it alone: in a session, with the reason in one sentence; in a run nobody
 follows, as a round's question, "Make this change a feature?", with the upgrade as option A.
 
-On yes, the change moves in place: its branch, folder, and code become the feature's. With `ura`,
-`ura start <change> --feature`; by hand, see
-[make a change a feature](by-hand.md#make-a-change-a-feature). The feature has answered rounds and
-no discovery file, so its first step is the [spec](spec.md#is-the-scope-clear), which starts a new
-round for the feature's scope. On another answer, keep the change within that answer.
+On yes, the change moves in place: its branch, folder, and code become the feature's, as
+[make a change a feature](by-hand.md#make-a-change-a-feature) says. The feature has answered rounds
+and no discovery file, so its first step is the [spec](spec.md#is-the-scope-clear), which starts a
+new round for the feature's scope. On another answer, keep the change within that answer.
 
 ## Making the change
 
@@ -179,7 +180,7 @@ per item:
 - **Rulings** only for a reason that would otherwise be lost, as
   [the implementation step](implementation.md#rulings) says.
 - **Problems outside the proposal** are fixed when the change needs them, and dropped otherwise,
-  unless they pass the two tests of [agents' notes](inbox.md#agents-notes).
+  unless they pass the two tests of [agents' notes](notes.md#agents-notes).
 
 Before each commit, run the validation the step needs, as the implementation step's
 [each task](implementation.md#each-task) says. When something only the human can decide comes up
