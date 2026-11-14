@@ -120,3 +120,33 @@ fn locate_finds_the_worktree_and_refuses_what_is_unknown() {
 fn readable_names() {
     assert_eq!(waiting::readable("recurring-tasks"), "Recurring tasks");
 }
+
+#[test]
+fn with_a_vault_each_card_opens_its_file_in_obsidian() {
+    let waiting = uraeda_serve::waiting::Waiting {
+        repositories: vec![uraeda_serve::waiting::Repository {
+            name: "todo".into(),
+            path: "/r/todo".into(),
+            items: vec![uraeda_serve::waiting::Item {
+                folder: "2026-10-10-recurring-tasks".into(),
+                slug: "recurring-tasks".into(),
+                kind: uraeda_core::workspace::Kind::Feature,
+                worktree: "/r/todo-recurring".into(),
+                file: "spec.md".into(),
+                ask: uraeda_serve::waiting::Ask::Spec,
+                waiting_line: None,
+                address: "todo/2026-10-10-recurring-tasks/review/spec.md".into(),
+            }],
+            problem: None,
+        }],
+    };
+    let page = uraeda_serve::waiting::render(&waiting, Some("My Notes"));
+    assert!(
+        page.contains(
+            "obsidian://open?vault=My%20Notes&amp;file=projects%2Ftodo%2Fspecs%2F2026-10-10-recurring-tasks%2Fspec.md"
+        ),
+        "{page}"
+    );
+    assert!(page.contains("projects%2Ftodo%2FBoard.base"), "{page}");
+    assert!(!uraeda_serve::waiting::render(&waiting, None).contains("obsidian://"));
+}

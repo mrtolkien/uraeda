@@ -41,6 +41,7 @@ fn a_first_sync_pulls_the_notes_and_the_repositorys_files() {
             ".obsidian/plugins/uraeda/main.js",
             ".obsidian/plugins/uraeda/manifest.json",
             "inbox/a.md",
+            "projects/todo/Board.base",
             proposal.as_str()
         ]
     );

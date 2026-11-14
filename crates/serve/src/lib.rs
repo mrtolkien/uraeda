@@ -241,7 +241,8 @@ async fn home(State(shared): State<Arc<Shared>>) -> Html<String> {
     let waiting = tokio::task::spawn_blocking(move || waiting::read(&settings))
         .await
         .unwrap_or_default();
-    let body = waiting::render(&waiting).replacen(
+    let vault = shared.vault().map(|v| v.name());
+    let body = waiting::render(&waiting, vault.as_deref()).replacen(
         "</main>",
         "<p class=\"settings-link\"><a class=\"button\" href=\"settings\">Settings: how each \
          step runs</a> <a class=\"button\" href=\"vault\">Your notes, and the phone</a></p></main>",
