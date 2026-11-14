@@ -83,6 +83,20 @@ tasks feature through the whole workflow:
    [record](skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with each question and its answer.
 
+On your phone, `ura serve` shows a round as one card per question, and a spec to review with a
+comment on any passage, both written into the files, never committed:
+
+<p>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/pages/round-dark.webp">
+    <img src="docs/images/pages/round-light.webp" alt="A round of questions on ura serve's page, at a phone's width" width="260">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/pages/review-dark.webp">
+    <img src="docs/images/pages/review-light.webp" alt="A spec to review on ura serve's page, at a phone's width" width="260">
+  </picture>
+</p>
+
 ## Getting started
 
 Install `ura`, then the skill. [INSTALL.md](INSTALL.md) has every other way.
