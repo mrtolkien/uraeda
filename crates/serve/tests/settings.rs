@@ -8,13 +8,55 @@ use std::fs;
 use support::Server;
 use tempfile::TempDir;
 use uraeda_serve::Settings;
+use uraeda_serve::providers::{Effort, Model, Provider};
 use uraeda_serve::review::routes::version_of;
 
 const FILE: &str = "# Mine: keep this comment.\n[keyboard]\nvim_mode = true\n\n[runs]\nscheduled_jobs = false\n\n[runs.steps.spec]\nagent = \"claude\"\nmodel = \"fable\"\neffort = \"high\"\n\n[serve]\nrepositories = [\"/x\"]\n";
 
+/// Claude Code with Fable and Opus, and Codex with one model, as they would list them.
+fn agents() -> Vec<Provider> {
+    let effort = |id: &str, default: bool| Effort {
+        id: id.into(),
+        label: id.into(),
+        default,
+    };
+    let model = |slug: &str, name: &str, efforts: Vec<Effort>| Model {
+        slug: slug.into(),
+        name: name.into(),
+        aliases: Vec::new(),
+        default: false,
+        efforts,
+    };
+    vec![
+        Provider {
+            id: "claude".into(),
+            name: "Claude Code".into(),
+            models: vec![
+                model(
+                    "fable",
+                    "Fable 5.2",
+                    vec![effort("medium", true), effort("high", false)],
+                ),
+                model(
+                    "opus",
+                    "Opus 5.5",
+                    vec![effort("medium", true), effort("max", false)],
+                ),
+            ],
+            problem: None,
+        },
+        Provider {
+            id: "codex".into(),
+            name: "Codex".into(),
+            models: vec![model("gpt-a", "GPT A", vec![effort("ultra", false)])],
+            problem: None,
+        },
+    ]
+}
+
 fn server(dir: &TempDir) -> Server {
     fs::write(dir.path().join("config.toml"), FILE).unwrap();
-    Server::configured(Settings::default(), dir.path().to_path_buf())
+    Server::serving(Settings::default(), dir.path().to_path_buf(), agents())
 }
 
 fn read(dir: &TempDir) -> String {
@@ -25,7 +67,7 @@ fn read(dir: &TempDir) -> String {
 fn options() -> &'static str {
     r#"{"steps":[
         {"step":"discovery","agent":"","model":"","effort":"","new_session":false},
-        {"step":"spec","agent":"claude","model":"opus","effort":"max","new_session":false},
+        {"step":"spec","agent":"codex","model":"gpt-a","effort":"ultra","new_session":false},
         {"step":"plan","agent":"","model":"","effort":"","new_session":true},
         {"step":"build","agent":"","model":"","effort":"","new_session":true},
         {"step":"review","agent":"","model":"","effort":"","new_session":false},
@@ -51,7 +93,16 @@ fn the_page_draws_each_step_its_sessions_and_the_reviewers() {
     ] {
         assert!(page.contains(word), "{word}");
     }
-    assert!(page.contains("value=\"fable\""), "the spec's model as set");
+    // The spec's agent, model, and effort, as the agents list them.
+    assert!(
+        page.contains("<option value=\"claude\" selected>Claude Code</option>"),
+        "{page}"
+    );
+    assert!(page.contains("<option value=\"codex\">Codex</option>"));
+    assert!(page.contains("<option value=\"fable\" selected>Fable 5.2</option>"));
+    assert!(page.contains("<option value=\"high\" selected>high</option>"));
+    assert!(page.contains("Default (medium)"));
+    assert!(page.contains("id=\"providers\""));
     // Plan starts a new session by default; the other joints join.
     assert!(
         page.contains("aria-pressed=\"true\" data-step=\"plan\""),
@@ -82,8 +133,9 @@ fn a_save_writes_the_runs_and_keeps_the_rest_of_the_file() {
     assert!(text.starts_with("# Mine: keep this comment."), "{text}");
     assert!(text.contains("scheduled_jobs = false"));
     assert!(text.contains("repositories = [\"/x\"]"));
-    assert!(text.contains("model = \"opus\""), "{text}");
-    assert!(text.contains("effort = \"max\""));
+    assert!(text.contains("agent = \"codex\""), "{text}");
+    assert!(text.contains("model = \"gpt-a\""), "{text}");
+    assert!(text.contains("effort = \"ultra\""));
     assert!(!text.contains("fable"));
     assert!(
         text.contains("[runs.steps.build]\nnew_session = true"),

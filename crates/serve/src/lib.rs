@@ -11,6 +11,7 @@ pub mod config;
 pub mod files;
 pub mod guard;
 pub mod html;
+pub mod providers;
 pub mod render;
 pub mod review;
 pub mod round;
@@ -54,6 +55,9 @@ pub struct Shared {
     /// Held by every write, for its whole read-change-write: two saves at once, of two questions
     /// of a round, never write over each other.
     pub writes: std::sync::Mutex<()>,
+    /// The agents' models, as last listed, and when: kept 10 minutes, as listing them takes a
+    /// few seconds. `None` once, before the first listing; a list given by a test never expires.
+    agents: std::sync::Mutex<Option<(Option<std::time::Instant>, Vec<providers::Provider>)>>,
 }
 
 impl Shared {
@@ -63,6 +67,37 @@ impl Shared {
             settings: std::sync::RwLock::new(settings),
             config_dir,
             writes: std::sync::Mutex::new(()),
+            agents: std::sync::Mutex::new(None),
+        }
+    }
+
+    /// The same, its agents and models given, never listed: for tests.
+    #[must_use]
+    pub fn with_agents(self, agents: Vec<providers::Provider>) -> Shared {
+        *self
+            .agents
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some((None, agents));
+        self
+    }
+
+    /// The agents and their models: as last listed, or listed again when that is more than 10
+    /// minutes ago. Blocks while it lists them.
+    pub fn agents(&self) -> Vec<providers::Provider> {
+        let mut held = self
+            .agents
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let fresh = |at: &Option<std::time::Instant>| {
+            at.is_none_or(|at| at.elapsed() < std::time::Duration::from_secs(600))
+        };
+        match held.as_ref() {
+            Some((at, agents)) if fresh(at) => agents.clone(),
+            _ => {
+                let agents = providers::read();
+                *held = Some((Some(std::time::Instant::now()), agents.clone()));
+                agents
+            }
         }
     }
 
@@ -170,6 +205,9 @@ pub fn run(options: Options) -> Result<(), ServeError> {
         .map_err(|error| ServeError::Token(options.data_dir.clone(), error))?;
     let port = options.port.or(settings.port).unwrap_or(DEFAULT_PORT);
     let shared = Arc::new(Shared::new(token, settings, options.config_dir));
+    // The agents' models, listed as the server starts: the settings page finds them ready.
+    let listing = Arc::clone(&shared);
+    std::thread::spawn(move || listing.agents());
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;

@@ -24,18 +24,13 @@ use uraeda_core::settings::{self, ReviewerOptions, RunOptions, RunPick, STEPS, S
 
 use crate::config::{self, Wake};
 use crate::html::escape;
+use crate::providers::{self, Provider};
 use crate::review::routes::version_of;
 use crate::round::routes::Failure;
 use crate::{Shared, html};
 
-/// The agents a step may run on, besides any other the file names.
-const AGENTS: [&str; 2] = ["claude", "codex"];
-
-/// The models offered as you type, besides the ones the file names: any other may be typed.
-const MODELS: [&str; 4] = ["fable", "opus", "sonnet", "haiku"];
-
-/// The efforts offered, besides any other the file names.
-const EFFORTS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
+/// The agent an agent reviewer runs on when none is picked.
+const REVIEWER_AGENT: &str = "claude";
 
 /// What each step does, as the page says it under its name.
 fn step_words(step: &str) -> (&'static str, &'static str) {
@@ -153,7 +148,7 @@ impl Runs {
                     },
                     None => ReviewerOptions {
                         // An agent reviewer names its agent: the default one when none is picked.
-                        agent: agent.or_else(|| Some(AGENTS[0].to_string())),
+                        agent: agent.or_else(|| Some(REVIEWER_AGENT.to_string())),
                         model,
                         effort,
                         instructions,
@@ -194,11 +189,18 @@ fn same_version(dir: &Path, version: &str) -> Result<(), Failure> {
 pub async fn page(State(shared): State<Arc<Shared>>) -> Response {
     let dir = shared.config_dir.clone();
     let serve = shared.settings();
+    let held = Arc::clone(&shared);
     let drawn = tokio::task::spawn_blocking(move || {
         let text = file_text(&dir);
         let read = settings::read(&dir);
         let body = match read {
-            Ok(read) => main(&read.runs.options, &serve, &dir, &version_of(&text)),
+            Ok(read) => main(
+                &read.runs.options,
+                &serve,
+                held.agents(),
+                &dir,
+                &version_of(&text),
+            ),
             Err(error) => format!(
                 "<main class=\"settings\"><nav class=\"crumbs\"><a href=\"./\">‹ What waits on \
                  you</a></nav><h1>Settings</h1><p class=\"error\">The settings file could not be \
@@ -272,17 +274,22 @@ pub async fn save_serve(
 }
 
 /// The page's `<main>`.
-fn main(options: &RunOptions, serve: &config::Settings, dir: &Path, version: &str) -> String {
-    let mut known = Known::default();
-    known.add_options(options);
+fn main(
+    options: &RunOptions,
+    serve: &config::Settings,
+    agents: Vec<Provider>,
+    dir: &Path,
+    version: &str,
+) -> String {
+    let choices = Choices { providers: agents };
     let mut out = String::with_capacity(16_000);
     let _ = write!(
         out,
         "<main class=\"settings\" data-version=\"{version}\">\
          <nav class=\"crumbs\"><a href=\"./\">‹ What waits on you</a></nav>\
          <h1>Settings</h1>\
-         <p class=\"muted small\">Each change is saved at once, in <code>{file}</code>. A step left \
-         on Default runs on its session's agent and model.</p>\
+         <p class=\"muted small\">Each change is saved at once, in <code>{file}</code>. The models are \
+         the ones Claude Code and Codex list. A step left on Default runs on its session's agent and model.</p>\
          <p class=\"saved small muted\" aria-live=\"polite\"></p>",
         version = escape(version),
         file = escape(&shown(&dir.join(config::FILE))),
@@ -312,7 +319,7 @@ fn main(options: &RunOptions, serve: &config::Settings, dir: &Path, version: &st
             out,
             "<li class=\"step\" data-step=\"{step}\"><div class=\"head\"><h3>{name}</h3>\
              <p class=\"muted small\">{what}</p></div>{fields}",
-            fields = fields(&pick, &format!("{name}'s"), &known),
+            fields = fields(&pick, &format!("{name}'s"), &choices),
         );
         if *step == "build" {
             let implementers = options
@@ -323,11 +330,11 @@ fn main(options: &RunOptions, serve: &config::Settings, dir: &Path, version: &st
                 out,
                 "<div class=\"under implementers\"><h4>Implementers</h4><p class=\"muted small\">\
                  Build the tasks, each in its own session</p>{}</div>",
-                fields(&implementers, "the implementers'", &known)
+                fields(&implementers, "the implementers'", &choices)
             );
         }
         if *step == "review" {
-            reviewers(&mut out, options, &known);
+            reviewers(&mut out, options, &choices);
         }
         out.push_str("</li>");
     }
@@ -347,7 +354,17 @@ fn main(options: &RunOptions, serve: &config::Settings, dir: &Path, version: &st
             .map(|r| format!("<li><code>{}</code></li>", escape(&shown(r))))
             .collect::<String>(),
     );
-    known.datalists(&mut out);
+    for agent in &choices.providers {
+        if let Some(problem) = &agent.problem {
+            let _ = write!(
+                out,
+                "<p class=\"muted small\">{}: no model listed, {}.</p>",
+                escape(&agent.name),
+                escape(problem)
+            );
+        }
+    }
+    choices.script(&mut out);
     out.push_str("</main>");
     out
 }
@@ -362,13 +379,13 @@ fn shown(path: &Path) -> String {
 }
 
 /// The reviewers under the review step: each on its pick or a command, then their depth.
-fn reviewers(out: &mut String, options: &RunOptions, known: &Known) {
+fn reviewers(out: &mut String, options: &RunOptions, choices: &Choices) {
     out.push_str(
         "<div class=\"under reviewers\"><h4>Reviewers</h4><p class=\"muted small\">Review the \
          build. None: one reviewer on the review step's agent.</p><ol class=\"reviewer-list\">",
     );
     for reviewer in options.reviewers.iter().flatten() {
-        out.push_str(&reviewer_item(reviewer, known));
+        out.push_str(&reviewer_item(reviewer, choices));
     }
     let _ = write!(
         out,
@@ -378,7 +395,7 @@ fn reviewers(out: &mut String, options: &RunOptions, known: &Known) {
          <label><input type=\"radio\" name=\"depth\" value=\"waves\"{waves}> Each wave, then the \
          branch</label><label><input type=\"radio\" name=\"depth\" value=\"branch\"{branch}> The \
          branch only</label></fieldset></div>",
-        reviewer_item(&ReviewerOptions::default(), known),
+        reviewer_item(&ReviewerOptions::default(), choices),
         waves = if options.review_depth.as_deref() == Some("branch") {
             ""
         } else {
@@ -393,7 +410,7 @@ fn reviewers(out: &mut String, options: &RunOptions, known: &Known) {
 }
 
 /// A reviewer's item: its pick and instructions, or its command.
-fn reviewer_item(reviewer: &ReviewerOptions, known: &Known) -> String {
+fn reviewer_item(reviewer: &ReviewerOptions, choices: &Choices) -> String {
     let command = reviewer.command.clone().unwrap_or_default();
     let pick = Pick::of(&reviewer.agent, &reviewer.model, &reviewer.effort);
     format!(
@@ -413,92 +430,102 @@ fn reviewer_item(reviewer: &ReviewerOptions, known: &Known) -> String {
         },
         agent = command.is_empty(),
         is_command = !command.is_empty(),
-        fields = fields(&pick, "the reviewer's", known),
+        fields = fields(&pick, "the reviewer's", choices),
         instructions = escape(reviewer.instructions.as_deref().unwrap_or_default()),
         command = escape(&command),
     )
 }
 
-/// The agent, model, and effort fields of a pick.
-fn fields(pick: &Pick, whose: &str, known: &Known) -> String {
-    let options = |values: &[String], current: &str| -> String {
-        let mut out = format!(
-            "<option value=\"\"{}>Default</option>",
-            if current.is_empty() { " selected" } else { "" }
-        );
-        for value in values {
-            let _ = write!(
-                out,
-                "<option value=\"{v}\"{s}>{v}</option>",
-                v = escape(value),
-                s = if value == current { " selected" } else { "" }
-            );
-        }
-        out
-    };
+/// The agent, model, and effort fields of a pick: the agents, then the models of the
+/// one picked, then the efforts of the model picked. A value no provider offers, written by hand,
+/// stays offered, marked.
+fn fields(pick: &Pick, whose: &str, choices: &Choices) -> String {
+    let provider = providers::find(&choices.providers, &pick.agent);
+    let mut agents = option("", "Default", pick.agent.is_empty());
+    for p in &choices.providers {
+        agents.push_str(&option(
+            &p.id,
+            &p.name,
+            provider.is_some_and(|f| f.id == p.id),
+        ));
+    }
+    if provider.is_none() && !pick.agent.is_empty() {
+        agents.push_str(&option(
+            &pick.agent,
+            &format!("{} (not installed)", pick.agent),
+            true,
+        ));
+    }
+    let model = provider.and_then(|p| providers::model(p, &pick.model));
+    let mut models = option("", "Default", pick.model.is_empty());
+    for m in provider.map(|p| p.models.as_slice()).unwrap_or_default() {
+        models.push_str(&option(
+            &m.slug,
+            &m.name,
+            model.is_some_and(|f| f.slug == m.slug),
+        ));
+    }
+    if model.is_none() && !pick.model.is_empty() {
+        models.push_str(&option(
+            &pick.model,
+            &format!("{} (not offered)", pick.model),
+            true,
+        ));
+    }
+    let shown = model.or_else(|| {
+        provider.and_then(|p| p.models.iter().find(|m| m.default).or(p.models.first()))
+    });
+    let efforts_of = shown.map(|m| m.efforts.as_slice()).unwrap_or_default();
+    let default_effort = efforts_of.iter().find(|e| e.default).map_or_else(
+        || "Default".to_string(),
+        |e| format!("Default ({})", e.label),
+    );
+    let mut efforts = option("", &default_effort, pick.effort.is_empty());
+    for e in efforts_of {
+        efforts.push_str(&option(&e.id, &e.label, e.id == pick.effort));
+    }
+    if !pick.effort.is_empty() && !efforts_of.iter().any(|e| e.id == pick.effort) {
+        efforts.push_str(&option(
+            &pick.effort,
+            &format!("{} (not offered)", pick.effort),
+            true,
+        ));
+    }
     format!(
         "<div class=\"pick\"><label class=\"field\"><span>Agent</span><select class=\"agent\" \
          aria-label=\"{whose} agent\">{agents}</select></label>\
-         <label class=\"field\"><span>Model</span><input type=\"text\" class=\"model\" \
-         list=\"models\" value=\"{model}\" placeholder=\"Default\" autocapitalize=\"off\" \
-         autocomplete=\"off\" aria-label=\"{whose} model\"></label>\
+         <label class=\"field\"><span>Model</span><select class=\"model\" \
+         aria-label=\"{whose} model\">{models}</select></label>\
          <label class=\"field\"><span>Effort</span><select class=\"effort\" \
          aria-label=\"{whose} effort\">{efforts}</select></label></div>",
         whose = escape(whose),
-        agents = options(&known.agents, &pick.agent),
-        model = escape(&pick.model),
-        efforts = options(&known.efforts, &pick.effort),
     )
 }
 
-/// The agents, models, and efforts offered: the usual ones, then those the file names.
-struct Known {
-    agents: Vec<String>,
-    models: Vec<String>,
-    efforts: Vec<String>,
+/// An `<option>`.
+fn option(value: &str, label: &str, selected: bool) -> String {
+    format!(
+        "<option value=\"{}\"{}>{}</option>",
+        escape(value),
+        if selected { " selected" } else { "" },
+        escape(label)
+    )
 }
 
-impl Default for Known {
-    fn default() -> Known {
-        let owned = |list: &[&str]| list.iter().map(|v| (*v).to_string()).collect();
-        Known {
-            agents: owned(&AGENTS),
-            models: owned(&MODELS),
-            efforts: owned(&EFFORTS),
-        }
-    }
+/// What a pick chooses among: the agents and their models.
+struct Choices {
+    providers: Vec<Provider>,
 }
 
-impl Known {
-    fn add(&mut self, agent: &Option<String>, model: &Option<String>, effort: &Option<String>) {
-        let push = |list: &mut Vec<String>, value: &Option<String>| {
-            if let Some(value) = value.as_ref().filter(|v| !list.contains(v)) {
-                list.push(value.clone());
-            }
-        };
-        push(&mut self.agents, agent);
-        push(&mut self.models, model);
-        push(&mut self.efforts, effort);
-    }
-
-    fn add_options(&mut self, options: &RunOptions) {
-        for step in &options.steps {
-            self.add(&step.agent, &step.model, &step.effort);
-        }
-        if let Some(p) = &options.implementers {
-            self.add(&p.agent, &p.model, &p.effort);
-        }
-        for r in options.reviewers.iter().flatten() {
-            self.add(&r.agent, &r.model, &r.effort);
-        }
-    }
-
-    /// The models offered as one types, for every model field.
-    fn datalists(&self, out: &mut String) {
-        out.push_str("<datalist id=\"models\">");
-        for model in &self.models {
-            let _ = write!(out, "<option value=\"{}\">", escape(model));
-        }
-        out.push_str("</datalist>");
+impl Choices {
+    /// The providers as the page's script reads them, to fill a model's and an effort's choices
+    /// when another agent or model is picked.
+    fn script(&self, out: &mut String) {
+        let json = serde_json::to_string(&self.providers).unwrap_or_else(|_| "[]".into());
+        let _ = write!(
+            out,
+            "<script type=\"application/json\" id=\"providers\">{}</script>",
+            json.replace("</", "<\\/")
+        );
     }
 }

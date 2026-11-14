@@ -28,8 +28,17 @@ impl Server {
 
     /// A server whose settings page writes `config_dir`'s file.
     pub fn configured(settings: Settings, config_dir: std::path::PathBuf) -> Server {
+        Server::serving(settings, config_dir, Vec::new())
+    }
+
+    /// A server whose settings page offers `agents`, never asking the real ones.
+    pub fn serving(
+        settings: Settings,
+        config_dir: std::path::PathBuf,
+        agents: Vec<uraeda_serve::providers::Provider>,
+    ) -> Server {
         let token = token::new();
-        let shared = Arc::new(Shared::new(token.clone(), settings, config_dir));
+        let shared = Arc::new(Shared::new(token.clone(), settings, config_dir).with_agents(agents));
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
