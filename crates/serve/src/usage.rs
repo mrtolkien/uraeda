@@ -111,20 +111,20 @@ pub fn read(folders: &[String]) -> Usage {
             .iter()
             .map(|folder| {
                 let home = &home;
-                scope.spawn(move || Account {
-                    name: name_of(folder),
-                    folder: folder.clone(),
-                    windows: claude(&expand(folder, home), home),
-                })
+                scope.spawn(move || claude(&expand(folder, home), home))
             })
             .collect();
         Usage {
-            claude: accounts
-                .into_iter()
-                .map(|account| {
-                    account
+            // An account whose thread stopped says so, and the others are still read.
+            claude: folders
+                .iter()
+                .zip(accounts)
+                .map(|(folder, windows)| Account {
+                    name: name_of(folder),
+                    folder: folder.clone(),
+                    windows: windows
                         .join()
-                        .unwrap_or_else(|_| unreachable!("an account's thread panicked"))
+                        .unwrap_or_else(|_| Windows::problem("the account's thread stopped")),
                 })
                 .collect(),
             codex: codex
@@ -165,15 +165,13 @@ fn name_of(folder: &str) -> String {
 /// One account's windows, from a short `claude -p` in its folder.
 fn claude(folder: &Path, home: &Path) -> Windows {
     // Claude Code reads its own folder, `~/.claude`, without the variable: with it, it would read
-    // `.claude.json` inside the folder, not `~/.claude.json`.
-    let env = if folder == home.join(".claude") {
-        Vec::new()
-    } else {
-        vec![(
-            "CLAUDE_CONFIG_DIR".to_string(),
-            folder.to_string_lossy().into_owned(),
-        )]
-    };
+    // `.claude.json` inside the folder, not `~/.claude.json`. The variable `ura` was started with
+    // is another account's: it is removed.
+    let own = folder == home.join(".claude");
+    let env = [(
+        "CLAUDE_CONFIG_DIR",
+        (!own).then(|| folder.to_string_lossy().into_owned()),
+    )];
     let args = [
         "-p",
         "--input-format",

@@ -116,15 +116,22 @@ fn start(program: &str, args: &[&str]) -> Result<(Child, mpsc::Receiver<String>)
     start_with(program, args, &[])
 }
 
-/// [`start`], with `env` added to the process's environment.
+/// [`start`], with each variable of `env` set in the process's environment, or removed from it
+/// when it has no value.
 pub(crate) fn start_with(
     program: &str,
     args: &[&str],
-    env: &[(String, String)],
+    env: &[(&str, Option<String>)],
 ) -> Result<(Child, mpsc::Receiver<String>), String> {
-    let mut child = Command::new(program)
+    let mut command = Command::new(program);
+    for (name, value) in env {
+        match value {
+            Some(value) => command.env(name, value),
+            None => command.env_remove(name),
+        };
+    }
+    let mut child = command
         .args(args)
-        .envs(env.iter().map(|(name, value)| (name, value)))
         .current_dir(std::env::home_dir().unwrap_or_default())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
