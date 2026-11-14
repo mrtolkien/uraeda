@@ -66,7 +66,7 @@ pub fn allowed_host(headers: &HeaderMap, hosts: &[String]) -> bool {
         return false;
     };
     let host = host.trim().to_ascii_lowercase();
-    // The name without its port: `[::1]:4320`, `127.0.0.1:4320`, `name.ts.net`.
+    // The name without its port: `[::1]:4310`, `127.0.0.1:4310`, `name.ts.net`.
     let name = match host.strip_prefix('[') {
         Some(rest) => rest.split(']').next().unwrap_or_default(),
         None => host

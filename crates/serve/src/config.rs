@@ -2,7 +2,7 @@
 //!
 //! ```toml
 //! [serve]
-//! port = 4320
+//! port = 4310
 //! repositories = ["~/code/todo", "~/code/uraeda"]
 //! wake = "t3"
 //! ```

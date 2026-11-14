@@ -119,7 +119,7 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
   sync: the command loses the session's Wayland display, so Electron apps take
   `--ozone-platform=x11`, as in `hidden-display obsidian --ozone-platform=x11`, on a vault in a
   temporary folder, never the human's.
-- `ura serve` listens on 4320 by default, keeps its token in `uraeda-next` of the system's data
+- `ura serve` listens on 4310 by default, keeps its token in `uraeda-next` of the system's data
   folder, and reads `config.toml` in `~/.config/uraeda/`. A test or a run of yours always names its
   own port and data folder, `--port 0 --data-dir <a temporary folder>`, and its own config folder,
   `URAEDA_CONFIG_DIR`: never the human's settings or vault.

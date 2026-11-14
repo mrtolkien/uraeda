@@ -112,7 +112,7 @@ enum Command {
     /// Serve the pages to answer rounds and review specs and plans, from a phone too, until it is
     /// stopped. Prints the address, with its token
     Serve {
-        /// The port on 127.0.0.1: else the settings' port, else 4320; 0 takes a free one
+        /// The port on 127.0.0.1: else the settings' port, else 4310; 0 takes a free one
         #[arg(long)]
         port: Option<u16>,
         /// The folder the token is kept in

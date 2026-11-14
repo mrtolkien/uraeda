@@ -107,14 +107,14 @@ for you.
 - **Notes**: where your vault is, and the starter vault for your phone, under "Obsidian setup".
 
 The pages write the workflow's files and never commit: the next agent step commits your work. It
-listens on 127.0.0.1, port 4320 or `--port`: to reach it from your phone, put it on your own
-network, as `tailscale serve --bg 4320` does, and name that address's host in `hosts`: any other
+listens on 127.0.0.1, port 4310 or `--port`: to reach it from your phone, put it on your own
+network, as `tailscale serve --bg 4310` does, and name that address's host in `hosts`: any other
 host name is refused. `--data-dir` names the folder it keeps its token in. Its settings are the
 `[serve]` section of the settings file, `~/.config/uraeda/config.toml`:
 
 ```toml
 [serve]
-port = 4320
+port = 4310
 repositories = ["~/code/todo", "~/code/uraeda"] # without it, the repository it starts in
 wake = "t3" # tell the feature's T3 Code session to continue when you send answers or a verdict
 hosts = ["laptop.tail1234.ts.net"] # the names it answers at besides 127.0.0.1 and localhost

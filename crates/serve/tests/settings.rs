@@ -11,7 +11,7 @@ use uraeda_serve::Settings;
 use uraeda_serve::providers::{Effort, Model, Provider};
 use uraeda_serve::review::routes::version_of;
 
-const FILE: &str = "# Mine: keep this comment.\n[keyboard]\nvim_mode = true\n\n[runs]\nscheduled_jobs = false\n\n[runs.steps.spec]\nagent = \"claude\"\nmodel = \"fable\"\neffort = \"high\"\n\n[serve]\nrepositories = [\"/x\"]\n";
+const FILE: &str = "# Mine: keep this comment.\n[other]\nkept = true\n\n[runs]\nkept = false\n\n[runs.steps.spec]\nagent = \"claude\"\nmodel = \"fable\"\neffort = \"high\"\n\n[serve]\nrepositories = [\"/x\"]\n";
 
 /// Claude Code with Fable and Opus, and Codex with one model, as they would list them.
 fn agents() -> Vec<Provider> {
@@ -140,7 +140,7 @@ fn a_save_writes_the_runs_and_keeps_the_rest_of_the_file() {
     assert_eq!(answer.status(), 200);
     let text = read(&dir);
     assert!(text.starts_with("# Mine: keep this comment."), "{text}");
-    assert!(text.contains("scheduled_jobs = false"));
+    assert!(text.contains("kept = false"));
     assert!(text.contains("repositories = [\"/x\"]"));
     assert!(text.contains("agent = \"codex\""), "{text}");
     assert!(text.contains("model = \"gpt-a\""), "{text}");

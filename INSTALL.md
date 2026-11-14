@@ -69,12 +69,12 @@ echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 
 ## The pages on your phone
 
-`ura serve` listens on this machine only, on `127.0.0.1:4320`. To answer from your phone, put it on
+`ura serve` listens on this machine only, on `127.0.0.1:4310`. To answer from your phone, put it on
 your own network, with [Tailscale](https://tailscale.com/) for example, and name the address's host
 in the settings file, `~/.config/uraeda/config.toml`:
 
 ```sh
-tailscale serve --bg 4320
+tailscale serve --bg 4310
 ```
 
 ```toml
@@ -82,7 +82,7 @@ tailscale serve --bg 4320
 hosts = ["laptop.tail1234.ts.net"]
 ```
 
-On the phone, open the address `ura serve` prints with that name in place of `127.0.0.1:4320`, as
+On the phone, open the address `ura serve` prints with that name in place of `127.0.0.1:4310`, as
 `https://laptop.tail1234.ts.net/<token>/`. Its token answers for you: keep it to yourself. Its
 "Obsidian setup" page gives your phone a starter vault for your notes, which
 [the CLI's page](docs/cli.md#your-notes-on-your-phone) explains.

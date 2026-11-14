@@ -96,67 +96,6 @@ pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
     Ok(())
 }
 
-/// `feature`'s options over `defaults`: each value the feature sets wins, step by step and value by
-/// value, and the feature's reviewers, when it lists any, replace the defaults' list whole. A model
-/// belongs to its agent: where the feature picks another agent, the defaults' model and effort are
-/// dropped.
-pub fn merge_run_options(defaults: &RunOptions, feature: &RunOptions) -> RunOptions {
-    let mut steps = defaults.steps.clone();
-    for step in &feature.steps {
-        match steps.iter_mut().find(|default| default.step == step.step) {
-            Some(default) => {
-                let pick = merge_pick(&pick_of(default), &pick_of(step));
-                default.agent = pick.agent;
-                default.model = pick.model;
-                default.effort = pick.effort;
-                default.new_session = step.new_session.or(default.new_session);
-            }
-            None => steps.push(step.clone()),
-        }
-    }
-    in_order(&mut steps);
-    let implementers = match (&defaults.implementers, &feature.implementers) {
-        (Some(default), Some(picked)) => Some(merge_pick(default, picked)),
-        (default, picked) => over(picked, default),
-    };
-    RunOptions {
-        steps,
-        implementers,
-        reviewers: over(
-            &feature.reviewers.clone().filter(|list| !list.is_empty()),
-            &defaults.reviewers,
-        ),
-        review_depth: over(&feature.review_depth, &defaults.review_depth),
-    }
-}
-
-/// `picked` over `default`, value by value, but for the default's model and effort when `picked`
-/// names another agent.
-fn merge_pick(default: &RunPick, picked: &RunPick) -> RunPick {
-    if picked.agent.is_some() && picked.agent != default.agent {
-        return picked.clone();
-    }
-    RunPick {
-        agent: over(&picked.agent, &default.agent),
-        model: over(&picked.model, &default.model),
-        effort: over(&picked.effort, &default.effort),
-    }
-}
-
-/// A step's agent, model, and effort.
-fn pick_of(step: &StepOptions) -> RunPick {
-    RunPick {
-        agent: step.agent.clone(),
-        model: step.model.clone(),
-        effort: step.effort.clone(),
-    }
-}
-
-/// The value picked, else the default.
-fn over<T: Clone>(picked: &Option<T>, default: &Option<T>) -> Option<T> {
-    picked.clone().or_else(|| default.clone())
-}
-
 /// Sorts steps in the workflow's order, a step not of it last.
 fn in_order(steps: &mut [StepOptions]) {
     steps.sort_by_key(|step| {
@@ -202,9 +141,8 @@ fn reviewer_rule(reviewer: &ReviewerOptions) -> Result<(), String> {
 }
 
 /// The run options of the `[runs]` table, each problem at its key, like
-/// `runs.steps.spec.effort`. `fresh` is the old `build_in_fresh_session`: `false` joins the plan
-/// to the spec's session, unless the plan's table sets `new_session`.
-pub(super) fn parse(runs: &dyn TableLike, fresh: Option<bool>) -> Result<RunOptions, Problem> {
+/// `runs.steps.spec.effort`.
+pub(super) fn parse(runs: &dyn TableLike) -> Result<RunOptions, Problem> {
     let mut options = RunOptions::default();
     if let Some((key, item)) = runs.get_key_value("review_depth") {
         let at = |problem: String| (offset(key, item), "runs.review_depth".to_owned(), problem);
@@ -216,17 +154,6 @@ pub(super) fn parse(runs: &dyn TableLike, fresh: Option<bool>) -> Result<RunOpti
     }
     if let Some((key, item)) = runs.get_key_value("steps") {
         options.steps = parse_steps(key, item)?;
-    }
-    if fresh == Some(false) {
-        match options.steps.iter_mut().find(|step| step.step == "plan") {
-            Some(plan) => plan.new_session = plan.new_session.or(Some(false)),
-            None => options.steps.push(StepOptions {
-                step: "plan".into(),
-                new_session: Some(false),
-                ..StepOptions::default()
-            }),
-        }
-        in_order(&mut options.steps);
     }
     if let Some((key, item)) = runs.get_key_value("implementers") {
         const AT: &str = "runs.implementers";

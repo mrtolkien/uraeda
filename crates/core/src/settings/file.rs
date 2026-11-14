@@ -2,14 +2,12 @@
 
 use std::fs;
 use std::io::{ErrorKind, Write as _};
-use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use toml_edit::{Document, Item, Key, TableLike};
 
-use super::rules;
-use super::{KeyboardSettings, RunSettings, ServerSettings, Settings};
+use super::Settings;
 
 /// The file, in the config folder.
 pub const FILE: &str = "config.toml";
@@ -85,14 +83,8 @@ pub fn parse(text: &str) -> Result<Settings, String> {
         });
         format!("{at}{key}: {problem}")
     };
-    let server = table(&document, "server", parse_server).map_err(at)?;
-    let runs = table(&document, "runs", parse_runs).map_err(at)?;
-    let keyboard = table(&document, "keyboard", parse_keyboard).map_err(at)?;
-    Ok(Settings {
-        server,
-        runs,
-        keyboard,
-    })
+    let runs = table(&document, "runs", super::runs::parse).map_err(at)?;
+    Ok(Settings { runs })
 }
 
 /// The values of the table `name`, read by `values`: the defaults when the file has no such table.
@@ -121,169 +113,6 @@ pub(super) type Problem = (Option<usize>, String, String);
 /// Where a key is, or its value when the key has no place.
 pub(super) fn offset(key: &Key, item: &Item) -> Option<usize> {
     key.span().or_else(|| item.span()).map(|span| span.start)
-}
-
-/// The `[server]` table's values.
-fn parse_server(server: &dyn TableLike) -> Result<ServerSettings, Problem> {
-    let mut settings = ServerSettings::default();
-    if let Some((key, item)) = server.get_key_value("allowed_hosts") {
-        settings.allowed_hosts = Some(allowed_hosts(item).map_err(|(span, problem)| {
-            let start = span.map(|span| span.start).or_else(|| offset(key, item));
-            (start, "allowed_hosts".into(), problem)
-        })?);
-    }
-    if let Some((key, item)) = server.get_key_value("port") {
-        let port = item
-            .as_integer()
-            .ok_or_else(|| rules::PORT_PROBLEM.to_owned())
-            .and_then(rules::port_number);
-        settings.port = Some(port.map_err(|problem| (offset(key, item), "port".into(), problem))?);
-    }
-    if let Some((key, item)) = server.get_key_value("open_browser") {
-        let open = item.as_bool().ok_or_else(|| {
-            (
-                offset(key, item),
-                "open_browser".into(),
-                "Opening a browser at start is true or false.".to_owned(),
-            )
-        })?;
-        settings.open_browser = Some(open);
-    }
-    Ok(settings)
-}
-
-/// The `[runs]` table's values.
-fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
-    let mut settings = RunSettings::default();
-    // The old setting, read only to migrate it into the plan's `new_session`: the next write of
-    // the run options removes it.
-    let mut fresh = None;
-    if let Some((key, item)) = runs.get_key_value("build_in_fresh_session") {
-        let value = item.as_bool().ok_or_else(|| {
-            (
-                offset(key, item),
-                "build_in_fresh_session".into(),
-                "Building in a fresh session is true or false.".to_owned(),
-            )
-        })?;
-        fresh = Some(value);
-    }
-    settings.continue_after_restart = switch(
-        runs,
-        "continue_after_restart",
-        "Continue after a restart is true or false.",
-    )?;
-    settings.continue_after_limit = switch(
-        runs,
-        "continue_after_limit",
-        "Continue after a usage limit is true or false.",
-    )?;
-    settings.catch_up_pull_requests = switch(
-        runs,
-        "catch_up_pull_requests",
-        "Catching up open pull requests is true or false.",
-    )?;
-    if let Some((key, item)) = runs.get_key_value("automatic_continues") {
-        let continues = item
-            .as_integer()
-            .ok_or_else(|| rules::CONTINUES_PROBLEM.to_owned())
-            .and_then(rules::automatic_continues_number);
-        settings.automatic_continues = Some(
-            continues
-                .map_err(|problem| (offset(key, item), "automatic_continues".into(), problem))?,
-        );
-    }
-    settings.scheduled_jobs = switch(
-        runs,
-        "scheduled_jobs",
-        "Running scheduled jobs is true or false.",
-    )?;
-    if let Some((key, item)) = runs.get_key_value("default_agent") {
-        let agent = item.as_str().ok_or_else(|| {
-            (
-                offset(key, item),
-                "default_agent".into(),
-                "The default agent is a name, like \"claude\".".to_owned(),
-            )
-        })?;
-        // An empty name is no pick: the first agent on.
-        settings.default_agent = Some(agent.trim().to_owned()).filter(|agent| !agent.is_empty());
-    }
-    settings.options = super::runs::parse(runs, fresh)?;
-    Ok(settings)
-}
-
-/// The switch `name` of `table`, `None` when absent, or `problem` when it is not true or false.
-fn switch(
-    table: &dyn TableLike,
-    name: &'static str,
-    problem: &str,
-) -> Result<Option<bool>, Problem> {
-    table
-        .get_key_value(name)
-        .map(|(key, item)| {
-            item.as_bool()
-                .ok_or_else(|| (offset(key, item), name.to_owned(), problem.to_owned()))
-        })
-        .transpose()
-}
-
-/// The `[keyboard]` table's values.
-fn parse_keyboard(keyboard: &dyn TableLike) -> Result<KeyboardSettings, Problem> {
-    let mut settings = KeyboardSettings::default();
-    if let Some((key, item)) = keyboard.get_key_value("single_key_shortcuts") {
-        let on = item.as_bool().ok_or_else(|| {
-            (
-                offset(key, item),
-                "single_key_shortcuts".into(),
-                "Single-key shortcuts is true or false.".to_owned(),
-            )
-        })?;
-        settings.single_key_shortcuts = Some(on);
-    }
-    if let Some((key, item)) = keyboard.get_key_value("vim_mode") {
-        let on = item.as_bool().ok_or_else(|| {
-            (
-                offset(key, item),
-                "vim_mode".into(),
-                "Vim mode is true or false.".to_owned(),
-            )
-        })?;
-        settings.vim_mode = Some(on);
-    }
-    if let Some((key, item)) = keyboard.get_key_value("vim_commands") {
-        let lines = item
-            .as_array()
-            .and_then(|lines| {
-                lines
-                    .iter()
-                    .map(|line| line.as_str().map(str::to_owned))
-                    .collect()
-            })
-            .ok_or_else(|| {
-                (
-                    offset(key, item),
-                    "vim_commands".into(),
-                    "Vim commands are a list of lines, like [\"imap jj <Esc>\"].".to_owned(),
-                )
-            })?;
-        settings.vim_commands = Some(lines);
-    }
-    Ok(settings)
-}
-
-/// The host names of `allowed_hosts`, trimmed and in lower case, or the problem and the span of
-/// the value at fault.
-fn allowed_hosts(item: &Item) -> Result<Vec<String>, (Option<Range<usize>>, String)> {
-    let list = || "The allowed host names are a list, like [\"mac.tail1234.ts.net\"].".to_owned();
-    let array = item.as_array().ok_or_else(|| (None, list()))?;
-    array
-        .iter()
-        .map(|value| {
-            let name = value.as_str().ok_or_else(|| (value.span(), list()))?;
-            rules::host_name(name).map_err(|problem| (value.span(), problem))
-        })
-        .collect()
 }
 
 /// The line, from 1, holding `offset`.
