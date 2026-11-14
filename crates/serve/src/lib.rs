@@ -44,10 +44,44 @@ pub struct Options {
     pub cwd: PathBuf,
 }
 
-/// What every request reads: the token and the settings, as read at the start.
+/// What every request reads: the token, the settings, and where they are kept.
 pub struct Shared {
     pub token: String,
-    pub settings: Settings,
+    settings: std::sync::RwLock<Settings>,
+    /// The folder of `config.toml`, which the settings page writes.
+    pub config_dir: PathBuf,
+    /// Held by every write, for its whole read-change-write: two saves at once, of two questions
+    /// of a round, never write over each other.
+    pub writes: std::sync::Mutex<()>,
+}
+
+impl Shared {
+    pub fn new(token: String, settings: Settings, config_dir: PathBuf) -> Shared {
+        Shared {
+            token,
+            settings: std::sync::RwLock::new(settings),
+            config_dir,
+            writes: std::sync::Mutex::new(()),
+        }
+    }
+
+    /// The settings as they stand now.
+    pub fn settings(&self) -> Settings {
+        self.settings
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Changes the settings in memory, once their file holds the change.
+    pub fn update(&self, change: impl FnOnce(&mut Settings)) {
+        change(
+            &mut self
+                .settings
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner),
+        );
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -101,7 +135,7 @@ pub fn router(shared: Arc<Shared>) -> Router {
 }
 
 async fn home(State(shared): State<Arc<Shared>>) -> Html<String> {
-    let settings = shared.settings.clone();
+    let settings = shared.settings();
     let waiting = tokio::task::spawn_blocking(move || waiting::read(&settings))
         .await
         .unwrap_or_default();
@@ -125,7 +159,7 @@ pub fn run(options: Options) -> Result<(), ServeError> {
     let token = token::keep(&options.data_dir)
         .map_err(|error| ServeError::Token(options.data_dir.clone(), error))?;
     let port = options.port.or(settings.port).unwrap_or(DEFAULT_PORT);
-    let shared = Arc::new(Shared { token, settings });
+    let shared = Arc::new(Shared::new(token, settings, options.config_dir));
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;

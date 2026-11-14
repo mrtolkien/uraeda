@@ -64,3 +64,19 @@ fn header(answer: &ureq::http::Response<ureq::Body>, name: &str) -> String {
         .unwrap_or_default()
         .to_string()
 }
+
+#[test]
+fn a_host_that_is_not_this_machine_is_refused() {
+    let server = Server::start();
+    let path = format!("/{}/", server.token);
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .into();
+    let answer = agent
+        .get(server.url(&path))
+        .header("host", "evil.example")
+        .call()
+        .unwrap();
+    assert_eq!(answer.status(), 403);
+}

@@ -246,10 +246,11 @@
           el.scrollIntoView({ behavior: "smooth", block: "center" }),
         );
         $(".edit", item).addEventListener("click", () =>
-          form(item, c.text, (text) => send({ number: c.number, text })),
+          form(item, c.text, (text) => send({ number: c.number, text, previous: c.text })),
         );
         $(".remove", item).addEventListener("click", () => {
-          if (confirm("Remove this comment?")) send({ number: c.number, text: "" });
+          if (confirm("Remove this comment?"))
+            send({ number: c.number, text: "", previous: c.text });
         });
         if (el) {
           const inline = document.createElement("div");
@@ -262,7 +263,7 @@
 
     async function send(body) {
       try {
-        const answer = await post(`${file}/comment`, body);
+        const answer = await post(`${file}/comment`, { ...body, version: data.version });
         comments = answer.comments;
         draw();
         return true;
@@ -377,6 +378,7 @@
           const answer = await post(`${file}/verdict`, {
             verdict: kind,
             summary: $(".summary", verdict).value,
+            version: data.version,
           });
           main.innerHTML = "";
           const done = document.createElement("section");
@@ -443,12 +445,16 @@
       }
     }
 
+    // Every save of the page waits for the one before: each sends what the last one wrote.
+    let saving = Promise.resolve();
+    const queue = (work) => (saving = saving.then(work));
+    const typing = [];
+
     for (const q of $$("section.q", main)) {
       const line = $(".saved", q);
       const words = $(".words textarea", q);
-      let saving = Promise.resolve();
       const save = () => {
-        saving = saving.then(async () => {
+        queue(async () => {
           say(line, "Saving…");
           try {
             const data = await post("answer", {
@@ -467,6 +473,7 @@
         });
       };
       const typed = debounce(save, 700);
+      typing.push(typed);
       words.addEventListener("input", typed);
       words.addEventListener("blur", () => typed.now());
 
@@ -506,7 +513,9 @@
       if (!confirm("Send your answers? The agent takes them from here.")) return;
       send.disabled = true;
       try {
-        const data = await post("submit", {});
+        for (const typed of typing) typed.now();
+        await saving;
+        const data = await queue(() => post("submit", {}));
         main.innerHTML = "";
         const done = document.createElement("section");
         done.className = "done";
@@ -527,16 +536,24 @@
     if (notes) {
       const field = $("textarea", notes);
       const line = $(".saved", notes);
-      const save = debounce(async () => {
-        say(line, "Saving…");
-        try {
-          const data = await post("notes", { notes: field.value, previous: notes.dataset.answer });
-          notes.dataset.answer = data.notes;
-          say(line, "Saved");
-        } catch (error) {
-          say(line, error.message, error);
-        }
-      }, 700);
+      const save = debounce(
+        () =>
+          queue(async () => {
+            say(line, "Saving…");
+            try {
+              const data = await post("notes", {
+                notes: field.value,
+                previous: notes.dataset.answer,
+              });
+              notes.dataset.answer = data.notes;
+              say(line, "Saved");
+            } catch (error) {
+              say(line, error.message, error);
+            }
+          }),
+        700,
+      );
+      typing.push(save);
       field.addEventListener("input", save);
       field.addEventListener("blur", () => save.now());
     }
@@ -544,22 +561,27 @@
       const field = $("textarea", point);
       if (!field) continue;
       const line = $(".saved", point);
-      const save = debounce(async () => {
-        say(line, "Saving…");
-        try {
-          const data = await post("settled", {
-            subject: point.dataset.subject,
-            number: Number(point.dataset.number),
-            text: field.value,
-            previous: point.dataset.comment,
-          });
-          point.dataset.number = data.number;
-          point.dataset.comment = data.text;
-          say(line, data.text ? "Saved" : "Removed");
-        } catch (error) {
-          say(line, error.message, error);
-        }
-      }, 700);
+      const save = debounce(
+        () =>
+          queue(async () => {
+            say(line, "Saving…");
+            try {
+              const data = await post("settled", {
+                subject: point.dataset.subject,
+                number: Number(point.dataset.number),
+                text: field.value,
+                previous: point.dataset.comment,
+              });
+              point.dataset.number = data.number;
+              point.dataset.comment = data.text;
+              say(line, data.text ? "Saved" : "Removed");
+            } catch (error) {
+              say(line, error.message, error);
+            }
+          }),
+        700,
+      );
+      typing.push(save);
       field.addEventListener("input", save);
       field.addEventListener("blur", () => save.now());
     }

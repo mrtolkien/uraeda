@@ -164,11 +164,7 @@ impl Writer<'_> {
                 Event::End(TagEnd::Image) if *depth > 0 => *depth -= 1,
                 Event::End(TagEnd::Image) => {
                     let (_, tag, alt) = self.alt.take().unwrap_or_default();
-                    if tag.is_empty() {
-                        self.out.push_str(&escape(&alt));
-                    } else {
-                        let _ = write!(self.out, "{tag} alt=\"{}\">", escape(&alt));
-                    }
+                    self.out.push_str(&closed_image(&tag, &alt));
                 }
                 Event::Text(text) | Event::Code(text) => alt.push_str(&text),
                 _ => {}
@@ -378,15 +374,7 @@ impl Writer<'_> {
                 dest_url, title, ..
             } => {
                 self.mark(&range);
-                let tag = match self.links.href(&dest_url, true) {
-                    Some(Target::Inside(src) | Target::Outside(src)) => format!(
-                        "<img src=\"{}\" loading=\"lazy\" {lines}{}",
-                        escape(&src),
-                        title_attribute(&title)
-                    ),
-                    // An image out of the repository: its alt text alone.
-                    None => String::new(),
-                };
+                let tag = self.image_tag(&dest_url, &title, &lines);
                 self.alt = Some((0, tag, String::new()));
             }
             Tag::MetadataBlock(_) => self.metadata = true,
@@ -394,6 +382,24 @@ impl Writer<'_> {
             | Tag::DefinitionListTitle
             | Tag::DefinitionListDefinition
             => self.close_span(),
+        }
+    }
+
+    /// The opening of an image's tag, closed with its alt text by `closed_image`: an image of
+    /// another site is a link, never fetched as the page is read; one out of the repository is its
+    /// alt text alone.
+    fn image_tag(&self, dest_url: &str, title: &str, lines: &str) -> String {
+        match self.links.href(dest_url, true) {
+            Some(Target::Inside(src)) => format!(
+                "<img src=\"{}\" loading=\"lazy\" {lines}{}",
+                escape(&src),
+                title_attribute(title)
+            ),
+            Some(Target::Outside(src)) => format!(
+                "<a class=\"image-link\" href=\"{}\" rel=\"noreferrer noopener\" target=\"_blank\"",
+                escape(&src)
+            ),
+            None => String::new(),
         }
     }
 
@@ -664,6 +670,20 @@ pub fn draw(markdown: &str, file: &str, base: &str) -> String {
             base: base.to_string(),
         },
     )
+}
+
+/// An image's tag from `image_tag`, closed with its alt text.
+fn closed_image(tag: &str, alt: &str) -> String {
+    if tag.is_empty() {
+        escape(alt)
+    } else if tag.starts_with("<a ") {
+        let text = Some(alt.trim())
+            .filter(|t| !t.is_empty())
+            .unwrap_or("Image");
+        format!("{tag}>{}</a>", escape(text))
+    } else {
+        format!("{tag} alt=\"{}\">", escape(alt))
+    }
 }
 
 #[cfg(test)]

@@ -43,6 +43,9 @@ pub struct Settings {
     /// The main checkouts, absolute.
     pub repositories: Vec<PathBuf>,
     pub wake: Option<Wake>,
+    /// The host names the pages answer at besides this machine's own, lower case: the name
+    /// `tailscale serve` gives, like `laptop.tail1234.ts.net`. Any other `Host` is refused.
+    pub hosts: Vec<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -114,6 +117,17 @@ pub fn parse(text: &str, home: &Path) -> Result<Settings, Problem> {
             settings.repositories.push(expand(folder, home));
         }
     }
+    if let Some(list) = section.get("hosts") {
+        let list = list
+            .as_array()
+            .ok_or_else(|| Problem::Value("hosts is a list of host names".into()))?;
+        for value in list {
+            let host = value
+                .as_str()
+                .ok_or_else(|| Problem::Value("hosts is a list of host names".into()))?;
+            settings.hosts.push(host.trim().to_ascii_lowercase());
+        }
+    }
     if let Some(wake) = section.get("wake") {
         settings.wake = match wake.as_str() {
             Some("t3") => Some(Wake::t3()),
@@ -122,6 +136,36 @@ pub fn parse(text: &str, home: &Path) -> Result<Settings, Problem> {
         };
     }
     Ok(settings)
+}
+
+/// Sets `[serve] wake` in `config_dir`'s file, `None` removing it, and keeps the rest of the file
+/// as it was: its other values, its comments, and its order.
+pub fn set_wake(config_dir: &Path, wake: Option<&Wake>) -> Result<(), ConfigError> {
+    let path = config_dir.join(FILE);
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(ConfigError::Read(path, error)),
+    };
+    let mut document: DocumentMut = text.parse().map_err(|e: toml_edit::TomlError| {
+        ConfigError::Parse(path.clone(), e.message().to_string())
+    })?;
+    if !document.contains_key("serve") {
+        document["serve"] = toml_edit::table();
+    }
+    let section = document["serve"]
+        .as_table_like_mut()
+        .ok_or_else(|| ConfigError::Value(path.clone(), "is not a table".into()))?;
+    match wake {
+        Some(Wake::T3 { .. }) => {
+            section.insert("wake", toml_edit::value("t3"));
+        }
+        None => {
+            section.remove("wake");
+        }
+    }
+    std::fs::create_dir_all(config_dir).map_err(|e| ConfigError::Read(path.clone(), e))?;
+    std::fs::write(&path, document.to_string()).map_err(|e| ConfigError::Read(path, e))
 }
 
 /// A folder as written, `~/` read as `home`.
@@ -154,6 +198,7 @@ mod tests {
                 port: Some(4400),
                 repositories: vec![PathBuf::from("/h/a"), PathBuf::from("/b")],
                 wake: Some(Wake::t3()),
+                hosts: Vec::new(),
             })
         );
     }

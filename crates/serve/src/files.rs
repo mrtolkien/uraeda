@@ -6,7 +6,8 @@
 //!   sandbox of its own, an opaque origin that can run its scripts but never write through the
 //!   pages (its writes carry `Origin: null`), with the element picker added at its end.
 //!
-//! A path is from the repository's top level, and must stay inside the checkout.
+//! A path is from the repository's top level, and must stay inside the checkout, out of its
+//! hidden folders and files: `.git/config` may hold a remote's credentials.
 
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -30,7 +31,7 @@ fn inside(root: &Path, path: &str) -> Result<PathBuf, Failure> {
     let relative = Path::new(path);
     if relative
         .components()
-        .any(|c| !matches!(c, Component::Normal(_)))
+        .any(|c| !matches!(c, Component::Normal(name) if !name.to_string_lossy().starts_with('.')))
     {
         return Err(missing());
     }
