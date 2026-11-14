@@ -6,17 +6,23 @@ settle, and asks the human, in one file, what only they can answer.
 - **Runs when**: a folder has a `proposal.md` and no `clarifications-01.md` (round 01), or another
   step needs the human to decide something new (the next round, see
   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions))
-- **Writes**: `discovery-NN.md` and `clarifications-NN.md`, with the round's number
+- **Writes**: `discovery-NN.md` and `clarifications-NN.md`, with the round's number; in the human's
+  notes, the round's research report and the wiki's notes it adds or corrects
 - **Ends at**: a human gate, `clarifications-NN.md` with `status: awaiting-human`
 
-Two files come out of this step, for two readers:
+Three things come out of this step, for three readers:
 
-- **`discovery-NN.md` is the feature's knowledge base, for agents**: what this kind of feature
-  usually looks like, how established products and standards handle it, what the code has today, and
-  the approaches to each topic, every fact with its source. The spec builds on it and the plan
-  reuses its map of the code. The human opens it only through a question's link.
 - **`clarifications-NN.md` is the round, for the human**: how you read their proposal, the few
   questions only they can answer, and what you settled that they may object to.
+- **`discovery-NN.md` is what the later steps rely on, in git**: the findings the round's questions
+  and settled points rest on, each with its source, and the map of the code. The spec builds on it,
+  the plan and every implementer reuse its map, and any agent can resume from it. The human opens it
+  only through a question's link.
+- **The research report is the long version, in the human's notes**: how established products and
+  standards handle this kind of feature, the libraries involved, and the approaches to each topic
+  compared, every fact with its source. What outlasts the feature also goes into the wiki. See
+  [Notes](notes.md#research-reports). Without notes, the report's content that a question or a later
+  step needs goes into `discovery-NN.md`, and the rest is not written.
 
 Nobody waits on you, and nobody will notice what you skipped until it is expensive: a shallow
 discovery turns into wrong questions, a spec sent back, and fixes after the merge. Spend the time on
@@ -47,7 +53,11 @@ and say so in the block. Leave the proposal's field as the human wrote it.
 2. Earlier rounds, if any, and what sent the workflow back here: a review file, or a step's reason.
 3. The constitution, the decisions whose **Applies to** covers the feature, and the project's guides
    for the area. The records in `specs/done/` of the features this one touches.
-4. Other features in flight: list the open feature branches, and read the specs, mockups, proposed
+4. The human's notes about the area, when they have notes: the inbox's notes on it, and the wiki's
+   notes on the products, libraries, and standards you are about to research. They save searches;
+   their facts are leads, read again at their source before a question relies on one. See
+   [the wiki](notes.md#reading-it).
+5. Other features in flight: list the open feature branches, and read the specs, mockups, proposed
    decisions, and data changes of those that touch the same code, views, or decisions
    (`git show <branch>:specs/...`). Two features changing the same data or the same decision is a
    finding. So are two that draw the same thing in two ways.
@@ -138,29 +148,44 @@ for work skipped.
 **Later rounds** start from what triggered them, research only what is new, and link to earlier
 rounds rather than repeating them.
 
-## The discovery file
+## The research report
 
-Write a new file for the round, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md), with its sections
-in the template's order: knowledge first, approaches last.
+Write the long report first, in the human's notes, from
+[the template](../assets/templates/notes/research.md), as
+[research reports](notes.md#research-reports) says, with its sections in the template's order:
+knowledge first, approaches last.
 
-- **Why this round**: later rounds only.
-- **Summary**: the feature in a few sentences, for an agent who reads nothing else.
 - **How other products do it**: one section per product, then **What they have in common**: what
   users may expect, whether or not the proposal mentions it.
 - **Standards and libraries**: what matters for this feature, and the pitfalls, with versions.
+- **Approaches**: one section per topic the feature has to settle, comparing its options against the
+  same criteria. Every capability of **What they have in common** gets a topic, or a line in **Needs
+  no choice**, which also holds the code-only choices.
+
+Then put what outlasts the feature into the wiki: a product's behaviour into its `apps/` note, a
+library's surprise into a gotcha, how a kind of feature works across products into its `topics/`
+note. Link them from the report.
+
+## The discovery file
+
+Then write the round's file in git, from
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md). It is short: what
+a later agent, without the notes, needs to check the round and build on it.
+
+- **Why this round**: later rounds only.
+- **Summary**: the feature in a few sentences, for an agent who reads nothing else, and a link to
+  the research report.
+- **Findings**: one section per finding a question or a settled point rests on, its heading what a
+  question links to: what was found, in a few lines, with its source, never the wiki. A comparison
+  of products a question needs is a table here.
 - **The code**: the important reads, the proposal's path and the existing actions it meets, the
   rules and their owners, and the likely changes with the tests that guard them.
 - **The proposal**: one section per constraint that cannot be met as written, ambiguity, or gap.
 - **Worth it and feasibility**: left out when the feature is small and relies on nothing new.
-- **Approaches**: one section per topic the feature has to settle, comparing its options against the
-  same criteria. Every capability of **What they have in common** gets a topic, or a line in **Needs
-  no choice**, which also holds the code-only choices.
 - **Not checked**.
 
-Give a heading to anything a question may link to. Every fact links to its source, and your own
-judgements are marked as such. Do not recommend or choose here: recommendations go with the
-questions, and what you settle goes in the round.
+Every fact links to its source, and your own judgements are marked as such. Do not recommend or
+choose here: recommendations go with the questions, and what you settle goes in the round.
 
 ## What to ask, and what to settle
 
@@ -312,8 +337,9 @@ Before committing, read both files again, and fix what you find:
    your recommendation. Otherwise it is a settled point. A look is shown.
 3. **Each settled point**: it adds no limit or refusal nobody asked for, and one the human may
    object to is under **Check these**, said as what happens to them.
-4. **Coverage**: every topic of the discovery's **Approaches** and **The proposal** ends up in one
-   question or one settled point, or stays in **Needs no choice**.
+4. **Coverage**: every topic of the report's **Approaches** and of the discovery's **The proposal**
+   ends up in one question or one settled point, or stays in **Needs no choice**. Every finding a
+   question links is in the discovery file, with its source.
 5. **Evidence**: every claim rests on a source you read. Outside behaviour the feature relies on is
    checked, or says why no experiment in reach could check it.
 6. **The writing**: the [writing self-review](writing.md#self-review).
@@ -323,4 +349,9 @@ With `ura`, run `ura check` on the folder last.
 ## Commit
 
 Commit both files: `discovery(<slug>): <feature name>`, or what the new round is about, with the
-block's first line as the body. Then stop at the gate.
+block's first line as the body. The report and the wiki's notes are in the human's notes, never
+committed. Then stop at the gate.
+
+**A round asked in the session**, when the human asks for it, writes the discovery file and the
+report the same way, then asks the questions in the session, as
+[In a session](../SKILL.md#in-a-session) says. Commit the discovery file alone, then write the spec.
