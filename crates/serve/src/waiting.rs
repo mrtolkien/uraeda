@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use uraeda_core::git::Git;
+use uraeda_core::steps::StepName;
 use uraeda_core::workspace::{Feature, FileKind, Kind, Workspace};
 
 use crate::config::Settings;
@@ -153,6 +154,11 @@ fn items_of(repo: &str, main: &Path, feature: &Feature) -> Vec<Item> {
         .filter(|f| f.kind == FileKind::Clarifications)
         .filter_map(|f| f.round)
         .max();
+    // The core decides whose turn it is: a file marked as waiting before its agent's commit is
+    // still the agent's.
+    if feature.step.name != StepName::HumanGate {
+        return Vec::new();
+    }
     let mut items = Vec::new();
     for file in &feature.files {
         if file.status.as_deref() != Some("awaiting-human") {

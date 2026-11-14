@@ -60,3 +60,20 @@ fn a_markdown_file_is_drawn_and_a_path_out_of_the_checkout_is_refused() {
         assert_eq!(answer.status(), 404, "{path}");
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn a_link_to_a_hidden_file_is_refused() {
+    let f = fixture(&[("clarifications-01.md", round())]);
+    std::fs::write(f.worktree.join(".env"), "SECRET=1\n").unwrap();
+    std::os::unix::fs::symlink(f.worktree.join(".env"), f.worktree.join("env.txt")).unwrap();
+    std::os::unix::fs::symlink(f.worktree.join("specs"), f.worktree.join("shown")).unwrap();
+    let server = Server::with(settings(&f));
+    let raw = |path: &str| {
+        server
+            .get(&format!("/{}/todo/{FOLDER}/raw/{path}", server.token))
+            .status()
+    };
+    assert_eq!(raw("env.txt"), 404);
+    assert_eq!(raw(&format!("shown/{FOLDER}/proposal.md")), 200);
+}

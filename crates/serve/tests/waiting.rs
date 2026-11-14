@@ -31,7 +31,7 @@ fn home(server: &Server) -> String {
 fn a_waiting_round_is_listed_and_a_spec_that_does_not_wait_is_not() {
     let f = fixture(&[
         ("clarifications-01.md", round("awaiting-human")),
-        ("spec.md", spec("draft")),
+        ("spec.md", spec("approved")),
     ]);
     let waiting = waiting::read(&settings(&f));
     let repository = &waiting.repositories[0];
@@ -68,6 +68,20 @@ fn a_spec_awaiting_review_links_to_its_review() {
     let item = &waiting.repositories[0].items[0];
     assert_eq!(item.ask, Ask::Spec);
     assert_eq!(item.address, format!("todo/{FOLDER}/review/spec.md"));
+}
+
+#[test]
+fn a_spec_marked_as_waiting_before_its_commit_is_still_the_agents() {
+    let f = fixture(&[("clarifications-01.md", round("answered"))]);
+    let folder = f.worktree.join("specs").join(FOLDER);
+    std::fs::write(folder.join("spec.md"), spec("awaiting-human")).unwrap();
+    let waiting = waiting::read(&settings(&f));
+    assert_eq!(waiting.repositories[0].problem, None);
+    assert!(
+        waiting.repositories[0].items.is_empty(),
+        "{:?}",
+        waiting.repositories[0].items
+    );
 }
 
 #[test]
