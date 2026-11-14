@@ -91,8 +91,8 @@ Root causes and approaches, by item:
 
 The guides say each UI change: [keyboard](/specs/ui/keyboard.md), [wide](/specs/ui/wide.md),
 [semi-wide](/specs/ui/semi-wide.md), [flows](/specs/ui/flows.md),
-[look and feel](/specs/ui/look-and-feel.md), and [reading](/specs/ui/reading.md). The
-[inbox reference](/skills/uraeda/references/inbox.md) says marks may end the first line.
+[look and feel](/specs/ui/look-and-feel.md), and [reading](/specs/ui/reading.md). The inbox
+reference says marks may end the first line.
 
 ## Gotchas
 

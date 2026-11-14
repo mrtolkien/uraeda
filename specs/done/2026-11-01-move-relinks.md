@@ -109,8 +109,7 @@ moves; `--fix` and the Fix button find theirs in git's history.
 - **The skill**: [implementation](/skills/uraeda/references/implementation.md)'s catch-up, with
   where a moved link points, [finish](/skills/uraeda/references/finish.md),
   [projects](/skills/uraeda/references/projects.md), [change](/skills/uraeda/references/change.md),
-  [inbox](/skills/uraeda/references/inbox.md), and [cli](/skills/uraeda/references/cli.md), with
-  [`docs/cli.md`](/docs/cli.md).
+  inbox, and [cli](/skills/uraeda/references/cli.md), with [`docs/cli.md`](/docs/cli.md).
 
 ## Replaced behaviour
 

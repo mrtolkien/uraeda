@@ -43,10 +43,10 @@ proposal file, and the feature's folder leaves the default branch.
 ## Design
 
 - The step is **Postpone or block** in
-  [projects.md](/skills/uraeda/references/projects.md#starting-postponing-and-dropping-a-feature).
-  No code changed: the core's `branch_feature`
-  ([branches.rs](/crates/core/src/workspace/branches.rs)) counts a branch as a feature only while
-  its tip holds the folder, which the closing commit relies on.
+  [projects.md](/skills/uraeda/references/projects.md#postponing-or-dropping-a-feature). No code
+  changed: the core's `branch_feature` ([branches.rs](/crates/core/src/workspace/branches.rs))
+  counts a branch as a feature only while its tip holds the folder, which the closing commit relies
+  on.
 - The descriptions of `specs/proposals/` follow: [SKILL.md](/skills/uraeda/SKILL.md), the template
   README ([README.md](/skills/uraeda/assets/templates/specs/README.md)), and
   [the specs folder's docs](/docs/specs-folder.md).

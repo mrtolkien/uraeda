@@ -177,11 +177,9 @@ the clarifications' parsing and answering, generalized from a feature's round to
   [`TriagePage.tsx`](/packages/web/src/TriagePage.tsx) on `RoundPage`, whose writes and base hash
   live in [`roundTarget.ts`](/packages/web/src/roundTarget.ts); Home's group in
   [`Home.tsx`](/packages/web/src/Home.tsx).
-- The skill: [`references/inbox.md`](/skills/uraeda/references/inbox.md), the source of truth for
-  the format, capture, organizing, the triage, and agents' notes, with the templates
-  [`INBOX.md`](/skills/uraeda/assets/templates/specs/INBOX.md) and
-  [`INBOX-TRIAGE.md`](/skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md), and the example's
-  [`INBOX.md`](/skills/uraeda/assets/example/specs/INBOX.md).
+- The skill: `references/inbox.md`, the source of truth for the format, capture, organizing, the
+  triage, and agents' notes, with the templates `INBOX.md` and `INBOX-TRIAGE.md`, and the example's
+  `INBOX.md`.
 
 ## Questions
 
