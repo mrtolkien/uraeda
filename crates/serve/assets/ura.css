@@ -537,3 +537,157 @@ section.q h2 {
   padding-top: 10vh;
 }
 /* --- end round --- */
+
+/* --- review --- */
+
+.hint {
+  color: var(--muted);
+}
+details.since {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 var(--gap) 8px;
+  margin: var(--gap) 0;
+}
+details.since > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+details.since ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+details.since li {
+  border-top: 1px solid var(--line);
+  padding: 6px 0;
+}
+details.since li a {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+}
+details.since .kind {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+details.since .words {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+ins {
+  background: var(--added);
+  text-decoration: none;
+  color: var(--text);
+}
+del {
+  background: var(--removed);
+  color: var(--muted);
+}
+
+main.review[data-waiting="true"] article.doc [data-lines] {
+  cursor: pointer;
+  border-radius: 6px;
+}
+main.review[data-waiting="true"] article.doc [data-lines]:hover {
+  background: var(--accent-soft);
+}
+article.doc .changed {
+  box-shadow: inset 3px 0 0 var(--accent);
+  padding-left: 8px;
+}
+article.doc .flash {
+  animation: flash 1.2s ease-out;
+}
+@keyframes flash {
+  from {
+    background: var(--accent-soft);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.comment-form,
+.inline-comment {
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin: 8px 0 12px;
+  background: var(--surface);
+}
+.inline-comment {
+  border-style: dashed;
+  color: var(--text);
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+.inline-comment::before {
+  content: "Your comment: ";
+  font-weight: 600;
+  color: var(--accent);
+}
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+section.comments,
+section.verdict {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px var(--gap) var(--gap);
+  margin: var(--gap) 0;
+}
+.comment-list {
+  padding-left: 1.2em;
+}
+.comment-list li {
+  margin: 10px 0;
+}
+.comment-list .quote {
+  margin: 0;
+}
+.comment-list .text {
+  margin: 2px 0;
+  white-space: pre-wrap;
+}
+details.general > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+  cursor: pointer;
+}
+.verdict-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.verdict-buttons button {
+  flex: 1 1 12rem;
+}
+.pick-selection {
+  position: fixed;
+  right: max(var(--gap), env(safe-area-inset-right));
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 3;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+}
+/* --- end review --- */

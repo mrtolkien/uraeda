@@ -66,6 +66,244 @@
   const round = $("main.round");
   if (round && round.dataset.waiting === "true") roundPage(round);
 
+  // --- The review ------------------------------------------------------------------------------
+
+  const review = $("main.review");
+  if (review) reviewPage(review);
+
+  function reviewPage(main) {
+    const data = JSON.parse($("#review-data").textContent);
+    const file = location.pathname.split("/").pop();
+    const what = main.dataset.what;
+    const waiting = main.dataset.waiting === "true";
+    const doc = $("article.doc", main);
+    const blocks = $$("[data-lines]", doc);
+    const range = (el) => el.dataset.lines.split("-").map(Number);
+    let comments = data.comments;
+
+    /** The smallest drawn block holding line `n`. */
+    function blockAt(n) {
+      let best = null;
+      for (const el of blocks) {
+        const [start, end] = range(el);
+        if (start <= n && n <= end && (!best || end - start <= range(best)[1] - range(best)[0])) {
+          best = el;
+        }
+      }
+      return best;
+    }
+
+    for (const el of blocks) {
+      const [start, end] = range(el);
+      if (data.changed.some(([s, e]) => s <= end && start <= e) && !$("[data-lines]", el)) {
+        el.classList.add("changed");
+      }
+    }
+
+    for (const link of $$("[data-goto]", main)) {
+      link.addEventListener("click", (event) => {
+        const el = blockAt(Number(link.dataset.goto));
+        if (!el) return;
+        event.preventDefault();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.remove("flash");
+        void el.offsetWidth;
+        el.classList.add("flash");
+      });
+    }
+
+    const list = $(".comment-list", main);
+    const none = $(".none", main);
+    const count = $(".bar .count");
+
+    function quote(c) {
+      if (!c.start) return `On the whole ${what}`;
+      const el = blockAt(c.start);
+      const text = el ? el.textContent.trim().replace(/\s+/g, " ") : "";
+      return text.length > 90 ? text.slice(0, 88) + "…" : text;
+    }
+
+    function draw() {
+      for (const old of $$(".inline-comment", doc)) old.remove();
+      list.innerHTML = "";
+      none.hidden = comments.length > 0;
+      if (count) count.textContent = comments.length;
+      for (const c of comments) {
+        const item = document.createElement("li");
+        item.innerHTML =
+          '<p class="quote small muted"></p><p class="text"></p>' +
+          (waiting
+            ? '<div class="row"><button type="button" class="show">Show</button><button type="button" class="edit">Edit</button><button type="button" class="remove">Remove</button></div>'
+            : "");
+        $(".quote", item).textContent = quote(c);
+        $(".text", item).textContent = c.text;
+        list.append(item);
+        if (!waiting) continue;
+        const el = c.start ? blockAt(c.start) : null;
+        $(".show", item).hidden = !el;
+        $(".show", item).addEventListener("click", () =>
+          el.scrollIntoView({ behavior: "smooth", block: "center" }),
+        );
+        $(".edit", item).addEventListener("click", () =>
+          form(item, c.text, (text) => send({ number: c.number, text })),
+        );
+        $(".remove", item).addEventListener("click", () => {
+          if (confirm("Remove this comment?")) send({ number: c.number, text: "" });
+        });
+        if (el) {
+          const inline = document.createElement("div");
+          inline.className = "inline-comment";
+          inline.textContent = c.text;
+          el.after(inline);
+        }
+      }
+    }
+
+    async function send(body) {
+      try {
+        const answer = await post(`${file}/comment`, body);
+        comments = answer.comments;
+        draw();
+        return true;
+      } catch (error) {
+        alert(error.message);
+        return false;
+      }
+    }
+
+    /** Opens a comment field after `el`, with `text`; `save` gets the text typed. */
+    function form(el, text, save) {
+      for (const open of $$(".comment-form", main)) open.remove();
+      const box = document.createElement("div");
+      box.className = "comment-form";
+      box.innerHTML =
+        '<textarea rows="3" aria-label="Your comment"></textarea><div class="row"><button type="button" class="primary save">Save comment</button><button type="button" class="cancel">Cancel</button></div>';
+      const field = $("textarea", box);
+      field.value = text;
+      el.after(box);
+      field.focus();
+      box.scrollIntoView({ block: "nearest" });
+      $(".cancel", box).addEventListener("click", () => box.remove());
+      $(".save", box).addEventListener("click", async () => {
+        if (!field.value.trim()) return field.focus();
+        if (await save(field.value)) box.remove();
+      });
+    }
+
+    if (waiting) {
+      doc.addEventListener("click", (event) => {
+        if (event.target.closest("a, .comment-form, .inline-comment, iframe, .frame, button"))
+          return;
+        const selected = String(getSelection()).trim();
+        if (selected) return;
+        const el = event.target.closest("[data-lines]");
+        if (!el) return;
+        const [start, end] = range(el);
+        form(el, "", (text) => send({ lines: [start, end], text }));
+      });
+
+      // A selection inside the document comments on the lines it covers.
+      const pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "primary pick-selection";
+      pick.textContent = "Comment on the selection";
+      pick.hidden = true;
+      document.body.append(pick);
+      const lineOf = (node) => {
+        const el = node && (node.nodeType === 1 ? node : node.parentElement);
+        const line = el && el.closest("[data-line]");
+        if (line) return Number(line.dataset.line);
+        const block = el && el.closest("[data-lines]");
+        return block ? range(block)[0] : 0;
+      };
+      let chosen = null;
+      document.addEventListener("selectionchange", () => {
+        const selection = getSelection();
+        const inside =
+          selection.rangeCount &&
+          !selection.isCollapsed &&
+          doc.contains(selection.anchorNode) &&
+          doc.contains(selection.focusNode);
+        if (!inside) {
+          pick.hidden = true;
+          return;
+        }
+        const a = lineOf(selection.anchorNode);
+        const b = lineOf(selection.focusNode);
+        chosen = { start: Math.min(a, b), end: Math.max(a, b), node: selection.focusNode };
+        pick.hidden = !chosen.start;
+      });
+      pick.addEventListener("mousedown", (event) => event.preventDefault());
+      pick.addEventListener("click", () => {
+        if (!chosen) return;
+        const el = blockAt(chosen.end) || doc;
+        const lines = [chosen.start, chosen.end];
+        getSelection().removeAllRanges();
+        pick.hidden = true;
+        form(el, "", (text) => send({ lines, text }));
+      });
+
+      const general = $("details.general", main);
+      if (general) {
+        $(".save-general", general).addEventListener("click", async () => {
+          const field = $("textarea", general);
+          if (!field.value.trim()) return field.focus();
+          if (await send({ lines: null, text: field.value })) {
+            field.value = "";
+            general.open = false;
+          }
+        });
+      }
+
+      const verdict = $("section.verdict", main);
+      const finish = async (kind) => {
+        const line = $(".saved", verdict);
+        if (kind === "request-changes" && comments.length === 0) {
+          say(
+            line,
+            "Say what to change first: comment on a passage, or on the whole " + what + ".",
+            true,
+          );
+          return;
+        }
+        const question =
+          kind === "approve"
+            ? `Approve the ${what}? The agent goes on from it.`
+            : `Ask for changes? The agent revises the ${what} from your comments.`;
+        if (!confirm(question)) return;
+        for (const b of $$("button", verdict)) b.disabled = true;
+        try {
+          const answer = await post(`${file}/verdict`, {
+            verdict: kind,
+            summary: $(".summary", verdict).value,
+          });
+          main.innerHTML = "";
+          const done = document.createElement("section");
+          done.className = "done";
+          done.innerHTML =
+            '<h1></h1><p></p><p><a class="button" href="../../../">Back to what waits on you</a></p>';
+          $("h1", done).textContent =
+            kind === "approve"
+              ? `${what[0].toUpperCase()}${what.slice(1)} approved`
+              : "Changes requested";
+          $("p", done).textContent = answer.next;
+          main.append(done);
+          const bar = $(".bar");
+          if (bar) bar.remove();
+          pick.remove();
+          window.scrollTo(0, 0);
+        } catch (error) {
+          for (const b of $$("button", verdict)) b.disabled = false;
+          say(line, error.message, error);
+        }
+      };
+      $(".approve", verdict).addEventListener("click", () => finish("approve"));
+      $(".request", verdict).addEventListener("click", () => finish("request-changes"));
+    }
+
+    draw();
+  }
+
   function roundPage(main) {
     const bar = $(".bar");
     const next = $(".next", bar);
