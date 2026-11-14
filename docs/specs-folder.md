@@ -8,17 +8,16 @@ every file. The [example project](../skills/uraeda/assets/example/specs/) shows 
 
 ## Running the workflow
 
-You run each step yourself: open your coding agent in the repository, and say "continue recurring
-tasks", "I answered the questions", or "what is next?". The agent reads the `specs/` folder, finds
-the next step from the files alone, does it, commits, and stops when it needs you. You answer or
-approve by editing the file, by telling the agent, or with `ura answer` and `ura review`, and run it
-again later.
+You run each step from your coding agent, in a terminal or a session host: say "start the tags
+proposal", "I answered the questions", or "what is next?". The agent reads the `specs/` folder,
+finds the next step from the files alone, does it, commits, and runs on until it needs you. You
+answer or approve by editing the file, by telling the agent, with `ura answer` and `ura review`, or
+on the pages of `ura serve`. You commit nothing: the next agent step commits your work first, as it
+left it. Then you tell the agent to continue, or `ura serve` tells your T3 Code session.
 
-Or hand it over from the app: "Commit and start the agent" commits your answers or your approval. It
-then opens the feature's session with the workflow's message ready to send. You read it, add a note,
-and send it. The agent works on the next step until it needs you again, while you watch, write to
-it, or stop it. See [the app's sessions](app.md#sessions-with-claude-code-and-codex). A runner that
-starts the agent when you push an answer is planned.
+Each step runs on a pick, an agent, a model, and an effort, and some steps share a session while
+others start a new one. You choose both in `ura`'s settings, outside the repository, and `ura next`
+tells the agent which applies. See [the CLI](cli.md#ura-serve).
 
 **A good fit** for features worth a spec. Getting the design wrong is costly there, and you would
 rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix: just ask
@@ -106,9 +105,8 @@ tasks feature went through the whole workflow:
 7. **It finishes the feature** in the pull request's last commit. One
    [record](../skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with what the feature does, each question and its answer, and what changed after you
-   approved. Once you merge, its line stays in Now, shown as merged, and `ura clean` removes its
-   worktree, its branch, and the line. No branch edits `PRIORITIES.md` or `INBOX.md`, so features
-   built in parallel merge without conflicts there.
+   approved. Once you merge, the next agent that finds the record sets the proposal's note `done`.
+   The worktree and the branch stay until you remove them.
 
 Every file waiting for you opens with a summary of what is asked, how long it takes, and what to
 look at first. Its spec opened like this when it was submitted:
@@ -139,26 +137,24 @@ you were asked to weigh.
 specs/
   README.md                    # the folder layout, for any agent or human
   CONSTITUTION.md              # the project's principles, by priority, written with you at setup
-  PRIORITIES.md                # Now, Next, Later
-  INBOX.md                     # notes jotted down, waiting to be organized
-  proposals/                   # upcoming features, free form: one becomes a dated folder when you
-                               # say "start it"; a postponed feature or change becomes one, written
-                               # by an agent
-  notes/                       # inbox notes with images, and agents' notes: their files
   decisions/                   # decision ledger, one file per topic
   ui/                          # the UI's guides, free form
   guides/                      # the guides of other areas, free form
   done/                        # one record per merged feature or change, in place of its folder
   changes/YYYY-MM-DD-<slug>/   # a change: your proposal, and the questions it needed
   2026-10-06-recurring-tasks/  # one folder per feature, dated the day it starts
-    proposal.md                # you: what and why
-    discovery-01.md            # agent: findings and options
+    proposal.md                # you: what and why; the branch's first commit
+    discovery-01.md            # agent: what the round's questions rely on, and the map of the code
     clarifications-01.md       # agent: questions; you: answers
     spec.md                    # agent: decisions, stories, architecture; you: approval
+    spec-review.md             # you: comments on the spec, with your verdict
     plan.md                    # agent: implementation tasks and tests
-    findings-01.md             # reviewers: one review's findings, committed before they are fixed
+    rulings.md                 # agent: what the build settled that you will notice
     images/                    # your screenshots, linked from your files
 ```
+
+Ideas, the inbox of things you notice, priorities, proposals not started yet, and the long research
+behind each round live in your notes, outside git: see [Notes](#notes) below.
 
 ## Setting it up
 
@@ -167,33 +163,38 @@ folder, and the agent writes the constitution with you. `ura init` also offers t
 for your user, when your agents have none.
 
 The project is set up once it holds its constitution, written rather than the template, and two
-decisions, `code-quality.md` and `testing.md`. A `preview.md` decision is optional. Until then, the
-app's Home shows a Setup pane, and `ura status` lists the files missing.
+decisions, `code-quality.md` and `testing.md`. A `preview.md` decision is optional. Until then,
+`ura status` lists the files missing.
 
 ## Features
 
-Each feature lives on a branch named after its folder. You answer and approve on that branch. A
-single pull request merges everything at once: the decisions, the code, and the feature's record.
-The record replaces its folder in the branch's last commit, while git keeps the folder's history.
-When your answers raise new questions, a second round follows, `discovery-02.md` and
-`clarifications-02.md`, and so on.
+Each feature lives on a branch named after its folder, in a worktree of its own, from its first
+commit, the proposal, to its merge. The default branch gets nothing until then. You answer and
+approve in that worktree. A single pull request merges everything at once: the decisions, the code,
+and the feature's record. The record replaces its folder in the branch's last commit, while git
+keeps the folder's history. When your answers raise new questions, a second round follows,
+`discovery-02.md` and `clarifications-02.md`, and so on.
 
 ## Changes
 
-Bug fixes and small changes take a lighter flow, a change. You type the request under Change on the
-app's New page, or accept the change the agent offers in a session. Its agent works in its own
-branch and worktree. It investigates and asks only what you must decide. It makes the change with
-tests that fail first, has it reviewed by the reviewers you set in the app's settings, or by a fresh
-reviewer without the app, and opens a pull request. The review's findings are committed in the
-change's folder, `findings-NN.md`, before they are fixed.
+Bug fixes and small changes take a lighter flow, a change. You ask your agent for it, or accept the
+change it offers when you ask for a code change in a session. It works on its own branch,
+`change/YYYY-MM-DD-<slug>`, and worktree. It investigates and asks only what you must decide. It
+makes the change with tests that fail first, has it reviewed by the reviewers you set in `ura`'s
+settings, or by a fresh reviewer, and opens a pull request.
 
 There is no spec and no plan, and often nothing to answer before the review. A change that turns out
 too big is offered to you as a feature, and becomes one in place, its code kept.
 
-## The inbox
+## Notes
 
-Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
-`specs/INBOX.md`, in a few seconds. Use the app's ＋, or `ura note`. An agent's note is a file of
-its own in `specs/notes/`, written on its branch, which shows in the inbox once merged; `ura inbox`
-lists them all. You organize the notes later into proposals or changes, by hand or by answering an
-agent's proposed triage.
+What changes daily stays out of git, in your notes: an inbox of things you notice, ideas, proposals
+not started yet with their priority, and the research agents write. Any notes app that keeps plain
+Markdown files works. The skill's [Notes](../skills/uraeda/references/notes.md) lays out an Obsidian
+vault: `inbox/`, a `wiki/` the agents write, and `projects/<repository>/` with its `proposals/` and
+`research/`. A proposal's frontmatter, `status` and `rank`, makes a board of them.
+
+A feature enters git when it starts: the agent copies its proposal, unchanged, as the first commit
+of its branch, and sets the note `started`. With `ura`, the vault is one folder for every
+repository, which `ura serve` syncs with Obsidian on your phone: see
+[the CLI](cli.md#your-notes-on-your-phone).

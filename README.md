@@ -5,37 +5,23 @@
   </picture>
 </p>
 
-<table>
-  <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/home-desktop-dark.png"><img src="docs/images/screenshots/home-desktop-light.png" alt="Home, on a desktop" width="600"></picture></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/home-phone-dark.png"><img src="docs/images/screenshots/home-phone-light.png" alt="Home, on a phone" width="172"></picture></td>
-  </tr>
-  <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/questions-desktop-dark.png"><img src="docs/images/screenshots/questions-desktop-light.png" alt="A round of questions, on a desktop" width="600"></picture></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/questions-phone-dark.png"><img src="docs/images/screenshots/questions-phone-light.png" alt="A round of questions, on a phone" width="172"></picture></td>
-  </tr>
-  <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/spec-desktop-dark.png"><img src="docs/images/screenshots/spec-desktop-light.png" alt="A spec, on a desktop" width="600"></picture></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshots/spec-phone-dark.png"><img src="docs/images/screenshots/spec-phone-light.png" alt="A spec, on a phone" width="172"></picture></td>
-  </tr>
-</table>
-
 **An asynchronous, git-driven development workflow for coding agents.**
 
 You write a short proposal. An agent investigates it in depth, comes back with the questions only
 you can answer, then with a complete spec to approve. Then it plans, implements, and opens a pull
 request. Every step is a plain text file, committed to git, and you answer whenever you have time.
 
-Uraeda has three parts, each optional but the first:
+Uraeda has two parts, the second optional:
 
 - **A workflow**, shipped as an [agent skill](skills/uraeda/SKILL.md), with templates and a
   filled-in example. It works with any agent that reads
   [Agent Skills](https://agentskills.io/specification), like Claude Code, Codex, or OpenCode.
-- **`ura`**, a command-line tool that checks the workflow's files and performs its mechanical steps,
-  for you and for agents.
-- **An app** that drives it, in a desktop window on Linux and in any browser, a phone's too. It
-  shows every feature and file, performs every human step, and holds your sessions with the agent.
-  Only these sessions need a local, signed-in Claude Code or Codex.
+- **`ura`**, a small command-line tool that checks the workflow's files, says what is next and on
+  which model, and serves pages to answer questions and review specs on, from your phone too. It
+  never commits, branches, or makes a worktree: agents do.
+
+Uraeda runs no agent itself. Your agents run where you already run them: a terminal, or a session
+host like T3 Code.
 
 > [!WARNING]
 >
@@ -55,7 +41,8 @@ conversation without the conversation.
   follow.
 - **Review scales with risk.** Each spec proposes a risk tier, and the plan waits for you only if
   you ask.
-- **Plain text in git, no service.** Markdown in a `specs/` folder. No Jira, no Linear.
+- **Plain text in git, no service.** Markdown in a `specs/` folder. No Jira, no Linear. Ideas and
+  proposals not started yet stay in your notes, outside git.
 
 It is built for technical users, and for features worth a spec. For a one-line fix, just ask your
 agent. It assumes a capable model with web access.
@@ -98,47 +85,33 @@ tasks feature through the whole workflow:
 
 ## Getting started
 
-Install `ura`, which holds the app, then the skill. [INSTALL.md](INSTALL.md) has every other way.
-
-> [!WARNING] At the moment, the app's sessions run Claude Code or Codex only
+Install `ura`, then the skill. [INSTALL.md](INSTALL.md) has every other way.
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-cli-installer.sh | sh
 ura install                                     # the skill, for your user
-ura serve-app                                       # the app, in your repository, in your browser
 ```
 
-Without `ura`, install the skill with `npx skills add mrtolkien/uraeda`
+Without `ura`, install the skill with `npx skills add mrtolkien/uraeda`.
 
-On Linux, the app is also a desktop window in place of the browser, with `ura` inside. It needs GTK
-4.14 and WebKitGTK 6.0, as on Ubuntu 24.04 and later:
+Then, in your repository:
 
-```sh
-curl -LO https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-app-x86_64.AppImage
-chmod +x uraeda-app-x86_64.AppImage && ./uraeda-app-x86_64.AppImage
-```
+1. **Set it up.** Run `ura init`, then ask your agent to "set up specs/": it writes the
+   constitution, the project's principles, with you, and proposes two decisions.
+2. **Write a proposal**, in your notes or in the session: what you want, and why. Ask your agent to
+   start it. It makes the feature's branch and worktree, and runs until it has questions for you.
+3. **Answer, then review.** Edit the files it points you to, or run `ura serve` and answer on its
+   pages, from your phone over your own network. Then tell the agent to continue, or let `ura serve`
+   tell your T3 Code session.
 
-Then:
-
-1. **Add your repository.** `ura serve-app`, run in it, opens it in your browser.
-2. **Set it up.** Home's Setup pane lists the files the workflow needs: a constitution, the
-   project's principles, and two decisions. Press "Set up with the agent", then send the message.
-3. **Write a first proposal.** On the New page, under Feature, write what you want and why, then
-   name it: its session opens with the agent's first message, for you to send.
-
-Without the app, run `ura init`, then ask your agent `/uraeda` to set the project up. Write a
-proposal in `specs/proposals/`, and tell the agent to start it, then "what is next?" when you
-answered.
+`ura next` tells an agent the next step, and `ura status` lists every feature and who it waits on.
 
 ## Learn more
 
 - [The skill](skills/uraeda/SKILL.md) and [the example project](skills/uraeda/assets/example/specs/)
 - [INSTALL.md](INSTALL.md): every way to install
-- [The app](docs/app.md): sign-in, settings, proxies, and sessions
-- [The `ura` CLI](docs/cli.md) and its language server
-- [The `specs/` folder](docs/specs-folder.md), changes, and the inbox
-- [Extensions](docs/extensions.md): your own places, records, events, and agent runtimes, in
-  TypeScript
+- [The `ura` CLI](docs/cli.md): its commands, `ura serve`'s pages, and your notes on your phone
+- [The `specs/` folder](docs/specs-folder.md): its files, features, and changes
 - [CONTRIBUTING.md](CONTRIBUTING.md): building Uraeda
 
 ## Inspirations
@@ -152,12 +125,12 @@ answered.
 
 ## Project status
 
-The skill came first, then `ura` and a web UI, then its sessions with Claude Code, then Codex. The
-web UI then became the app, on Native Shell, over a server inside `ura`. A git listener that starts
-the agent when you commit an answer is planned. What is being built now, and next, is in
-[specs/PRIORITIES.md](specs/PRIORITIES.md).
+The skill came first, then `ura`, then a web UI that ran the agents' sessions, which became a native
+app over a server inside `ura`. Version 3 drops the app and the server: Uraeda is a workflow and a
+small `ura`, and other people's tools run the agents and hold the notes. The last release with the
+app is [v2.1.0](https://github.com/mrtolkien/uraeda/releases/tag/v2.1.0).
 
 ## License
 
-MIT or Apache-2.0, at your option. The bundled fonts' and icons' licenses are in
+MIT or Apache-2.0, at your option. The icons' licenses are in
 [CONTRIBUTING.md](CONTRIBUTING.md#licenses).
