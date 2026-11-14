@@ -6,23 +6,23 @@ asking the human for something it should not.
 
 ## At a glance
 
-| The human wants to…                                | Surface                                             | Not                                    |
-| -------------------------------------------------- | --------------------------------------------------- | -------------------------------------- |
-| Change a word, a line, a row                       | In place                                            | A dialog with a text field             |
-| Act on one row: edit, move, delete, open, promote  | The row's bar                                       | A `…` menu, icons over the text, hover |
-| Read a row's whole text, longer than the row holds | The detail dialog, on the row's address             | A side pane, a hover card              |
-| Read an item of a list for a while                 | The list beside its reader (the decisions)          | A dialog                               |
-| Go anywhere, find anything, start anything         | The leader menu, the `g` keys, a picker             | A page's own menu                      |
-| Choose one of many: a place, a target, a thing     | A picker                                            | A dropdown of the page                 |
-| Find which key does what, here                     | The key map, `?`                                    | A help page, a list in the leader menu |
-| Confirm what cannot be undone                      | The shared confirmation                             | A second, page-made dialog             |
-| Take back what was done                            | `u`, over the tab's undo stack, or the toast's Undo | A confirmation before each write       |
-| See a commit still landing                         | The commit toast                                    | A spinner on its button, a top bar     |
-| Answer one short question at a decision point      | A dialog with one field                             | A page                                 |
-| Read or work in something for a while              | A page                                              | An overlay                             |
-| Keep a document's companions at hand               | The side column (wide), sheets (the phone)          | A popover                              |
-| Know what needs them, and go there                 | The sidebar, home, the status line's counts         | A toast                                |
-| On the phone, reach the page's companions          | The bottom bar                                      | The top tabs                           |
+| The human wants to…                                | Surface                                              | Not                                    |
+| -------------------------------------------------- | ---------------------------------------------------- | -------------------------------------- |
+| Change a word, a line, a row                       | In place                                             | A dialog with a text field             |
+| Act on one row: edit, move, delete, open, promote  | The row's bar                                        | A `…` menu, icons over the text, hover |
+| Read a row's whole text, longer than the row holds | The detail dialog, on the row's address              | A side pane, a hover card              |
+| Read an item of a list for a while                 | The list beside its reader (the decisions)           | A dialog                               |
+| Go anywhere, find anything, start anything         | The leader menu, the `g` keys, a picker              | A page's own menu                      |
+| Choose one of many: a place, a target, a thing     | A picker                                             | A dropdown of the page                 |
+| Find which key does what, here                     | The key map, `?`                                     | A help page, a list in the leader menu |
+| Confirm what cannot be undone                      | The shared confirmation                              | A second, page-made dialog             |
+| Take back what was done                            | `u`, over the tab's undo stack, or the toast's Undo  | A confirmation before each write       |
+| See a commit still landing                         | The commit toast                                     | A spinner on its button, a top bar     |
+| Answer one short question at a decision point      | A dialog with one field                              | A page                                 |
+| Read or work in something for a while              | A page                                               | An overlay                             |
+| Keep a document's companions at hand               | The side column (wide), sheets (the phone)           | A popover                              |
+| Know what needs them, and go there                 | The sidebar, home, the counts, one toast as it comes | A dialog over the page                 |
+| On the phone, reach the page's companions          | The bottom bar                                       | The top tabs                           |
 
 ## In place
 

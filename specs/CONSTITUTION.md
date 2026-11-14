@@ -7,9 +7,9 @@ Principles are listed by priority: when two principles conflict, the higher one 
 ### I. Humans stay in control
 
 - Agents MUST stay within the scope and decisions a human approved.
-- Agents MUST NOT activate a decision unless a human explicitly asks them to, for example by
-  approving the spec that lists it. Only a human can override an active decision.
-- Conflicts with active decisions or with this constitution MUST be resolved explicitly by a human.
+- A decision MUST take effect only when a human approves the spec or the round that changes it, or
+  asks for the change directly. Only a human can override a decision.
+- Conflicts with a decision or with this constitution MUST be resolved explicitly by a human.
 
 Rationale: Uraeda exists so agents cannot make consequential choices without the human knowing.
 

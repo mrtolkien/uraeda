@@ -99,7 +99,7 @@ Decisions are named after the question they answer, not the answer: `due-dates.m
 - **To remove one**: delete its file on the branch.
 
 The human sees each change as the difference between the decision on the branch and on the default
-branch, and approves it with the spec: nothing else activates it, and the merge brings it to the
+branch, and approves it with the spec: nothing else puts it in force, and the merge brings it to the
 default branch. A decision edited again after the spec's approval needs their approval again: say so
 in the pull request's "Look at".
 
@@ -185,8 +185,8 @@ The sentence gives the rule itself, in the decision's words, for a new or change
 removed one: the human approves rules, not a summary of them. Only these items count as listed: they
 are what the human approves.
 
-Then the paragraph "Relied on:", and a two-column table of the active decisions the spec follows:
-the decision, linked, and what it means for this spec.
+Then the paragraph "Relied on:", and a two-column table of the decisions the spec follows: the
+decision, linked, and what it means for this spec.
 
 ## User stories
 

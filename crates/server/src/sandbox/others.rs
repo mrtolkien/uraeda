@@ -204,7 +204,7 @@ pub(super) fn realistic(path: &Path) -> Result<(), String> {
 }
 
 /// The notifications decision as the reminders' branch changes it: a reminder that comes due is an
-/// ask too, so the decisions page shows a feature proposing a change to an active decision.
+/// ask too, so the decisions page shows a feature proposing a change to a decision.
 fn reminders_notify() -> Result<String, String> {
     let active =
         String::from_utf8_lossy(&bytes("realistic/decisions/notifications.md")?).into_owned();

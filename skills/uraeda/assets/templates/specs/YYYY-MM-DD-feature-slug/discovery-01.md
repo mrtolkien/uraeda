@@ -65,7 +65,7 @@ when the feature is small and relies on nothing new.]
 
 ## Approaches
 
-Criteria come from [the proposal, the constitution, and active decisions: list them, with links].
+Criteria come from [the proposal, the constitution, and the decisions: list them, with links].
 
 ### [Topic]
 
