@@ -159,3 +159,23 @@ step." The start's commit is `chore(<slug>): proposal`.
 Agents make every commit. A tool that writes the human's files, like `ura`, commits nothing.
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.
+
+## In a session with the human
+
+When the human talks with you, the same habits hold, in a smaller form:
+
+- **Answer short.** What changed, what they must decide, and the next action. One recommendation,
+  backed by the work behind it, never "X or Y" for them to sort out.
+- **A code change is offered as a change.** When the human asks a session on the default branch for
+  a fix or a small change to the code, offer to start it as a [change](change.md#starting-a-change),
+  with its own branch and pull request. Start nothing without their yes. Typos, formatting, and
+  comments stay in the session.
+- **A round asked in the session.** When the human asks for it, ask the round's questions in the
+  session instead of a file: the same questions, each with its recommended answer, in small batches.
+  There is no `clarifications-NN.md`: the spec carries what they decided, quoting their words, as
+  [Spec](spec.md#read-the-humans-words) says.
+- **A file reviewed live is one revision.** When the human works through a round, a spec, or a plan
+  with you in the session, edit it in place as they speak, and commit once, when they say it is
+  done.
+- **Set a human status only when they say so**: "the spec is approved". See
+  [Workflow status](#workflow-status).

@@ -32,8 +32,8 @@ fn every_command_is_named_in_the_skill() {
 
     assert!(commands.len() >= 8, "{commands:?}");
     for command in commands {
-        // `serve-app` runs the app's server, not a step of the workflow: the skill never names it.
-        if command == "serve-app" {
+        // TEMPORARY: the commands Uraeda light removes, until their cut.
+        if REMOVED.contains(&command.as_str()) {
             continue;
         }
         assert!(
@@ -42,6 +42,24 @@ fn every_command_is_named_in_the_skill() {
         );
     }
 }
+
+/// TEMPORARY: the commands `ura` loses with Uraeda light, until each is removed.
+const REMOVED: [&str; 14] = [
+    "serve-app",
+    "start",
+    "clean",
+    "note",
+    "inbox",
+    "expand",
+    "lsp",
+    "add",
+    "extension",
+    "pair",
+    "key",
+    "import-sessions",
+    "sandbox",
+    "fake-storybook",
+];
 
 // US7.1, SC-004.
 #[test]

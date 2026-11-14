@@ -354,6 +354,6 @@ committed. Then stop at the gate.
 
 **A round asked in the session**, when the human asks for it, writes the discovery file and the
 report the same way, then asks the questions in the session, as
-[In a session](../SKILL.md#in-a-session) says. Commit the discovery file alone, then write the spec
-in the same session, whatever the human's settings cut: until the spec is committed, the answers
-exist only in the session. Its `clarifications` field is the round's number.
+[In a session](conventions.md#in-a-session-with-the-human) says. Commit the discovery file alone,
+then write the spec in the same session, whatever the human's settings cut: until the spec is
+committed, the answers exist only in the session. Its `clarifications` field is the round's number.
