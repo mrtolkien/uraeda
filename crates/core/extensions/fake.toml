@@ -1,7 +1,0 @@
-# A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
-name = "fake"
-title = "Fake agent"
-description = "A scripted agent for tests and the sandbox."
-api = 1
-icon = "uraeda:bot"
-scope = "global"

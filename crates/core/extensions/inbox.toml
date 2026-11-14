@@ -1,7 +1,0 @@
-# A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
-name = "inbox"
-title = "Inbox"
-description = "The Inbox place, its keys, its home pane, and its New-page section."
-api = 1
-icon = "uraeda:inbox"
-scope = "global"
