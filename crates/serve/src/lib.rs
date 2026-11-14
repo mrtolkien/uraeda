@@ -220,7 +220,10 @@ pub fn router(shared: Arc<Shared>) -> Router {
         .route("/{token}/vault", get(vault_page::page_route))
         .route("/{token}/vault/place", post(vault_page::save_place))
         .route("/{token}/vault/start.zip", get(vault_page::start_zip))
-        .route("/{token}/vault/plan", post(sync::plan))
+        .route(
+            "/{token}/vault/plan",
+            post(sync::plan).layer(DefaultBodyLimit::max(sync::MAX_PLAN)),
+        )
         .route(
             "/{token}/vault/file",
             get(sync::get_file)

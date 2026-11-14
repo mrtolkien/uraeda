@@ -12,6 +12,7 @@ const PLUGIN_DIR = ".obsidian/plugins/uraeda";
 const PLUGIN_FILES = ["main.js", "manifest.json"];
 const EVERY = 60 * 1000;
 const AFTER_EDIT = 5 * 1000;
+const PARALLEL = 6;
 
 /** Whether a path travels: no hidden name, save the plugin's own files. */
 function synced(path) {
@@ -124,6 +125,7 @@ module.exports = class Uraeda extends Plugin {
     const adapter = this.app.vault.adapter;
     const out = {};
     const hashes = {};
+    this.fresh = 0;
     const walk = async (dir) => {
       const listed = await adapter.list(dir);
       for (const folder of listed.folders) {
@@ -135,10 +137,9 @@ module.exports = class Uraeda extends Plugin {
         const stat = await adapter.stat(file);
         if (!stat) continue;
         const known = this.data.hashes[file];
-        const hash =
-          known && known[0] === stat.size && known[1] === stat.mtime
-            ? known[2]
-            : await sha256(await adapter.readBinary(file));
+        const same = known && known[0] === stat.size && known[1] === stat.mtime;
+        if (!same) this.fresh++;
+        const hash = same ? known[2] : await sha256(await adapter.readBinary(file));
         out[file] = hash;
         hashes[file] = [stat.size, stat.mtime, hash];
       }
@@ -172,7 +173,8 @@ module.exports = class Uraeda extends Plugin {
         `${new Date().toLocaleString()}: ${report.in} in, ${report.out} out, ${report.kept} kept` +
         (report.refused ? `, ${report.refused} to retry` : "");
       if (asked || report.kept) new Notice("Uraeda: " + this.data.last, report.kept ? 10000 : 4000);
-      await this.saveData(this.data);
+      // Its record holds a line per file: written only when a sync changed something.
+      if (asked || report.actions || this.fresh) await this.saveData(this.data);
       if (report.plugin) window.setTimeout(() => this.reload(), 200);
     } catch (e) {
       this.data.last = `${new Date().toLocaleString()}: failed, ${e && e.message ? e.message : e}`;
@@ -202,7 +204,7 @@ module.exports = class Uraeda extends Plugin {
     for (const folder of answer.json.folders || []) {
       if (!(await adapter.exists(folder))) await adapter.mkdir(folder);
     }
-    const report = { in: 0, out: 0, kept: 0, refused: 0, plugin: false };
+    const report = { in: 0, out: 0, kept: 0, refused: 0, plugin: false, actions: 0 };
     const touched = new Set();
     const base = this.data.base;
     const query = (path, expect) =>
@@ -212,33 +214,30 @@ module.exports = class Uraeda extends Plugin {
       const parts = path.split("/").slice(0, -1);
       for (let i = 1; i <= parts.length; i++) {
         const dir = parts.slice(0, i).join("/");
-        if (!(await adapter.exists(dir))) await adapter.mkdir(dir);
+        // Two files of one new folder arrive at once: the second finds it made.
+        if (!(await adapter.exists(dir))) await adapter.mkdir(dir).catch(() => {});
       }
       await adapter.writeBinary(path, buffer);
     };
-    for (const a of actions) {
+    const act = async (a) => {
       touched.add(a.path);
+      const refused = (response) => response.status !== 200 && ++report.refused;
       if (a.do === "pull") {
         const got = await this.call("GET", query(a.path));
-        if (got.status !== 200) {
-          report.refused++;
-          continue;
-        }
+        if (refused(got)) return false;
         await write(a.path, got.arrayBuffer);
         base[a.path] = a.hash;
         report.in++;
         if (a.path.startsWith(PLUGIN_DIR + "/")) report.plugin = true;
       } else if (a.do === "push") {
+        const body = await adapter.readBinary(a.path);
         const sent = await this.call(
           "PUT",
           query(a.path, a.expect),
-          await adapter.readBinary(a.path),
+          body,
           "application/octet-stream",
         );
-        if (sent.status !== 200) {
-          report.refused++;
-          continue;
-        }
+        if (refused(sent)) return false;
         base[a.path] = a.hash;
         report.out++;
       } else if (a.do === "copy") {
@@ -246,10 +245,7 @@ module.exports = class Uraeda extends Plugin {
         const buffer = await adapter.readBinary(a.path);
         await write(a.to, buffer);
         const sent = await this.call("PUT", query(a.to, null), buffer, "application/octet-stream");
-        if (sent.status !== 200) {
-          report.refused++;
-          continue;
-        }
+        if (refused(sent)) return false;
         base[a.to] = a.hash;
         report.kept++;
       } else if (a.do === "trash") {
@@ -258,16 +254,25 @@ module.exports = class Uraeda extends Plugin {
         report.in++;
       } else if (a.do === "trash-remote") {
         const sent = await this.call("DELETE", query(a.path, a.expect));
-        if (sent.status !== 200) {
-          report.refused++;
-          continue;
-        }
+        if (refused(sent)) return false;
         delete base[a.path];
         report.out++;
       } else if (a.do === "forget") {
         delete base[a.path];
       }
-    }
+      return true;
+    };
+    // A file's actions run in order, a copy before its pull; files run 6 at a time.
+    const groups = new Map();
+    for (const a of actions) groups.set(a.path, [...(groups.get(a.path) || []), a]);
+    const queue = [...groups.values()];
+    const worker = async () => {
+      for (let group = queue.shift(); group; group = queue.shift()) {
+        for (const a of group) if (!(await act(a))) break;
+      }
+    };
+    await Promise.all(Array.from({ length: PARALLEL }, worker));
+    report.actions = actions.length;
     // A file in no action is the same on both sides.
     for (const [path, hash] of Object.entries(local)) if (!touched.has(path)) base[path] = hash;
     return report;

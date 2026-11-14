@@ -31,6 +31,9 @@ use uraeda_vault::{Vault, layout, links, notes, paths, plugin};
 
 use crate::{Shared, waiting};
 
+/// The largest list of files the phone may send: some 300,000 files with their hashes, twice.
+pub const MAX_PLAN: usize = 64 * 1024 * 1024;
+
 /// The largest file the phone may send: a video of a few minutes.
 pub const MAX_FILE: usize = 512 * 1024 * 1024;
 
