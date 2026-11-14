@@ -140,7 +140,7 @@ More scenarios:
 A repeating task stays a normal task with a repeat rule: completing it moves its due date. Due dates
 become calendar days, so next dates are computed without timezone bugs. Rules are plain data with
 pure functions, so the menu, the custom screen, and the title parser all make the same rule. See the
-[discovery](discovery-01.md#approaches).
+[discovery](discovery-01.md#dates-in-javascript).
 
 - **Date helpers** compute on calendar days, in `src/lib/dates.ts`, and own all date arithmetic.
 - **Repeat rules** hold the presets, the next due date, and the title parser, in
@@ -181,7 +181,7 @@ The points settled in the clarifications, [to check](clarifications-01.md#check-
 while writing this spec:
 
 - The presets are those of Microsoft To Do, plus weekends: daily, weekdays, weekends, weekly,
-  monthly, yearly ([discovery](discovery-01.md#microsoft-to-do)).
+  monthly, yearly ([discovery](discovery-01.md#recurrence-rules)).
 - The title parser reads every title typed, at creation and on edit. It knows English phrases only,
   at the end of the title: "every day", "every weekday", "every weekend", "every week", "every
   month", "every year", "every N days", "every N weeks", "every N months", and "every" followed by

@@ -128,7 +128,8 @@ win over specs and plans. A decision on the default branch is in force. A branch
 changes one edits it in place: the difference is its proposal, which the human approves with the
 spec, and the merge brings in. Templates for every file are in `assets/templates/specs/`, at the
 same paths, and `assets/example/specs/` holds a filled-in project: `2026-10-06-recurring-tasks/`
-shows every file of a feature.
+shows every file of a feature. Templates and an example of the human's notes are beside them, in
+`assets/templates/notes/` and `assets/example/notes/`.
 
 ## The human's notes
 

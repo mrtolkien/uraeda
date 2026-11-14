@@ -25,7 +25,7 @@ vault/
     apps/                        # products and tools, as models or as tools: todoist.md
     standards/                   # specs, protocols, formats: rfc-5545-recurrence.md
     topics/                      # how a kind of feature works across products: recurring-dates.md
-    gotchas/                     # one surprising behaviour each: date-fns-addmonths-clamps.md
+    gotchas/                     # one surprise each, named after its subject first
   projects/<repository>/
     proposals/                   # human: one note per proposal, a folder when it has images
       keyboard-shortcuts.md
@@ -34,15 +34,18 @@ vault/
   inspiration/   docs/           # the human's own folders: read them, never write there
 ```
 
+The [example's notes](../assets/example/notes/) are a filled-in vault: the proposals and inbox of a
+todo app, the research of its recurring tasks, and the wiki notes it wrote.
+
 `<repository>` is the repository's folder name. Each folder has one owner. The human owns the inbox,
 the proposals, and their own folders: an agent writes there only what this file names. Agents own
 the wiki and the research, and the human may edit them: read a note again before you change it.
 
 **Links in the notes are wikilinks**, `[[todoist]]`,
-`[[date-fns-addmonths-clamps|the month-end clamp]]`: the human edits these files, and Obsidian keeps
-wikilinks right when a note moves. So a note's name is unique in the whole vault, and a gotcha's
-name starts with its subject. Files in git keep markdown links, and link a note only as further
-reading.
+`[[javascript-date-24-hours-is-not-a-day|a day is not 24 hours]]`: the human edits these files, and
+Obsidian keeps wikilinks right when a note moves. So a note's name is unique in the whole vault, and
+a gotcha's name starts with its subject. Files in git keep markdown links, and link a note only as
+further reading.
 
 ## Proposals and priorities
 

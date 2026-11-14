@@ -1,36 +1,22 @@
 # Rulings: Recurring tasks
 
-The choices made while planning and building [the plan](plan.md) whose reason would otherwise be
-lost: a departure from [the spec](spec.md), the plan, a mockup, or a decision, a behaviour users
-will notice that the spec does not state, a test removed, an alternative ruled out, what the human
-asked in a session. None binds future work: those are decisions.
+What the build settled that the human must see: a behaviour users will notice that
+[the spec](spec.md) does not state, a departure from the spec, [the plan](plan.md), a mockup, or a
+decision the human allowed, and a test removed outside the spec's list. Other choices are explained
+in the bodies of the commits that make them. None binds future work: those are decisions.
 
-## R1: Fake timers advance during user events
+## R1: The custom screen lists days from Monday
 
-- **Decision**: `renderApp` creates its `user` with
-  `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`.
-- **Rationale**: with `vi.useFakeTimers`, `user-event` waits on timers that never fire, and every
-  click hangs. Its documentation describes this option for fake timers
-  ([user-event options](https://testing-library.com/docs/user-event/options#advancetimers)).
-- **Alternatives considered**: real timers with a short confirmation delay in tests: rejected, since
-  the 5-second timing is a global constraint the tests must assert.
-- **If wrong**: tests stay correct but slow; remove the option and the tests show it at once.
-- **Where**: task 1, `tests/helpers/app.tsx`.
-
-## R2: The custom screen lists days from Monday
-
-- **Decision**: the seven day toggles start on Monday, matching `weekStart`.
-- **Rationale**: the plan counts weeks from Monday (task 1's `weekStart`); a screen starting on
-  Sunday would show "every 2 weeks on Sunday and Monday" across two of its weeks.
-- **Alternatives considered**: following the browser's locale: rejected for now, since nothing else
-  in the app follows it.
-- **If wrong**: a display change only, in `RepeatScreen.tsx`.
+- **Decision**: the seven day toggles start on Monday, so "every 2 weeks on Sunday and Monday" never
+  shows its two days in two different weeks.
+- **Rationale**: the plan counts weeks from Monday (task 1's `weekStart`), and nothing else in the
+  app follows the browser's locale yet.
 - **Where**: task 4, `src/components/RepeatScreen.tsx`.
 
-## R3: A repeat phrase needs a space before it
+## R2: A repeat phrase needs a space before it
 
-- **Decision**: `parseRepeat` only reads a phrase separated from the rest of the title by a space:
-  "Gymevery day" stays as typed.
-- **Rationale**: the plan's table only has phrases after a space, and a title ending in "...every
-  day" glued to a word is more likely a typo than a rule.
+- **Decision**: a title ending in "every day" glued to a word, like "Gymevery day", stays as typed
+  and makes no repeat.
+- **Rationale**: the plan's table only has phrases after a space, and such a title is more likely a
+  typo than a rule.
 - **Where**: task 5, `src/lib/repeat.ts`.
