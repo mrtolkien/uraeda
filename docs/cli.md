@@ -90,6 +90,30 @@ Without `wake`, a page ends with "Tell your session to continue". With `wake = "
 open T3 Code thread working in the feature's worktree, with the `t3` command, and sends it a message
 to continue.
 
+`ura serve` also syncs your notes with Obsidian on your phone. The vault (see `ura vault` below) is
+one folder that Obsidian on this computer opens as it is: your inbox, the wiki, and each
+repository's proposals, research, and board of proposals, `projects/<repository>/Board.base`. Its
+`projects/<repository>/specs/` links to the repository's constitution, decisions, and every folder
+in progress in its worktrees, to read: `ura serve` makes those links again as worktrees come and go.
+
+- **Starting the phone**: open the pages on your phone, through your tailnet's address, and tap
+  "Obsidian setup". Download the starter vault, unzip it in Files, move its folder into On My iPhone
+  › Obsidian, open it in Obsidian, and trust its plugin. The first sync brings the rest. The starter
+  carries the address it was downloaded from, with its token.
+- **When it syncs**: as Obsidian opens or comes back, a few seconds after an edit, and every minute
+  while it is open; ⟳ syncs at once. iOS does not let it run while Obsidian is closed.
+- **What travels**: every file of the vault, both ways, but hidden ones: each device keeps its own
+  `.obsidian/` settings, and the plugin itself comes from the computer. The repositories' files are
+  read only: an edit of one on the phone comes back as a note in `inbox/`, and the file as git has
+  it.
+- **Conflicts and deletions**: a note changed on both sides keeps both, the computer's under its
+  name and the phone's as `name (conflict phone 2026-11-14 1630).md`. A deletion moves the file to
+  the vault's `.trash/` on the other side, unless the other side changed it since: then the change
+  wins and the file comes back. A rename travels as a deletion and a new file.
+- **Moving the vault**: "Obsidian setup" also sets its place. `ura` moves nothing: move the folder
+  first, then save its new place. A phone that last synced with another folder merges both, and
+  deletes nothing.
+
 `ura vault` reads and writes your notes for an agent, as the skill's
 [Notes](../skills/uraeda/references/notes.md) lays them out. They are one vault for every
 repository, `Uraeda` in Uraeda's data folder (`~/.local/share/uraeda-next/Uraeda` on Linux), or the
