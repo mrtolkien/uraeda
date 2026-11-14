@@ -14,18 +14,18 @@ Every command works without a terminal, with flags, and the read commands print 
 A command that acts on a feature or a change takes it as a path under `specs/`, or a name matching
 one: its folder name or slug. Without it, the command takes the feature of the worktree it runs in.
 
-| Command                                                                           | What it does                                                                                        |
-| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `ura init`                                                                        | [Sets a project up](projects.md#setting-up-a-project)                                               |
-| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`             | [Installs the skill](projects.md#setting-up-a-project), and Tab completion with `--completions`     |
-| `ura upgrade`                                                                     | Installs `ura`'s latest release, then updates the user's skill                                      |
-| `ura check [path]`                                                                | The rules of [Markdown](conventions.md#markdown), file by file                                      |
-| `ura next [feature]`                                                              | The target, its step from [the table](../SKILL.md#finding-the-next-step), its pick, and its session |
-| `ura status`                                                                      | Every worktree of the repository: its feature or change, its step, and who it waits on              |
-| `ura answer [feature] <Q2> <answer>`, `--note`, `--submit`, `--resume`            | Writes an answer of a round, a note, then sets the round `answered`                                 |
-| `ura review [feature] --comment <lines> <text>`, `--approve`, `--request-changes` | [Reviews](conventions.md#review-files) a spec or a plan                                             |
-| `ura serve`, `--port`                                                             | The pages, and the sync of the human's notes                                                        |
-| `ura vault ls [path]`, `read <path>`, `write <path>`, `rm <path>`, `check`        | Reads and writes [the human's notes](notes.md)                                                      |
+| Command                                                                           | What it does                                                                                            |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ura init`                                                                        | [Sets a project up](projects.md#setting-up-a-project)                                                   |
+| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`             | [Installs the skill](projects.md#setting-up-a-project), and Tab completion with `--completions`         |
+| `ura upgrade`                                                                     | Installs `ura`'s latest release, then updates the user's skill                                          |
+| `ura check [path]`                                                                | The rules of [Markdown](conventions.md#markdown), file by file                                          |
+| `ura next [feature]`                                                              | The target, its step from [the table](../SKILL.md#finding-the-next-step), its pick, and its session     |
+| `ura status`                                                                      | Every worktree of the repository: its feature or change, its step, and who it waits on                  |
+| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                      | Writes an answer of a round, or its notes with `notes` for the question, then sets the round `answered` |
+| `ura review [feature] --comment <lines> <text>`, `--approve`, `--request-changes` | [Reviews](conventions.md#review-files) a spec or a plan                                                 |
+| `ura serve`, `--port`                                                             | The pages, and the sync of the human's notes                                                            |
+| `ura vault ls [path]`, `read <path>`, `write <path>`, `rm <path>`, `check`        | Reads and writes [the human's notes](notes.md)                                                          |
 
 ## `ura next` and the picks
 

@@ -383,14 +383,6 @@ fn each_rule() {
             format!("warning: {RECORD}:5: superseded-by names \"2026-10-01-nothing\", which is not a record"),
         ),
         (
-            "supersedes a record that does not name this one",
-            |e| {
-                e.write("specs/done/2026-10-02-older.md", &linked_record("Older", ""));
-                e.edit(RECORD, PULL_REQUEST, &with_fields("supersedes: [2026-10-02-older]"));
-            },
-            format!("warning: {RECORD}:5: 2026-10-02-older does not name this record in its superseded-by"),
-        ),
-        (
             "superseded-by a record that does not name this one",
             |e| {
                 e.write("specs/done/2026-10-20-newer.md", &linked_record("Newer", ""));
@@ -469,20 +461,9 @@ fn a_record_superseded_twice_pairs_with_both() {
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 
-    example.write(
-        OLDER,
-        &linked_record("Older", "superseded-by: [2026-10-06-b]"),
-    );
-
-    let problems = check::check(example.root(), &example.root().join(A)).unwrap();
-    assert_eq!(
-        summary(&problems),
-        [format!(
-            "warning: {A}:5: 2026-10-01-older does not name this record in its superseded-by"
-        )]
-    );
-    let problems = check::check(example.root(), &example.root().join(B)).unwrap();
-    assert_eq!(summary(&problems), Vec::<String>::new());
+    // An older record, frozen once merged, need not name the newer ones.
+    example.write(OLDER, &linked_record("Older", ""));
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
 /// The optional sections of replaced behaviour and gotchas: a spec and a record may hold them where

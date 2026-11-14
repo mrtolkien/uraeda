@@ -313,9 +313,10 @@ fn check_finished(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Probl
     }
 }
 
-/// A record's `supersedes` and `superseded-by` are lists of records, and each one names this record
-/// back in the other list. Each record reports its own side only, as a warning: a check of one file
-/// keeps the problems of that file.
+/// A record's `supersedes` and `superseded-by` are lists of records. A record an older one says it
+/// is superseded by names it back in its `supersedes`; the older one, frozen once merged, need not
+/// name the newer. Each record reports its own side only, as a warning: a check of one file keeps
+/// the problems of that file.
 fn check_supersession(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Problem>) {
     let own = file
         .path
@@ -357,6 +358,10 @@ fn check_supersession(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<P
                 ));
                 continue;
             };
+            // An older record is frozen once merged: it is never edited to name the newer one.
+            if key == "supersedes" {
+                continue;
+            }
             let names_back = super::parse_frontmatter(partner)
                 .and_then(|partner| {
                     partner
