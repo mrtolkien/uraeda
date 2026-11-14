@@ -1,6 +1,0 @@
-name = "busy"
-title = "Busy"
-description = "A child process, a timer, and calls that never return, for the server's tests."
-version = "0.1.0"
-api = 1
-server = "server.ts"

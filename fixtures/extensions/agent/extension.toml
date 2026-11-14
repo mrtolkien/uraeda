@@ -1,4 +1,0 @@
-name = "agent"
-title = "Echo agent"
-api = 1
-server = "server.ts"

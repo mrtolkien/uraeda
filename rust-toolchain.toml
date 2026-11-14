@@ -1,6 +1,3 @@
 [toolchain]
 channel = "1.100.0"
 components = ["rustfmt", "clippy", "llvm-tools-preview"]
-# The web build: Native Shell's engine and the app's crate, as one WebAssembly module. The iOS
-# Simulator and an iPhone: the app's crate, as `just app-ios` builds it.
-targets = ["wasm32-unknown-unknown", "aarch64-apple-ios-sim", "aarch64-apple-ios"]

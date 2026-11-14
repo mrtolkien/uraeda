@@ -1,6 +1,0 @@
-name = "hello"
-title = "Hello"
-description = "A page, for the server's tests."
-version = "0.1.0"
-api = 1
-page = "page.tsx"

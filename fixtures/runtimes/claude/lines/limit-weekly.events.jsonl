@@ -1,3 +1,0 @@
-{"text":"You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)","type":"text"}
-{"limit":{"kind":"other","resetsAt":"2026-11-08T15:00:00.000Z","text":"You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)"},"type":"limit"}
-{"costUsd":0,"denials":[],"errors":["You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)"],"ok":false,"type":"result","interrupted":false}

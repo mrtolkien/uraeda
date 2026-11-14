@@ -1,5 +1,5 @@
 //! Tab completion: `ura` answers the shell's `COMPLETE=<shell>` requests, with the repository's
-//! proposal files, features, inbox categories, and open questions as values. It reads local
+//! features and open questions as values. It reads local
 //! branches and files only, never `gh`, so that a Tab stays fast.
 
 use std::ffi::{OsStr, OsString};
@@ -10,12 +10,11 @@ use clap_complete::engine::{ArgValueCandidates, ArgValueCompleter, CompletionCan
 use clap_complete::engine::{PathCompleter, ValueCompleter};
 use clap_complete::env::EnvCompleter;
 use uraeda_core::actions::answer;
-use uraeda_core::api;
 use uraeda_core::files::clarifications;
 use uraeda_core::target::{self, Purpose, Target};
 use uraeda_core::workspace::{Feature, Workspace};
 
-use crate::{clean, output};
+use crate::output;
 
 /// Answers a completion request and exits, when the shell sent one.
 pub fn answer() {
@@ -86,55 +85,9 @@ fn started_in(workspace: &Workspace) -> Vec<CompletionCandidate> {
         .collect()
 }
 
-/// The features and changes still under way: `next`, `review`, `note --about`.
+/// The features and changes still under way: `next`, `review`.
 pub fn started() -> ArgValueCandidates {
     ArgValueCandidates::new(|| workspace().map(|w| started_in(&w)).unwrap_or_default())
-}
-
-/// The proposal files and postponed folders: `start`.
-pub fn proposals() -> ArgValueCandidates {
-    ArgValueCandidates::new(|| {
-        let Some(workspace) = workspace() else {
-            return Vec::new();
-        };
-        workspace
-            .proposals
-            .iter()
-            .map(|proposal| {
-                CompletionCandidate::new(target::proposal_name(proposal))
-                    .help(Some(proposal.clone().into()))
-            })
-            .collect()
-    })
-}
-
-/// The merged features with a worktree, a branch, or a line of the priorities left: `clean`.
-pub fn merged() -> ArgValueCandidates {
-    ArgValueCandidates::new(|| {
-        let Some(workspace) = workspace() else {
-            return Vec::new();
-        };
-        clean::candidates(&workspace)
-            .into_iter()
-            .map(feature)
-            .collect()
-    })
-}
-
-/// The inbox's categories, those of agents' notes included, read as `ura inbox` reads them:
-/// `note --category`.
-pub fn categories() -> ArgValueCandidates {
-    ArgValueCandidates::new(|| {
-        let Ok((git, _)) = output::workspace() else {
-            return Vec::new();
-        };
-        api::read_inbox(git.root())
-            .map(|inbox| inbox.names)
-            .unwrap_or_default()
-            .into_iter()
-            .map(CompletionCandidate::new)
-            .collect()
-    })
 }
 
 /// The features and changes under way, then files and folders: `check`.

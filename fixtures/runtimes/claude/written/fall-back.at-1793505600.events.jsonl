@@ -1,8 +1,0 @@
-{"text":"You've hit your session limit · resets 1:30am (America/New_York)","type":"text"}
-{"limit":{"kind":"session","resetsAt":"2026-11-01T05:30:00.000Z","text":"You've hit your session limit · resets 1:30am (America/New_York)"},"type":"limit"}
-{"text":"You've hit your session limit · resets 2:30am (America/New_York)","type":"text"}
-{"limit":{"kind":"session","resetsAt":"2026-11-01T07:30:00.000Z","text":"You've hit your session limit · resets 2:30am (America/New_York)"},"type":"limit"}
-{"text":"You've hit your session limit · resets 12:30am (America/New_York)","type":"text"}
-{"limit":{"kind":"session","resetsAt":"2026-11-01T04:30:00.000Z","text":"You've hit your session limit · resets 12:30am (America/New_York)"},"type":"limit"}
-{"text":"You've hit your session limit · resets 11:55pm (America/New_York)","type":"text"}
-{"limit":{"kind":"session","resetsAt":"2026-11-01T03:55:00.000Z","text":"You've hit your session limit · resets 11:55pm (America/New_York)"},"type":"limit"}

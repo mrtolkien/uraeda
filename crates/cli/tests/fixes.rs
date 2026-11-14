@@ -64,34 +64,6 @@ fn other_staged_files_stay_out_of_the_answer() {
     assert_eq!(repo.porcelain(), "A  other.md\n");
 }
 
-/// A proposal file staged but never committed starts once, and leaves nothing staged behind.
-#[test]
-fn a_staged_proposal_file_does_not_start_twice() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](proposals/tags.md)\n\n## Later\n\n## Blocked\n",
-    );
-    repo.write(
-        "specs/proposals/tags.md",
-        "# Tags\n\n## What\n\nTags.\n\n## Why\n\nFilters.\n",
-    );
-    repo.git(&["add", "specs/proposals/tags.md"]);
-
-    let output = ura(&repo, &["start", "tags"]);
-    let again = ura(&repo, &["start", "tags"]);
-
-    assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(again.code, 1, "{}", again.stdout);
-    assert_eq!(repo.porcelain(), "");
-    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
-    assert_eq!(
-        priorities.matches("2026-10-11-tags/proposal.md").count(),
-        1,
-        "{priorities}"
-    );
-}
-
 fn spec_waiting() -> TestRepo {
     let repo = TestRepo::new();
     specs(
@@ -202,29 +174,6 @@ fn submit_takes_no_answer() {
 }
 
 #[test]
-fn start_moves_a_folder_with_an_ignored_file() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
-    repo.write(".gitignore", ".DS_Store\n");
-    repo.write(
-        "specs/proposals/bench/proposal.md",
-        "# Bench\n\n## What\n\nA.\n\n## Why\n\nB.\n",
-    );
-    repo.commit("bench");
-    repo.write("specs/proposals/bench/.DS_Store", "x");
-
-    let output = ura(&repo, &["start", "specs/proposals/bench"]);
-
-    assert_eq!(output.code, 0, "{}", output.stderr);
-    assert!(repo.exists(".worktrees/2026-10-11-bench/specs/2026-10-11-bench/proposal.md"));
-    assert!(!repo.exists(".worktrees/2026-10-11-bench/specs/proposals/bench/proposal.md"));
-    assert_eq!(repo.porcelain(), "");
-}
-
-#[test]
 fn usage_errors_exit_with_one() {
     let repo = waiting(&["", "", ""]);
 
@@ -246,57 +195,6 @@ fn check_without_specs_says_to_init() {
             "ura: no specs/ folder at {}: run ura init\n",
             repo.path().display()
         )
-    );
-}
-
-#[test]
-fn a_expanded_unicode_line_starts() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Café sync](proposals/café-sync.md)\n\n## Later\n\n## Blocked\n",
-    );
-    repo.write(
-        "specs/proposals/café-sync.md",
-        "# Café sync\n\n## What\n\nA.\n\n## Why\n\nB.\n",
-    );
-    repo.commit("café");
-
-    let output = ura(&repo, &["start", "café-sync"]);
-
-    assert_eq!(output.code, 0, "{}", output.stderr);
-}
-
-#[test]
-fn a_failed_start_commit_leaves_the_checkout_on_its_branch() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](proposals/tags.md)\n\n## Later\n\n## Blocked\n",
-    );
-    repo.write(
-        "specs/proposals/tags.md",
-        "# Tags\n\n## What\n\nTags.\n\n## Why\n\nFilters.\n",
-    );
-    repo.commit("tags");
-    repo.switch_new("other");
-    repo.set_hook("echo boom >&2; exit 1");
-
-    let output = ura(&repo, &["start", "tags"]);
-
-    assert_eq!(output.code, 1);
-    assert_eq!(repo.current_branch(), "other");
-    assert!(
-        repo.read(".worktrees/main/specs/PRIORITIES.md")
-            .contains("- [Tags](/specs/2026-10-11-tags/proposal.md)")
-    );
-    assert!(repo.exists(".worktrees/main/specs/2026-10-11-tags/proposal.md"));
-    assert!(
-        output.stderr.ends_with(
-            "ura: git commit failed: boom\nDone: the move of the proposal file.\nLeft: commit specs/PRIORITIES.md, the removal of specs/proposals/tags.md, and specs/2026-10-11-tags/ on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags in .worktrees/2026-10-11-tags.\n"
-        ),
-        "{}",
-        output.stderr
     );
 }
 

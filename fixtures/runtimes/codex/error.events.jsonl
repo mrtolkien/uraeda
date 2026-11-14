@@ -1,6 +1,0 @@
-{"sessionId":"01a1c890-b120-7d03-8519-6dc6b648eb3c","type":"init"}
-{"model":"gpt-bogus-9","type":"runsOn","effort":"Medium"}
-{"model":"gpt-bogus-9","type":"runsOn","effort":"Medium"}
-{"id":"m1","type":"accepted"}
-{"denials":[],"errors":["{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-bogus-9' model is not supported when using Codex with a ChatGPT account.\",\"code\":\"model_not_found\"}}"],"interrupted":false,"ok":false,"type":"result"}
-{"code":0,"stderr":"","type":"exit"}

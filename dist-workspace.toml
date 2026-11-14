@@ -13,15 +13,6 @@ installers = ["shell", "homebrew"]
 tap = "mrtolkien/homebrew-tap"
 # Publish jobs to run in CI: our Homebrew job adds Tab completion to the formula dist generates
 publish-jobs = ["./publish-homebrew"]
-# The app for a browser, built once, before `ura`, which holds it on every platform:
-# `.github/workflows/build-web.yml` runs `just web-build` in the dev shell, and the steps of
-# `.github/build-setup.yml` put its files where each build of `ura` reads them
-plan-jobs = ["./build-web"]
-github-build-setup = "../build-setup.yml"
-# The Linux app, its tarball and its AppImage, and the Mac app, its zip, built from the same tag
-# and released with `ura`: `.github/workflows/build-app.yml`, which runs `just package` in the dev
-# shell, and `.github/workflows/build-app-macos.yml`, which runs `just package-macos`
-global-artifacts-jobs = ["./build-app", "./build-app-macos"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
   "aarch64-apple-darwin",
@@ -33,8 +24,6 @@ targets = [
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = false
-# Build each package alone: a workspace build would build the Linux app's crates on every platform
-precise-builds = true
 # The release workflow runs on tags only: CI runs `dist plan` on pull requests
 pr-run-mode = "skip"
 

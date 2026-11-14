@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # `scripts/isolated.sh [--slots <n>] <command> [args…]`: runs a command that is not a person's use
-# of the app, as every test, picture, gallery, frame, and sandbox recipe of the `justfile` does, and
-# `hidden-display` does for whatever it runs.
+# of `ura`, as every test and sandbox recipe of the `justfile` does, and `hidden-display` does for
+# whatever it runs.
 #
 # - The command gets a temporary folder of its own, removed when it ends, passed or failed: `TMPDIR`
 #   in it, and the data, configuration, cache, and state folders (`XDG_DATA_HOME`,
-#   `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`), so NSH's storage, WebKit's data, `ura`'s
-#   folders, and every other tool's that follows them stay out of the person's home. `HOME` stays:
-#   Cargo and `nsh` find their caches there, and every tool these runs start follows the four.
-# - Then it checks that the person's folders of the app, `dev.uraeda.app` and `uraeda-next` in each
-#   of the four real ones, are as they were, and fails, naming what changed, when the command
-#   created or changed a file there: a tool that ignored the variables. The app run by a person
-#   at the same time changes them too, and fails the check the same way.
+#   `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`), so `ura`'s folders, and every other
+#   tool's that follows them, stay out of the person's home. `HOME` stays: Cargo finds its caches
+#   there, and every tool these runs start follows the four.
+# - Then it checks that the person's folders of `ura`, `uraeda` in the configuration folder and
+#   `uraeda-next` in the four real ones, are as they were, and fails, naming what changed, when the
+#   command created or changed a file there: a tool that ignored the variables. `ura` run by a
+#   person at the same time changes them too, and fails the check the same way.
 # - It ignores the host's git: its configuration, so the tests' repositories get git's defaults,
 #   and the repository variables a git hook exports.
 # - With `--slots`, at most that many such runs execute at once on the machine, across every
@@ -66,11 +66,11 @@ run=$(mktemp -d "$parent/uraeda-run-XXXXXX")
 trap 'rm -rf "$run"' EXIT
 mkdir "$run/tmp" "$run/data" "$run/config" "$run/cache" "$run/state"
 
-# The person's folders of the app, and what each file in them is now.
-watched=()
+# The person's folders of `ura`, and what each file in them is now.
+watched=("${XDG_CONFIG_HOME:-$HOME/.config}/uraeda")
 for base in "${XDG_DATA_HOME:-$HOME/.local/share}" "${XDG_CONFIG_HOME:-$HOME/.config}" \
   "${XDG_CACHE_HOME:-$HOME/.cache}" "${XDG_STATE_HOME:-$HOME/.local/state}"; do
-  watched+=("$base/dev.uraeda.app" "$base/uraeda-next")
+  watched+=("$base/uraeda-next")
 done
 state() {
   for folder in "${watched[@]}"; do
@@ -88,7 +88,7 @@ run env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR \
 
 state >"$run/after"
 if ! cmp -s "$run/before" "$run/after"; then
-  echo "[uraeda] the run wrote in the person's folders of the app, which only the app run by a person may change:" >&2
+  echo "[uraeda] the run wrote in the person's folders of ura, which only ura run by a person may change:" >&2
   diff "$run/before" "$run/after" | sed -n 's/^[<>] \(.*\) [0-9]* [0-9.]*$/  \1/p' | sort -u >&2
   [ "$status" -ne 0 ] || status=1
 fi

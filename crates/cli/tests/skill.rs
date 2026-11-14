@@ -32,34 +32,12 @@ fn every_command_is_named_in_the_skill() {
 
     assert!(commands.len() >= 8, "{commands:?}");
     for command in commands {
-        // TEMPORARY: the commands Uraeda light removes, until their cut.
-        if REMOVED.contains(&command.as_str()) {
-            continue;
-        }
         assert!(
             text.contains(&format!("`ura {command}")),
             "ura {command} is not in the skill"
         );
     }
 }
-
-/// TEMPORARY: the commands `ura` loses with Uraeda light, until each is removed.
-const REMOVED: [&str; 14] = [
-    "serve-app",
-    "start",
-    "clean",
-    "note",
-    "inbox",
-    "expand",
-    "lsp",
-    "add",
-    "extension",
-    "pair",
-    "key",
-    "import-sessions",
-    "sandbox",
-    "fake-storybook",
-];
 
 // US7.1, SC-004.
 #[test]
@@ -85,9 +63,7 @@ fn markdown_files(folder: &std::path::Path, files: &mut Vec<std::path::PathBuf>)
     }
 }
 
-// The skill holds the workflow for any harness: what only the app does, it tells its own
-// sessions (`crates/server/src/runtimes/built_in/instructions.rs`), and its users
-// (`docs/app.md`).
+// The skill holds the workflow for any harness, and names no app of its own.
 #[test]
 fn the_skill_never_describes_the_web_ui() {
     let skill = repository().join("skills/uraeda");

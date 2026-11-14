@@ -74,27 +74,12 @@ fn the_zsh_script_completes_when_autoloaded() {
 fn completes_commands_and_flags() {
     let repo = TestRepo::new();
 
-    assert!(complete(&repo, &["sta"]).iter().eq(["start", "status"]));
+    assert!(complete(&repo, &["ch"]).iter().eq(["check"]));
     assert!(
         complete(&repo, &["review", "--plan-review", ""])
             .iter()
             .eq(["true", "false"])
     );
-}
-
-#[test]
-fn start_completes_proposals_by_name() {
-    let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
-    repo.write("specs/proposals/listener.md", &proposal());
-    repo.write("specs/proposals/old-idea/proposal.md", &proposal());
-    repo.commit("chore: proposals");
-
-    assert_eq!(
-        values(complete(&repo, &["start", ""])),
-        ["listener", "old-idea"]
-    );
-    assert_eq!(values(complete(&repo, &["start", "li"])), ["listener"]);
 }
 
 #[test]
@@ -110,11 +95,7 @@ fn targets_complete_started_features_and_changes_by_slug() {
     repo.write("specs/done/2026-10-01-old.md", &record("feature", "Old"));
     repo.commit("finish(old): Old");
 
-    for words in [
-        &["next", ""][..],
-        &["review", ""],
-        &["note", "a note", "--about", ""],
-    ] {
+    for words in [&["next", ""][..], &["review", ""]] {
         assert_eq!(
             values(complete(&repo, words)),
             ["cli-core", "typo"],
@@ -122,27 +103,6 @@ fn targets_complete_started_features_and_changes_by_slug() {
         );
     }
     assert!(values(complete(&repo, &["check", "c"])).contains(&"cli-core".to_string()));
-}
-
-/// US2 more 1: the categories include those of agents' notes, as the inbox reader shows them.
-#[test]
-fn category_completes_the_inbox_categories() {
-    let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
-    repo.write(
-        "specs/INBOX.md",
-        "# Inbox\n\n## UI\n\n- A note.\n\n## Prompts\n\n- Another.\n",
-    );
-    repo.write(
-        "specs/notes/feature-state-the-record.md",
-        "---\nagent: true\nabout: feature-state\ncategory: Deferred fixes\n---\n\n# The record\n",
-    );
-    repo.commit("chore: inbox");
-
-    assert_eq!(
-        complete(&repo, &["note", "a note", "--category", ""]),
-        ["UI", "Prompts", "Deferred fixes"]
-    );
 }
 
 #[test]
@@ -286,17 +246,6 @@ fn answer_offers_nothing_for_an_answered_round() {
 }
 
 #[test]
-fn clean_completes_merged_features_with_a_branch_left() {
-    let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
-    feature(&repo, "2026-10-10-cli-core", &[("proposal.md", proposal())]);
-    feature(&repo, "2026-10-01-old", &[("proposal.md", proposal())]);
-    finish_and_merge(&repo, "2026-10-01-old");
-
-    assert_eq!(values(complete(&repo, &["clean", ""])), ["old"]);
-}
-
-#[test]
 fn completion_never_asks_github() {
     let repo = TestRepo::new();
     specs(&repo, PRIORITIES);
@@ -328,7 +277,7 @@ fn outside_a_repository_values_are_empty() {
     let folder = tempfile::TempDir::new().unwrap();
 
     assert_eq!(
-        values(complete_in(folder.path(), &["start", ""], &[])),
+        values(complete_in(folder.path(), &["next", ""], &[])),
         Vec::<String>::new()
     );
 }

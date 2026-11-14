@@ -9,11 +9,11 @@ The design is in [its record](/specs/done/2026-10-19-benchmarks.md) and the
 
 > [!WARNING]
 >
-> The runner is gone, and waits for a port. It was TypeScript on Node, `packages/benchmarks/`, and
-> reached agents through the Node server's adapter, which the move to a Rust server removed. Every
-> suite, case, and run below is kept as it was. The runner's last source is in git, at the commit
-> before `feat(nsh-migration)!: remove the React UI and the Node server`: a new one drives the Rust
-> server's runtimes (`crates/server/src/runtimes/`) the same way.
+> The runner is gone, and waits for a new one. It was TypeScript on Node, `packages/benchmarks/`,
+> and reached agents through the Node server's adapter, which the move to a Rust server removed;
+> Uraeda light then removed the server, which stays in v2.1.0. Every suite, case, and run below is
+> kept as it was. The runner's last source is in git, at the commit before
+> `feat(nsh-migration)!: remove the React UI and the Node server`.
 
 ## What is here
 

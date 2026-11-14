@@ -1,2 +1,0 @@
-{"total":{"cacheRead":11304,"cacheWrite":7791,"input":2,"output":4},"type":"tokens"}
-{"costUsd":0.0646768,"denials":[],"errors":[],"models":["claude-opus-5-5","claude-haiku-4-5"],"ok":true,"type":"result","interrupted":false}

@@ -1,6 +1,6 @@
 //! Tells Cargo to build a crate again when a folder it embeds with `include_dir` changes: every
 //! file and folder under it, as `include_dir` reads them and does not tell Cargo. Shared by the
-//! build scripts of `uraeda-core` and `uraeda-server`.
+//! build scripts of `uraeda-core`.
 
 use std::fs;
 use std::path::Path;
