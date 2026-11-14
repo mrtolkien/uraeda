@@ -8,6 +8,7 @@
 
 pub mod assets;
 pub mod config;
+pub mod files;
 pub mod guard;
 pub mod html;
 pub mod render;
@@ -67,6 +68,8 @@ pub fn router(shared: Arc<Shared>) -> Router {
         .route("/{token}/", get(home))
         .route("/{token}/a/{version}/{name}", get(assets::serve))
         .route("/{token}/{repo}/{folder}/round", get(round::routes::page))
+        .route("/{token}/{repo}/{folder}/file/{*path}", get(files::page))
+        .route("/{token}/{repo}/{folder}/raw/{*path}", get(files::raw))
         .route("/{token}/{repo}/{folder}/answer", post(round::routes::save))
         .route("/{token}/{repo}/{folder}/notes", post(round::routes::notes))
         .route(
