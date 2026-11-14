@@ -337,9 +337,9 @@ Before committing, read both files again, and fix what you find:
    your recommendation. Otherwise it is a settled point. A look is shown.
 3. **Each settled point**: it adds no limit or refusal nobody asked for, and one the human may
    object to is under **Check these**, said as what happens to them.
-4. **Coverage**: every topic of the report's **Approaches** and of the discovery's **The proposal**
-   ends up in one question or one settled point, or stays in **Needs no choice**. Every finding a
-   question links is in the discovery file, with its source.
+4. **Coverage**: every topic of the report's **Approaches**, or of your research without notes, and
+   of the discovery's **The proposal** ends up in one question or one settled point, or stays in
+   **Needs no choice**. Every finding a question links is in the discovery file, with its source.
 5. **Evidence**: every claim rests on a source you read. Outside behaviour the feature relies on is
    checked, or says why no experiment in reach could check it.
 6. **The writing**: the [writing self-review](writing.md#self-review).
@@ -354,4 +354,6 @@ committed. Then stop at the gate.
 
 **A round asked in the session**, when the human asks for it, writes the discovery file and the
 report the same way, then asks the questions in the session, as
-[In a session](../SKILL.md#in-a-session) says. Commit the discovery file alone, then write the spec.
+[In a session](../SKILL.md#in-a-session) says. Commit the discovery file alone, then write the spec
+in the same session, whatever the human's settings cut: until the spec is committed, the answers
+exist only in the session. Its `clarifications` field is the round's number.

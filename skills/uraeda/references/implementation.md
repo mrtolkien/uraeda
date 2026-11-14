@@ -31,9 +31,11 @@ session: do not stop between tasks, waves, or reviews. Git is the only memory: t
 
 **Resuming**: start at the first unchecked step; with `ura`, `ura next` names its task. A task whose
 boxes are checked on the feature branch is done. A task branch whose commits check all its task's
-boxes is merged as if just finished. Any other task branch, and uncommitted changes, are not
-trusted: read them, delete them, and redo that task. A wave merged without its review is reviewed
-now.
+boxes is merged as if just finished. Any other task branch, and uncommitted changes to code or to
+`plan.md`'s boxes, are not trusted: read them, delete them, and redo that task. The human's
+uncommitted files are theirs: see
+[the human's work is committed first](../SKILL.md#the-humans-work-is-committed-first). A wave merged
+without its review is reviewed now.
 
 ## Implementers and reviewers
 

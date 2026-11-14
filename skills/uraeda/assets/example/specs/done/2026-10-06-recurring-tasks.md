@@ -98,3 +98,8 @@ future.
 
 - A repeat phrase in a title needs a space before it: "Gymevery day" stays as typed, since a phrase
   glued to a word is more likely a typo than a rule.
+
+## Follow-ups
+
+- An agent's note, in the human's inbox: completing a task rewrites all 5,000 tasks in IndexedDB, in
+  300 ms.

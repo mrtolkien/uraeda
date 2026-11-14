@@ -36,9 +36,12 @@ implementation, it adds the implementers' pick, the reviewers' picks, and whethe
 each wave or the branch only.
 
 The picks are the human's, in `ura`'s configuration file, outside every repository: a pick per step
-(`discovery`, `spec`, `plan`, `build`, `review`, `comments`), with a `new-session` switch for each,
-a pick for implementers, a list of reviewers, and their depth. A repository's own section, named by
-its folder, goes over the defaults, value by value. A step with no pick runs on the session's own.
+(`discovery`, `spec`, `plan`, `build`, `review`, `comments`, `change`), with a `new-session` switch
+for each, a pick for implementers, a list of reviewers, and their depth. `review` covers the final
+review and the finish; `comments` covers the comments, the catch-up, and the push. Committing the
+human's work or the proposal is part of the step that follows it. A repository's own section, named
+by its folder, goes over the defaults, value by value. A step with no pick runs on the session's
+own.
 
 `ura next` and `ura status` read the open pull requests with `gh`. An open, ready pull request whose
 branch is behind the default branch names the step `catch-up`, whose reference is
@@ -83,8 +86,8 @@ They refuse, before writing anything, what would break these rules by hand too:
 It serves, on this machine, from the `ura` binary alone, pages reachable from the human's phone over
 their own network, like Tailscale:
 
-- **What waits on the human**, across repositories and worktrees: each file with
-  `status: awaiting-human`.
+- **What waits on the human**, across the repositories its configuration names and their worktrees,
+  which it finds through git: each file with `status: awaiting-human`.
 - **A round**: one card per question, the recommended answer marked, a follow-up shown only when its
   condition is met, a note, each pick written into the round's file at once.
 - **A review**: the rendered spec or plan, what changed since the human's last review, a comment on

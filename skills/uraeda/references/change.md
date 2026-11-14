@@ -177,8 +177,8 @@ per item:
   before it, and give both numbers in the pull request's "Measured".
 - **Structure first.** A function or file over the project's limit is split in a structural commit
   before the item grows it ([extract, don't grow](code-quality.md#extract-dont-grow)).
-- **Rulings** only for a reason that would otherwise be lost, as
-  [the implementation step](implementation.md#rulings) says.
+- **Rulings** only for what users will notice that the proposal does not state, or a test removed,
+  as [the implementation step](implementation.md#rulings) says.
 - **Problems outside the proposal** are fixed when the change needs them, and dropped otherwise,
   unless they pass the two tests of [agents' notes](notes.md#agents-notes).
 

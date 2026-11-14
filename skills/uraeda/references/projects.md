@@ -72,8 +72,8 @@ feature lives on its own branch until it merges.
    human's words, never rewritten. Its images go into `specs/<name>/images/`, re-encoded as
    [the conventions](conventions.md#markdown) say, and its image links point at them. Its wikilinks
    to other notes become their text. A proposal is free form: never refuse one for a missing
-   section. Its frontmatter keeps only `discovery`, `high` when it has none: the board's fields stay
-   in the notes.
+   section. Its frontmatter keeps only `discovery`, `high` when a feature's has none, and a change's
+   none: the board's fields stay in the notes.
 4. **Commit it alone**, as the branch's first commit: `chore(<slug>): proposal`, with the proposal's
    title as the body.
 5. **Mark the note started**: set its `status` to `started` and its `branch` to the branch's name,
