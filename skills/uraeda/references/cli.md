@@ -43,7 +43,7 @@ its own finish wrote. A branch without a worktree is postponed.
 
 The picks are the human's, in `ura`'s configuration file, outside every repository, which
 `ura serve`'s settings page edits: a pick per step (`discovery`, `spec`, `plan`, `build`, `review`,
-`comments`), with a `new-session` switch for each, on for `plan` by default, a pick for
+`comments`), with a `new_session` switch for each, on for `plan` by default, a pick for
 implementers, a list of reviewers, and their depth. `review` covers the final review and the finish;
 `comments` covers the comments, the catch-up, and the push; a change runs on `build`'s. Committing
 the human's work or the proposal is part of the step that follows it. A step with no pick runs on
@@ -101,8 +101,8 @@ their own network, like Tailscale:
   condition is met, a note, each answer written into the round's file as soon as it is chosen.
 - **A review**: the rendered spec or plan, what changed since the human's last review, a comment on
   a passage, then approve or request changes.
-- **Mockups** in both, a file of the feature or an address, drawn in place, with a comment about one
-  or about an element picked in it.
+- **Mockups** in both, an HTML file of the feature, drawn in place, with a comment about one or
+  about an element picked in it.
 
 The pages write files and never commit. Each address carries a token, and every write checks it and
 the request's origin. `ura serve` also syncs the human's notes with their phone.
