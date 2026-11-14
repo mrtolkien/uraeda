@@ -1,5 +1,6 @@
-//! Every access to git: gix for reads, the system `git` binary for writes, so the user's hooks,
-//! signing, and configuration apply to every commit (see `specs/decisions/git.md`).
+//! Every access to git, all of it reads: gix, and the system `git` binary for `ura check` alone,
+//! `git log` for a moved link and an unapproved file, and `git status` for `--fix`. Nothing here
+//! writes git or runs a hook (see `specs/decisions/git.md`).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
