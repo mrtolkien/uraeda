@@ -22,6 +22,7 @@ ura answer recurring Q3 "B, simpler"       # one answer; --submit sends the roun
 ura review recurring --comment 50-52 "Why?" # a comment; --approve or --request-changes
 ura serve                                  # pages to answer and review on, from your phone too
 ura vault ls wiki/libraries                # your notes, for agents: ls, read, write, rm, check
+ura usage                                  # your Claude Code accounts' and Codex's usage, as JSON
 ```
 
 Every command works without a terminal, and the read commands print JSON with `--json`.
@@ -199,6 +200,47 @@ the vault, and hidden folders such as `.obsidian/`. `ls` and `check` take `--jso
 [vault]
 path = "~/Notes/Uraeda" # without it, Uraeda in Uraeda's data folder
 ```
+
+## `ura usage`
+
+`ura usage` prints, as JSON, the usage windows of your Claude Code accounts and of Codex: for each
+one, the share of its five hours and of its week used, in percent, and when each resets. It asks the
+agents themselves, in short processes that spend no usage, all at once: a few seconds. An account
+that cannot be read, signed out or not answering, gets a `problem` in place of its windows, and the
+others are read anyway.
+
+The Claude Code accounts are the configuration folders you list in `config.toml`, each reached as
+`CLAUDE_CONFIG_DIR`, but `~/.claude`, Claude Code's own:
+
+```toml
+[usage]
+claude = ["~/.claude", "~/.claude-work"]
+```
+
+```json
+{
+  "version": 1,
+  "claude": [
+    {
+      "name": "work",
+      "folder": "~/.claude-work",
+      "five_hour": { "used": 18.0, "resets_at": "2026-11-14T15:09:59.950077+00:00" },
+      "week": { "used": 51.0, "resets_at": "2026-11-18T11:59:59.954772+00:00" }
+    },
+    {
+      "name": "default",
+      "folder": "~/.claude",
+      "problem": "Claude Code gave no usage: is the account signed in?"
+    }
+  ],
+  "codex": {
+    "five_hour": { "used": 0.0, "resets_at": "2026-11-14T16:56:59Z" },
+    "week": { "used": 80.0, "resets_at": "2026-11-16T06:36:49Z" }
+  }
+}
+```
+
+A window not open yet has no reset: `"resets_at": null`.
 
 ## `ura sandbox`
 

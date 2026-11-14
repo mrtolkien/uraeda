@@ -15,7 +15,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 /// How long an agent may take to list its models.
-const PATIENCE: Duration = Duration::from_secs(15);
+pub(crate) const PATIENCE: Duration = Duration::from_secs(15);
 
 /// An agent, as a pick offers it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -113,8 +113,18 @@ fn effort_label(id: &str) -> String {
 /// A short process of `program` with `args`, in the home folder, its output read line by line
 /// on a thread of its own.
 fn start(program: &str, args: &[&str]) -> Result<(Child, mpsc::Receiver<String>), String> {
+    start_with(program, args, &[])
+}
+
+/// [`start`], with `env` added to the process's environment.
+pub(crate) fn start_with(
+    program: &str,
+    args: &[&str],
+    env: &[(String, String)],
+) -> Result<(Child, mpsc::Receiver<String>), String> {
     let mut child = Command::new(program)
         .args(args)
+        .envs(env.iter().map(|(name, value)| (name, value)))
         .current_dir(std::env::home_dir().unwrap_or_default())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -137,7 +147,7 @@ fn start(program: &str, args: &[&str]) -> Result<(Child, mpsc::Receiver<String>)
 }
 
 /// Writes `messages`, one JSON per line, to the process.
-fn send(child: &mut Child, messages: &[Value]) {
+pub(crate) fn send(child: &mut Child, messages: &[Value]) {
     if let Some(stdin) = child.stdin.as_mut() {
         for message in messages {
             let _ = writeln!(stdin, "{message}");
@@ -147,7 +157,7 @@ fn send(child: &mut Child, messages: &[Value]) {
 }
 
 /// The next line within the time left, as JSON; `None` once the time is up or the output ends.
-fn next(lines: &mpsc::Receiver<String>, until: Instant) -> Option<Value> {
+pub(crate) fn next(lines: &mpsc::Receiver<String>, until: Instant) -> Option<Value> {
     loop {
         let left = until.checked_duration_since(Instant::now())?;
         let line = lines.recv_timeout(left).ok()?;
