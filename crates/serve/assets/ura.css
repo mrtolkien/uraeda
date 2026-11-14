@@ -716,3 +716,162 @@ details.general > summary {
   margin-left: auto;
 }
 /* --- end mockups --- */
+
+/* --- settings --- */
+main.settings ol.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+main.settings li.step {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px var(--gap) var(--gap);
+}
+main.settings li.step h3 {
+  margin: 0.6em 0 0;
+}
+main.settings li.step .head p {
+  margin: 2px 0 8px;
+}
+.pick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .pick {
+    grid-template-columns: 1fr 1fr;
+  }
+  .pick .field:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+}
+.field {
+  display: grid;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.field.wide {
+  margin-top: 8px;
+}
+.field select,
+.field input {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 100%;
+}
+li.joint {
+  display: flex;
+  justify-content: center;
+}
+button.cut {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  flex-direction: column;
+  gap: 0;
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+button.cut .line {
+  width: 2px;
+  height: 14px;
+  background: var(--line);
+}
+button.cut[aria-pressed="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+button.cut[aria-pressed="true"] .line {
+  background: transparent;
+  border-left: 2px dashed var(--accent);
+  width: 0;
+}
+.under {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 4px;
+}
+.under h4 {
+  margin: 0.6em 0 0;
+}
+.under > p {
+  margin: 2px 0 8px;
+}
+.reviewer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.reviewer-list > li {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.kinds {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.kinds button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.kinds .drop {
+  margin-left: auto;
+}
+.reviewer[data-kind="agent"] .as-command,
+.reviewer[data-kind="command"] .as-agent {
+  display: none;
+}
+.add-reviewer {
+  margin-top: 10px;
+}
+fieldset.depth {
+  border: 0;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 4px;
+}
+fieldset.depth legend {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+fieldset.depth label,
+label.switch {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+fieldset.depth input,
+label.switch input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+section.pages {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px var(--gap) var(--gap);
+  margin: var(--gap) 0;
+}
+.settings-link {
+  margin-top: 2em;
+}
+/* --- end settings --- */
