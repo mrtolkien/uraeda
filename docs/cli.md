@@ -185,9 +185,9 @@ in progress in its worktrees, to read: `ura serve` makes those links again as wo
 [Notes](../skills/uraeda/references/notes.md) lays them out. They are one vault for every
 repository, `Uraeda` in Uraeda's data folder (`~/.local/share/uraeda/Uraeda` on Linux), or the
 folder `[vault] path` of the settings file names. Paths are from the vault's folder, and it never
-touches git. A note's path may leave out its `.md`, as Obsidian's "Copy path" gives it:
+touches git. An existing note's path may leave out its `.md`, as Obsidian's "Copy path" gives it:
 `ura vault read "projects/todo/proposals/Tags"` reads `Tags.md`, unless a file named `Tags` is
-there.
+there. A new note is written at the path as given, so name it with its `.md`.
 
 ```sh
 ura vault ls wiki/apps                     # the folders, then the notes with their description

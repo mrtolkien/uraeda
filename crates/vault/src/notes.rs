@@ -121,7 +121,6 @@ pub fn set(vault: &Vault, path: &str, assignment: &str) -> Result<(), NoteError>
         .split_once('=')
         .filter(|(n, v)| valid_name(n) && !v.contains(['\n', '\r']))
         .ok_or(NoteError::Field)?;
-    let path = &named(vault, path);
     let text = read(vault, path)?;
     write(vault, path, set_field(&text, name, value).as_bytes())
 }
@@ -291,6 +290,25 @@ mod tests {
         assert_eq!(named(&vault, "wiki/b"), "wiki/b.md");
         assert_eq!(named(&vault, "wiki/c"), "wiki/c");
         assert!(matches!(read(&vault, "wiki/.."), Err(NoteError::Path(_))));
+        #[cfg(unix)]
+        {
+            let outside = tempfile::tempdir().unwrap();
+            std::fs::write(outside.path().join("kept.md"), "kept").unwrap();
+            std::os::unix::fs::symlink(
+                outside.path().join("kept.md"),
+                dir.path().join("wiki/l.md"),
+            )
+            .unwrap();
+            assert!(matches!(
+                write(&vault, "wiki/l", b"x"),
+                Err(NoteError::Linked(_))
+            ));
+            assert!(matches!(rm(&vault, "wiki/l"), Err(NoteError::Linked(_))));
+            assert_eq!(
+                std::fs::read_to_string(outside.path().join("kept.md")).unwrap(),
+                "kept"
+            );
+        }
     }
 
     #[test]
