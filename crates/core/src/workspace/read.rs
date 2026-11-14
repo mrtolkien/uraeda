@@ -120,8 +120,8 @@ pub(super) fn read_feature(
             ReadFrom::Commit(commit),
             committed,
         );
-        feature.step = at_tip.step.clone();
         feature.at_tip = Some(Box::new(at_tip));
+        feature.step = feature.current_step(PullRequest::Unknown);
     }
     feature
 }

@@ -23,7 +23,7 @@ fn step_of_one_feature() {
 
     assert_eq!(
         output.stdout,
-        "2026-10-10-cli-core: spec\n  branch     2026-10-10-cli-core\n  follow     skills/uraeda/references/spec.md\n"
+        "2026-10-10-cli-core: spec\n  branch     2026-10-10-cli-core\n  follow     skills/uraeda/references/spec.md\n  pick       the session's own\n  session    join: run it in this session\n"
     );
     assert_eq!(output.code, 0, "{}", output.stderr);
 }
@@ -166,7 +166,7 @@ fn push_when_the_pull_request_lacks_the_latest_commit() {
 
     assert_eq!(
         output.stdout,
-        "2026-10-10-cli-core: push\n  branch     2026-10-10-cli-core\n  follow     skills/uraeda/references/implementation.md\n"
+        "2026-10-10-cli-core: push\n  branch     2026-10-10-cli-core\n  follow     skills/uraeda/references/implementation.md\n  pick       the session's own\n  session    join: run it in this session\n"
     );
 }
 
@@ -248,4 +248,53 @@ fn a_gate_says_who_it_waits_on() {
         output.stdout,
         "2026-10-10-waiting: clarifications-01.md: 1 question, about 3 minutes.\n  branch     2026-10-10-waiting\n  waits on   you\n"
     );
+}
+
+/// The step's pick and session come from the human's settings: the plan starts a new session by
+/// default, and the build names its implementers and reviewers.
+#[test]
+fn the_pick_and_session_come_from_the_settings() {
+    let repo = TestRepo::new();
+    specs(&repo);
+    feature(
+        &repo,
+        "2026-10-10-cli-core",
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+        ],
+    );
+    let config = tempfile::TempDir::new().unwrap();
+    std::fs::write(
+        config.path().join("config.toml"),
+        "[runs.steps.spec]\nagent = \"claude\"\nmodel = \"opus\"\neffort = \"high\"\nnew_session = true\n",
+    )
+    .unwrap();
+    let dir = config.path().to_str().unwrap();
+
+    let output = ura_in(
+        repo.path(),
+        &["next", "cli-core"],
+        &[("URAEDA_CONFIG_DIR", dir)],
+    );
+    let json = ura_in(
+        repo.path(),
+        &["next", "cli-core", "--json"],
+        &[("URAEDA_CONFIG_DIR", dir)],
+    );
+
+    assert!(
+        output.stdout.contains("  pick       claude, opus, high\n"),
+        "{}",
+        output.stdout
+    );
+    assert!(
+        output.stdout.contains("  session    new:"),
+        "{}",
+        output.stdout
+    );
+    let json: serde_json::Value = serde_json::from_str(&json.stdout).unwrap();
+    assert_eq!(json["run"]["setting"], "spec");
+    assert_eq!(json["run"]["session"], "new");
+    assert_eq!(json["run"]["pick"]["model"], "opus");
 }

@@ -221,7 +221,28 @@ impl Feature {
     /// Recomputes the step with the pull request's state, for the steps that depend on it, from its
     /// latest commit.
     pub fn with_pull_request(&mut self, pull_request: PullRequest) {
-        self.step = steps::step(self.at_tip.as_deref().unwrap_or(self), pull_request);
+        self.step = self.current_step(pull_request);
+    }
+
+    /// The step from the committed files, the tip's. When the tip waits on the human and the
+    /// disk does not, the human answered or reviewed without committing: the step is the disk's,
+    /// committing their work first.
+    pub(crate) fn current_step(&self, pull_request: PullRequest) -> Step {
+        let Some(tip) = self.at_tip.as_deref() else {
+            return steps::step(self, pull_request);
+        };
+        let at_tip = steps::step(tip, pull_request);
+        if at_tip.waits_on != steps::WaitsOn::Human || at_tip.name != steps::StepName::HumanGate {
+            return at_tip;
+        }
+        let on_disk = steps::step(self, pull_request);
+        if on_disk.waits_on == steps::WaitsOn::Agent && on_disk.name != steps::StepName::None {
+            return Step {
+                commit_first: true,
+                ..on_disk
+            };
+        }
+        at_tip
     }
 }
 

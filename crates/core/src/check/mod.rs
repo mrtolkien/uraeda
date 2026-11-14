@@ -176,6 +176,7 @@ fn canonical_file(path: &Path) -> PathBuf {
 /// `names::check_change_file`, which checks one file of it, are reported once.
 fn walk(root: &Path, dir: &Path, finder: &Finder<'_>, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
+    names::check_removed(root, dir, problems);
     names::check_change_files(root, dir, problems);
     let found = check_folder_files(root, dir, false, finder, problems);
     problems.extend(found.into_values().flatten());
@@ -234,6 +235,10 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
         return Some(Checked::Record);
     }
     if !any_folder && !names::is_workflow_folder(dir) {
+        return None;
+    }
+    // `layout.removed` reports a review's findings file, never written any more.
+    if name.starts_with("findings-") {
         return None;
     }
     FileKind::of(name).map(|(kind, _)| Checked::Workflow(kind))

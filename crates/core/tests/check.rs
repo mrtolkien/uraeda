@@ -938,7 +938,7 @@ fn a_changes_folder_holds_only_its_files() {
             vec![]
         } else {
             vec![format!(
-                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/, and screenshots/."
+                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
             )]
         };
         assert_eq!(flagged, expected, "{path}");
@@ -2114,4 +2114,41 @@ fn a_records_link_to_a_removed_file_is_no_problem() {
     example.write(RECORD, &linked);
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// What the workflow no longer keeps in git is reported where it is: the priorities, the inbox and
+/// its triage, the proposals and notes folders, and a review's findings file.
+#[test]
+fn what_the_workflow_removed_is_reported() {
+    let example = Example::new();
+    for path in [
+        "specs/PRIORITIES.md",
+        "specs/INBOX.md",
+        "specs/INBOX-TRIAGE.md",
+        "specs/proposals/tags.md",
+        "specs/notes/idea.md",
+        &format!("{FEATURE}/findings-01.md"),
+    ] {
+        example.write(path, "# Old\n");
+    }
+
+    let problems = example.problems();
+    let removed: Vec<&str> = problems
+        .iter()
+        .filter(|p| p.rule == "layout.removed")
+        .map(|p| p.file.as_str())
+        .collect();
+
+    assert_eq!(
+        removed,
+        [
+            "specs/2026-10-06-recurring-tasks/findings-01.md",
+            "specs/INBOX-TRIAGE.md",
+            "specs/INBOX.md",
+            "specs/PRIORITIES.md",
+            "specs/notes",
+            "specs/proposals",
+        ]
+    );
+    assert_eq!(problems.len(), removed.len(), "{problems:?}");
 }
