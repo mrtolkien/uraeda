@@ -45,8 +45,8 @@ folder goes to its latest session, or makes the first one, on the server
 - `postponeMessage` in [round-messages.ts](/packages/server/src/runner/round-messages.ts), free of
   Node's modules, shared by the server and the UI.
 - **Postpone or block** in
-  [projects.md](/skills/uraeda/references/projects.md#starting-postponing-and-dropping-a-feature),
-  with the descriptions of `specs/proposals/` in [SKILL.md](/skills/uraeda/SKILL.md), the template
+  [projects.md](/skills/uraeda/references/projects.md#postponing-or-dropping-a-feature), with the
+  descriptions of `specs/proposals/` in [SKILL.md](/skills/uraeda/SKILL.md), the template
   [README.md](/skills/uraeda/assets/templates/specs/README.md), and
   [the specs folder's docs](/docs/specs-folder.md); the menu in [the web UI's docs](/docs/app.md).
 - Tests: [postpone.test.tsx](/packages/web/src/__tests__/postpone.test.tsx), for a feature with and

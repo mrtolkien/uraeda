@@ -151,8 +151,7 @@ options' data, the server owns runs, and one TypeScript module owns which joints
   [`fate/sub-session-views.ts`](/packages/server/src/fate/sub-session-views.ts).
 - The skill uses Uraeda's tools when they are offered, and its own sub-agents and a hand-written
   `findings-NN.md` otherwise, in [`implementation.md`](/skills/uraeda/references/implementation.md),
-  with the
-  [findings template](/skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/findings-01.md).
+  with the findings template.
 - `validate:claude --tools` and `--review`, and `validate:codex --review`, check the tools and the
   reviews on the real agents: [`validate-tools.ts`](/packages/server/scripts/validate-tools.ts) and
   [`validate-reviews.ts`](/packages/server/scripts/validate-reviews.ts).

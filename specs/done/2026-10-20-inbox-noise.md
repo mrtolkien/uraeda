@@ -38,7 +38,7 @@ clearly falls outside the current feature.
 
 ## Design
 
-The rule lives in [agents' notes](/skills/uraeda/references/inbox.md#agents-notes). The
+The rule lives in agents' notes. The
 [implementation](/skills/uraeda/references/implementation.md#grade-the-findings),
 [change](/skills/uraeda/references/change.md#making-the-change),
 [discovery](/skills/uraeda/references/discovery.md), and
