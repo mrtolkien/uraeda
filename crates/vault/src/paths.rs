@@ -45,8 +45,9 @@ pub fn is_read_only(path: &str) -> bool {
     parts.next() == Some("projects") && parts.next().is_some() && parts.next() == Some("specs")
 }
 
-/// Whether the phone may write or delete a file: one that syncs, neither the plugin's nor git's.
-pub fn phone_may_write(path: &str) -> bool {
+/// Whether the phone, or `ura vault`, may write or delete a file: one that syncs, neither the
+/// plugin's nor git's.
+pub fn is_writable(path: &str) -> bool {
     is_synced(path) && !is_plugin_file(path) && !is_read_only(path)
 }
 
@@ -74,12 +75,12 @@ mod tests {
     }
 
     #[test]
-    fn what_the_phone_writes() {
-        assert!(phone_may_write("inbox/a.md"));
-        assert!(phone_may_write("wiki/apps/todoist.md"));
-        assert!(phone_may_write("projects/uraeda/proposals/x.md"));
-        assert!(!phone_may_write("projects/uraeda/specs/CONSTITUTION.md"));
-        assert!(!phone_may_write(".obsidian/plugins/uraeda/main.js"));
-        assert!(phone_may_write("projects/specs.md"));
+    fn what_others_write() {
+        assert!(is_writable("inbox/a.md"));
+        assert!(is_writable("wiki/apps/todoist.md"));
+        assert!(is_writable("projects/uraeda/proposals/x.md"));
+        assert!(!is_writable("projects/uraeda/specs/CONSTITUTION.md"));
+        assert!(!is_writable(".obsidian/plugins/uraeda/main.js"));
+        assert!(is_writable("projects/specs.md"));
     }
 }

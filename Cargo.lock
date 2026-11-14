@@ -9265,6 +9265,7 @@ dependencies = [
  "uraeda-lsp",
  "uraeda-serve",
  "uraeda-server",
+ "uraeda-vault",
 ]
 
 [[package]]
@@ -9409,6 +9410,8 @@ dependencies = [
 name = "uraeda-vault"
 version = "2.0.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "tempfile",
  "thiserror 2.0.21",
  "toml_edit 0.25.19+spec-1.1.0",

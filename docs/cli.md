@@ -27,6 +27,7 @@ ura inbox                                  # every note, agents' notes included;
 ura clean --all                            # merged features' worktrees, branches, and priorities lines
 ura upgrade                                # the latest release, then your skill
 ura serve                                  # pages to answer and review on, from your phone too
+ura vault ls wiki/libraries                # your notes, for agents: ls, read, write, rm, check
 ura serve-app                              # the server, and the app in your browser
 ura pair                                   # a one-time code, and its QR code, to pair a device with it
 ura import-sessions                        # the earlier web UI's sessions, copied once
@@ -88,6 +89,29 @@ hosts = ["laptop.tail1234.ts.net"] # the names it answers at besides 127.0.0.1 a
 Without `wake`, a page ends with "Tell your session to continue". With `wake = "t3"`, it finds the
 open T3 Code thread working in the feature's worktree, with the `t3` command, and sends it a message
 to continue.
+
+`ura vault` reads and writes your notes for an agent, as the skill's
+[Notes](../skills/uraeda/references/notes.md) lays them out. They are one vault for every
+repository, `Uraeda` in Uraeda's data folder (`~/.local/share/uraeda-next/Uraeda` on Linux), or the
+folder `[vault] path` of the settings file names. Paths are from the vault's folder, and it never
+touches git.
+
+```sh
+ura vault ls wiki/apps                     # the folders, then the notes with their description
+ura vault read wiki/apps/todoist.md        # a note
+ura vault write inbox/flaky-sync.md < note.md   # a note from standard input, its folders made
+ura vault write projects/todo/proposals/tags.md --set status=started   # one field, the rest kept
+ura vault rm inbox/flaky-sync.md           # into the vault's .trash/
+ura vault check                            # wikilinks to no note, wiki notes without a description
+```
+
+`write` and `rm` refuse `projects/<repository>/specs/`, the repositories' own files, read only in
+the vault, and hidden folders such as `.obsidian/`. `ls` and `check` take `--json`.
+
+```toml
+[vault]
+path = "~/Notes/Uraeda" # without it, Uraeda in Uraeda's data folder
+```
 
 `ura serve-app` runs Uraeda's server, which serves [the app](app.md) to your browser and to the
 desktop app.
