@@ -46,7 +46,7 @@ pub struct Item {
     pub ask: Ask,
     /// What is asked, the first line of the file's `> [!IMPORTANT]` block.
     pub waiting_line: Option<String>,
-    /// The page's address from the token's folder: `{repo}/{folder}/round`, or
+    /// The page's address from the home page: `{repo}/{folder}/round`, or
     /// `{repo}/{folder}/review/spec.md`.
     pub address: String,
 }

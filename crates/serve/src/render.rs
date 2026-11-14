@@ -442,14 +442,15 @@ impl Writer<'_> {
 
 /// A part of `file`, a path from the repository's top level, drawn for a page of the feature at
 /// `base`, the path from the page back to the feature's folder of pages: `./` for the round, `../`
-/// for a review.
-pub fn draw(markdown: &str, file: &str, base: &str) -> String {
+/// for a review. `key` is the key in the address of the feature's files.
+pub fn draw(markdown: &str, file: &str, base: &str, key: &str) -> String {
     let folder = file.rsplit_once('/').map_or("", |(folder, _)| folder);
     render(
         markdown,
         &Links {
             folder: folder.to_string(),
             base: base.to_string(),
+            key: key.to_string(),
         },
     )
 }

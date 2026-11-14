@@ -1,7 +1,7 @@
 //! The review's routes: its page, then its writes, through the core's review actions, which write
 //! the review file and the reviewed file's status, and commit nothing.
 //!
-//! - `GET  /{token}/{repo}/{folder}/review/{file}`: the spec's or the plan's page.
+//! - `GET  /{repo}/{folder}/review/{file}`: the spec's or the plan's page.
 //! - `POST .../review/{file}/comment`: `{ lines: [start, end] | null, text }` adds a comment,
 //!   `{ number, text }` replaces one, and an empty text removes it. Gives `{ comments }`.
 //! - `POST .../review/{file}/verdict`: `{ verdict: "approve" | "request-changes", summary }`
@@ -25,8 +25,8 @@ use crate::round::routes::{Failure, on, place, told, write};
 use crate::waiting::{self, Located};
 use crate::{Shared, html};
 
-/// The address of a reviewed file: the token, the repository, the feature's folder, and the file.
-pub type Reviewed = Address<(String, String, String, String)>;
+/// The address of a reviewed file: the repository, the feature's folder, and the file.
+pub type Reviewed = Address<(String, String, String)>;
 
 /// The reviewed file's name, refused unless it is the spec or the plan.
 fn reviewed(name: &str) -> Result<&'static str, Failure> {
@@ -93,8 +93,9 @@ fn same_version(located: &Located, name: &str, version: &str) -> Result<(), Fail
 /// `GET .../review/{file}`.
 pub async fn page(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder, name)): Reviewed,
+    Address((repo, folder, name)): Reviewed,
 ) -> Response {
+    let key = shared.files_key.clone();
     let drawn = on(&shared, repo, folder, move |located| {
         let name = reviewed(&name)?;
         let path = format!("{}/{name}", located.feature.path);
@@ -109,7 +110,7 @@ pub async fn page(
             Some(uraeda_core::api::since_commit(&git, &path, &commit, &text))
         });
         let feature_name = waiting::readable(&located.feature.slug);
-        let draw = |markdown: &str| crate::render::draw(markdown, &path, "../");
+        let draw = |markdown: &str| crate::render::draw(markdown, &path, "../", &key);
         let main = view::main(&view::Page {
             text: &text,
             name: &feature_name,
@@ -151,7 +152,7 @@ pub struct Commented {
 /// `POST .../review/{file}/comment`.
 pub async fn comment(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder, name)): Reviewed,
+    Address((repo, folder, name)): Reviewed,
     Json(body): Json<Commented>,
 ) -> Result<Json<Value>, Failure> {
     write(&shared, repo, folder, move |located| {
@@ -202,7 +203,7 @@ pub struct Verdict {
 /// `POST .../review/{file}/verdict`.
 pub async fn verdict(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder, name)): Reviewed,
+    Address((repo, folder, name)): Reviewed,
     Json(body): Json<Verdict>,
 ) -> Result<Json<Value>, Failure> {
     let (main, root, what) = write(&shared, repo, folder, move |located| {

@@ -1,10 +1,10 @@
 //! The page of the human's notes: where the vault is, how to change its place, and how to start
 //! Obsidian on the phone.
 //!
-//! - `GET /{token}/vault`: the page.
-//! - `POST /{token}/vault/place`: the form's new place, `path=...`, written in `[vault] path`.
-//! - `GET /{token}/vault/start.zip`: the phone's starter vault, carrying the address the page was
-//!   opened at, so the phone syncs through the same name, `tailscale serve`'s.
+//! - `GET /vault`: the page.
+//! - `POST /vault/place`: the form's new place, `path=...`, written in `[vault] path`.
+//! - `GET /vault/start.zip`: the phone's starter vault, carrying the address the page was
+//!   opened at, so the phone syncs through the same name, `tailscale serve`'s, and the token.
 
 use std::sync::Arc;
 
@@ -17,13 +17,13 @@ use uraeda_vault::{Vault, config, plugin};
 use crate::html::{escape, page};
 use crate::{Shared, guard};
 
-/// The address of `ura serve` as the request reached it, with the token: the scheme a proxy in
-/// front says, else `http`.
-fn address(shared: &Shared, headers: &HeaderMap) -> String {
+/// The address of `ura serve` as the request reached it: the scheme a proxy in front says, else
+/// `http`.
+fn address(headers: &HeaderMap) -> String {
     let text = |name: &str| headers.get(name).and_then(|v| v.to_str().ok());
     let scheme = text("x-forwarded-proto").unwrap_or("http");
     let host = text("host").unwrap_or("127.0.0.1");
-    format!("{scheme}://{host}/{}/", shared.token)
+    format!("{scheme}://{host}/")
 }
 
 /// Whether the request reached this machine's own name: a phone needs the tailnet's.
@@ -78,9 +78,9 @@ pub async fn start_zip(State(shared): State<Arc<Shared>>, headers: HeaderMap) ->
     let Some(vault) = shared.vault() else {
         return (StatusCode::NOT_FOUND, "No vault is synced.").into_response();
     };
-    let url = address(&shared, &headers);
+    let url = address(&headers);
     let name = vault.name();
-    match plugin::starter(&name, &url) {
+    match plugin::starter(&name, &url, &shared.token) {
         Ok(bytes) => (
             [
                 (header::CONTENT_TYPE, "application/zip".to_string()),
@@ -130,12 +130,25 @@ pub async fn save_place(State(shared): State<Arc<Shared>>, body: Bytes) -> Respo
 }
 
 /// A field of a form's body, `application/x-www-form-urlencoded`.
-fn form_value(body: &[u8], name: &str) -> Option<String> {
+pub(crate) fn form_value(body: &[u8], name: &str) -> Option<String> {
     let text = std::str::from_utf8(body).ok()?;
     text.split('&').find_map(|pair| {
         let (key, value) = pair.split_once('=')?;
         (decode(key)? == name).then(|| decode(value)).flatten()
     })
+}
+
+/// `text` as a form's value: every byte but letters, digits, and `-._~/` as `%XX`.
+pub(crate) fn percent(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || b"-._~/".contains(&byte) {
+            out.push(char::from(byte));
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
 }
 
 fn decode(text: &str) -> Option<String> {

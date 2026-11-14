@@ -3,9 +3,9 @@
 //! pages tell the agent's session to continue. Each change is saved at once in `config.toml`,
 //! through the core's writer of `[runs]`, which keeps the rest of the file as it was.
 //!
-//! - `GET  /{token}/settings`: the page.
-//! - `POST /{token}/settings/runs`: `{ version, options }` gives `{ version }`.
-//! - `POST /{token}/settings/serve`: `{ version, wake }` gives `{ version }`.
+//! - `GET  /settings`: the page.
+//! - `POST /settings/runs`: `{ version, options }` gives `{ version }`.
+//! - `POST /settings/serve`: `{ version, wake }` gives `{ version }`.
 //!
 //! `version` is a hash of the file's text as the page read it: a file changed since, by hand or
 //! by another page, is refused, never written over.
@@ -68,7 +68,7 @@ fn same_version(dir: &Path, version: &str) -> Result<(), Failure> {
     }
 }
 
-/// `GET /{token}/settings`.
+/// `GET /settings`.
 pub async fn page(State(shared): State<Arc<Shared>>) -> Response {
     let dir = shared.config_dir.clone();
     let serve = shared.settings();
@@ -100,7 +100,7 @@ pub struct SavedRuns {
     options: Runs,
 }
 
-/// `POST /{token}/settings/runs`.
+/// `POST /settings/runs`.
 pub async fn save_runs(
     State(shared): State<Arc<Shared>>,
     Json(body): Json<SavedRuns>,
@@ -127,7 +127,7 @@ pub struct SavedServe {
     wake: bool,
 }
 
-/// `POST /{token}/settings/serve`.
+/// `POST /settings/serve`.
 pub async fn save_serve(
     State(shared): State<Arc<Shared>>,
     Json(body): Json<SavedServe>,

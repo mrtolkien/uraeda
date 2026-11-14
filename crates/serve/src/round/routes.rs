@@ -2,8 +2,8 @@
 //! actions, which write the round's file and commit nothing, refuse a round that no longer waits,
 //! and refuse a write over an answer that changed since the page read it.
 //!
-//! - `GET  /{token}/{repo}/{folder}/round`: the latest round's page.
-//! - `POST /{token}/{repo}/{folder}/answer`: `{ id, letters, comment, previous }` gives
+//! - `GET  /{repo}/{folder}/round`: the latest round's page.
+//! - `POST /{repo}/{folder}/answer`: `{ id, letters, comment, previous }` gives
 //!   `{ answer, answered, total }`.
 //! - `POST .../notes`: `{ notes, previous }` gives `{ notes }`.
 //! - `POST .../settled`: `{ subject, number, text, previous }`: number 0 adds a comment, an empty
@@ -30,14 +30,14 @@ use super::{parts, view};
 use crate::waiting::{self, LocateError, Located};
 use crate::{Shared, html, wake};
 
-/// The address of a feature's page: the token, the repository, and the feature's folder.
-pub type Feature = Address<(String, String, String)>;
+/// The address of a feature's page: the repository, and the feature's folder.
+pub type Feature = Address<(String, String)>;
 
 /// A failed request: its status and the human's words.
 pub struct Failure(pub StatusCode, pub String);
 
 impl Failure {
-    /// The failure as a page, for a GET: `base` is the path back to the token's folder.
+    /// The failure as a page, for a GET: `base` is the path back to the home page.
     pub fn page(self, base: &str) -> Response {
         let body = format!(
             "<main><h1>Nothing here</h1><p>{}</p><p><a href=\"{base}\">What waits on you</a></p></main>",
@@ -144,11 +144,9 @@ fn round_text(located: &Located) -> Result<(String, String), Failure> {
 }
 
 /// `GET .../round`.
-pub async fn page(
-    State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder)): Feature,
-) -> Response {
-    let drawn = on(&shared, repo, folder, |located| {
+pub async fn page(State(shared): State<Arc<Shared>>, Address((repo, folder)): Feature) -> Response {
+    let key = shared.files_key.clone();
+    let drawn = on(&shared, repo, folder, move |located| {
         let (file, text) = round_text(&located)?;
         let round = parts::cut(&text);
         let name = waiting::readable(&located.feature.slug);
@@ -157,7 +155,7 @@ pub async fn page(
             .trim_end_matches(".md")
             .parse()
             .unwrap_or(1);
-        let draw = |markdown: &str| crate::render::draw(markdown, &file, "./");
+        let draw = |markdown: &str| crate::render::draw(markdown, &file, "./", &key);
         let main = view::main(
             &text,
             &round,
@@ -195,7 +193,7 @@ pub struct Answered {
 /// `POST .../answer`.
 pub async fn save(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder)): Feature,
+    Address((repo, folder)): Feature,
     Json(body): Json<Answered>,
 ) -> Result<Json<Value>, Failure> {
     write(&shared, repo, folder, move |located| {
@@ -231,7 +229,7 @@ pub struct Notes {
 /// `POST .../notes`.
 pub async fn notes(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder)): Feature,
+    Address((repo, folder)): Feature,
     Json(body): Json<Notes>,
 ) -> Result<Json<Value>, Failure> {
     write(&shared, repo, folder, move |located| {
@@ -262,7 +260,7 @@ pub struct Settled {
 /// `POST .../settled`.
 pub async fn settled(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder)): Feature,
+    Address((repo, folder)): Feature,
     Json(body): Json<Settled>,
 ) -> Result<Json<Value>, Failure> {
     write(&shared, repo, folder, move |located| {
@@ -295,7 +293,7 @@ pub async fn settled(
 /// `POST .../submit`.
 pub async fn submit(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder)): Feature,
+    Address((repo, folder)): Feature,
 ) -> Result<Json<Value>, Failure> {
     let (main, root, what) = write(&shared, repo, folder, |located| {
         let (file, _) = round_text(&located)?;

@@ -9,6 +9,7 @@ fn links() -> Links {
     Links {
         folder: "specs/2026-10-06-recurring-tasks".into(),
         base: "/t/".into(),
+        key: "k".into(),
     }
 }
 
@@ -146,10 +147,10 @@ fn each_kind_of_link_is_rewritten() {
         "<a href=\"/t/file/specs/2026-10-06-recurring-tasks/spec.md#scope\">spec</a>",
         "<a href=\"/t/file/specs/2026-11-01-x/plan.md\">other</a>",
         "<a href=\"/t/file/specs/decisions/stack.md\">root</a>",
-        "<a href=\"/t/raw/specs/2026-10-06-recurring-tasks/mockups/list.html\">mock</a>",
+        "<a href=\"/t/raw/k/specs/2026-10-06-recurring-tasks/mockups/list.html\">mock</a>",
         "<a href=\"https://example.com/a?b=1\" rel=\"noreferrer noopener\" target=\"_blank\">site</a>",
         "<a href=\"#tasks\">here</a>",
-        "<img src=\"/t/raw/specs/2026-10-06-recurring-tasks/images/a%20b.webp\" loading=\"lazy\" data-lines=\"3-3\" title=\"A shot\" alt=\"shot\">",
+        "<img src=\"/t/raw/k/specs/2026-10-06-recurring-tasks/images/a%20b.webp\" loading=\"lazy\" data-lines=\"3-3\" title=\"A shot\" alt=\"shot\">",
     ];
     for link in expected {
         assert!(out.contains(link), "{link}\n{out}");

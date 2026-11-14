@@ -107,15 +107,44 @@ impl Server {
     fn agent() -> ureq::Agent {
         ureq::Agent::config_builder()
             .http_status_as_error(false)
+            .max_redirects(0)
             .build()
             .into()
     }
 
-    pub fn get(&self, path: &str) -> ureq::http::Response<ureq::Body> {
-        Server::agent().get(self.url(path)).call().unwrap()
+    /// What a signed-in browser's cookie holds.
+    pub fn cookie(&self) -> String {
+        format!("ura_session={}", token::session(&self.token))
     }
 
-    /// A POST with `headers` and a JSON `body`.
+    /// The key in the address of a feature's raw files.
+    pub fn key(&self) -> String {
+        token::files_key(&self.token)
+    }
+
+    /// A GET from a signed-in browser.
+    pub fn get(&self, path: &str) -> ureq::http::Response<ureq::Body> {
+        Server::agent()
+            .get(self.url(path))
+            .header("cookie", self.cookie())
+            .call()
+            .unwrap()
+    }
+
+    /// A GET with `headers` alone, from a browser that never signed in.
+    pub fn stranger(
+        &self,
+        path: &str,
+        headers: &[(&str, &str)],
+    ) -> ureq::http::Response<ureq::Body> {
+        let mut request = Server::agent().get(self.url(path));
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        request.call().unwrap()
+    }
+
+    /// A POST from a signed-in browser, with `headers` and a JSON `body`.
     pub fn post(
         &self,
         path: &str,
@@ -124,6 +153,7 @@ impl Server {
     ) -> ureq::http::Response<ureq::Body> {
         let mut request = Server::agent()
             .post(self.url(path))
+            .header("cookie", self.cookie())
             .header("content-type", "application/json");
         for (name, value) in headers {
             request = request.header(*name, *value);

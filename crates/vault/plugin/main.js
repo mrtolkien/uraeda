@@ -4,7 +4,8 @@
 // lists the phone's files, asks for the plan, and carries it out.
 //
 // Its settings, `data.json`, are each device's own and never synced: `url`, the address of
-// `ura serve` with its token, and `sync`, false on the desktop, where the vault is `ura`'s own.
+// `ura serve`, `token`, the token it sends with every request of the sync, and `sync`, false on the
+// desktop, where the vault is `ura`'s own and the pages open in a browser that signs in.
 
 const { Plugin, Notice, PluginSettingTab, Setting, requestUrl, MarkdownView } = require("obsidian");
 
@@ -34,7 +35,7 @@ async function sha256(buffer) {
 module.exports = class Uraeda extends Plugin {
   async onload() {
     this.data = Object.assign(
-      { url: "", sync: false, base: {}, hashes: {}, last: "", vault: "" },
+      { url: "", token: "", sync: false, base: {}, hashes: {}, last: "", vault: "" },
       await this.loadData(),
     );
     this.running = null;
@@ -74,15 +75,14 @@ module.exports = class Uraeda extends Plugin {
     window.clearTimeout(this.timer);
   }
 
-  /** `ura serve`'s address, with its token, ending in `/`. */
+  /** `ura serve`'s address, ending in `/`. */
   base() {
     const url = (this.data.url || "").trim();
     return url && !url.endsWith("/") ? url + "/" : url;
   }
 
   token() {
-    const parts = this.base().replace(/\/$/, "").split("/");
-    return parts[parts.length - 1] || "";
+    return (this.data.token || "").trim();
   }
 
   open(page) {
@@ -198,6 +198,8 @@ module.exports = class Uraeda extends Plugin {
       }),
       "application/json",
     );
+    if (answer.status === 401)
+      throw new Error("ura serve refused the token: check it in this plugin's settings");
     if (answer.status !== 200)
       throw new Error(`ura serve answered ${answer.status}: ${answer.text}`);
     const actions = answer.json.actions;
@@ -321,7 +323,7 @@ class Settings extends PluginSettingTab {
     containerEl.empty();
     new Setting(containerEl)
       .setName("Address of ura serve")
-      .setDesc("With its token, as ura serve prints it, or as the starter vault set it.")
+      .setDesc("As ura serve prints it, or as the starter vault set it.")
       .addText((text) =>
         text.setValue(plugin.data.url).onChange(async (value) => {
           plugin.data.url = value.trim();
@@ -332,6 +334,18 @@ class Settings extends PluginSettingTab {
       containerEl.createEl("p", { text: "This vault is ura's own: it is not synced from here." });
       return;
     }
+    new Setting(containerEl)
+      .setName("Token")
+      .setDesc(
+        "The token ura serve prints under its address: the sync sends it with every request.",
+      )
+      .addText((text) => {
+        text.inputEl.type = "password";
+        text.setValue(plugin.data.token).onChange(async (value) => {
+          plugin.data.token = value.trim();
+          await plugin.saveData(plugin.data);
+        });
+      });
     new Setting(containerEl)
       .setName("Sync now")
       .setDesc(plugin.data.last ? "Last sync: " + plugin.data.last : "Not synced yet.")

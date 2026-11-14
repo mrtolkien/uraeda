@@ -104,8 +104,8 @@ their own network, like Tailscale:
 - **Mockups** in both, an HTML file of the feature, drawn in place, with a comment about one or
   about an element picked in it.
 
-The pages write files and never commit. Each address carries a token, and every write checks it and
-the request's origin. `ura serve` also syncs the human's notes with their phone.
+The pages write files and never commit. A browser signs in with a token, and every write checks the
+session and the request's origin. `ura serve` also syncs the human's notes with their phone.
 
 ## `ura vault`
 

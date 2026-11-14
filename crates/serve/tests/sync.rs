@@ -11,11 +11,7 @@ use uraeda_vault::manifest::hash_bytes;
 
 fn plan(server: &Server, files: Value, base: Value) -> Vec<Value> {
     let body = json!({ "files": files, "base": base, "stamp": "2026-11-14 1630" });
-    let (status, bytes) = server.plugin(
-        "POST",
-        &format!("/{}/vault/plan", server.token),
-        body.to_string().as_bytes(),
-    );
+    let (status, bytes) = server.plugin("POST", "/vault/plan", body.to_string().as_bytes());
     assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
     let answer: Value = serde_json::from_slice(&bytes).unwrap();
     answer["actions"].as_array().unwrap().clone()
@@ -49,11 +45,7 @@ fn a_first_sync_pulls_the_notes_and_the_repositorys_files() {
     assert!(vault.root().join("wiki/gotchas").is_dir());
     assert!(vault.root().join("projects/todo/proposals").is_dir());
 
-    let (status, bytes) = server.plugin(
-        "GET",
-        &format!("/{}/vault/file?path={}", server.token, proposal),
-        b"",
-    );
+    let (status, bytes) = server.plugin("GET", &format!("/vault/file?path={}", proposal), b"");
     assert_eq!(
         (status, bytes.as_slice()),
         (200, b"# Recurring tasks\n".as_slice())
@@ -65,9 +57,7 @@ fn writes_hold_to_what_the_phone_expects() {
     let dir = tempfile::tempdir().unwrap();
     let vault = Vault::new(dir.path().join("Uraeda"));
     let server = Server::syncing(Default::default(), vault.clone());
-    let file = |path: &str, expect: &str| {
-        format!("/{}/vault/file?path={path}&expect={expect}", server.token)
-    };
+    let file = |path: &str, expect: &str| format!("/vault/file?path={path}&expect={expect}");
     assert_eq!(server.plugin("PUT", &file("inbox/n.md", ""), b"one").0, 200);
     assert_eq!(
         std::fs::read(vault.root().join("inbox/n.md")).unwrap(),
@@ -119,9 +109,7 @@ fn a_write_or_a_deletion_never_goes_through_a_link() {
     let server = Server::syncing(Default::default(), vault.clone());
     std::fs::create_dir_all(vault.root().join("inbox")).unwrap();
     std::os::unix::fs::symlink(&outside, vault.root().join("inbox/alias")).unwrap();
-    let file = |path: &str, expect: &str| {
-        format!("/{}/vault/file?path={path}&expect={expect}", server.token)
-    };
+    let file = |path: &str, expect: &str| format!("/vault/file?path={path}&expect={expect}");
     let kept = hash_bytes(b"kept");
     assert_eq!(
         server
@@ -149,7 +137,7 @@ fn a_write_or_a_deletion_never_goes_through_a_link() {
 fn a_write_without_the_bearer_or_the_pages_origin_is_refused() {
     let dir = tempfile::tempdir().unwrap();
     let server = Server::syncing(Default::default(), Vault::new(dir.path()));
-    let path = format!("/{}/vault/plan", server.token);
+    let path = "/vault/plan".to_string();
     let response = server.post(
         &path,
         &[("origin", "https://evil.example")],
@@ -159,7 +147,7 @@ fn a_write_without_the_bearer_or_the_pages_origin_is_refused() {
     let response = server.post(&path, &[], "{\"files\":{}}");
     assert_eq!(response.status().as_u16(), 403);
     // The bearer opens the sync's routes only.
-    let (status, _) = server.plugin("POST", &format!("/{}/settings/serve", server.token), b"");
+    let (status, _) = server.plugin("POST", "/settings/serve", b"");
     assert_eq!(status, 403);
 }
 
@@ -173,7 +161,7 @@ fn a_phone_of_another_vault_merges_instead_of_deleting() {
     let base = json!({ "inbox/a.md": hash_bytes(b"a") });
     let body =
         |id: &str| json!({ "files": {}, "base": base, "stamp": "s", "vault": id }).to_string();
-    let path = format!("/{}/vault/plan", server.token);
+    let path = "/vault/plan".to_string();
     let (_, bytes) = server.plugin("POST", &path, body("another").as_bytes());
     let answer: Value = serde_json::from_slice(&bytes).unwrap();
     let id = answer["vault"].as_str().unwrap().to_string();

@@ -83,8 +83,9 @@ hosts = ["laptop.tail1234.ts.net"]
 ```
 
 On the phone, open the address `ura serve` prints with that name in place of `127.0.0.1:4310`, as
-`https://laptop.tail1234.ts.net/<token>/`. Its token answers for you: keep it to yourself. Its
-"Obsidian setup" page gives your phone a starter vault for your notes, which
+`https://laptop.tail1234.ts.net/`, and sign in with the token it printed under its address. The
+token answers for you: keep it to yourself, in your password manager. Its "Obsidian setup" page
+gives your phone a starter vault for your notes, which
 [the CLI's page](docs/cli.md#your-notes-on-your-phone) explains.
 
 ## Coming from Uraeda 2

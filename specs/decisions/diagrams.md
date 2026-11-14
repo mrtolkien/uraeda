@@ -23,8 +23,8 @@ for, a flow, a sequence, or states that a list would bury, is in the skill's
 
 Mermaid's source reads as text in any editor, and renders on GitHub, GitLab, and in Obsidian, so a
 diagram stays plain text in git, as the constitution asks. The pages write the human's answers and
-verdicts, with a token in their address, so nothing a file holds may run code there, and Mermaid's
-own renderer has had script-injection flaws. History:
+verdicts, in a signed-in browser, so nothing a file holds may run code there, and Mermaid's own
+renderer has had script-injection flaws. History:
 [Diagram frames](../done/2026-10-18-diagram-frames.md).
 
 ## Alternatives considered

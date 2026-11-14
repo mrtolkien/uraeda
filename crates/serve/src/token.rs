@@ -1,5 +1,10 @@
-//! The token every address starts with: 32 random bytes in hex, kept in `serve-token` of the data
-//! folder, readable by its owner alone, so the address stays the same from one start to the next.
+//! The token that opens the pages: 32 random bytes in hex, kept in `serve-token` of the data
+//! folder, readable by its owner alone, so it stays the same from one start to the next. The human
+//! signs in with it once per browser, and the phone's plugin sends it with every request.
+//!
+//! Two values are derived from it, neither of which gives it back: the session a signed-in
+//! browser keeps in its cookie, and the key in the address of a feature's files (see
+//! [`crate::files`]).
 
 use std::fs;
 use std::io::Write as _;
@@ -29,6 +34,17 @@ pub fn new() -> String {
     let mut bytes = [0u8; 32];
     getrandom::fill(&mut bytes).expect("the system's random bytes");
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// What a signed-in browser's cookie holds.
+pub fn session(token: &str) -> String {
+    uraeda_vault::manifest::hash_bytes(format!("uraeda session\n{token}").as_bytes())
+}
+
+/// The key in the address of a feature's files, 32 hex characters.
+pub fn files_key(token: &str) -> String {
+    uraeda_vault::manifest::hash_bytes(format!("uraeda files\n{token}").as_bytes())[..32]
+        .to_string()
 }
 
 /// Whether `given` is `token`, compared in a time that does not depend on where they differ.

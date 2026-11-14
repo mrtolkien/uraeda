@@ -35,7 +35,7 @@ What that means for a feature's plan:
 | ------------------------------------------------------- | -------------------------------------------- |
 | A stored format: a settings write keeps a hand edit     | A page's layout, sizes, or colours           |
 | A write of the human's: an answer, a verdict, a sync    | A page that only shows what a file holds     |
-| Security: every page asks for the token and the origin  | The markup a page is drawn with              |
+| Security: every page asks for a sign-in and the origin  | The markup a page is drawn with              |
 | A contract between two parts: the vault's sync protocol | Wiring that using the pages shows at once    |
 | Pure logic with many cases: the next step of a feature  | One test for every sentence of a spec        |
 | The bug a change fixes, reproduced first                | A second test of what another already proves |

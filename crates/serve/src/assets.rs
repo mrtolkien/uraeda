@@ -24,9 +24,9 @@ pub fn version() -> &'static str {
     })
 }
 
-/// `GET /<token>/a/<version>/<name>`: an embedded file, kept for a year when its version is the
-/// current one.
-pub async fn serve(Path((_, asked, name)): Path<(String, String, String)>) -> Response {
+/// `GET /a/<version>/<name>`: an embedded file, kept for a year when its version is the current
+/// one. It answers anyone: the sign-in page is drawn with it.
+pub async fn serve(Path((asked, name)): Path<(String, String)>) -> Response {
     let (body, kind) = match name.as_str() {
         "ura.css" => (CSS, "text/css; charset=utf-8"),
         "ura.js" => (JS, "text/javascript; charset=utf-8"),

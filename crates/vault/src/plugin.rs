@@ -2,7 +2,7 @@
 //! whenever it differs: the sync carries it to the phone, which loads the new version at once.
 //!
 //! Its `data.json`, each device's own settings, never syncs: the desktop's says `sync: false`,
-//! and the starter vault's carries the address of `ura serve` with its token.
+//! and the starter vault's carries the address of `ura serve` and its token.
 
 use std::io::{self, Write};
 
@@ -52,22 +52,27 @@ pub fn install(vault: &Vault) -> io::Result<()> {
     Ok(())
 }
 
-/// The plugin's settings for one device: `url`, the address of `ura serve` with its token, and
-/// whether it syncs. The rest of an existing `data.json` is kept.
-pub fn settings(existing: Option<&str>, url: &str, sync: bool) -> String {
+/// The plugin's settings for one device: `url`, the address of `ura serve`, `token`, its token,
+/// when the device syncs with it, and whether it syncs. The rest of an existing `data.json` is
+/// kept.
+pub fn settings(existing: Option<&str>, url: &str, token: Option<&str>, sync: bool) -> String {
     let mut data = existing
         .and_then(|text| serde_json::from_str::<Map<String, Value>>(text).ok())
         .unwrap_or_default();
     data.insert("url".into(), Value::from(url));
+    if let Some(token) = token {
+        data.insert("token".into(), Value::from(token));
+    }
     data.insert("sync".into(), Value::from(sync));
     format!("{}\n", Value::Object(data))
 }
 
-/// Sets the desktop's plugin settings: the pages' address, and no sync.
+/// Sets the desktop's plugin settings: the pages' address, and no sync. It holds no token: its
+/// links open the pages in a browser, which signs in.
 pub fn configure_desktop(vault: &Vault, url: &str) -> io::Result<()> {
     let file = vault.root().join(paths::PLUGIN_DIR).join("data.json");
     let existing = std::fs::read_to_string(&file).ok();
-    let text = settings(existing.as_deref(), url, false);
+    let text = settings(existing.as_deref(), url, None, false);
     if existing.as_deref() != Some(text.as_str()) {
         notes::write_atomic(&file, text.as_bytes())?;
     }
@@ -97,7 +102,7 @@ pub fn vault_id(vault: &Vault) -> io::Result<String> {
 
 /// The phone's starter vault, a zip of one folder `name`: the plugin, on, with the address of
 /// `ura serve` and its token, and a note that says what it is. The first sync brings the rest.
-pub fn starter(name: &str, url: &str) -> io::Result<Vec<u8>> {
+pub fn starter(name: &str, url: &str, token: &str) -> io::Result<Vec<u8>> {
     let mut zip = zip::ZipWriter::new(io::Cursor::new(Vec::new()));
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let mut add = |path: &str, text: &str| -> io::Result<()> {
@@ -110,7 +115,7 @@ pub fn starter(name: &str, url: &str) -> io::Result<Vec<u8>> {
     }
     add(
         &format!("{}/data.json", paths::PLUGIN_DIR),
-        &settings(None, url, true),
+        &settings(None, url, Some(token), true),
     )?;
     add(".obsidian/community-plugins.json", "[\"uraeda\"]\n")?;
     add(STARTER_NOTE_NAME, STARTER_NOTE)?;
@@ -150,7 +155,7 @@ mod tests {
 
     #[test]
     fn the_starter_holds_the_plugin_and_its_address() {
-        let bytes = starter("Uraeda", "https://laptop.ts.net/t/").unwrap();
+        let bytes = starter("Uraeda", "https://laptop.ts.net/", "abc").unwrap();
         let mut zip = zip::ZipArchive::new(io::Cursor::new(bytes)).unwrap();
         let mut data = String::new();
         io::Read::read_to_string(
@@ -161,9 +166,10 @@ mod tests {
         )
         .unwrap();
         assert!(
-            data.contains("\"url\":\"https://laptop.ts.net/t/\""),
+            data.contains("\"url\":\"https://laptop.ts.net/\""),
             "{data}"
         );
+        assert!(data.contains("\"token\":\"abc\""), "{data}");
         assert!(data.contains("\"sync\":true"), "{data}");
         assert!(
             zip.by_name("Uraeda/.obsidian/plugins/uraeda/main.js")
@@ -188,12 +194,14 @@ mod tests {
     fn settings_keep_the_rest() {
         let text = settings(
             Some("{\"base\":{\"a\":\"1\"},\"sync\":true}"),
-            "http://x/t/",
+            "http://x/",
+            None,
             false,
         );
         let value: Value = serde_json::from_str(&text).unwrap();
         assert_eq!(value["base"]["a"], "1");
         assert_eq!(value["sync"], false);
-        assert_eq!(value["url"], "http://x/t/");
+        assert_eq!(value["url"], "http://x/");
+        assert_eq!(value.get("token"), None);
     }
 }

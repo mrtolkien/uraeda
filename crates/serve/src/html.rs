@@ -21,8 +21,8 @@ pub fn escape(text: &str) -> String {
 }
 
 /// A whole page: `title`, escaped, and `body`, HTML already. Its style sheet and script are the
-/// embedded ones, at addresses relative to the page's, so the token is kept without being named.
-/// `base` is the path back to the token's folder from the page: `./` for the home page.
+/// embedded ones, at addresses relative to the page's, so the pages work under any address a
+/// proxy gives them. `base` is the path back to the home page from the page: `./` for itself.
 pub fn page_at(base: &str, title: &str, body: &str) -> String {
     let mut out = String::with_capacity(body.len() + 600);
     let _ = write!(
@@ -40,7 +40,7 @@ pub fn page_at(base: &str, title: &str, body: &str) -> String {
     out
 }
 
-/// A page at the token's folder itself.
+/// A page beside the home page.
 pub fn page(title: &str, body: &str) -> String {
     page_at("./", title, body)
 }

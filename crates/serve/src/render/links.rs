@@ -8,10 +8,12 @@ pub struct Links {
     /// The folder of the file drawn, from the repository's top level, without a slash at either
     /// end: `specs/2026-10-06-recurring-tasks`. Its relative links start there.
     pub folder: String,
-    /// The address the feature's pages start at, ending with a slash, `../` or `/<token>/f/x/`.
-    /// A link to a markdown file is `<base>file/<path>`, to anything else `<base>raw/<path>`,
-    /// `<path>` from the repository's top level.
+    /// The address the feature's pages start at, ending with a slash, `../` or `/f/x/`.
+    /// A link to a markdown file is `<base>file/<path>`, to anything else
+    /// `<base>raw/<key>/<path>`, `<path>` from the repository's top level.
     pub base: String,
+    /// The key in the address of the feature's files: see [`crate::token::files_key`].
+    pub key: String,
 }
 
 /// Where a link leads.
@@ -47,9 +49,9 @@ impl Links {
             .map(|(_, fragment)| format!("#{fragment}"))
             .unwrap_or_default();
         let page = if !image && path.to_ascii_lowercase().ends_with(".md") {
-            "file"
+            "file".to_string()
         } else {
-            "raw"
+            format!("raw/{}", self.key)
         };
         Some(Target::Inside(format!(
             "{}{page}/{}{fragment}",
@@ -80,6 +82,7 @@ mod tests {
         Links {
             folder: "specs/f".into(),
             base: "/t/".into(),
+            key: "k".into(),
         }
     }
 
@@ -98,7 +101,7 @@ mod tests {
         assert_eq!(links.href("/README.md", false), inside("/t/file/README.md"));
         assert_eq!(
             links.href("my%20shot.png", true),
-            inside("/t/raw/specs/f/my%20shot.png")
+            inside("/t/raw/k/specs/f/my%20shot.png")
         );
         assert_eq!(links.href("../../../x.md", false), None);
         assert_eq!(links.href("javascript:alert(1)", false), None);

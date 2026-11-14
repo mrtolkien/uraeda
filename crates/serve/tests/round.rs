@@ -39,15 +39,15 @@ fn on_disk(fixture: &Fixture) -> String {
     .unwrap()
 }
 
-fn base(server: &Server) -> String {
-    format!("/{}/todo/{FOLDER}", server.token)
+fn base() -> String {
+    format!("/todo/{FOLDER}")
 }
 
 #[test]
 fn the_round_page_draws_each_question_and_its_options() {
     let f = fixture(&[("clarifications-01.md", waiting_round())]);
     let server = Server::with(settings(&f));
-    let answer = server.get(&format!("{}/round", base(&server)));
+    let answer = server.get(&format!("{}/round", base()));
     assert_eq!(answer.status(), 200);
     let page = answer.into_body().read_to_string().unwrap();
     assert!(
@@ -79,7 +79,7 @@ fn an_answer_is_written_at_once_and_nothing_is_committed() {
     let before = head(&f);
     let server = Server::with(settings(&f));
     let answer = server.write(
-        &format!("{}/answer", base(&server)),
+        &format!("{}/answer", base()),
         r#"{"id":"Q4","letters":["B"],"comment":"UTC is fine.","previous":"A"}"#,
     );
     assert_eq!(answer.status(), 200);
@@ -94,7 +94,7 @@ fn an_answer_over_one_that_changed_is_refused() {
     let f = fixture(&[("clarifications-01.md", waiting_round())]);
     let server = Server::with(settings(&f));
     let answer = server.write(
-        &format!("{}/answer", base(&server)),
+        &format!("{}/answer", base()),
         r#"{"id":"Q4","letters":["B"],"comment":"","previous":"C"}"#,
     );
     assert_eq!(answer.status(), 409);
@@ -106,7 +106,7 @@ fn a_write_from_another_site_is_refused() {
     let f = fixture(&[("clarifications-01.md", waiting_round())]);
     let server = Server::with(settings(&f));
     let answer = server.post(
-        &format!("{}/answer", base(&server)),
+        &format!("{}/answer", base()),
         &[("origin", "https://evil.example")],
         r#"{"id":"Q4","letters":["B"],"previous":"A"}"#,
     );
@@ -119,18 +119,18 @@ fn sending_the_answers_records_the_round_answered_without_a_commit() {
     let before = head(&f);
     let server = Server::with(settings(&f));
     let blank = server.write(
-        &format!("{}/answer", base(&server)),
+        &format!("{}/answer", base()),
         r#"{"id":"Q4","letters":[],"comment":"","previous":"A"}"#,
     );
     assert_eq!(blank.status(), 200);
-    let refused = server.write(&format!("{}/submit", base(&server)), "{}");
+    let refused = server.write(&format!("{}/submit", base()), "{}");
     assert_eq!(refused.status(), 422, "Q4 has no answer");
     let filled = server.write(
-        &format!("{}/answer", base(&server)),
+        &format!("{}/answer", base()),
         r#"{"id":"Q4","letters":["A"],"comment":"","previous":""}"#,
     );
     assert_eq!(filled.status(), 200);
-    let sent = server.write(&format!("{}/submit", base(&server)), "{}");
+    let sent = server.write(&format!("{}/submit", base()), "{}");
     assert_eq!(sent.status(), 200);
     let body = sent.into_body().read_to_string().unwrap();
     assert!(body.contains("Tell your session to continue."), "{body}");
@@ -145,7 +145,7 @@ fn a_comment_on_a_settled_point_goes_in_the_notes() {
     let f = fixture(&[("clarifications-01.md", waiting_round())]);
     let server = Server::with(settings(&f));
     let answer = server.write(
-        &format!("{}/settled", base(&server)),
+        &format!("{}/settled", base()),
         r#"{"subject":"Skipping one occurrence","number":0,"text":"Add a skip later.","previous":""}"#,
     );
     assert_eq!(answer.status(), 200);

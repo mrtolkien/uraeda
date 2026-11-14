@@ -1,12 +1,12 @@
 //! The sync of the human's vault with the plugin on their phone. The desktop decides, the phone
 //! carries the plan out:
 //!
-//! - `POST /{token}/vault/plan`: the phone's files and its base, each a path and a SHA-256, and
+//! - `POST /vault/plan`: the phone's files and its base, each a path and a SHA-256, and
 //!   its local time for naming copies. Answers the plan (see [`uraeda_vault::plan`]).
-//! - `GET /{token}/vault/file?path=`: a file of the vault.
-//! - `PUT /{token}/vault/file?path=&expect=`: writes a file, only while the desktop's is still
+//! - `GET /vault/file?path=`: a file of the vault.
+//! - `PUT /vault/file?path=&expect=`: writes a file, only while the desktop's is still
 //!   `expect`, no `expect` for no file: else `409`, and the next sync keeps both.
-//! - `DELETE /{token}/vault/file?path=&expect=`: moves a file to the vault's `.trash/`, on the
+//! - `DELETE /vault/file?path=&expect=`: moves a file to the vault's `.trash/`, on the
 //!   same condition.
 //!
 //! A write or a deletion never goes through a link of the vault: a link leads to a repository's

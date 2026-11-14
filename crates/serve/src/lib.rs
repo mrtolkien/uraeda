@@ -3,14 +3,15 @@
 //! sheet and one script embedded in the binary: nothing is fetched from outside.
 //!
 //! The pages write files and never commit, branch, or make a worktree: the next agent step commits
-//! the human's work. Every address starts with a token, `/<token>/`, and every write must come from
-//! the page's own origin (see [`guard`]).
+//! the human's work. A page opens to a browser signed in with the token, and every write must come
+//! from the page's own origin (see [`guard`]).
 
 pub mod assets;
 pub mod config;
 pub mod files;
 pub mod guard;
 pub mod html;
+pub mod login;
 pub mod marks;
 pub mod providers;
 pub mod render;
@@ -54,6 +55,10 @@ pub struct Options {
 /// What every request reads: the token, the settings, and where they are kept.
 pub struct Shared {
     pub token: String,
+    /// What a signed-in browser's cookie holds: see [`token::session`].
+    pub session: String,
+    /// The key in the address of a feature's files: see [`token::files_key`].
+    pub files_key: String,
     settings: std::sync::RwLock<Settings>,
     /// The folder of `config.toml`, which the settings page writes.
     pub config_dir: PathBuf,
@@ -76,6 +81,8 @@ pub struct Shared {
 impl Shared {
     pub fn new(token: String, settings: Settings, config_dir: PathBuf) -> Shared {
         Shared {
+            session: token::session(&token),
+            files_key: token::files_key(&token),
             token,
             settings: std::sync::RwLock::new(settings),
             config_dir,
@@ -188,45 +195,37 @@ pub enum ServeError {
 /// Every route, behind the guard.
 pub fn router(shared: Arc<Shared>) -> Router {
     Router::new()
-        .route("/{token}/", get(home))
-        .route("/{token}/a/{version}/{name}", get(assets::serve))
-        .route("/{token}/settings", get(settings::page))
-        .route("/{token}/settings/runs", post(settings::save_runs))
-        .route("/{token}/settings/serve", post(settings::save_serve))
-        .route("/{token}/{repo}/{folder}/round", get(round::routes::page))
-        .route("/{token}/{repo}/{folder}/file/{*path}", get(files::page))
-        .route("/{token}/{repo}/{folder}/raw/{*path}", get(files::raw))
-        .route("/{token}/{repo}/{folder}/answer", post(round::routes::save))
-        .route("/{token}/{repo}/{folder}/notes", post(round::routes::notes))
+        .route("/", get(home))
+        .route("/login", get(login::page).post(login::sign_in))
+        .route("/a/{version}/{name}", get(assets::serve))
+        .route("/settings", get(settings::page))
+        .route("/settings/runs", post(settings::save_runs))
+        .route("/settings/serve", post(settings::save_serve))
+        .route("/{repo}/{folder}/round", get(round::routes::page))
+        .route("/{repo}/{folder}/file/{*path}", get(files::page))
+        .route("/{repo}/{folder}/raw/{key}/{*path}", get(files::raw))
+        .route("/{repo}/{folder}/answer", post(round::routes::save))
+        .route("/{repo}/{folder}/notes", post(round::routes::notes))
+        .route("/{repo}/{folder}/settled", post(round::routes::settled))
+        .route("/{repo}/{folder}/submit", post(round::routes::submit))
+        .route("/{repo}/{folder}/review/{file}", get(review::routes::page))
         .route(
-            "/{token}/{repo}/{folder}/settled",
-            post(round::routes::settled),
-        )
-        .route(
-            "/{token}/{repo}/{folder}/submit",
-            post(round::routes::submit),
-        )
-        .route(
-            "/{token}/{repo}/{folder}/review/{file}",
-            get(review::routes::page),
-        )
-        .route(
-            "/{token}/{repo}/{folder}/review/{file}/comment",
+            "/{repo}/{folder}/review/{file}/comment",
             post(review::routes::comment),
         )
         .route(
-            "/{token}/{repo}/{folder}/review/{file}/verdict",
+            "/{repo}/{folder}/review/{file}/verdict",
             post(review::routes::verdict),
         )
-        .route("/{token}/vault", get(vault_page::page_route))
-        .route("/{token}/vault/place", post(vault_page::save_place))
-        .route("/{token}/vault/start.zip", get(vault_page::start_zip))
+        .route("/vault", get(vault_page::page_route))
+        .route("/vault/place", post(vault_page::save_place))
+        .route("/vault/start.zip", get(vault_page::start_zip))
         .route(
-            "/{token}/vault/plan",
+            "/vault/plan",
             post(sync::plan).layer(DefaultBodyLimit::max(sync::MAX_PLAN)),
         )
         .route(
-            "/{token}/vault/file",
+            "/vault/file",
             get(sync::get_file)
                 .put(sync::put_file)
                 .delete(sync::delete_file)
@@ -266,7 +265,7 @@ async fn not_found() -> (axum::http::StatusCode, Html<String>) {
 }
 
 /// Reads the settings and the token, then serves until stopped, on this machine's loopback only:
-/// a phone reaches it through `tailscale serve`. Prints the address with its token first.
+/// a phone reaches it through `tailscale serve`. Prints the address, then the token, first.
 pub fn run(options: Options) -> Result<(), ServeError> {
     let settings = config::read(&options.config_dir, &options.cwd)?;
     let token = token::keep(&options.data_dir)
@@ -291,9 +290,10 @@ pub fn run(options: Options) -> Result<(), ServeError> {
             .await
             .map_err(|error| ServeError::Listen(port, error))?;
         let port = listener.local_addr()?.port();
-        println!("http://127.0.0.1:{port}/{}/", shared.token);
+        let pages = format!("http://127.0.0.1:{port}/");
+        println!("{pages}");
+        println!("token: {}", shared.token);
         if let Some(vault) = shared.vault() {
-            let pages = format!("http://127.0.0.1:{port}/{}/", shared.token);
             let _ = uraeda_vault::plugin::configure_desktop(&vault, &pages);
             println!("vault: {}", vault.root().display());
         }

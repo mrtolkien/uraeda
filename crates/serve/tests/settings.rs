@@ -81,7 +81,7 @@ fn options() -> &'static str {
 fn the_page_draws_each_step_its_sessions_and_the_reviewers() {
     let dir = TempDir::new().unwrap();
     let server = server(&dir);
-    let answer = server.get(&format!("/{}/settings", server.token));
+    let answer = server.get("/settings");
     assert_eq!(answer.status(), 200);
     let page = answer.into_body().read_to_string().unwrap();
     for word in [
@@ -118,7 +118,7 @@ fn the_page_draws_each_step_its_sessions_and_the_reviewers() {
         "{page}"
     );
     assert!(page.contains("aria-pressed=\"false\" data-step=\"build\""));
-    let home = server.get(&format!("/{}/", server.token));
+    let home = server.get("/");
     assert!(
         home.into_body()
             .read_to_string()
@@ -136,7 +136,7 @@ fn a_save_writes_the_runs_and_keeps_the_rest_of_the_file() {
         version_of(FILE),
         options()
     );
-    let answer = server.write(&format!("/{}/settings/runs", server.token), &body);
+    let answer = server.write("/settings/runs", &body);
     assert_eq!(answer.status(), 200);
     let text = read(&dir);
     assert!(text.starts_with("# Mine: keep this comment."), "{text}");
@@ -167,7 +167,7 @@ fn a_page_that_read_another_version_is_refused() {
     let dir = TempDir::new().unwrap();
     let server = server(&dir);
     let body = format!(r#"{{"version":"0","options":{}}}"#, options());
-    let answer = server.write(&format!("/{}/settings/runs", server.token), &body);
+    let answer = server.write("/settings/runs", &body);
     assert_eq!(answer.status(), 409);
     assert_eq!(read(&dir), FILE);
 }
@@ -177,7 +177,7 @@ fn the_wake_switch_writes_the_serve_section() {
     let dir = TempDir::new().unwrap();
     let server = server(&dir);
     let on = server.write(
-        &format!("/{}/settings/serve", server.token),
+        "/settings/serve",
         &format!(r#"{{"version":"{}","wake":true}}"#, version_of(FILE)),
     );
     assert_eq!(on.status(), 200);
@@ -185,7 +185,7 @@ fn the_wake_switch_writes_the_serve_section() {
     assert!(text.contains("wake = \"t3\""), "{text}");
     assert!(text.contains("repositories = [\"/x\"]"));
     let off = server.write(
-        &format!("/{}/settings/serve", server.token),
+        "/settings/serve",
         &format!(r#"{{"version":"{}","wake":false}}"#, version_of(&text)),
     );
     assert_eq!(off.status(), 200);

@@ -1,10 +1,15 @@
 //! The files a page links to, from the feature's checkout: a markdown file drawn as a page to read,
 //! and any other file as it is, a mockup or an image.
 //!
-//! - `GET /{token}/{repo}/{folder}/file/{*path}`: a markdown file of the repository, drawn.
-//! - `GET /{token}/{repo}/{folder}/raw/{*path}`: a file as it is. An HTML file is served in a
+//! - `GET /{repo}/{folder}/file/{*path}`: a markdown file of the repository, drawn.
+//! - `GET /{repo}/{folder}/raw/{key}/{*path}`: a file as it is. An HTML file is served in a
 //!   sandbox of its own, an opaque origin that can run its scripts but never write through the
 //!   pages (its writes carry `Origin: null`), with the element picker added at its end.
+//!
+//! A sandboxed mockup asks for its own style sheets and images from that opaque origin, and a
+//! browser sends no session cookie with such a request. So a raw file's address holds a key
+//! instead, derived from the token, which every page that links one writes in: the key reads
+//! these files and nothing else, and never writes.
 //!
 //! A path is from the repository's top level, and must stay inside the checkout, out of its
 //! hidden folders and files: `.git/config` may hold a remote's credentials.
@@ -22,7 +27,8 @@ use crate::{Shared, html, waiting};
 /// The element picker, posted to the page that frames a mockup: see its own header.
 pub const PICKER: &str = include_str!("../../../skills/uraeda/assets/storybook/uraeda-pick.js");
 
-/// The address of a feature's file: the token, the repository, the folder, and the file's path.
+/// The address of a feature's raw file: the repository, the folder, the files' key, and the
+/// file's path.
 pub type File = Address<(String, String, String, String)>;
 
 /// `path` inside `root`, refused when it leaves it or reaches a hidden file, by `..` or a link.
@@ -57,10 +63,11 @@ fn back(path: &str) -> String {
 /// `GET .../file/{*path}`.
 pub async fn page(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder, path)): File,
+    Address((repo, folder, path)): Address<(String, String, String)>,
 ) -> Response {
     let base = back(&path);
     let home = format!("{base}../../");
+    let key = shared.files_key.clone();
     let drawn = on(&shared, repo, folder, {
         let base = base.clone();
         let home = home.clone();
@@ -81,7 +88,7 @@ pub async fn page(
                  </article></main>",
                 home = html::escape(&home),
                 name = html::escape(&name),
-                doc = crate::render::draw(&text, &path, &base),
+                doc = crate::render::draw(&text, &path, &base, &key),
             );
             let title = text
                 .lines()
@@ -101,8 +108,12 @@ pub async fn page(
 /// `GET .../raw/{*path}`.
 pub async fn raw(
     State(shared): State<Arc<Shared>>,
-    Address((_, repo, folder, path)): File,
+    Address((repo, folder, key, path)): File,
 ) -> Response {
+    // The key stands for the session here: a mockup's own files are asked for without the cookie.
+    if !crate::token::matches(&shared.files_key, &key) {
+        return (StatusCode::NOT_FOUND, "This file does not exist.").into_response();
+    }
     let read = on(&shared, repo, folder, move |located| {
         let full = inside(&located.root, &path)?;
         let bytes = std::fs::read(&full)

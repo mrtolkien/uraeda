@@ -20,10 +20,13 @@ fn a_mockup_is_served_in_a_sandbox_with_the_picker() {
         ),
     ]);
     let server = Server::with(settings(&f));
-    let answer = server.get(&format!(
-        "/{}/todo/{FOLDER}/raw/specs/{FOLDER}/mockups-menu.html",
-        server.token
-    ));
+    let answer = server.stranger(
+        &format!(
+            "/todo/{FOLDER}/raw/{}/specs/{FOLDER}/mockups-menu.html",
+            server.key()
+        ),
+        &[],
+    );
     assert_eq!(answer.status(), 200);
     let policy = answer
         .headers()
@@ -44,10 +47,7 @@ fn a_mockup_is_served_in_a_sandbox_with_the_picker() {
 fn a_markdown_file_is_drawn_and_a_path_out_of_the_checkout_is_refused() {
     let f = fixture(&[("clarifications-01.md", round())]);
     let server = Server::with(settings(&f));
-    let page = server.get(&format!(
-        "/{}/todo/{FOLDER}/file/specs/{FOLDER}/proposal.md",
-        server.token
-    ));
+    let page = server.get(&format!("/todo/{FOLDER}/file/specs/{FOLDER}/proposal.md"));
     assert_eq!(page.status(), 200);
     let body = page.into_body().read_to_string().unwrap();
     assert!(body.contains("Recurring tasks"), "{body}");
@@ -56,7 +56,7 @@ fn a_markdown_file_is_drawn_and_a_path_out_of_the_checkout_is_refused() {
         "specs/../../todo/specs/PRIORITIES.md",
         "nope.md",
     ] {
-        let answer = server.get(&format!("/{}/todo/{FOLDER}/raw/{path}", server.token));
+        let answer = server.get(&format!("/todo/{FOLDER}/raw/{}/{path}", server.key()));
         assert_eq!(answer.status(), 404, "{path}");
     }
 }
@@ -71,7 +71,7 @@ fn a_link_to_a_hidden_file_is_refused() {
     let server = Server::with(settings(&f));
     let raw = |path: &str| {
         server
-            .get(&format!("/{}/todo/{FOLDER}/raw/{path}", server.token))
+            .get(&format!("/todo/{FOLDER}/raw/{}/{path}", server.key()))
             .status()
     };
     assert_eq!(raw("env.txt"), 404);

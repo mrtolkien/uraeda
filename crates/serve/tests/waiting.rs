@@ -20,11 +20,7 @@ fn spec(status: &str) -> String {
 }
 
 fn home(server: &Server) -> String {
-    server
-        .get(&format!("/{}/", server.token))
-        .into_body()
-        .read_to_string()
-        .unwrap()
+    server.get("/").into_body().read_to_string().unwrap()
 }
 
 #[test]

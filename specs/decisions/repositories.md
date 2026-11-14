@@ -19,7 +19,7 @@ all of them. Their list is a plain-text line of the settings file, `[serve] repo
 - One `ura serve` serves every repository on the list. _So:_ the page of what waits lists every
   repository's rounds, specs, and plans, and the vault holds one `projects/<repository>/` for each.
 - Two repositories never mix: every page and link carries its repository, under a name a human can
-  read. _So:_ a round's address reads `/<token>/uraeda/<folder>/round`, never an opaque ID.
+  read. _So:_ a round's address reads `/uraeda/<folder>/round`, never an opaque ID.
 
 ## Why
 

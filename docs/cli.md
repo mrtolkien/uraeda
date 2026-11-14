@@ -90,8 +90,10 @@ version of the file that has changed since, and a review file that does not pars
 ## `ura serve`
 
 `ura serve` serves small pages to answer a round and review a spec or a plan on, from your phone
-too. It prints their address, which holds a token: keep it to yourself, as anyone with it can answer
-for you.
+too. It prints their address, then a token. A browser opens the pages once you have signed in with
+the token, which it then remembers for a year: keep the token in your password manager, and to
+yourself, as anyone with it can answer for you. Removing `serve-token` from `ura`'s data folder
+makes a new one at the next start, and signs every browser and phone out.
 
 - **What waits on you**: every round, spec, and plan waiting for you, across the repositories it
   serves and their worktrees, each with what is asked and how long it takes.
@@ -161,7 +163,8 @@ in progress in its worktrees, to read: `ura serve` makes those links again as wo
 - **Starting the phone**: open the pages on your phone, through your tailnet's address, and tap
   "Obsidian setup". Download the starter vault, unzip it in Files, move its folder into On My iPhone
   › Obsidian, open it in Obsidian, and trust its plugin. The first sync brings the rest. The starter
-  carries the address it was downloaded from, with its token.
+  carries the address it was downloaded from, and the token. A phone set up by hand takes both in
+  the plugin's settings, "Address of ura serve" and "Token".
 - **When it syncs**: as Obsidian opens or comes back, a few seconds after an edit, and every minute
   while it is open; ⟳ syncs at once. iOS does not let it run while Obsidian is closed.
 - **What travels**: every file of the vault, both ways, but hidden ones: each device keeps its own

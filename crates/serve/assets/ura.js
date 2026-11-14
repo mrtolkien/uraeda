@@ -82,7 +82,7 @@
       const block = link.closest("[data-lines], .choice, p, li") || link.parentElement;
       if (block.querySelector(":scope > .see-it")) continue;
       const href = link.getAttribute("href");
-      const match = /raw\/specs\/[^/]+\/(.+?)(#.*)?$/.exec(href);
+      const match = /raw\/[^/]+\/specs\/[^/]+\/(.+?)(#.*)?$/.exec(href);
       const file = decodeURIComponent(match ? match[1] : href.split("/").pop());
       const button = document.createElement("button");
       button.type = "button";
