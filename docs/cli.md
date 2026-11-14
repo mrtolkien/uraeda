@@ -26,7 +26,8 @@ ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-c
 ura inbox                                  # every note, agents' notes included; --json for tools
 ura clean --all                            # merged features' worktrees, branches, and priorities lines
 ura upgrade                                # the latest release, then your skill
-ura serve-app                                  # the server, and the app in your browser
+ura serve                                  # pages to answer and review on, from your phone too
+ura serve-app                              # the server, and the app in your browser
 ura pair                                   # a one-time code, and its QR code, to pair a device with it
 ura import-sessions                        # the earlier web UI's sessions, copied once
 ```
@@ -52,6 +53,35 @@ points at its record, keeping a question's anchor. A link to a deleted file beco
 `--fix` exits as the check after it, with success when no problem is left, and its JSON adds a
 `fixed` list of files and link counts. In the app, a done feature's page has "Fix moved links" for
 the same repair.
+
+`ura serve` serves small pages to answer a round and review a spec or a plan on, from your phone
+too. It prints their address, which holds a token: keep it to yourself, as anyone with it can answer
+for you.
+
+- **What waits on you**: every round, spec, and plan waiting for you, across the repositories it
+  serves and their worktrees.
+- **A round**: one card per question, the recommended option marked. An answer is saved as soon as
+  you pick it or type it. "Send answers" records the round answered.
+- **A review**: the spec or plan, what changed since your last review, and a comment on any passage
+  you tap, or on words you select. Then approve, or request changes.
+- **Mockups**: "See it" draws a mockup of the feature in place. "Pick an element" starts a comment
+  on the element you tap.
+
+The pages write the workflow's files and never commit: the next agent step commits your work. It
+listens on 127.0.0.1, port 4320 or `--port`: to reach it from your phone, put it on your own
+network, as `tailscale serve 4320` does. `--data-dir` names the folder it keeps its token in. Its
+settings are the `[serve]` section of the settings file, `~/.config/uraeda/config.toml`:
+
+```toml
+[serve]
+port = 4320
+repositories = ["~/code/todo", "~/code/uraeda"] # without it, the repository it starts in
+wake = "t3" # tell the feature's T3 Code session to continue when you send answers or a verdict
+```
+
+Without `wake`, a page ends with "Tell your session to continue". With `wake = "t3"`, it finds the
+open T3 Code thread working in the feature's worktree, with the `t3` command, and sends it a message
+to continue.
 
 `ura serve-app` runs Uraeda's server, which serves [the app](app.md) to your browser and to the
 desktop app.
