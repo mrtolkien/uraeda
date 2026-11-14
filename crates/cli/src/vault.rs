@@ -28,7 +28,7 @@ enum Command {
     },
     /// Print a note
     Read {
-        /// The note, from the vault's folder: `wiki/apps/todoist.md`
+        /// The note, from the vault's folder: `wiki/apps/todoist.md`, its `.md` optional
         path: String,
     },
     /// Write a note from standard input, or set one frontmatter field and leave the rest as it was

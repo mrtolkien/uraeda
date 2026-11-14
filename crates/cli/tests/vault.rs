@@ -125,3 +125,33 @@ fn check_reports_and_fails() {
     assert!(vault.write("inbox/nowhere.md", "# Here\n").status.success());
     assert_eq!(vault.ura(&["vault", "check"]).code, 0);
 }
+
+#[test]
+fn a_note_is_named_without_its_md_as_obsidian_copies_it() {
+    let vault = Vault::new();
+    let note = "---\nstatus: now\n---\n# Moyo plan up to chat\n";
+    let path = "projects/moyo/proposals/Moyo plan up to chat";
+    assert!(vault.write(&format!("{path}.md"), note).status.success());
+
+    let read = vault.ura(&["vault", "read", path]);
+    assert_eq!(read.code, 0, "{}", read.stderr);
+    assert_eq!(read.stdout, note);
+
+    let set = vault.ura(&["vault", "write", path, "--set", "status=started"]);
+    assert_eq!(set.code, 0, "{}", set.stderr);
+    let folder = vault.home.path().join("Notes/projects/moyo/proposals");
+    assert!(!folder.join("Moyo plan up to chat").exists());
+    assert_eq!(
+        std::fs::read_to_string(folder.join("Moyo plan up to chat.md")).unwrap(),
+        note.replace("now", "started")
+    );
+    assert!(vault.write(path, "# Rewritten\n").status.success());
+    assert!(!folder.join("Moyo plan up to chat").exists());
+    assert_eq!(
+        std::fs::read_to_string(folder.join("Moyo plan up to chat.md")).unwrap(),
+        "# Rewritten\n"
+    );
+
+    assert_eq!(vault.ura(&["vault", "rm", path]).code, 0);
+    assert!(!folder.join("Moyo plan up to chat.md").exists());
+}

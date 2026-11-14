@@ -82,8 +82,21 @@ pub fn description(text: &str) -> Option<String> {
     (!value.is_empty()).then(|| value.to_string())
 }
 
+/// The note `path` names: the path as given, or, when no file is there, the same path with `.md`
+/// added when that one is a note, as Obsidian copies a note's path without its `.md`.
+pub fn named(vault: &Vault, path: &str) -> String {
+    let is_file = |p: &str| vault.file(p).is_some_and(|f| f.is_file());
+    let with_md = format!("{path}.md");
+    if !path.ends_with(".md") && !is_file(path) && is_file(&with_md) {
+        with_md
+    } else {
+        path.to_string()
+    }
+}
+
 /// A note's text.
 pub fn read(vault: &Vault, path: &str) -> Result<String, NoteError> {
+    let path = &named(vault, path);
     let file = vault
         .file(path)
         .ok_or_else(|| NoteError::Path(path.into()))?;
@@ -95,6 +108,7 @@ pub fn read(vault: &Vault, path: &str) -> Result<String, NoteError> {
 
 /// Writes a note, its folders made: refused for a path neither `ura vault` nor the phone writes.
 pub fn write(vault: &Vault, path: &str, bytes: &[u8]) -> Result<(), NoteError> {
+    let path = &named(vault, path);
     let file = writable(vault, path)?;
     write_atomic(&file, bytes).map_err(|e| NoteError::Io(path.into(), e))
 }
@@ -105,12 +119,14 @@ pub fn set(vault: &Vault, path: &str, assignment: &str) -> Result<(), NoteError>
         .split_once('=')
         .filter(|(n, v)| valid_name(n) && !v.contains(['\n', '\r']))
         .ok_or(NoteError::Field)?;
+    let path = &named(vault, path);
     let text = read(vault, path)?;
     write(vault, path, set_field(&text, name, value).as_bytes())
 }
 
 /// Moves a note to `.trash/`, at the same path, numbered when one is there already.
 pub fn rm(vault: &Vault, path: &str) -> Result<(), NoteError> {
+    let path = &named(vault, path);
     let file = writable(vault, path)?;
     if !file.is_file() {
         return Err(NoteError::Missing(path.into()));
