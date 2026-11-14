@@ -83,11 +83,13 @@ pub fn description(text: &str) -> Option<String> {
 }
 
 /// The note `path` names: the path as given, or, when no file is there, the same path with `.md`
-/// added when that one is a note, as Obsidian copies a note's path without its `.md`.
+/// added when that one is a note, as Obsidian copies a note's path without its `.md`. A path the
+/// vault refuses stays as given, so `wiki/..` never names `wiki/...md`.
 pub fn named(vault: &Vault, path: &str) -> String {
     let is_file = |p: &str| vault.file(p).is_some_and(|f| f.is_file());
     let with_md = format!("{path}.md");
-    if !path.ends_with(".md") && !is_file(path) && is_file(&with_md) {
+    let valid = vault.file(path).is_some();
+    if valid && !path.ends_with(".md") && !is_file(path) && is_file(&with_md) {
         with_md
     } else {
         path.to_string()
@@ -275,6 +277,20 @@ mod tests {
             set_field("---\nstatus_x: 1\n---\n", "status", "now"),
             "---\nstatus_x: 1\nstatus: now\n---\n"
         );
+    }
+
+    #[test]
+    fn names_a_note_without_its_md_but_never_a_refused_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Vault::new(dir.path());
+        write(&vault, "wiki/a.md", b"note").unwrap();
+        std::fs::write(dir.path().join("wiki/a"), "file").unwrap();
+        write(&vault, "wiki/b.md", b"b").unwrap();
+        std::fs::write(dir.path().join("wiki/...md"), "dots").unwrap();
+        assert_eq!(named(&vault, "wiki/a"), "wiki/a");
+        assert_eq!(named(&vault, "wiki/b"), "wiki/b.md");
+        assert_eq!(named(&vault, "wiki/c"), "wiki/c");
+        assert!(matches!(read(&vault, "wiki/.."), Err(NoteError::Path(_))));
     }
 
     #[test]
