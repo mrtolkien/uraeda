@@ -20,11 +20,16 @@ impl Server {
     }
 
     pub fn with(settings: Settings) -> Server {
-        let token = token::new();
-        let shared = Arc::new(Shared {
-            token: token.clone(),
+        Server::configured(
             settings,
-        });
+            std::env::temp_dir().join("ura-serve-tests-no-config"),
+        )
+    }
+
+    /// A server whose settings page writes `config_dir`'s file.
+    pub fn configured(settings: Settings, config_dir: std::path::PathBuf) -> Server {
+        let token = token::new();
+        let shared = Arc::new(Shared::new(token.clone(), settings, config_dir));
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()

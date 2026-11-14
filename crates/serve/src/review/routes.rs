@@ -21,7 +21,7 @@ use uraeda_core::gates;
 use uraeda_core::git::Git;
 
 use super::view;
-use crate::round::routes::{Failure, on, place, told};
+use crate::round::routes::{Failure, on, place, told, write};
 use crate::waiting::{self, Located};
 use crate::{Shared, html};
 
@@ -65,6 +65,31 @@ fn last_reviewed(located: &Located, name: &str) -> Option<String> {
     (!parsed.commit.is_empty()).then_some(parsed.commit)
 }
 
+/// The version of a reviewed file's text the page drew: a hash, sent back with every write, so a
+/// comment or a verdict never lands on a file that changed since.
+pub fn version_of(text: &str) -> String {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in text.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0100_0000_01b3);
+    }
+    format!("{hash:016x}")
+}
+
+/// Refuses a write sent from a page drawn on another version of the reviewed file.
+fn same_version(located: &Located, name: &str, version: &str) -> Result<(), Failure> {
+    let path = located.root.join(&located.feature.path).join(name);
+    let text = std::fs::read_to_string(path).unwrap_or_default();
+    if version_of(&text) == version {
+        Ok(())
+    } else {
+        Err(Failure(
+            StatusCode::CONFLICT,
+            "This file changed since you opened it: nothing was saved. Reload to see it.".into(),
+        ))
+    }
+}
+
 /// `GET .../review/{file}`.
 pub async fn page(
     State(shared): State<Arc<Shared>>,
@@ -92,6 +117,7 @@ pub async fn page(
             waiting: gates::awaits_human(&text),
             since: since.as_ref().filter(|s| s.found),
             comments: &pending(&located, name),
+            version: &version_of(&text),
             draw: &draw,
         });
         let what = if name == "spec.md" { "spec" } else { "plan" };
@@ -116,6 +142,10 @@ pub struct Commented {
     number: Option<u32>,
     #[serde(default)]
     text: String,
+    /// The comment's text as the page read it, for an edit or a removal.
+    #[serde(default)]
+    previous: String,
+    version: String,
 }
 
 /// `POST .../review/{file}/comment`.
@@ -124,11 +154,26 @@ pub async fn comment(
     Address((_, repo, folder, name)): Reviewed,
     Json(body): Json<Commented>,
 ) -> Result<Json<Value>, Failure> {
-    on(&shared, repo, folder, move |located| {
+    write(&shared, repo, folder, move |located| {
         let name = reviewed(&name)?;
         let place = place(&located);
         let feature = &located.feature;
         let text = body.text.trim();
+        same_version(&located, name, &body.version)?;
+        if let Some(number) = body.number {
+            let current = pending(&located, name)
+                .into_iter()
+                .find(|c| c.number == number)
+                .map(|c| c.text);
+            if current.as_deref().map(str::trim) != Some(body.previous.trim()) {
+                return Err(Failure(
+                    StatusCode::CONFLICT,
+                    "This comment changed since you opened the page: nothing was saved. Reload \
+                     to see it."
+                        .into(),
+                ));
+            }
+        }
         match body.number {
             Some(number) if text.is_empty() => review::remove(&place, feature, name, number)?,
             Some(number) => review::edit(&place, feature, name, number, text)?,
@@ -151,6 +196,7 @@ pub struct Verdict {
     verdict: String,
     #[serde(default)]
     summary: String,
+    version: String,
 }
 
 /// `POST .../review/{file}/verdict`.
@@ -159,8 +205,9 @@ pub async fn verdict(
     Address((_, repo, folder, name)): Reviewed,
     Json(body): Json<Verdict>,
 ) -> Result<Json<Value>, Failure> {
-    let (main, root, what) = on(&shared, repo, folder, move |located| {
+    let (main, root, what) = write(&shared, repo, folder, move |located| {
         let name = reviewed(&name)?;
+        same_version(&located, name, &body.version)?;
         let place = place(&located);
         let summary = Some(body.summary.trim()).filter(|s| !s.is_empty());
         let today = uraeda_core::today::today();

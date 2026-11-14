@@ -22,6 +22,8 @@ pub struct Page<'a> {
     pub waiting: bool,
     pub since: Option<&'a SinceReview>,
     pub comments: &'a [Comment],
+    /// The version of the text drawn, which every write sends back.
+    pub version: &'a str,
     pub draw: &'a dyn Fn(&str) -> String,
 }
 
@@ -100,7 +102,11 @@ pub fn main(page: &Page<'_>) -> String {
              </button></div><p class=\"saved small muted\" aria-live=\"polite\"></p></section>"
         );
     }
-    let data = json!({ "comments": comments_json(page.comments), "changed": changed });
+    let data = json!({
+        "comments": comments_json(page.comments),
+        "changed": changed,
+        "version": page.version,
+    });
     let _ = write!(
         out,
         "<script type=\"application/json\" id=\"review-data\">{}</script></main>",

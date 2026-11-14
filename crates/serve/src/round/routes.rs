@@ -102,10 +102,31 @@ pub async fn on<T: Send + 'static>(
     folder: String,
     work: impl FnOnce(Located) -> Result<T, Failure> + Send + 'static,
 ) -> Result<T, Failure> {
-    let settings = shared.settings.clone();
+    let settings = shared.settings();
     tokio::task::spawn_blocking(move || work(waiting::locate(&settings, &repo, &folder)?))
         .await
         .map_err(|e| Failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+}
+
+/// Runs the write `work` as `on` runs a read, holding the writes' lock from the feature's read to
+/// the end of the write: a second write waits, then reads what the first wrote.
+pub async fn write<T: Send + 'static>(
+    shared: &Arc<Shared>,
+    repo: String,
+    folder: String,
+    work: impl FnOnce(Located) -> Result<T, Failure> + Send + 'static,
+) -> Result<T, Failure> {
+    let held = Arc::clone(shared);
+    let settings = shared.settings();
+    tokio::task::spawn_blocking(move || {
+        let _lock = held
+            .writes
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        work(waiting::locate(&settings, &repo, &folder)?)
+    })
+    .await
+    .map_err(|e| Failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
 }
 
 pub fn place(located: &Located) -> Place {
@@ -179,7 +200,7 @@ pub async fn save(
     Address((_, repo, folder)): Feature,
     Json(body): Json<Answered>,
 ) -> Result<Json<Value>, Failure> {
-    on(&shared, repo, folder, move |located| {
+    write(&shared, repo, folder, move |located| {
         let written = answer::save(
             &place(&located),
             &located.feature,
@@ -215,7 +236,7 @@ pub async fn notes(
     Address((_, repo, folder)): Feature,
     Json(body): Json<Notes>,
 ) -> Result<Json<Value>, Failure> {
-    on(&shared, repo, folder, move |located| {
+    write(&shared, repo, folder, move |located| {
         let written = answer::save_notes(
             &place(&located),
             &located.feature,
@@ -246,7 +267,7 @@ pub async fn settled(
     Address((_, repo, folder)): Feature,
     Json(body): Json<Settled>,
 ) -> Result<Json<Value>, Failure> {
-    on(&shared, repo, folder, move |located| {
+    write(&shared, repo, folder, move |located| {
         let place = place(&located);
         let round = &located.feature;
         let text = body.text.trim();
@@ -278,7 +299,7 @@ pub async fn submit(
     State(shared): State<Arc<Shared>>,
     Address((_, repo, folder)): Feature,
 ) -> Result<Json<Value>, Failure> {
-    let (main, root, what) = on(&shared, repo, folder, |located| {
+    let (main, root, what) = write(&shared, repo, folder, |located| {
         let (file, _) = round_text(&located)?;
         answer::submit(
             &place(&located),
@@ -304,10 +325,10 @@ pub async fn submit(
 /// Tells the feature's session to continue when the settings say so, and says what the human
 /// does next.
 pub async fn told(shared: &Shared, main: &Path, root: &Path, what: &str) -> String {
-    let Some(how) = &shared.settings.wake else {
+    let Some(how) = shared.settings().wake else {
         return "Tell your session to continue.".into();
     };
-    match wake::wake(how, main, root, &wake::message(what)).await {
+    match wake::wake(&how, main, root, &wake::message(what)).await {
         wake::Woken::Told { .. } => "Your session was told to continue.".into(),
         wake::Woken::NoSession => {
             "No open session works on this feature: start one, or tell yours to continue.".into()

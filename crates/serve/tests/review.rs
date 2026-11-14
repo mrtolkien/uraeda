@@ -31,6 +31,13 @@ fn file(fixture: &Fixture, name: &str) -> Option<String> {
     fs::read_to_string(fixture.worktree.join("specs").join(FOLDER).join(name)).ok()
 }
 
+/// A write of the page drawn on the waiting spec: `body` with the version it drew.
+fn send(server: &Server, path: &str, body: &str) -> ureq::http::Response<ureq::Body> {
+    let version = uraeda_serve::review::routes::version_of(&waiting_spec());
+    let body = body.replacen('{', &format!("{{\"version\":\"{version}\","), 1);
+    server.write(path, &body)
+}
+
 fn base(server: &Server) -> String {
     format!("/{}/todo/{FOLDER}/review/spec.md", server.token)
 }
@@ -68,13 +75,15 @@ fn a_comment_then_a_request_for_changes_without_a_commit() {
     let f = fixture(&[("spec.md", waiting_spec())]);
     let before = head(&f);
     let server = Server::with(settings(&f));
-    let refused = server.write(
+    let refused = send(
+        &server,
         &format!("{}/verdict", base(&server)),
         r#"{"verdict":"request-changes"}"#,
     );
     assert_eq!(refused.status(), 422, "changes need a comment");
     let line = line_of("## Edge cases");
-    let commented = server.write(
+    let commented = send(
+        &server,
         &format!("{}/comment", base(&server)),
         &format!(r#"{{"lines":[{line},{line}],"text":"Add one for time zones."}}"#),
     );
@@ -87,7 +96,8 @@ fn a_comment_then_a_request_for_changes_without_a_commit() {
         review.contains(&format!("## C1: Line {line}, under \"Edge cases\"")),
         "{review}"
     );
-    let sent = server.write(
+    let sent = send(
+        &server,
         &format!("{}/verdict", base(&server)),
         r#"{"verdict":"request-changes","summary":"Close."}"#,
     );
@@ -109,13 +119,13 @@ fn a_comment_then_a_request_for_changes_without_a_commit() {
 fn a_comment_is_edited_then_removed() {
     let f = fixture(&[("spec.md", waiting_spec())]);
     let server = Server::with(settings(&f));
-    let comment = |body: &str| server.write(&format!("{}/comment", base(&server)), body);
+    let comment = |body: &str| send(&server, &format!("{}/comment", base(&server)), body);
     assert_eq!(
         comment(r#"{"lines":null,"text":"Fine overall."}"#).status(),
         200
     );
     assert_eq!(
-        comment(r#"{"number":1,"text":"Good overall."}"#).status(),
+        comment(r#"{"number":1,"text":"Good overall.","previous":"Fine overall."}"#).status(),
         200
     );
     assert!(
@@ -123,7 +133,10 @@ fn a_comment_is_edited_then_removed() {
             .unwrap()
             .contains("Good overall.")
     );
-    assert_eq!(comment(r#"{"number":1,"text":""}"#).status(), 200);
+    assert_eq!(
+        comment(r#"{"number":1,"text":"","previous":"Good overall."}"#).status(),
+        200
+    );
     assert_eq!(
         file(&f, "spec-review.md"),
         None,
@@ -136,14 +149,16 @@ fn approving_sets_the_spec_approved_without_a_commit() {
     let f = fixture(&[("spec.md", waiting_spec())]);
     let before = head(&f);
     let server = Server::with(settings(&f));
-    let sent = server.write(
+    let sent = send(
+        &server,
         &format!("{}/verdict", base(&server)),
         r#"{"verdict":"approve"}"#,
     );
     assert_eq!(sent.status(), 200);
     assert!(file(&f, "spec.md").unwrap().contains("status: approved"));
     assert_eq!(head(&f), before);
-    let again = server.write(
+    let again = send(
+        &server,
         &format!("{}/verdict", base(&server)),
         r#"{"verdict":"approve"}"#,
     );
@@ -183,4 +198,33 @@ fn what_changed_since_the_last_review_is_listed() {
         "{page}"
     );
     assert!(page.contains("time zone keeps its calendar day"));
+}
+
+#[test]
+fn a_write_from_a_page_drawn_on_another_version_is_refused() {
+    let f = fixture(&[("spec.md", waiting_spec())]);
+    let server = Server::with(settings(&f));
+    let stale = server.write(
+        &format!("{}/comment", base(&server)),
+        r#"{"version":"0000000000000000","lines":null,"text":"Late."}"#,
+    );
+    assert_eq!(stale.status(), 409);
+    let verdict = server.write(
+        &format!("{}/verdict", base(&server)),
+        r#"{"version":"0000000000000000","verdict":"approve"}"#,
+    );
+    assert_eq!(verdict.status(), 409);
+    assert!(
+        file(&f, "spec.md")
+            .unwrap()
+            .contains("status: awaiting-human")
+    );
+    let comment = |body: &str| send(&server, &format!("{}/comment", base(&server)), body);
+    assert_eq!(comment(r#"{"lines":null,"text":"First."}"#).status(), 200);
+    let edited_elsewhere = comment(r#"{"number":1,"text":"Mine.","previous":"Other."}"#);
+    assert_eq!(
+        edited_elsewhere.status(),
+        409,
+        "the comment changed in another tab"
+    );
 }

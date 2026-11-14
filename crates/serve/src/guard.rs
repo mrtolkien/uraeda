@@ -3,6 +3,9 @@
 //! carry an `Origin` whose host is the request's own `Host`, and a browser's `Sec-Fetch-Site`, when
 //! it sends one, must say `same-origin`: a page of another site cannot write, even with the token.
 //!
+//! A `Host` other than this machine's own, or a name of `[serve] hosts`, is refused: a page of
+//! another site whose name was pointed at this machine reaches nothing.
+//!
 //! Every answer says `Referrer-Policy: no-referrer`, so the token never leaves in a link followed
 //! to another site, and `X-Content-Type-Options: nosniff`.
 
@@ -28,6 +31,9 @@ pub async fn guard(State(shared): State<Arc<Shared>>, request: Request, next: Ne
     if !token::matches(&shared.token, given) {
         return (StatusCode::NOT_FOUND, "Not found").into_response();
     }
+    if !allowed_host(request.headers(), &shared.settings().hosts) {
+        return (StatusCode::FORBIDDEN, "Forbidden host").into_response();
+    }
     let reads = matches!(*request.method(), Method::GET | Method::HEAD);
     if !reads && !same_origin(request.headers()) {
         return (StatusCode::FORBIDDEN, "Forbidden origin").into_response();
@@ -43,6 +49,23 @@ pub async fn guard(State(shared): State<Arc<Shared>>, request: Request, next: Ne
         HeaderValue::from_static("nosniff"),
     );
     response
+}
+
+/// Whether the request's `Host` names this machine, or one of `hosts`: a page of another site
+/// whose name a DNS answer points at this machine (DNS rebinding) is refused, even with the token.
+pub fn allowed_host(headers: &HeaderMap, hosts: &[String]) -> bool {
+    let Some(host) = headers.get(header::HOST).and_then(|v| v.to_str().ok()) else {
+        return false;
+    };
+    let host = host.trim().to_ascii_lowercase();
+    // The name without its port: `[::1]:4320`, `127.0.0.1:4320`, `name.ts.net`.
+    let name = match host.strip_prefix('[') {
+        Some(rest) => rest.split(']').next().unwrap_or_default(),
+        None => host
+            .rsplit_once(':')
+            .map_or(host.as_str(), |(name, _)| name),
+    };
+    matches!(name, "127.0.0.1" | "localhost" | "::1") || hosts.iter().any(|allowed| allowed == name)
 }
 
 /// Whether a write comes from the page's own origin: its `Origin`'s host and port are the
