@@ -892,6 +892,9 @@ label.switch input {
 }
 .settings-link {
   margin-top: 2em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 /* The picker: a dialog at a desk, a sheet from the bottom on a phone. */

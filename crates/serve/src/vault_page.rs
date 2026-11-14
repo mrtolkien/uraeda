@@ -34,9 +34,9 @@ fn loopback(headers: &HeaderMap) -> bool {
 pub async fn page_route(State(shared): State<Arc<Shared>>, headers: HeaderMap) -> Html<String> {
     let Some(vault) = shared.vault() else {
         return Html(page(
-            "Your notes",
+            "Obsidian setup",
             "<main><nav class=\"crumbs\"><a href=\"./\">‹ What waits on you</a></nav>\
-             <h1>Your notes</h1><p>No vault is synced.</p></main>",
+             <h1>Obsidian setup</h1><p>No vault is synced.</p></main>",
         ));
     };
     let warning = if loopback(&headers) {
@@ -48,7 +48,7 @@ pub async fn page_route(State(shared): State<Arc<Shared>>, headers: HeaderMap) -
     };
     let body = format!(
         "<main class=\"notes\"><nav class=\"crumbs\"><a href=\"./\">‹ What waits on you</a></nav>\
-         <h1>Your notes</h1>\
+         <h1>Obsidian setup</h1>\
          <p>One vault for every repository, which Obsidian opens as it is: \
          <code>{path}</code>. On this computer, open it with Obsidian's “Open folder as vault”.</p>\
          <section><h2>On your phone</h2>{warning}<ol>\
@@ -71,7 +71,7 @@ pub async fn page_route(State(shared): State<Arc<Shared>>, headers: HeaderMap) -
         path = escape(&vault.root().display().to_string()),
         name = escape(&vault.name()),
     );
-    Html(page("Your notes", &body))
+    Html(page("Obsidian setup", &body))
 }
 
 pub async fn start_zip(State(shared): State<Arc<Shared>>, headers: HeaderMap) -> Response {

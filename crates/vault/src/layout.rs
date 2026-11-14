@@ -30,14 +30,15 @@ pub fn ensure(vault: &Vault, projects: &[&str]) -> io::Result<()> {
 }
 
 /// A project's board, written once and the human's afterwards: an Obsidian base of its proposals
-/// as a kanban, a column per `status`, sorted by `rank`.
+/// as a kanban, a column per `status`, sorted by `rank`, written as Obsidian writes it back, so
+/// opening it changes nothing.
 pub fn board_text(project: &str) -> String {
     format!(
         "filters:\n  and:\n    - file.inFolder(\"projects/{project}/proposals\")\nviews:\n  - type: \
-         kanban\n    name: Board\n    groupBy:\n      property: note.status\n      direction: ASC\n    \
+         kanban\n    name: Board\n    groupBy:\n      property: status\n      direction: ASC\n    \
          groupOrder:\n      - now\n      - next\n      - later\n      - idea\n      - started\n      \
          - postponed\n      - done\n    order:\n      - file.name\n      - rank\n    sort:\n      - \
-         property: note.rank\n        direction: ASC\n"
+         property: rank\n        direction: ASC\n"
     )
 }
 
