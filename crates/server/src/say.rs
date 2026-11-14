@@ -1,7 +1,7 @@
 //! What the server prints, on its stdout and its stderr: the one home of the rule that a line
 //! printed never stops the server.
 //!
-//! `println!` and `eprintln!` panic when their stream is closed, as when `ura serve | head -1`
+//! `println!` and `eprintln!` panic when their stream is closed, as when `ura serve-app | head -1`
 //! read its first line and ended: the next extension's `log` took the server down. A line here
 //! is written whole, and dropped when the stream is gone. The crate's lints refuse `println!`
 //! and `eprintln!`: use `say!` and `say_err!`,

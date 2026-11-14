@@ -1,4 +1,4 @@
-//! `ura serve`: runs Uraeda's server on this machine, until it is stopped.
+//! `ura serve-app`: runs Uraeda's server on this machine, until it is stopped.
 
 use std::io::IsTerminal as _;
 use std::path::PathBuf;

@@ -1,4 +1,4 @@
-//! Uraeda's server, everything `ura serve` does: the routes, sign-in, live records, files, agent
+//! Uraeda's server, everything `ura serve-app` does: the routes, sign-in, live records, files, agent
 //! runs, previews, and extensions. It calls the core directly, and owns every durable fact.
 //!
 //! # Adding a domain
@@ -65,7 +65,7 @@ pub use run::run;
 pub use shared::Shared;
 pub use start::{Holder, NotStarted};
 
-/// The port `ura serve` listens on when nothing gives one: the port Uraeda's server always had.
+/// The port `ura serve-app` listens on when nothing gives one: the port Uraeda's server always had.
 pub const DEFAULT_PORT: u16 = 4310;
 
 /// How long open requests get to end once the server stops.
@@ -110,14 +110,14 @@ pub struct Options {
     /// The folder the server starts in, whose repository joins its list: a second start hands
     /// its own to the first.
     pub folder: Option<PathBuf>,
-    /// The environment the server starts in: the process's, for `ura serve`.
+    /// The environment the server starts in: the process's, for `ura serve-app`.
     pub environment: Vec<(String, String)>,
     /// Origins accepted besides the server's own and the allowed hosts', like a development
     /// server's.
     pub allow_origins: Vec<String>,
     /// The server's clock: the system's, but in tests.
     pub clock: Clock,
-    /// `ura serve --no-scheduled-jobs`: no job starts at its times, whatever the settings say.
+    /// `ura serve-app --no-scheduled-jobs`: no job starts at its times, whatever the settings say.
     pub no_scheduled_jobs: bool,
     /// `ura sandbox`: the sample projects' server, on the fake agent alone, its list locked, and
     /// without sign-in unless its mode keeps it. Only code sets it.

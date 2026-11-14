@@ -60,7 +60,7 @@ just walk                              # a day's work through the app, a picture
 just app-shots /r/sample/inbox         # a screen's pictures, in both themes, at a desktop's and a phone's width
 just gallery                           # every component of the library, in one app
 just sandboxed scripts/nsh.sh test     # a command beside a fresh sandbox, its address in URAEDA_SANDBOX
-just web-build                         # the app for a browser, in target/web/, which ura serve serves
+just web-build                         # the app for a browser, in target/web/, which ura serve-app serves
 just web-test                          # that build in a real browser: sign-in, the home page, its pictures
 just app-dev                           # on a Mac: the app in an AppKit window, over `just sandbox --no-app`
 just package-macos                     # the Mac app as a release ships it, in target/macos/
@@ -91,10 +91,10 @@ texts' first layout, wrapped too wide, until each changes.
 with the app's crate and the TSX compiled for release; the script puts `ura`, built with the
 `release-app` profile, beside the runner in `Contents/MacOS/`, and signs the bundle again, ad hoc.
 `--open` opens it after: it finds this Mac's server through its status file, or starts the `ura`
-beside it in `ura serve`'s data folder, with your login shell's `PATH`, and keeps the device's token
-in the login keychain ([`crates/app/src/local.rs`](crates/app/src/local.rs)). A development run and
-the checks work with the sandbox instead, and never start a server. The look the Mac takes, the
-toolbar, the menu bar, the system's menus and alerts, is in
+beside it in `ura serve-app`'s data folder, with your login shell's `PATH`, and keeps the device's
+token in the login keychain ([`crates/app/src/local.rs`](crates/app/src/local.rs)). A development
+run and the checks work with the sandbox instead, and never start a server. The look the Mac takes,
+the toolbar, the menu bar, the system's menus and alerts, is in
 [`specs/ui/wide.md`](specs/ui/wide.md#macos).
 
 ### iOS
@@ -148,8 +148,8 @@ Team":
 3. Install once with `just install-ios`. On the phone, Settings, General, VPN & Device Management,
    under Developer App, tap your certificate, Trust. Then open the app.
 
-The app asks for its server on its first page: the address of the Mac that runs `ura serve` as the
-phone reaches it, `https://<your Mac>.<tailnet>.ts.net` over Tailscale, then the code `ura pair`
+The app asks for its server on its first page: the address of the Mac that runs `ura serve-app` as
+the phone reaches it, `https://<your Mac>.<tailnet>.ts.net` over Tailscale, then the code `ura pair`
 prints ([docs/app.md](docs/app.md#reaching-it-from-another-device)).
 `just package-ios --target ios --id <the ID> --sign "<identity>" --profile <the profile>` builds the
 `.ipa` alone.
@@ -188,8 +188,8 @@ To upgrade NSH, change its version and hash in [`flake.nix`](flake.nix), the `ns
 
 ## Settings while developing
 
-`ura serve` reads its settings from the settings file, and from variables of its environment or of
-the `.env` in your config folder, as [the app's page](docs/app.md#settings) says: `URAEDA_PORT`,
+`ura serve-app` reads its settings from the settings file, and from variables of its environment or
+of the `.env` in your config folder, as [the app's page](docs/app.md#settings) says: `URAEDA_PORT`,
 `URAEDA_ALLOWED_HOSTS`, `URAEDA_DATA_DIR`, and the switches of the runs. No `.env` of a checkout is
 ever read. To try a build on folders of its own, beside your own Uraeda:
 

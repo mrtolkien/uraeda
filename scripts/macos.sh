@@ -8,7 +8,7 @@
 # - `uraeda-app-aarch64-macos.zip`, that app, as the Finder compresses it, and its `.sha256`.
 #
 # `--open` opens the app once it is built: it finds this Mac's server, or starts one, in the data
-# folder `ura serve` uses, and stops the one it started as it quits.
+# folder `ura serve-app` uses, and stops the one it started as it quits.
 #
 # The version is the workspace's, in `Cargo.toml`: `ura`, the app, and the archive carry it. A web
 # build already made, which `URAEDA_WEB_BUILD` names, is the one `ura` holds, as in a release;

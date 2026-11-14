@@ -1,6 +1,6 @@
 mod common;
 // The stand-ins for the agents' commands that the server's own tests use, first on the `PATH` of
-// a test's `ura serve`: the server asks each agent for its models as it starts.
+// a test's `ura serve-app`: the server asks each agent for its models as it starts.
 #[path = "../../server/tests/support/machine.rs"]
 #[allow(
     dead_code,
@@ -16,7 +16,7 @@ use std::process::{Child, Command, Stdio};
 
 use common::*;
 
-/// A started `ura serve`, killed with the test when the test did not stop it.
+/// A started `ura serve-app`, killed with the test when the test did not stop it.
 struct Running(Child);
 
 impl Drop for Running {
@@ -48,9 +48,9 @@ impl Folders {
         self.home.path().join("data").display().to_string()
     }
 
-    /// `ura serve` in a folder, on this test's config and data folders.
+    /// `ura serve-app` in a folder, on this test's config and data folders.
     fn serve(&self, dir: &Path, args: &[&str]) -> Command {
-        self.ura("serve", dir, args)
+        self.ura("serve-app", dir, args)
     }
 
     /// `ura pair` in a folder, with the server of this test's data folder.
@@ -93,7 +93,7 @@ fn post(port: u16, path: &str, body: &serde_json::Value) -> (u16, String) {
     (status, body.to_owned())
 }
 
-/// The first lines `ura serve` prints, as many as asked, and the port its first line names.
+/// The first lines `ura serve-app` prints, as many as asked, and the port its first line names.
 fn started(server: &mut Running, lines: usize) -> (u16, Vec<String>) {
     let mut output = BufReader::new(server.0.stdout.take().unwrap());
     let mut printed = Vec::new();
@@ -262,7 +262,7 @@ fn pair_shows_a_code_that_pairs_one_device() {
     // Without a server, there is nothing to pair with.
     let none = folders.pair(folder.path()).output().unwrap();
     let no_server = format!(
-        "ura: no server runs on {}: start one with `ura serve`\n",
+        "ura: no server runs on {}: start one with `ura serve-app`\n",
         folders.data()
     );
     assert_eq!(String::from_utf8(none.stderr).unwrap(), no_server);

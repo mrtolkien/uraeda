@@ -1,5 +1,5 @@
 //! The app's way to the server of its data folder: it finds the one that runs, through its status
-//! file, `run/server.json`, or starts `ura serve` and waits until it answers. The app owns a server
+//! file, `run/server.json`, or starts `ura serve-app` and waits until it answers. The app owns a server
 //! it started, one at a time, and stops it when it closes; it never stops one it found running.
 //!
 //! The status file is the server's (`crates/server/src/status.rs`): its port, its process, and the
@@ -34,11 +34,11 @@ pub struct LocalOptions {
     pub ura: PathBuf,
     /// The data folder, which one server at a time owns.
     pub data_dir: PathBuf,
-    /// The port a server the app starts listens on: `ura serve`'s own, 4310 unless its settings
+    /// The port a server the app starts listens on: `ura serve-app`'s own, 4310 unless its settings
     /// say otherwise, unless given.
     pub port: Option<u16>,
     /// The folder a server the app starts runs in: its repository joins the list, as with
-    /// `ura serve` run there.
+    /// `ura serve-app` run there.
     pub folder: PathBuf,
     /// Variables a server the app starts gets beside the app's own.
     pub environment: Vec<(OsString, OsString)>,
@@ -236,7 +236,7 @@ impl Local {
         Some(running)
     }
 
-    /// Starts `ura serve`, unless the app has a server of its own since, started by another
+    /// Starts `ura serve-app`, unless the app has a server of its own since, started by another
     /// call, or closes.
     fn start_one(&self) -> Result<(), String> {
         let mut started = self.started();
@@ -266,7 +266,7 @@ impl Local {
         })
     }
 
-    /// Starts `ura serve`, its output in the data folder's `run/server.log`.
+    /// Starts `ura serve-app`, its output in the data folder's `run/server.log`.
     fn start(&self) -> Result<Child, String> {
         let options = &self.options;
         let log = self.log();
@@ -282,7 +282,7 @@ impl Local {
         self.logged_from.store(length, Ordering::SeqCst);
         let mut command = Command::new(&options.ura);
         command
-            .arg("serve")
+            .arg("serve-app")
             .arg("--data-dir")
             .arg(&options.data_dir);
         if let Some(port) = options.port {

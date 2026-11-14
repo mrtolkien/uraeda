@@ -115,7 +115,7 @@ impl Fixture {
         left["writes"].as_array().expect("writes").clone()
     }
 
-    /// Stops the server, as `ura serve` does on a signal, and gives the repository back.
+    /// Stops the server, as `ura serve-app` does on a signal, and gives the repository back.
     pub async fn stop(self) -> TestRepo {
         self.server.stop().await;
         self.repo

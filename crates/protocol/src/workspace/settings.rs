@@ -50,7 +50,7 @@ pub enum Source {
     Default,
     /// The settings file.
     File,
-    /// A flag of `ura serve`, by its name, like `--port`.
+    /// A flag of `ura serve-app`, by its name, like `--port`.
     Flag {
         /// The flag.
         name: String,

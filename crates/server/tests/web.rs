@@ -1,4 +1,4 @@
-//! The app's web build, as `ura serve` serves it: its files compressed and cached by their hash,
+//! The app's web build, as `ura serve-app` serves it: its files compressed and cached by their hash,
 //! its page at every address of the app and at none of the server's, and what a first load
 //! weighs. The server's tests read a small stand-in build, a folder `URAEDA_WEB_BUILD` names; the
 //! last test measures the real one, and `just web-build` runs it.

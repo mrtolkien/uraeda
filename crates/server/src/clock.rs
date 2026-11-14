@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime};
 pub struct Clock(Option<Arc<Mutex<SystemTime>>>);
 
 impl Clock {
-    /// The system's clock, as `ura serve` runs on.
+    /// The system's clock, as `ura serve-app` runs on.
     pub fn system() -> Clock {
         Clock(None)
     }

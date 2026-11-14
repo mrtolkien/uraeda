@@ -41,7 +41,7 @@ use crate::runner::Store;
 use crate::shared::Shared;
 use crate::{Clock, Failure, Options};
 
-/// The port the sandbox asks for, away from `ura serve`'s 4310.
+/// The port the sandbox asks for, away from `ura serve-app`'s 4310.
 pub const PORT: u16 = 4420;
 
 /// The sample projects' last day, which `ura sandbox` makes today with `URA_TODAY`: the core

@@ -1,8 +1,8 @@
 //! The Linux host's own work, below its window: it finds the server of its data folder, or starts
-//! `ura serve` and waits for it, starts it again when it stopped, and stops only the one it
+//! `ura serve-app` and waits for it, starts it again when it stopped, and stops only the one it
 //! started; and it pairs this device once, and keeps its token in the system's secret store.
 //!
-//! Each test runs the real `ura serve`, built once, on temporary folders, with the agents' commands
+//! Each test runs the real `ura serve-app`, built once, on temporary folders, with the agents' commands
 //! stood in for. The secret store's test runs on the hidden display's own session bus, where a
 //! stand-in of the Secret Service answers: never the owner's keyring.
 #![cfg(all(target_os = "linux", feature = "host"))]
@@ -129,17 +129,17 @@ impl Folders {
         }
     }
 
-    /// `ura serve` on the data folder `data`, started by the test, as the owner would.
+    /// `ura serve-app` on the data folder `data`, started by the test, as the owner would.
     fn serve(&self, data: &str) -> Server {
         let mut command = Command::new(ura());
         command
-            .args(["serve", "--port", "0", "--data-dir"])
+            .args(["serve-app", "--port", "0", "--data-dir"])
             .arg(self.path(data))
             .current_dir(self.path("here"))
             .envs(self.environment())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
-        Server(command.spawn().expect("`ura serve` starts"))
+        Server(command.spawn().expect("`ura serve-app` starts"))
     }
 }
 

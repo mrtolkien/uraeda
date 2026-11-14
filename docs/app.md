@@ -3,25 +3,25 @@
 The app shows every feature and file of a repository with its structure. It performs every human
 step: answering, reviewing, writing proposals, and jotting down notes. It also holds your sessions
 with the agent. It is one app in two forms: a desktop window on Linux, and the same screens in any
-browser, a phone's too, both served by `ura serve`. [INSTALL.md](../INSTALL.md) says how to install
-them.
+browser, a phone's too, both served by `ura serve-app`. [INSTALL.md](../INSTALL.md) says how to
+install them.
 
 ## Starting it
 
-In a repository, `ura serve` starts the server on http://127.0.0.1:4310 and opens the repository in
-your browser. Run it in another repository and it opens in the server already running. On Linux,
+In a repository, `ura serve-app` starts the server on http://127.0.0.1:4310 and opens the repository
+in your browser. Run it in another repository and it opens in the server already running. On Linux,
 `uraeda` opens the desktop app instead: it finds the server running, or starts one, and stops the
 one it started when its window closes.
 
 ```sh
-ura serve                       # the server, and the app in your browser
-ura serve --no-open --port 4311 # without opening the browser, on another port
+ura serve-app                       # the server, and the app in your browser
+ura serve-app --no-open --port 4311 # without opening the browser, on another port
 uraeda                          # the desktop app, on Linux
 uraeda --server https://mac.tail1234.ts.net  # another machine's server
 ```
 
-`ura serve --help` and `uraeda --help` list every option. [The CLI's page](cli.md) has `ura serve`,
-`ura pair`, and `ura key` in full.
+`ura serve-app --help` and `uraeda --help` list every option. [The CLI's page](cli.md) has
+`ura serve-app`, `ura pair`, and `ura key` in full.
 
 ## Repositories
 
@@ -60,7 +60,7 @@ The app reads the workflow's files as the skill writes them, and draws them:
 
 ## Sign-in
 
-Every browser and every device signs in. The first start of `ura serve` in a terminal shows an
+Every browser and every device signs in. The first start of `ura serve-app` in a terminal shows an
 access key, once: keep it in a password manager. The browser it opens is signed in already, and so
 is the one a second start opens on the same machine. The desktop app on the server's own machine
 needs no key.

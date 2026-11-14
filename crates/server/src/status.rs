@@ -1,5 +1,5 @@
 //! The status file, `run/server.json` in the data folder: where the server of that folder
-//! listens, and the host token. It lives while the server runs. A second `ura serve` and the app
+//! listens, and the host token. It lives while the server runs. A second `ura serve-app` and the app
 //! find the running server there, and prove with the token that they are the host's own: only the
 //! data folder's user can read it.
 

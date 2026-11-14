@@ -32,7 +32,7 @@ pub(super) struct Given {
     pub after_limit: Named<bool>,
     pub catch_up: Named<bool>,
     pub scheduled_jobs: Named<bool>,
-    /// `ura serve --no-scheduled-jobs`, over the variable and the file.
+    /// `ura serve-app --no-scheduled-jobs`, over the variable and the file.
     pub no_scheduled_jobs: bool,
     /// Not a setting of Uraeda's: the settings show it, since it wins over the effort picked.
     pub claude_effort: Option<String>,

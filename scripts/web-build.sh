@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # `scripts/web-build.sh`: the app for a browser, in `target/web/`, as `just web-build` makes it
-# and `ura serve` serves it (`crates/server/src/http/web.rs`).
+# and `ura serve-app` serves it (`crates/server/src/http/web.rs`).
 #
 # Native Shell packages the app as a static site: the page, its runtime, `nsh.<hash>.wasm`, which
 # holds NSH's engine and the app's own Rust (`crates/app`, compiled to WebAssembly), the TSX as a

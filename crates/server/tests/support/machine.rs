@@ -9,7 +9,7 @@
 //! was asked and fails at once, as a command that is not installed.
 //!
 //! This is the one home of that rule: `support::setup()` builds the `PATH` of every server of
-//! this crate's tests from here, and `crates/cli/tests/serve.rs` the one of its `ura serve`.
+//! this crate's tests from here, and `crates/cli/tests/serve.rs` the one of its `ura serve-app`.
 
 use std::fs;
 use std::os::unix::fs::{PermissionsExt, symlink};

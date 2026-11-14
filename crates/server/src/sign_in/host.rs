@@ -52,7 +52,7 @@ pub fn access_key(data_dir: &Path, replace: bool) -> Result<NewKey, String> {
 /// is the server's refusal, in its `error`.
 pub(super) fn ask(data_dir: &Path, path: &str, body: &Value) -> Result<Value, String> {
     let folder = data_dir.display();
-    let none = || format!("no server runs on {folder}: start one with `ura serve`");
+    let none = || format!("no server runs on {folder}: start one with `ura serve-app`");
     let running = status::read(data_dir).ok_or_else(none)?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
