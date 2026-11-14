@@ -84,7 +84,7 @@ fn the_home_page_answers_a_signed_in_browser() {
     let server = Server::start();
     let mut answer = server.get("/");
     assert_eq!(answer.status(), 200);
-    assert_eq!(header(&answer, "referrer-policy"), "no-referrer");
+    assert_eq!(header(&answer, "referrer-policy"), "same-origin");
     assert_eq!(header(&answer, "x-content-type-options"), "nosniff");
     assert_eq!(header(&answer, "x-frame-options"), "SAMEORIGIN");
     let body = answer.body_mut().read_to_string().unwrap();
@@ -109,7 +109,15 @@ fn a_write_from_another_origin_is_refused() {
     let server = Server::start();
     let path = "/anything";
     let own = format!("http://{}", server.host());
-    let cases: [(&[(&str, &str)], u16); 4] = [
+    let cases: [(&[(&str, &str)], u16); 7] = [
+        // A form a page sends may carry no origin a server can read: the browser's word stands.
+        (
+            &[("origin", "null"), ("sec-fetch-site", "same-origin")],
+            404,
+        ),
+        (&[("sec-fetch-site", "same-origin")], 404),
+        // A sandboxed mockup's form.
+        (&[("origin", "null"), ("sec-fetch-site", "cross-site")], 403),
         (&[], 403),
         (&[("origin", "https://evil.example")], 403),
         (&[("origin", &own), ("sec-fetch-site", "cross-site")], 403),

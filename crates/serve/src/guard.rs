@@ -14,8 +14,9 @@
 //!   as a bearer instead, which a page of another site cannot send without CORS, which nothing
 //!   here allows.
 //!
-//! Every answer says `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, and
-//! `X-Frame-Options: SAMEORIGIN`: no other site frames a page to have the human click in it.
+//! Every answer says `Referrer-Policy: same-origin`, so no address leaves in a link followed to
+//! another site, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: SAMEORIGIN`: no other
+//! site frames a page to have the human click in it.
 
 use std::sync::Arc;
 
@@ -57,7 +58,7 @@ pub async fn guard(State(shared): State<Arc<Shared>>, request: Request, next: Ne
     let headers = response.headers_mut();
     headers.insert(
         header::REFERRER_POLICY,
-        HeaderValue::from_static("no-referrer"),
+        HeaderValue::from_static("same-origin"),
     );
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
@@ -115,18 +116,21 @@ pub fn bearer(headers: &HeaderMap, token: &str) -> bool {
         .is_some_and(|given| token::matches(token, given.trim()))
 }
 
-/// Whether a write comes from the page's own origin: its `Origin`'s host and port are the
-/// request's `Host`, and no `Sec-Fetch-Site` says otherwise.
+/// Whether a write comes from the page's own origin. A browser says so itself in
+/// `Sec-Fetch-Site`, which no page can set: `same-origin` is enough, and anything else refuses.
+/// A form sent by a page may carry `Origin: null`, as a sandboxed mockup's does: only what the
+/// browser says tells them apart. Without `Sec-Fetch-Site`, as an older browser sends, the
+/// `Origin`'s host and port must be the request's `Host`.
 pub fn same_origin(headers: &HeaderMap) -> bool {
     let text = |name| {
         headers
             .get(name)
             .and_then(|value: &HeaderValue| value.to_str().ok())
     };
-    if text(header::HeaderName::from_static("sec-fetch-site"))
-        .is_some_and(|site| site != "same-origin")
-    {
-        return false;
+    match text(header::HeaderName::from_static("sec-fetch-site")) {
+        Some("same-origin") => return true,
+        Some(_) => return false,
+        None => {}
     }
     let (Some(origin), Some(host)) = (text(header::ORIGIN), text(header::HOST)) else {
         return false;

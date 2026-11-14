@@ -29,7 +29,7 @@ pub fn page_at(base: &str, title: &str, body: &str) -> String {
         out,
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\
-         <meta name=\"referrer\" content=\"no-referrer\"><link rel=\"icon\" href=\"data:,\">\
+         <meta name=\"referrer\" content=\"same-origin\"><link rel=\"icon\" href=\"data:,\">\
          <title>{title}</title>\
          <link rel=\"stylesheet\" href=\"{base}a/{version}/ura.css\">\
          <script defer src=\"{base}a/{version}/ura.js\"></script>\
