@@ -19,6 +19,7 @@ pub mod round;
 pub mod settings;
 pub mod sync;
 pub mod token;
+pub mod usage;
 pub mod vault_page;
 pub mod waiting;
 pub mod wake;

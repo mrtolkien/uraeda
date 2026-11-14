@@ -32,6 +32,10 @@ fn every_command_is_named_in_the_skill() {
 
     assert!(commands.len() >= 8, "{commands:?}");
     for command in commands {
+        // `ura usage` is the owner's own, and the skill names it nowhere, by his decision.
+        if command == "usage" {
+            continue;
+        }
         assert!(
             text.contains(&format!("`ura {command}")),
             "ura {command} is not in the skill"

@@ -15,6 +15,7 @@ mod shell;
 mod status;
 mod terminal;
 mod upgrade;
+mod usage;
 mod vault;
 
 use std::process::ExitCode;
@@ -119,6 +120,9 @@ enum Command {
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         data_dir: Option<std::path::PathBuf>,
     },
+    /// Print the usage windows, five hours and a week, of the Claude Code accounts listed in
+    /// `[usage] claude` of the settings, and of Codex, as JSON
+    Usage,
     /// Read and write the human's notes, the vault `ura serve` syncs with their phone
     Vault(vault::Args),
     /// Run `ura serve` over sample projects, for Uraeda's own development: from a checkout of
@@ -153,6 +157,7 @@ fn run(command: Command) -> Result<ExitCode, String> {
         Command::Upgrade => upgrade::run(),
         Command::Serve { port, data_dir } => serve::run(port, data_dir),
         Command::Vault(args) => vault::run(args),
+        Command::Usage => usage::run(),
         Command::Sandbox(args) => sandbox::run(args),
         Command::Review {
             target,
