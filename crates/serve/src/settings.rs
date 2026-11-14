@@ -18,9 +18,9 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{Value, json};
-use uraeda_core::settings::{self, ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions};
+use uraeda_core::settings::{self, ReviewerOptions, RunOptions, STEPS};
 
 use crate::config::{self, Wake};
 use crate::html::escape;
@@ -29,8 +29,9 @@ use crate::review::routes::version_of;
 use crate::round::routes::Failure;
 use crate::{Shared, html, marks};
 
-/// The agent an agent reviewer runs on when none is picked.
-const REVIEWER_AGENT: &str = "claude";
+mod sent;
+
+use sent::{Pick, Runs};
 
 /// What each step does, as the page says it under its name.
 fn step_words(step: &str) -> (&'static str, &'static str) {
@@ -45,124 +46,6 @@ fn step_words(step: &str) -> (&'static str, &'static str) {
             "The pull request's comments, catch-ups, and pushes",
         ),
         _ => ("Step", ""),
-    }
-}
-
-/// An agent, a model, and an effort, as the page sends them: empty for the default.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Pick {
-    #[serde(default)]
-    agent: String,
-    #[serde(default)]
-    model: String,
-    #[serde(default)]
-    effort: String,
-}
-
-impl Pick {
-    fn of(agent: &Option<String>, model: &Option<String>, effort: &Option<String>) -> Pick {
-        let text = |v: &Option<String>| v.clone().unwrap_or_default();
-        Pick {
-            agent: text(agent),
-            model: text(model),
-            effort: text(effort),
-        }
-    }
-
-    fn values(&self) -> (Option<String>, Option<String>, Option<String>) {
-        let value = |v: &str| Some(v.trim().to_string()).filter(|v| !v.is_empty());
-        (value(&self.agent), value(&self.model), value(&self.effort))
-    }
-}
-
-/// A step's options, as the page sends them.
-#[derive(Deserialize)]
-pub struct Step {
-    step: String,
-    #[serde(flatten)]
-    pick: Pick,
-    /// Whether the step starts a new session, cut from the step before.
-    new_session: bool,
-}
-
-/// A reviewer, as the page sends it: an agent on its pick, or a command.
-#[derive(Deserialize)]
-pub struct Reviewer {
-    #[serde(flatten)]
-    pick: Pick,
-    #[serde(default)]
-    instructions: String,
-    #[serde(default)]
-    command: String,
-}
-
-/// The run options, as the page sends them.
-#[derive(Deserialize)]
-pub struct Runs {
-    steps: Vec<Step>,
-    implementers: Pick,
-    reviewers: Vec<Reviewer>,
-    depth: String,
-}
-
-impl Runs {
-    /// The options to write: only what differs from the defaults is set.
-    fn options(&self) -> RunOptions {
-        let steps = self
-            .steps
-            .iter()
-            .filter_map(|step| {
-                let (agent, model, effort) = step.pick.values();
-                let default_cut = step.step == "plan";
-                let new_session = (step.step != "discovery" && step.new_session != default_cut)
-                    .then_some(step.new_session);
-                (agent.is_some() || model.is_some() || effort.is_some() || new_session.is_some())
-                    .then(|| StepOptions {
-                        step: step.step.clone(),
-                        agent,
-                        model,
-                        effort,
-                        new_session,
-                    })
-            })
-            .collect();
-        let (agent, model, effort) = self.implementers.values();
-        let implementers =
-            (agent.is_some() || model.is_some() || effort.is_some()).then_some(RunPick {
-                agent,
-                model,
-                effort,
-            });
-        let reviewers: Vec<ReviewerOptions> = self
-            .reviewers
-            .iter()
-            .map(|r| {
-                let command = Some(r.command.trim().to_string()).filter(|c| !c.is_empty());
-                let (agent, model, effort) = r.pick.values();
-                let instructions =
-                    Some(r.instructions.trim().to_string()).filter(|i| !i.is_empty());
-                match command {
-                    Some(command) => ReviewerOptions {
-                        command: Some(command),
-                        ..ReviewerOptions::default()
-                    },
-                    None => ReviewerOptions {
-                        // An agent reviewer names its agent: the default one when none is picked.
-                        agent: agent.or_else(|| Some(REVIEWER_AGENT.to_string())),
-                        model,
-                        effort,
-                        instructions,
-                        command: None,
-                    },
-                }
-            })
-            .collect();
-        RunOptions {
-            steps,
-            implementers,
-            reviewers: (!reviewers.is_empty()).then_some(reviewers),
-            review_depth: (self.depth == "branch").then(|| "branch".to_string()),
-        }
     }
 }
 

@@ -24,30 +24,24 @@
 //! - The frontmatter is not drawn.
 
 mod diagram;
+mod ends;
+mod links;
+mod pieces;
 
 use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::ops::Range;
 
 use pulldown_cmark::{
-    Alignment, BlockQuoteKind, CodeBlockKind, Event, HeadingLevel, LinkType, Options, Parser, Tag,
-    TagEnd,
+    Alignment, CodeBlockKind, Event, HeadingLevel, LinkType, Options, Parser, Tag, TagEnd,
 };
 use uraeda_text::markdown::{self, Lines, slug};
 
 use crate::html::escape;
 
-/// Where a file's links lead.
-#[derive(Clone, Debug)]
-pub struct Links {
-    /// The folder of the file drawn, from the repository's top level, without a slash at either
-    /// end: `specs/2026-10-06-recurring-tasks`. Its relative links start there.
-    pub folder: String,
-    /// The address the feature's pages start at, ending with a slash, `../` or `/<token>/f/x/`.
-    /// A link to a markdown file is `<base>file/<path>`, to anything else `<base>raw/<path>`,
-    /// `<path>` from the repository's top level.
-    pub base: String,
-}
+pub use links::Links;
+use links::Target;
+use pieces::{callout, closed_image, is_comment, title_attribute, unescape};
 
 /// The HTML of the workflow file `text`, frontmatter dropped. See the module's documentation for
 /// what it holds.
@@ -444,218 +438,6 @@ impl Writer<'_> {
         let end = if start.is_empty() { "" } else { "</a>" };
         self.open_inline(range, start, end);
     }
-
-    fn end(&mut self, tag: TagEnd) {
-        match tag {
-            TagEnd::Paragraph => self.block("</p>"),
-            TagEnd::Heading(_) => self.end_heading(),
-            TagEnd::BlockQuote(Some(_)) => self.block("</aside>"),
-            TagEnd::BlockQuote(None) => self.block("</blockquote>"),
-            TagEnd::CodeBlock => self.end_code(),
-            TagEnd::HtmlBlock => {
-                if std::mem::replace(&mut self.html, HtmlBlock::None) == HtmlBlock::Shown {
-                    self.block("</pre>");
-                }
-            }
-            TagEnd::List(true) => self.block("</ol>"),
-            TagEnd::List(false) => self.block("</ul>"),
-            TagEnd::Item => self.block("</li>"),
-            TagEnd::FootnoteDefinition => self.block("</div>"),
-            TagEnd::Table => self.block("</tbody></table>"),
-            TagEnd::TableHead => {
-                self.table_head = false;
-                self.block("</tr></thead><tbody>");
-            }
-            TagEnd::TableRow => self.block("</tr>"),
-            TagEnd::TableCell => {
-                let name = if self.table_head { "th" } else { "td" };
-                self.cell += 1;
-                self.block(&format!("</{name}>"));
-            }
-            TagEnd::Emphasis
-            | TagEnd::Strong
-            | TagEnd::Strikethrough
-            | TagEnd::Superscript
-            | TagEnd::Subscript
-            | TagEnd::Link => self.close_inline(),
-            TagEnd::Image | TagEnd::MetadataBlock(_) => {}
-            TagEnd::DefinitionList
-            | TagEnd::DefinitionListTitle
-            | TagEnd::DefinitionListDefinition => self.close_span(),
-        }
-    }
-
-    fn end_heading(&mut self) {
-        self.close_span();
-        let Some(heading) = self.heading.take() else {
-            return;
-        };
-        let inner = std::mem::replace(&mut self.out, self.saved.pop().unwrap_or_default());
-        let base = slug(&unescape(&heading.text));
-        let mut id = base.clone();
-        let mut number = 0;
-        while self.anchors.contains(&id) {
-            number += 1;
-            id = format!("{base}-{number}");
-        }
-        self.anchors.insert(id.clone());
-        let level = heading.level as usize;
-        let _ = write!(
-            self.out,
-            "<h{level} id=\"{}\" {}>{inner}</h{level}>",
-            escape(&id),
-            heading.lines
-        );
-    }
-
-    fn end_code(&mut self) {
-        let Some(code) = self.code.take() else {
-            return;
-        };
-        let lines = code.lines;
-        if code.language.eq_ignore_ascii_case("mermaid") {
-            match diagram::draw(&code.source) {
-                Ok(svg) => {
-                    let _ = write!(self.out, "<figure class=\"diagram\" {lines}>{svg}</figure>");
-                }
-                Err(_) => {
-                    let _ = write!(
-                        self.out,
-                        "<figure class=\"diagram diagram-failed\" {lines}>\
-                         <p class=\"diagram-error\">Diagram could not be drawn</p>\
-                         <pre><code>{}</code></pre></figure>",
-                        escape(&code.source)
-                    );
-                }
-            }
-            return;
-        }
-        let class = if code.language.is_empty() {
-            String::new()
-        } else {
-            format!(" class=\"language-{}\"", escape(&code.language))
-        };
-        let _ = write!(
-            self.out,
-            "<pre {lines}><code{class}>{}</code></pre>",
-            escape(&code.source)
-        );
-    }
-
-    fn footnote(&mut self, name: &str) -> usize {
-        match self.footnotes.iter().position(|known| known == name) {
-            Some(index) => index + 1,
-            None => {
-                self.footnotes.push(name.to_owned());
-                self.footnotes.len()
-            }
-        }
-    }
-}
-
-/// Where a link leads.
-#[derive(Debug, PartialEq, Eq)]
-enum Target {
-    /// A page of this server, or an anchor in this page.
-    Inside(String),
-    /// Another site.
-    Outside(String),
-}
-
-impl Links {
-    /// The address of the link `target`, or `None` when it is shown as text alone.
-    fn href(&self, target: &str, image: bool) -> Option<Target> {
-        let target = target.trim();
-        if target.starts_with('#') {
-            return Some(Target::Inside(target.to_owned()));
-        }
-        let lower = target.to_ascii_lowercase();
-        if lower.starts_with("http://") || lower.starts_with("https://") {
-            return Some(Target::Outside(target.to_owned()));
-        }
-        if lower.starts_with("mailto:") && !image {
-            return Some(Target::Outside(target.to_owned()));
-        }
-        // Another scheme, a host's own path, or a path out of the repository.
-        let path = uraeda_text::links::resolve(&self.folder, target)?;
-        if path.is_empty() {
-            return None;
-        }
-        let fragment = target
-            .split_once('#')
-            .map(|(_, fragment)| format!("#{fragment}"))
-            .unwrap_or_default();
-        let page = if !image && path.to_ascii_lowercase().ends_with(".md") {
-            "file"
-        } else {
-            "raw"
-        };
-        Some(Target::Inside(format!(
-            "{}{page}/{}{fragment}",
-            self.base,
-            encode_path(&path)
-        )))
-    }
-}
-
-/// A path with what an address cannot hold as it is percent-encoded, its slashes kept.
-fn encode_path(path: &str) -> String {
-    let mut out = String::with_capacity(path.len());
-    for byte in path.bytes() {
-        if byte.is_ascii_alphanumeric() || b"-._~/!$&'()*+,;=:@".contains(&byte) {
-            out.push(byte as char);
-        } else {
-            let _ = write!(out, "%{byte:02X}");
-        }
-    }
-    out
-}
-
-fn title_attribute(title: &str) -> String {
-    if title.is_empty() {
-        String::new()
-    } else {
-        format!(" title=\"{}\"", escape(title))
-    }
-}
-
-/// A callout's class and title.
-fn callout(kind: BlockQuoteKind) -> (&'static str, &'static str) {
-    match kind {
-        BlockQuoteKind::Note => ("note", "Note"),
-        BlockQuoteKind::Tip => ("tip", "Tip"),
-        BlockQuoteKind::Important => ("important", "Important"),
-        BlockQuoteKind::Warning => ("warning", "Warning"),
-        BlockQuoteKind::Caution => ("caution", "Caution"),
-    }
-}
-
-/// Whether some HTML is only comments and blank space.
-fn is_comment(html: &str) -> bool {
-    let mut rest = html.trim();
-    if rest.is_empty() {
-        return false;
-    }
-    while !rest.is_empty() {
-        let Some(after) = rest.strip_prefix("<!--") else {
-            return false;
-        };
-        let Some(end) = after.find("-->") else {
-            // A comment that goes on in the next event.
-            return true;
-        };
-        rest = after[end + 3..].trim_start();
-    }
-    true
-}
-
-/// The text of escaped HTML, for a heading's slug.
-fn unescape(html: &str) -> String {
-    html.replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&amp;", "&")
 }
 
 /// A part of `file`, a path from the repository's top level, drawn for a page of the feature at
@@ -670,61 +452,4 @@ pub fn draw(markdown: &str, file: &str, base: &str) -> String {
             base: base.to_string(),
         },
     )
-}
-
-/// An image's tag from `image_tag`, closed with its alt text.
-fn closed_image(tag: &str, alt: &str) -> String {
-    if tag.is_empty() {
-        escape(alt)
-    } else if tag.starts_with("<a ") {
-        let text = Some(alt.trim())
-            .filter(|t| !t.is_empty())
-            .unwrap_or("Image");
-        format!("{tag}>{}</a>", escape(text))
-    } else {
-        format!("{tag} alt=\"{}\">", escape(alt))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Links, Target, is_comment};
-
-    fn links() -> Links {
-        Links {
-            folder: "specs/f".into(),
-            base: "/t/".into(),
-        }
-    }
-
-    #[test]
-    fn a_comment_is_known_from_other_html() {
-        assert!(is_comment("<!-- a -->"));
-        assert!(is_comment("<!-- a --> <!-- b -->\n"));
-        assert!(is_comment("<!-- opened"));
-        assert!(!is_comment("<b>x</b>"));
-        assert!(!is_comment("<!-- a --> <b>"));
-    }
-
-    #[test]
-    fn links_lead_inside_the_repository_or_nowhere() {
-        let links = links();
-        let inside = |href: &str| Some(Target::Inside(href.into()));
-        assert_eq!(
-            links.href("spec.md", false),
-            inside("/t/file/specs/f/spec.md")
-        );
-        assert_eq!(
-            links.href("../g/plan.md#tasks", false),
-            inside("/t/file/specs/g/plan.md#tasks")
-        );
-        assert_eq!(links.href("/README.md", false), inside("/t/file/README.md"));
-        assert_eq!(
-            links.href("my%20shot.png", true),
-            inside("/t/raw/specs/f/my%20shot.png")
-        );
-        assert_eq!(links.href("../../../x.md", false), None);
-        assert_eq!(links.href("javascript:alert(1)", false), None);
-        assert_eq!(links.href("//host/x", false), None);
-    }
 }
