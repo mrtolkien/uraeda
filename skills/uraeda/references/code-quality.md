@@ -136,7 +136,7 @@ says. The [example](../assets/example/specs/decisions/code-quality.md) is a mode
 - **Limits**: function length, parameters, nesting depth, and file length, in the linters the
   project has. Pick values today's code mostly meets, so the markers stay few.
 - **The stack's shared config**: when the stack has a lint configuration of its own, extend it. A
-  rule of it is turned off only where it conflicts with an active decision, named beside it.
+  rule of it is turned off only where it conflicts with a decision, named beside it.
 - **Today's offenders, marked in place**, each with its reason, with a marker that fails once the
   code no longer breaks its limit: Rust's `#[expect(...)]`, a lint's unused-directive report. The
   numbers can only go down.

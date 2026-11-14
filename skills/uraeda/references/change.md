@@ -112,7 +112,7 @@ request's "Decided without you". Ask only for:
 
 - **an intent the human would notice in the result**, that the proposal leaves open and where you
   would not bet on your reading: which of two behaviours a fix keeps;
-- **a change to an active decision**: see [Decisions](#decisions);
+- **a change to a decision**: see [Decisions](#decisions);
 - **the upgrade**: see [Upgrading](#upgrading).
 
 A low-impact choice is never a question: do what makes the code simplest.

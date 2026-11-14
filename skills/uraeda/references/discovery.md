@@ -169,7 +169,7 @@ line, and only if they object. So settle, and ask little.
 
 **Always ask for authority the human has not given**, however sure you are of the answer:
 
-- a change to what an active decision says, or a conflict with the constitution;
+- a change to what a decision says, or a conflict with the constitution;
 - a relaxed guard, a new dependency the human must then trust, or a change to data users already
   have;
 - a limit, a refusal, or a gate the proposal does not ask for;
@@ -256,10 +256,10 @@ Only if you picked B in Q2. [...]
 [Questions](writing.md#questions) and [options](writing.md#options) say how each part is written.
 Number questions from Q1 in each round, and leave each `**Answer:**` empty.
 
-**A conflict** with an active decision is a question: change the proposal, or change the decision,
-which can be narrowed, or given a case where it does not apply. A conflict with the constitution
-names the principle and recommends changing the proposal. An exception holds only if the human
-accepts it in their answer: it is then spelled out in the plan, which waits for their review.
+**A conflict** with a decision is a question: change the proposal, or change the decision, which can
+be narrowed, or given a case where it does not apply. A conflict with the constitution names the
+principle and recommends changing the proposal. An exception holds only if the human accepts it in
+their answer: it is then spelled out in the plan, which waits for their review.
 
 ## Visual questions
 

@@ -254,7 +254,7 @@ Its `[keyboard]` table holds the keys' settings, each applied at once:
 [keyboard]
 single_key_shortcuts = true                    # the letter keys of every page, and the Space leader
 vim_mode = true                                # Vim's keys in every text field, off by default
-vim_commands = ["imap jj <Esc>", "nmap Y y$"]  # run in order when Vim starts, empty by default
+vim_commands = ["imap jj <Esc>", "nmap Y y$"]  # kept, not run yet, empty by default
 ```
 
 ## Colour themes
@@ -491,10 +491,9 @@ like NORMAL or INSERT.
 Touch screens have no Vim: on a phone, or wherever the main pointer is a finger, fields type as
 without it, and the engine is never loaded.
 
-"Vim commands", under the switch, holds your own commands, one per line, like `imap jj <Esc>`. They
-run in order when Vim starts. A line the engine refuses shows its error under the field, like
-`Line 2: Not an editor command ":nmpa Q dd"`. A value of the wrong type in the file, like a string
-instead of a list, shows as a problem of the file.
+"Vim commands", under the switch, holds your own commands, one per line, like `imap jj <Esc>`. The
+app's Vim does not run them yet: they are kept in the file for when it does. A value of the wrong
+type in the file, like a string instead of a list, shows as a problem of the file.
 
 In a browser, the keys the browser keeps never reach Vim: Ctrl+W closes the tab, even in insert
 mode. The Leave guard asks first while text is not saved.
