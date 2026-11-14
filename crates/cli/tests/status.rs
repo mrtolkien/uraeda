@@ -99,6 +99,7 @@ fn merged_features_are_done() {
         feature(&repo, folder, &[("proposal.md", proposal())]);
         finish(&repo, folder);
         repo.git(&["merge", "--quiet", "--no-edit", folder]);
+        repo.remove_worktree(folder);
     }
     repo.push("2026-10-10-stack-decision");
     repo.delete_branch("2026-10-10-stack-decision");
@@ -164,15 +165,14 @@ fn behind_its_remote() {
         "2026-10-12-git-listener",
         &[("proposal.md", proposal())],
     );
-    repo.switch("2026-10-12-git-listener");
-    repo.push("2026-10-12-git-listener");
-    repo.write("x.md", "1\n");
-    repo.commit("one");
-    repo.write("x.md", "2\n");
-    repo.commit("two");
-    repo.push("2026-10-12-git-listener");
-    repo.git(&["reset", "--quiet", "--hard", "HEAD~2"]);
-    repo.switch("main");
+    let branch = "2026-10-12-git-listener";
+    repo.push(branch);
+    repo.write_in(branch, "x.md", "1\n");
+    repo.commit_in(branch, "one");
+    repo.write_in(branch, "x.md", "2\n");
+    repo.commit_in(branch, "two");
+    repo.push(branch);
+    repo.git_in(branch, &["reset", "--quiet", "--hard", "HEAD~2"]);
 
     let output = ura(&repo, &["status"]);
 
@@ -255,10 +255,10 @@ fn branch_with_a_slash() {
     );
 }
 
-/// R3: a branch whose proposal was never committed has no folder in its latest commit, so it is no
-/// item.
+/// A worktree's folder is read from its disk: a proposal never committed is an item, waiting on
+/// its commit.
 #[test]
-fn an_uncommitted_proposal_is_no_item() {
+fn an_uncommitted_proposal_is_an_item_of_its_worktree() {
     let repo = repo_with_specs();
     repo.switch_new("2026-10-11-runner");
     repo.write("specs/2026-10-11-runner/proposal.md", &proposal());
@@ -267,7 +267,8 @@ fn an_uncommitted_proposal_is_no_item() {
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert!(
-        !output.stdout.contains("2026-10-11-runner"),
+        output.stdout.contains("2026-10-11-runner")
+            && output.stdout.contains("(uncommitted changes)"),
         "{}",
         output.stdout
     );
@@ -279,6 +280,7 @@ fn merged_web_ui() -> TestRepo {
     let repo = repo_with_specs();
     feature(&repo, WEB_UI, &[("proposal.md", proposal())]);
     finish_and_merge(&repo, WEB_UI);
+    repo.remove_worktree(WEB_UI);
     repo
 }
 
@@ -300,13 +302,7 @@ fn a_merged_record_is_done() {
 #[test]
 fn a_merged_feature_with_leftovers_says_so() {
     let repo = merged_web_ui();
-    repo.git(&[
-        "worktree",
-        "add",
-        "--quiet",
-        ".worktrees/2026-10-11-web-ui",
-        WEB_UI,
-    ]);
+    repo.worktree(WEB_UI);
 
     let output = ura(&repo, &["status"]);
 

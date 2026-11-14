@@ -26,6 +26,7 @@ fn repo() -> TestRepo {
     );
     repo.commit("discovery(web-ui): web UI");
     repo.switch("main");
+    repo.worktree(FOLDER);
     repo
 }
 
@@ -254,7 +255,7 @@ fn new_commits_after_the_merge_leave_the_feature_done() {
     assert_eq!(feature.left_branch.as_deref(), Some(FOLDER));
 }
 
-/// A change on its branch is read from `specs/changes/<folder>`, its proposal first.
+/// A change in its worktree is read from `specs/changes/<folder>`, its proposal first.
 #[test]
 fn a_change_is_read_from_its_folder_on_its_branch() {
     let repo = repo();
@@ -265,6 +266,7 @@ fn a_change_is_read_from_its_folder_on_its_branch() {
     );
     repo.commit("chore: proposal");
     repo.switch("main");
+    repo.worktree(CHANGE_BRANCH);
 
     let change = feature(&repo, CHANGE);
 
@@ -310,6 +312,7 @@ fn a_changes_folder_without_its_branch_is_no_item() {
 fn a_finished_branch_is_read_from_its_record() {
     let repo = repo();
     finish(&repo, FOLDER, "specs/2026-10-11-web-ui", FOLDER, "feature");
+    repo.worktree(FOLDER);
 
     let feature = feature(&repo, FOLDER);
 
@@ -354,21 +357,6 @@ fn a_broken_record_is_a_problem() {
     assert_eq!(feature.problems[0].file, "specs/done/2026-10-11-web-ui.md");
 }
 
-/// Pull request review: a record whose kind disagrees with its branch is a problem.
-#[test]
-fn a_record_kind_must_match_its_branch() {
-    let repo = repo();
-    finish(&repo, FOLDER, "specs/2026-10-11-web-ui", FOLDER, "change");
-
-    let feature = feature(&repo, FOLDER);
-
-    assert_eq!(feature.problems[0].rule, "frontmatter.kind");
-    assert_eq!(
-        feature.problems[0].message,
-        "kind is change, but 2026-10-11-web-ui is a feature's branch"
-    );
-}
-
 /// A fix made outside the workflow, its branch left after the merge, is no change.
 #[test]
 fn a_branch_without_its_folder_or_record_is_not_a_feature() {
@@ -411,20 +399,14 @@ fn a_path_under_specs_names_its_folder() {
     }
 }
 
-/// US1.6: a branch checked out in a worktree, without its folder in its latest commit, is no item.
+/// US1.6: a folder in a worktree is read from its disk, committed or not, whatever the branch's
+/// name.
 #[test]
-fn a_checked_out_branch_without_its_folder_is_no_item() {
+fn a_worktrees_uncommitted_folder_is_an_item() {
     let repo = repo();
-    let folder = "2026-10-16-not-a-flow";
-    repo.branch(folder);
-    let worktree = repo.path().join(".worktrees").join(folder);
-    repo.git(&[
-        "worktree",
-        "add",
-        "--quiet",
-        worktree.to_str().unwrap(),
-        folder,
-    ]);
+    let folder = "2026-10-16-not-committed";
+    repo.branch("t3/some-thread");
+    let worktree = repo.worktree("t3/some-thread");
     std::fs::create_dir_all(worktree.join("specs").join(folder)).unwrap();
     std::fs::write(
         worktree.join("specs").join(folder).join("proposal.md"),
@@ -434,7 +416,44 @@ fn a_checked_out_branch_without_its_folder_is_no_item() {
 
     let workspace = workspace(&repo);
 
-    assert!(workspace.features.iter().all(|f| f.folder != folder));
+    let feature = workspace.feature(folder).unwrap();
+    assert_eq!(feature.branch.as_deref(), Some("t3/some-thread"));
+    assert!(feature.uncommitted);
+}
+
+/// A feature folder in a worktree whose branch is not named like a folder is in progress.
+#[test]
+fn a_worktree_branch_named_otherwise_holds_its_features() {
+    let repo = repo();
+    repo.switch_new("t3/some-thread");
+    repo.write("specs/2026-10-16-threaded/proposal.md", &proposal());
+    repo.commit("chore(threaded): start");
+    repo.switch("main");
+    repo.worktree("t3/some-thread");
+
+    let feature = feature(&repo, "2026-10-16-threaded");
+
+    assert_eq!(feature.branch.as_deref(), Some("t3/some-thread"));
+    assert_eq!(
+        feature.worktree.as_deref(),
+        Some(".worktrees/t3-some-thread")
+    );
+    assert_eq!(feature.source, Source::WorkingTree);
+}
+
+/// A feature branch with no worktree is postponed: not in progress.
+#[test]
+fn a_feature_branch_without_a_worktree_is_not_in_progress() {
+    let repo = repo();
+    repo.switch_new("2026-10-17-postponed");
+    repo.write("specs/2026-10-17-postponed/proposal.md", &proposal());
+    repo.commit("chore(postponed): start");
+    repo.switch("main");
+
+    let workspace = workspace(&repo);
+
+    assert!(workspace.feature("2026-10-17-postponed").is_none());
+    assert!(workspace.feature(FOLDER).is_some());
 }
 
 /// US1.7: a dated folder on the main checkout's disk, with no branch of its name, is no item.
@@ -541,8 +560,8 @@ fn a_pull_request_keeps_the_commits_step() {
 }
 
 /// A feature read alone is the one the whole workspace reads: checked out in a worktree, merged
-/// with its branch left, a change on its branch, the current branch's, a merged folder, a record
-/// on `origin` only, and a branch on `origin` only.
+/// with its branch left, a change in its worktree, the current branch's, a merged folder, and a
+/// record on `origin` only.
 #[test]
 fn a_folder_read_alone_is_the_workspaces() {
     let repo = finished_and_merged();
@@ -555,6 +574,7 @@ fn a_folder_read_alone_is_the_workspaces() {
     repo.write(&format!("specs/changes/{CHANGE}/proposal.md"), &proposal());
     repo.commit("chore(tasks-reappear): start");
     repo.switch("main");
+    repo.worktree(CHANGE_BRANCH);
     repo.switch_new("2026-10-13-merged");
     repo.write("specs/2026-10-13-merged/proposal.md", &proposal());
     repo.commit("chore(merged): start");
@@ -577,20 +597,13 @@ fn a_folder_read_alone_is_the_workspaces() {
     repo.push("main");
     repo.git(&["reset", "--quiet", "--hard", local.trim()]);
     repo.delete_branch("2026-10-14-pushed");
-    // A branch on `origin` only.
-    repo.switch_new("2026-10-15-remote");
-    repo.write("specs/2026-10-15-remote/proposal.md", &proposal());
-    repo.commit("chore(remote): start");
-    repo.push("2026-10-15-remote");
-    repo.switch("main");
-    repo.delete_branch("2026-10-15-remote");
     repo.switch("2026-10-12-other");
 
     let git = Git::discover(repo.path()).unwrap();
     let whole = Workspace::read(&git).unwrap();
 
     let folders: Vec<&str> = whole.features.iter().map(|f| f.folder.as_str()).collect();
-    assert_eq!(folders.len(), 6, "{folders:?}");
+    assert_eq!(folders.len(), 5, "{folders:?}");
     for feature in &whole.features {
         let alone = Workspace::read_folder(&git, &feature.folder).unwrap();
         assert_eq!(alone.features.len(), 1, "{}", feature.folder);
@@ -665,6 +678,7 @@ fn progress_counts_the_tasks_done_on_their_task_branches() {
     );
     task_branch(21, wave_plan(&merged, None, true));
     repo.switch("main");
+    repo.worktree(FOLDER);
 
     let progress = |repo: &TestRepo| feature(repo, FOLDER).step;
     let step = progress(&repo);
@@ -673,11 +687,13 @@ fn progress_counts_the_tasks_done_on_their_task_branches() {
     let counted = step.progress.unwrap();
     assert_eq!((counted.done, counted.total), (14, 20));
     assert_eq!(counted.title, "Task title 13");
-    // Checked out, the feature is read from its disk, and its step from its latest commit.
+    // Checked out here, the feature is read from this checkout's disk.
+    repo.remove_worktree(FOLDER);
     repo.switch(FOLDER);
     let counted = progress(&repo).progress.unwrap();
     assert_eq!((counted.done, counted.total), (14, 20));
     repo.switch("main");
+    repo.worktree(FOLDER);
 
     repo.add_on_branch(
         FOLDER,

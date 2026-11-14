@@ -34,7 +34,7 @@ fn round(q1: &str, q1b: &str, q2: &str) -> String {
     )
 }
 
-/// A repository on `main` whose feature branch holds a round, checked out nowhere.
+/// A repository on `main` whose feature branch holds a round, checked out in a worktree.
 fn repo_with(round_text: &str) -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
@@ -44,6 +44,7 @@ fn repo_with(round_text: &str) -> TestRepo {
     repo.write(ROUND, round_text);
     repo.commit("discovery(web-ui): web UI");
     repo.switch("main");
+    repo.worktree(FOLDER);
     repo
 }
 
@@ -436,6 +437,7 @@ fn spec_repo() -> TestRepo {
     );
     repo.commit("spec(web-ui): web UI");
     repo.switch("main");
+    repo.worktree(FOLDER);
     repo
 }
 
@@ -491,6 +493,7 @@ fn decision_repo() -> TestRepo {
     repo.write(DECISION, DECISION_ON_BRANCH);
     repo.commit("spec(web-ui): web UI");
     repo.switch("main");
+    repo.worktree(FOLDER);
     repo.write(
         DECISION,
         &DECISION_ON_MAIN.replace("merged away", "of main"),
@@ -838,6 +841,7 @@ fn a_replaced_review_keeps_images_another_file_links() {
     repo.write(&format!("{IMAGES}/shot.webp"), "shot");
     repo.commit("chore(web-ui): edit the proposal");
     repo.switch("main");
+    repo.worktree(FOLDER);
     let git = Git::discover(repo.path()).unwrap();
     let (feature, place) = reach(&repo);
     review::comment(
@@ -991,6 +995,7 @@ fn submitting_to_resume_marks_the_round_when_the_implementation_is_under_way() {
     );
     repo.commit("plan(web-ui): plan");
     repo.switch("main");
+    repo.worktree(FOLDER);
     let (feature, place) = reach(&repo);
 
     answer::submit_and_commit(&place, &feature, today(), true).unwrap();

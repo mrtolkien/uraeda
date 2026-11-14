@@ -102,16 +102,7 @@ pub(super) struct Merged {
 
 impl Merged {
     /// What each tip merged, or only the folder `only`'s record and folders.
-    pub(super) fn read(
-        reader: &Reader<'_>,
-        tips: &[ObjectId],
-        only: Option<&str>,
-        branches: &[Branch],
-    ) -> Merged {
-        let branched = |(kind, folder): &(Kind, String)| {
-            let name = folder_branch(*kind, folder);
-            branches.iter().any(|branch| branch.name == name)
-        };
+    pub(super) fn read(reader: &Reader<'_>, tips: &[ObjectId], only: Option<&str>) -> Merged {
         let records: Vec<BTreeMap<(Kind, String), String>> = tips
             .iter()
             .map(|tip| match only {
@@ -122,11 +113,10 @@ impl Merged {
         let folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
             .iter()
             .map(|tip| {
-                let mut folders = match only {
+                let folders = match only {
                     Some(folder) => reader.folder(*tip, folder),
                     None => reader.folders(ReadFrom::Commit(*tip)),
                 };
-                folders.retain(|key| !branched(key));
                 (*tip, folders)
             })
             .collect();

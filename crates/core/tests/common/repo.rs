@@ -129,13 +129,62 @@ impl TestRepo {
         String::from_utf8(output.stdout).unwrap()
     }
 
-    /// Commits a file on another branch, and comes back to the current one.
+    /// Commits a file on another branch, and comes back to the current one: in the branch's worktree
+    /// when it has one.
     pub fn add_on_branch(&self, branch: &str, path: &str, text: &str) {
+        if self.worktree_path(branch).exists() {
+            self.write_in(branch, path, text);
+            self.commit_in(branch, &format!("chore: add {path}"));
+            return;
+        }
         let current = self.current_branch();
         self.switch(branch);
         self.write(path, text);
         self.commit(&format!("chore: add {path}"));
         self.switch(&current);
+    }
+
+    /// Checks `branch` out in a worktree of its own, `.worktrees/<branch>` in the repository (kept
+    /// out of `git status`), as a session host does, and returns its path. The branch must exist
+    /// and not be checked out. Again for a branch already in a worktree, it returns that path.
+    pub fn worktree(&self, branch: &str) -> PathBuf {
+        let path = self.worktree_path(branch);
+        if !path.exists() {
+            let exclude = self.path.join(".git/info/exclude");
+            let mut text = fs::read_to_string(&exclude).unwrap_or_default();
+            if !text.lines().any(|line| line == ".worktrees/") {
+                text.push_str(".worktrees/\n");
+                fs::write(&exclude, text).unwrap();
+            }
+            self.git(&["worktree", "add", "--quiet", path.to_str().unwrap(), branch]);
+        }
+        path
+    }
+
+    /// Where `worktree(branch)` puts the branch's worktree.
+    pub fn worktree_path(&self, branch: &str) -> PathBuf {
+        self.path.join(".worktrees").join(branch.replace('/', "-"))
+    }
+
+    /// Runs git in a branch's worktree, and returns its stdout. Panics when git fails.
+    pub fn git_in(&self, branch: &str, args: &[&str]) -> String {
+        run_git(&self.worktree(branch), args)
+    }
+
+    /// Writes a file in a branch's worktree.
+    pub fn write_in(&self, branch: &str, path: &str, text: &str) {
+        let file = self.worktree(branch).join(path);
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, text).unwrap();
+    }
+
+    /// Commits every change in a branch's worktree, without counting as a hook run.
+    pub fn commit_in(&self, branch: &str, message: &str) {
+        self.git_in(branch, &["add", "--all"]);
+        self.git_in(
+            branch,
+            &["commit", "--quiet", "--no-verify", "--message", message],
+        );
     }
 
     /// Keeps the latest commit as it is: a branch holds it, so the tools' next commit is one of
@@ -148,7 +197,10 @@ impl TestRepo {
         self.git(&["branch", name]);
     }
 
+    /// Switches the repository's checkout to a branch. A branch in a worktree of
+    /// [`TestRepo::worktree`] leaves it first, so its checkout is the repository's.
     pub fn switch(&self, name: &str) {
+        self.remove_worktree(name);
         self.git(&["switch", "--quiet", name]);
     }
 
@@ -257,7 +309,16 @@ impl TestRepo {
         assert!(self.path.join(".git/MERGE_HEAD").exists());
     }
 
+    /// Removes a branch's worktree of [`TestRepo::worktree`], if it has one.
+    pub fn remove_worktree(&self, branch: &str) {
+        let held = self.worktree_path(branch);
+        if held.exists() {
+            self.git(&["worktree", "remove", "--force", held.to_str().unwrap()]);
+        }
+    }
+
     pub fn delete_branch(&self, name: &str) {
+        self.remove_worktree(name);
         self.git(&["branch", "--quiet", "-D", name]);
     }
 
