@@ -566,7 +566,7 @@ fn rulings_have_their_ids() {
     let rulings = items.rulings.unwrap();
 
     assert_eq!(rulings[0].id, "R1");
-    assert_eq!(rulings[0].title, "Fake timers advance during user events");
+    assert_eq!(rulings[0].title, "The custom screen lists days from Monday");
     assert!(!rulings[0].blocks.is_empty());
 }
 

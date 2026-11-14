@@ -40,16 +40,17 @@ fn sets_up_specs_only_from_a_subfolder() {
     for file in [
         "specs/README.md",
         "specs/CONSTITUTION.md",
-        "specs/PRIORITIES.md",
-        "specs/INBOX.md",
-        "specs/proposals/.gitkeep",
         "specs/decisions/.gitkeep",
-        "specs/changes/.gitkeep",
-        "specs/done/.gitkeep",
     ] {
         assert!(repo.exists(file), "{file}\n{}", output.stdout);
     }
-    for old in ["specs/bugs", "specs/drafts", "specs/backlog"] {
+    for old in [
+        "specs/PRIORITIES.md",
+        "specs/INBOX.md",
+        "specs/proposals",
+        "specs/changes",
+        "specs/done",
+    ] {
         assert!(!repo.exists(old), "{old}");
     }
     assert!(!repo.exists(".agents"));
@@ -82,34 +83,6 @@ fn keeps_existing_files() {
         "{}",
         output.stdout
     );
-}
-
-/// A project set up before the inbox gets it from a second run, and a human's inbox is kept.
-#[test]
-fn adds_the_inbox_and_keeps_it() {
-    let repo = TestRepo::new();
-    repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n");
-
-    let first = ura(&repo, &["init"]);
-
-    assert!(
-        first.stdout.contains("created specs/INBOX.md\n"),
-        "{}",
-        first.stdout
-    );
-    assert_eq!(repo.read("specs/INBOX.md"), "# Inbox\n");
-    assert_eq!(repo.read("specs/PRIORITIES.md"), "# Priorities\n\n## Now\n");
-    repo.write("specs/INBOX.md", "# Inbox\n\n- Ours\n");
-
-    let second = ura(&repo, &["init"]);
-
-    assert_eq!(repo.read("specs/INBOX.md"), "# Inbox\n\n- Ours\n");
-    assert!(
-        second.stdout.contains("kept    specs/INBOX.md\n"),
-        "{}",
-        second.stdout
-    );
-    assert_eq!(second.code, 0, "{}", second.stderr);
 }
 
 #[test]
@@ -222,27 +195,4 @@ fn outside_a_repository() {
     );
     assert_eq!(output.code, 1);
     assert_eq!(fs::read_dir(folder.path()).unwrap().count(), 0);
-}
-
-#[test]
-fn a_new_projects_priorities_have_no_blocked_and_no_warning() {
-    let repo = TestRepo::new();
-    repo.write("crates/a.txt", "a\n");
-    let home = repo.home();
-    let home_env = [("HOME", home.to_str().unwrap())];
-    ura_in(repo.path(), &["install", "--user", "--agents"], &home_env);
-    ura_in(repo.path(), &["init"], &home_env);
-
-    let priorities = repo.read("specs/PRIORITIES.md");
-    let checked = ura_in(repo.path(), &["check", "--json"], &home_env);
-
-    assert!(!priorities.contains("Blocked"), "{priorities}");
-    let json: serde_json::Value = serde_json::from_str(&checked.stdout).unwrap();
-    let about_priorities: Vec<&serde_json::Value> = json["problems"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|p| p["file"] == "specs/PRIORITIES.md")
-        .collect();
-    assert!(about_priorities.is_empty(), "{about_priorities:?}");
 }

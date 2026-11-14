@@ -414,11 +414,6 @@ fn each_rule() {
             format!("{RECORD}:5: superseded-by \"x\" is not a list of records"),
         ),
         (
-            "priorities without a section",
-            |e| e.edit("specs/PRIORITIES.md", "## Next", "## Elsewhere"),
-            "specs/PRIORITIES.md: missing section \"## Next\"".into(),
-        ),
-        (
             "a decision's rule with no case",
             |e| with_rules(e, "- A rule holds. _So:_ a case.\n- A rule holds.\n"),
             format!("warning: {DECISION}:{}: a rule with no case: add one after _So:_, as an agent would meet it", line_of(DECISION, "## Rules") + 3),
@@ -1114,28 +1109,6 @@ fn a_repeated_category_is_reported_on_its_second_heading() {
     );
 }
 
-#[test]
-fn the_inbox_is_titled_inbox() {
-    let example = Example::new();
-    example.edit(INBOX, "# Inbox\n", "# Notes\n");
-
-    assert_eq!(
-        summary(&example.problems()),
-        vec![format!("{INBOX}:1: the title is \"# Inbox\"")]
-    );
-    let rules: Vec<String> = example.problems().into_iter().map(|p| p.rule).collect();
-    assert_eq!(rules, vec!["inbox.title"]);
-}
-
-/// A project set up before the inbox has none, and is asked for none.
-#[test]
-fn a_missing_inbox_is_no_problem() {
-    let example = Example::new();
-    fs::remove_file(example.root().join(INBOX)).unwrap();
-
-    assert_eq!(summary(&example.problems()), Vec::<String>::new());
-}
-
 /// The inbox links started features like the priorities do: their files live on their branches.
 #[test]
 fn the_inbox_may_link_a_started_feature() {
@@ -1184,62 +1157,6 @@ fn triage() -> String {
     repository_file("fixtures/INBOX-TRIAGE.md")
 }
 
-/// The triage is checked as a round of questions, not as a free file.
-#[test]
-fn a_triage_is_checked_like_a_round() {
-    let answered = triage()
-        .replace("status: awaiting-human", "status: answered")
-        .replacen("**Answer:**\n", "**Answer:** A\n", 1);
-    let blank_line = answered
-        .lines()
-        .position(|line| line == "**Answer:**")
-        .unwrap()
-        + 1;
-    let rows: Vec<(&str, String, String)> = vec![
-        (
-            "a blank answer",
-            answered,
-            format!("{TRIAGE}:{blank_line}: Q2 has no answer"),
-        ),
-        (
-            "an unknown status",
-            triage().replace("status: awaiting-human", "status: approved"),
-            format!("{TRIAGE}:2: status \"approved\" is not one of awaiting-human, answered"),
-        ),
-        (
-            "another title",
-            triage().replace("# Inbox triage", "# Triage"),
-            format!("{TRIAGE}:5: the title starts with \"Inbox triage\""),
-        ),
-        (
-            "no block while awaiting",
-            triage().replace("> [!IMPORTANT]", "> [!NOTE]"),
-            format!("{TRIAGE}: a file waiting for the human opens with a \"> [!IMPORTANT]\" block"),
-        ),
-        (
-            "a question without its answer line",
-            triage().replacen("**Answer:**\n\n## Q2", "## Q2", 1),
-            format!("{TRIAGE}:19: Q1 has no **Answer:** line"),
-        ),
-        (
-            "an unknown section",
-            triage().replace("## Context", "## Background"),
-            format!("{TRIAGE}:14: unknown section \"## Background\""),
-        ),
-    ];
-    for (name, text, expected) in rows {
-        let example = Example::new();
-        example.write(TRIAGE, &text);
-
-        let problems = summary(&example.problems());
-
-        assert!(
-            problems.contains(&expected),
-            "{name}: {expected}\nin {problems:#?}"
-        );
-    }
-}
-
 /// A closing `##` is not part of the name: `## UI ##` repeats `## UI`.
 #[test]
 fn closing_hashes_repeat_a_category() {
@@ -1259,29 +1176,6 @@ fn empty_headings_are_not_repeated_categories() {
     example.write(INBOX, "# Inbox\n\n## \n\n- a\n\n##\n\n- b\n");
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
-}
-
-/// Only `specs/INBOX.md` and `specs/INBOX-TRIAGE.md` are the inbox and its triage: a file of the
-/// same name elsewhere is the human's.
-#[test]
-fn an_inbox_outside_the_top_of_specs_is_not_checked() {
-    let example = Example::new();
-    for path in [
-        format!("{FEATURE}/INBOX.md"),
-        "specs/proposals/INBOX.md".to_string(),
-        format!("{FEATURE}/INBOX-TRIAGE.md"),
-        "docs/INBOX.md".to_string(),
-    ] {
-        example.write(&path, "# Foo\n\n## A\n\n## A\n");
-    }
-    example.edit(INBOX, "# Inbox\n", "# Foo\n");
-
-    assert_eq!(
-        summary(&example.problems()),
-        vec![format!("{INBOX}:1: the title is \"# Inbox\"")]
-    );
-    let docs = check::check(example.root(), &example.root().join("docs/INBOX.md")).unwrap();
-    assert_eq!(summary(&docs), Vec::<String>::new());
 }
 
 /// The triage's `answered` is the human's Submit, as a round's is.
@@ -1933,7 +1827,7 @@ fn the_trimmed_round_fails_only_its_numbering() {
 }
 
 /// US1.8 and SC-002: the example round, the templates, and every fixture round report neither a
-/// problem nor a warning. The template and the triages are checked in the example, which covers the
+/// problem nor a warning. The template is checked in the example, which covers the
 /// rounds template itself; the fixture rounds in place, as `FIXTURE_ROUNDS` says.
 #[test]
 fn every_fixture_round_passes() {
@@ -1953,7 +1847,8 @@ fn every_fixture_round_passes() {
     let template = repository_file(
         "skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md",
     )
-    .replace("#topic", "#next-due-date");
+    .replace("#topic", "#next-due-date")
+    .replace("#finding", "#next-due-date");
     example.write(ROUND, &template);
     let template_problems: Vec<Problem> = example
         .problems()
@@ -1965,19 +1860,6 @@ fn every_fixture_round_passes() {
         Vec::<String>::new(),
         "template"
     );
-    for triage in [
-        "fixtures/INBOX-TRIAGE.md",
-        "skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md",
-    ] {
-        let example = Example::new();
-        example.write(TRIAGE, &repository_file(triage));
-
-        assert_eq!(
-            summary(&example.problems()),
-            Vec::<String>::new(),
-            "{triage}"
-        );
-    }
     assert_eq!(summary(&Example::new().problems()), Vec::<String>::new());
 }
 

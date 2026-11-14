@@ -65,9 +65,6 @@ Five habits follow, and every step applies them:
 
 - **Proposal**: the human's request, in their own words. It waits in their notes until the feature
   starts, then becomes `proposal.md`, the first commit of the feature's branch. Never rewritten.
-- **Notes**: what the human keeps outside git: ideas, an inbox of things noticed, priorities,
-  proposals not started yet, and a wiki the agents write. An Obsidian vault is the example this
-  skill uses. See [Notes](references/notes.md).
 - **Round**: one set of questions for the human, in `clarifications-NN.md`. A feature's round comes
   with the findings it relies on, `discovery-NN.md`. An answered round keeps the human's words as
   they wrote them.
@@ -101,8 +98,7 @@ specs/
   ui/                       # the UI's guides, free form: read before designing a view
   guides/                   # the guides of other areas, free form: git, runs, the toolchain
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change
-  changes/YYYY-MM-DD-<slug>/ # one folder per change: proposal.md, clarifications-NN.md,
-                            # rulings.md, images/, mockups/
+  changes/YYYY-MM-DD-<slug>/ # one folder per change, as a feature's, without spec or plan
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why; the branch's first commit
     discovery-01.md         # agent: what a round's questions rely on, and the map of the code
@@ -133,20 +129,11 @@ shows every file of a feature. Templates and an example of the human's notes are
 
 ## The human's notes
 
-Ideas, the inbox, priorities, proposals not started yet, and the research behind each round live
-outside git, in the human's notes. Nothing in git depends on them: a spec may link a note, as
-further reading, and never needs it. [Notes](references/notes.md) gives their layout, with an
-Obsidian vault as the example:
-
-```sh
-vault/
-  inbox/                    # human: one note per capture, any project; agents' rare notes
-  wiki/                     # agents: what was learned, shared by every repository
-    libraries/  apps/  standards/  topics/  gotchas/
-  projects/<repository>/
-    proposals/              # human: one note per proposal, its status a board
-    research/               # agents: each discovery's long report
-```
+**Notes** are what the human keeps outside git: ideas, an inbox of things noticed, priorities,
+proposals not started yet, and the research behind each round. Nothing in git depends on them: a
+spec may link a note, as further reading, and never needs it. [Notes](references/notes.md) gives
+their layout, with an Obsidian vault as the example: an `inbox/` of the human's captures, a `wiki/`
+the agents write, and `projects/<repository>/` with its `proposals/` and `research/`.
 
 Read the wiki when it helps, in any step: it saves searches already made. Its facts are leads, with
 their sources: a fact a question or the spec relies on is read again at its source.
@@ -253,49 +240,26 @@ Any step can find something only the human can decide: an answer that raised a n
 asking for options, a build blocked by something the spec and the decisions do not allow. Never work
 around it, and never leave it as a note: start a new round, with the next number, following
 [Discovery](references/discovery.md). Ask everything the rest of the work needs, so it is the last
-round. A change's round has no discovery file: see [Change](references/change.md#asking).
+round.
 
 ### Coming back to the human
 
-A step that ends at a human gate stops there: do not start the next step early, even partly. It
-comes back the same way every time:
-
-1. **The file waiting for them opens with [the block](references/writing.md#the-block)**: what is
-   asked, the time it takes, and what most needs their attention, most important first.
-2. **The commit message's body is the block's first line**, so `git log` shows what waits.
-3. **Your last message says the same in one or two sentences**, with what the human must do and a
-   link they can open: the page that shows the file, like `ura serve`'s, when there is one, or the
-   file's path. A session host shows that message, and tells the human it waits. The next step
-   starts when the human says so: they answer, then tell the session to go on, or start a new one.
-
-Once the human has answered or reviewed, the block becomes a note of what they were asked: its
-callout turns to `> [!NOTE]`, and its first line to the outcome and its date, "Answered on
-2026-10-08". The next step does it, in its own commit, after
-[committing the human's work](#the-humans-work-is-committed-first).
-[The block](references/writing.md#the-block) has the details.
+A step that ends at a human gate stops there: do not start the next step early. The file waiting for
+them opens with [the block](references/writing.md#the-block), the commit message's body is its first
+line, so `git log` shows what waits, and your last message says the same in one or two sentences:
+what the human must do, and a link they can open, the page that shows the file, like `ura serve`'s,
+or its path. The next step starts when the human says so, and turns the block into a note once
+[their work is committed](#the-humans-work-is-committed-first).
 
 Never bury something the human must decide in prose: it is a question in a round, or an item of the
 block. Never explain how the workflow works in a file for the human: tools and this skill do.
 
 ## In a session
 
-When the human talks with you, the same habits hold, in a smaller form:
-
-- **Answer short.** What changed, what they must decide, and the next action. One recommendation,
-  backed by the work behind it, never "X or Y" for them to sort out.
-- **A code change is offered as a change.** When the human asks a session on the default branch for
-  a fix or a small change to the code, offer to start it as a
-  [change](references/change.md#starting-a-change), with its own branch and pull request. Start
-  nothing without their yes. Typos, formatting, and comments stay in the session.
-- **A round asked in the session.** When the human asks for it, ask the round's questions in the
-  session instead of a file: the same questions, each with its recommended answer, in small batches.
-  There is no `clarifications-NN.md`: the spec carries what they decided, quoting their words, as
-  [Spec](references/spec.md#read-the-humans-words) says.
-- **A file reviewed live is one revision.** When the human works through a round, a spec, or a plan
-  with you in the session, edit it in place as they speak, and commit once, when they say it is
-  done.
-- **Set a human status only when they say so**: "the spec is approved". See
-  [Workflow status](references/conventions.md#workflow-status).
+When the human talks with you, the same habits hold, in a smaller form: answer short, offer a code
+change as a change, ask a round in the session when they ask for it, edit a file reviewed live in
+place, and set a human status only when they say so. See
+[In a session with the human](references/conventions.md#in-a-session-with-the-human).
 
 ## References
 
@@ -309,11 +273,11 @@ When the human talks with you, the same habits hold, in a smaller form:
 - [Code quality](references/code-quality.md): one home per rule, structure before behaviour, rules
   that tools check, and testing.
 - [Writing for the human](references/writing.md): every file the human reads, and the shape of a
-  round. Read it before writing one.
+  round.
 - [Conventions](references/conventions.md): markdown, status fields, review files, branches, and
   commits. Read it before writing or committing a workflow file.
-- [Notes](references/notes.md): the human's notes, the wiki, research reports, and agents' notes.
+- [Notes](references/notes.md): the human's notes, the wiki, research reports, agents' notes.
 - [Projects](references/projects.md): setting a project up, and starting, postponing, or dropping a
-  feature. Read it when the human asks for one of these.
+  feature.
 - [The `ura` CLI](references/cli.md): the commands. Without `ura`, every mechanical step is in
   [By hand](references/by-hand.md).
