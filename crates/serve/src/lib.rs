@@ -10,6 +10,7 @@ pub mod assets;
 pub mod config;
 pub mod guard;
 pub mod html;
+pub mod render;
 pub mod token;
 pub mod waiting;
 pub mod wake;
