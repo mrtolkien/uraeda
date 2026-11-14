@@ -83,8 +83,7 @@ fn the_skill_never_describes_the_web_ui() {
         ] {
             assert!(
                 !text.contains(phrase),
-                "{} names the app with \"{phrase}\": move it to the app's instructions or \
-                 docs/app.md",
+                "{} names the removed app with \"{phrase}\": the skill names no app of its own",
                 file.display()
             );
         }
