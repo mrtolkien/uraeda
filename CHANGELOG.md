@@ -6,7 +6,16 @@ Released on 2026-11-14.
 
 ### Features
 
-- **[Migration to Native Shell and a Rust server](https://github.com/mrtolkien/uraeda/blob/v2.1.0/specs/done/2026-11-10-nsh-migration.md)** ([#123](https://github.com/mrtolkien/uraeda/pull/123)): The human asked to move Uraeda's UI off React, for performance, native apps, and a look of its own. After two spikes, `spike/nsh` and `spike/exact`, they chose Native Shell (NSH), a framework that draws one TSX and Rust codebase natively and in the browser, and asked that the Node server move to Rust too. The app is now TSX on NSH over Rust modules, shipped as a Linux app and a web build, on a component library of its own with glass, blur, and neon light in a terminal style. The server is Rust, inside `ura`, as `ura serve`. There was no written proposal: the spec was written from a conversation with the human on 2026-11-10, recorded as the round below. iOS and macOS were out of scope, and came after the merge, on a Mac.
+- **[Migration to Native Shell and a Rust server](https://github.com/mrtolkien/uraeda/blob/v2.1.0/specs/done/2026-11-10-nsh-migration.md)**
+  ([#123](https://github.com/mrtolkien/uraeda/pull/123)): The human asked to move Uraeda's UI off
+  React, for performance, native apps, and a look of its own. After two spikes, `spike/nsh` and
+  `spike/exact`, they chose Native Shell (NSH), a framework that draws one TSX and Rust codebase
+  natively and in the browser, and asked that the Node server move to Rust too. The app is now TSX
+  on NSH over Rust modules, shipped as a Linux app and a web build, on a component library of its
+  own with glass, blur, and neon light in a terminal style. The server is Rust, inside `ura`, as
+  `ura serve`. There was no written proposal: the spec was written from a conversation with the
+  human on 2026-11-10, recorded as the round below. iOS and macOS were out of scope, and came after
+  the merge, on a Mac.
 
 ## 2.0.0 - Native Shell + the Mac app
 
