@@ -9,6 +9,9 @@
 //! - `DELETE /{token}/vault/file?path=&expect=`: moves a file to the vault's `.trash/`, on the
 //!   same condition.
 //!
+//! A write or a deletion never goes through a link of the vault: a link leads to a repository's
+//! files, or out of the vault. A read follows them, as the listing does.
+//!
 //! The plugin's requests carry no `Origin`: they write with the token in `Authorization: Bearer`,
 //! which a page of another site cannot send without CORS, which `ura serve` never allows (see
 //! [`crate::guard`]).
@@ -158,12 +161,11 @@ pub async fn put_file(
     };
     let held = Arc::clone(&shared);
     blocking(move || {
-        let path = writable(&target.path)?;
+        let (_, full) = writable(&vault, &target.path)?;
         let _write = held
             .writes
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let full = vault.root().join(&path);
         expect(&full, target.expect.as_deref())?;
         notes::write_atomic(&full, &body).map_err(|_| {
             failure(
@@ -186,12 +188,11 @@ pub async fn delete_file(
     };
     let held = Arc::clone(&shared);
     blocking(move || {
-        let path = writable(&target.path)?;
+        let (path, full) = writable(&vault, &target.path)?;
         let _write = held
             .writes
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let full = vault.root().join(&path);
         if !full.is_file() {
             return Ok(StatusCode::OK.into_response());
         }
@@ -217,10 +218,13 @@ async fn blocking(work: impl FnOnce() -> Result<Response, Failure> + Send + 'sta
     }
 }
 
-fn writable(path: &str) -> Result<String, Failure> {
-    paths::clean(path)
-        .filter(|p| paths::is_writable(p))
-        .ok_or_else(|| failure(StatusCode::FORBIDDEN, "The phone may not write this file."))
+/// The path the phone may write or delete, cleaned, and its file: never the plugin's, git's, or
+/// one behind a link.
+fn writable(vault: &Vault, path: &str) -> Result<(String, std::path::PathBuf), Failure> {
+    let refused = || failure(StatusCode::FORBIDDEN, "The phone may not write this file.");
+    let full = notes::writable(vault, path).map_err(|_| refused())?;
+    let clean = paths::clean(path).ok_or_else(refused)?;
+    Ok((clean, full))
 }
 
 /// Whether the desktop's file is still what the phone expects: `None` for no file.
