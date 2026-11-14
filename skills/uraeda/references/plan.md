@@ -201,7 +201,7 @@ Stop, without committing a plan, when it would need:
   for that review;
 - a behaviour different from the spec, because the code, a dependency, or a platform does not allow
   it as written;
-- a pick between two sections of the spec that disagree;
+- a choice between two sections of the spec that disagree;
 - a split of the spec ([Scope check](#scope-check));
 - **a new limit, refusal, or rule that users would notice**, which the spec does not state.
 

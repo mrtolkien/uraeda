@@ -89,7 +89,7 @@ their own network, like Tailscale:
 - **What waits on the human**, across the repositories its configuration names and their worktrees,
   which it finds through git: each file with `status: awaiting-human`.
 - **A round**: one card per question, the recommended answer marked, a follow-up shown only when its
-  condition is met, a note, each pick written into the round's file at once.
+  condition is met, a note, each answer written into the round's file as soon as it is chosen.
 - **A review**: the rendered spec or plan, what changed since the human's last review, a comment on
   a passage, then approve or request changes.
 - **Mockups** in both, a file of the feature or an address, drawn in place, with a comment about one
