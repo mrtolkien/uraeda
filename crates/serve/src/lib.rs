@@ -248,7 +248,7 @@ async fn home(State(shared): State<Arc<Shared>>) -> Html<String> {
     let body = waiting::render(&waiting, vault.as_deref()).replacen(
         "</main>",
         "<p class=\"settings-link\"><a class=\"button\" href=\"settings\">Settings: how each \
-         step runs</a> <a class=\"button\" href=\"vault\">Your notes, and the phone</a></p></main>",
+         step runs</a> <a class=\"button\" href=\"vault\">Obsidian setup</a></p></main>",
         1,
     );
     Html(html::page("What waits on you", &body))
