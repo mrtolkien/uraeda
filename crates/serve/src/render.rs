@@ -652,6 +652,20 @@ fn unescape(html: &str) -> String {
         .replace("&amp;", "&")
 }
 
+/// A part of `file`, a path from the repository's top level, drawn for a page of the feature at
+/// `base`, the path from the page back to the feature's folder of pages: `./` for the round, `../`
+/// for a review.
+pub fn draw(markdown: &str, file: &str, base: &str) -> String {
+    let folder = file.rsplit_once('/').map_or("", |(folder, _)| folder);
+    render(
+        markdown,
+        &Links {
+            folder: folder.to_string(),
+            base: base.to_string(),
+        },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Links, Target, is_comment};

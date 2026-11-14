@@ -11,6 +11,7 @@ pub mod config;
 pub mod guard;
 pub mod html;
 pub mod render;
+pub mod round;
 pub mod token;
 pub mod waiting;
 pub mod wake;
@@ -22,7 +23,7 @@ use std::sync::Arc;
 use axum::Router;
 use axum::extract::State;
 use axum::response::Html;
-use axum::routing::get;
+use axum::routing::{get, post};
 
 pub use config::Settings;
 
@@ -64,6 +65,17 @@ pub fn router(shared: Arc<Shared>) -> Router {
     Router::new()
         .route("/{token}/", get(home))
         .route("/{token}/a/{version}/{name}", get(assets::serve))
+        .route("/{token}/{repo}/{folder}/round", get(round::routes::page))
+        .route("/{token}/{repo}/{folder}/answer", post(round::routes::save))
+        .route("/{token}/{repo}/{folder}/notes", post(round::routes::notes))
+        .route(
+            "/{token}/{repo}/{folder}/settled",
+            post(round::routes::settled),
+        )
+        .route(
+            "/{token}/{repo}/{folder}/submit",
+            post(round::routes::submit),
+        )
         .fallback(not_found)
         .layer(axum::middleware::from_fn_with_state(
             shared.clone(),

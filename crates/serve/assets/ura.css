@@ -357,3 +357,183 @@ pre.html {
   color: var(--warn);
   font-size: 0.88rem;
 }
+/* --- round --- */
+
+.crumbs {
+  font-size: 0.95rem;
+}
+.crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+.subtitle {
+  margin-top: -0.3em;
+}
+
+details.context,
+.settled,
+section.q,
+section.notes {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px var(--gap) var(--gap);
+  margin: var(--gap) 0;
+}
+details.context {
+  padding-top: 0;
+}
+details.context > summary,
+details.comment > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+details.comment > summary {
+  font-weight: 500;
+  color: var(--accent);
+}
+
+section.q {
+  scroll-margin-top: 12px;
+}
+section.q h2 {
+  margin-top: 0.8em;
+}
+.qid {
+  color: var(--muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+.why,
+.example {
+  border-radius: var(--radius);
+  padding: 2px 12px;
+  margin: 12px 0;
+}
+.why {
+  background: var(--warn-soft);
+}
+.example {
+  background: var(--info-soft);
+}
+
+.choices {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+.choice {
+  position: relative;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px 10px 48px;
+  cursor: pointer;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+}
+.choice ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.choice ul ul {
+  margin-top: 6px;
+}
+.choice ul ul li {
+  padding-left: 1.4em;
+  text-indent: -1.4em;
+}
+.choice > ul > li > p:first-child {
+  margin-top: 0;
+}
+.choice .letter {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.choice[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.choice[aria-checked="true"] .letter {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.choice[aria-disabled="true"] {
+  cursor: default;
+}
+.choice.recommended {
+  border-style: solid;
+}
+.tag {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--warn);
+  margin-bottom: 2px;
+}
+.pro {
+  color: var(--good);
+  font-weight: 700;
+  display: inline-block;
+  width: 1.4em;
+  text-indent: 0;
+}
+.con {
+  color: var(--bad);
+  font-weight: 700;
+  display: inline-block;
+  width: 1.4em;
+  text-indent: 0;
+}
+.star {
+  color: var(--warn);
+  display: inline-block;
+  width: 1.4em;
+  text-indent: 0;
+}
+
+.words {
+  display: grid;
+  gap: 4px;
+}
+.saved {
+  min-height: 1.4em;
+  margin: 4px 0 0;
+}
+.saved.error {
+  color: var(--bad);
+}
+.point {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+.point:first-of-type {
+  border-top: 0;
+}
+
+.bar .progress {
+  color: var(--muted);
+}
+.bar .progress b {
+  color: var(--text);
+}
+.done {
+  text-align: left;
+  padding-top: 10vh;
+}
+/* --- end round --- */
