@@ -33,15 +33,21 @@ one: its folder name or slug. Without it, the command takes the feature of the w
 effort), and `session`: `join` when the step runs on in the session that ran the previous one, `new`
 when it starts a new one, as [Sessions and picks](../SKILL.md#sessions-and-picks) says. For the
 implementation, it adds the implementers' pick, the reviewers' picks, and whether reviewers review
-each wave or the branch only.
+each wave or the branch only. When the human's answers or review are on disk, uncommitted, it says
+to [commit them first](../SKILL.md#the-humans-work-is-committed-first), then names the step that
+follows them.
 
-The picks are the human's, in `ura`'s configuration file, outside every repository: a pick per step
-(`discovery`, `spec`, `plan`, `build`, `review`, `comments`, `change`), with a `new-session` switch
-for each, a pick for implementers, a list of reviewers, and their depth. `review` covers the final
-review and the finish; `comments` covers the comments, the catch-up, and the push. Committing the
-human's work or the proposal is part of the step that follows it. A repository's own section, named
-by its folder, goes over the defaults, value by value. A step with no pick runs on the session's
-own.
+A feature or a change is in progress where a worktree holds it: every worktree on a branch of its
+own, whatever its name, holds its dated folders under `specs/` and `specs/changes/`, and the record
+its own finish wrote. A branch without a worktree is postponed.
+
+The picks are the human's, in `ura`'s configuration file, outside every repository, which
+`ura serve`'s settings page edits: a pick per step (`discovery`, `spec`, `plan`, `build`, `review`,
+`comments`), with a `new-session` switch for each, on for `plan` by default, a pick for
+implementers, a list of reviewers, and their depth. `review` covers the final review and the finish;
+`comments` covers the comments, the catch-up, and the push; a change runs on `build`'s. Committing
+the human's work or the proposal is part of the step that follows it. A step with no pick runs on
+the session's own.
 
 `ura next` and `ura status` read the open pull requests with `gh`. An open, ready pull request whose
 branch is behind the default branch names the step `catch-up`, whose reference is
@@ -51,6 +57,9 @@ lacks the branch's latest commit names the step `push`, whose reference is
 [the push](implementation.md#push) for a feature, and [Change](change.md) for a change. It waits on
 the human only once it holds it. A head the repository never fetched counts as holding it: it is
 likely newer than the branch. Without `gh`, they say so.
+
+`ura status` also lists this repository's proposal notes still `started` whose branch is merged,
+each with the command that sets it `done`, as [Notes](notes.md#proposals-and-priorities) says.
 
 ## `ura check`
 
@@ -104,5 +113,6 @@ Reads and writes the human's notes for an agent: one vault for every repository,
 configuration file names, with paths relative to it, as [Notes](notes.md#the-layout) lays it out.
 `ls` lists a folder's notes, each with its `description`. `read` prints a note. `write` writes a
 note from standard input, or sets one frontmatter field with `--set <field>=<value>`, leaving the
-rest of the note byte for byte. `rm` deletes a note. `check` reports wikilinks that resolve to no
-note, and wiki notes without a `description`. None of them touches git.
+rest of the note byte for byte. `rm` moves a note to the vault's `.trash/`, as Obsidian does.
+`check` reports wikilinks that resolve to no note, and wiki notes without a `description`. None of
+them touches git.
