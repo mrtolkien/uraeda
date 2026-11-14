@@ -4,19 +4,15 @@
 
 use std::path::{Path, PathBuf};
 
-use toml_edit::{Array, DocumentMut, Item, Key, TableLike, Value};
+use toml_edit::{DocumentMut, Item, Key, TableLike, Value};
 
 use crate::api::ApiError;
 
 mod file;
-mod keyboard;
-mod list;
 mod rules;
 mod runs;
 mod runs_write;
 
-pub(crate) use file::{line, load as load_text, parse as parse_text};
-pub use keyboard::{set_single_key_shortcuts, set_vim_commands, set_vim_mode};
 pub use runs::{
     ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions, check_run_options, merge_run_options,
 };
@@ -65,31 +61,6 @@ pub struct RunSettings {
     pub options: RunOptions,
 }
 
-/// A kind of automatic run, each with its switch in `[runs]`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ContinueKey {
-    /// `continue_after_restart`.
-    Restart,
-    /// `continue_after_limit`.
-    Limit,
-    /// `catch_up_pull_requests`.
-    CatchUp,
-    /// `scheduled_jobs`.
-    Jobs,
-}
-
-impl ContinueKey {
-    /// The switch's key in `[runs]`.
-    pub const fn key(self) -> &'static str {
-        match self {
-            Self::Restart => "continue_after_restart",
-            Self::Limit => "continue_after_limit",
-            Self::CatchUp => "catch_up_pull_requests",
-            Self::Jobs => "scheduled_jobs",
-        }
-    }
-}
-
 /// The `[keyboard]` table: how the web UI's keys behave.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct KeyboardSettings {
@@ -132,116 +103,6 @@ pub fn port(typed: &str) -> Result<u16, String> {
     rules::port(typed)
 }
 
-/// `typed`, trimmed, when it is a cap on automatic continues, a whole number from 1 to 10;
-/// otherwise the problem, as a flag or a variable giving the cap is checked.
-pub fn automatic_continues(typed: &str) -> Result<i64, String> {
-    rules::automatic_continues(typed)
-}
-
-/// Adds a host name, trimmed and in lower case, at the end of `allowed_hosts`.
-pub fn add_allowed_host(dir: &Path, name: &str) -> Result<Settings, ApiError> {
-    let name = rules::host_name(name).map_err(refused)?;
-    change(dir, |server| {
-        let hosts = hosts(server)?;
-        if !positions(hosts, &name).is_empty() {
-            return Err(already(&name));
-        }
-        list::push(hosts, &name);
-        Ok(())
-    })
-}
-
-/// Replaces the host name `from` with `to`, trimmed and in lower case, in its place. A name the
-/// file lists more than once is replaced in its first place, and its copies removed.
-pub fn edit_allowed_host(dir: &Path, from: &str, to: &str) -> Result<Settings, ApiError> {
-    let to = rules::host_name(to).map_err(refused)?;
-    change(dir, |server| {
-        let hosts = hosts(server)?;
-        let places = positions(hosts, from);
-        let Some((&first, copies)) = places.split_first() else {
-            return Err(not_listed(from));
-        };
-        if positions(hosts, &to)
-            .iter()
-            .any(|other| !places.contains(other))
-        {
-            return Err(already(&to));
-        }
-        for &copy in copies.iter().rev() {
-            list::remove(hosts, copy);
-        }
-        hosts.replace(first, to.as_str());
-        Ok(())
-    })
-}
-
-/// Removes the host name `name`, every copy of it.
-pub fn remove_allowed_host(dir: &Path, name: &str) -> Result<Settings, ApiError> {
-    change(dir, |server| {
-        let hosts = hosts(server)?;
-        let places = positions(hosts, name);
-        if places.is_empty() {
-            return Err(not_listed(name));
-        }
-        for &place in places.iter().rev() {
-            list::remove(hosts, place);
-        }
-        Ok(())
-    })
-}
-
-/// Sets the port to `typed`, a whole number from 1 to 65535.
-pub fn set_port(dir: &Path, typed: &str) -> Result<Settings, ApiError> {
-    let port = rules::port(typed).map_err(refused)?;
-    change(dir, |server| {
-        set(server, "port", Value::from(i64::from(port)));
-        Ok(())
-    })
-}
-
-/// Sets whether a start opens a browser.
-pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
-    change(dir, |server| {
-        set(server, "open_browser", Value::from(open));
-        Ok(())
-    })
-}
-
-/// Sets whether the kind of automatic run `key` is on, in `[runs]`.
-pub fn set_continue(dir: &Path, key: ContinueKey, on: bool) -> Result<Settings, ApiError> {
-    change_table(dir, "runs", |runs| {
-        set(runs, key.key(), Value::from(on));
-        Ok(())
-    })
-}
-
-/// Sets the automatic continues in a row to `typed`, a whole number from 1 to 10, in `[runs]`.
-pub fn set_automatic_continues(dir: &Path, typed: &str) -> Result<Settings, ApiError> {
-    let continues = rules::automatic_continues(typed).map_err(refused)?;
-    change_table(dir, "runs", |runs| {
-        set(runs, "automatic_continues", Value::from(continues));
-        Ok(())
-    })
-}
-
-/// Sets the agent a new session runs on when nothing picks one, trimmed, in `[runs]`: `None`
-/// removes it, and the first agent on is the default again. An empty name is refused.
-pub fn set_default_agent(dir: &Path, agent: Option<&str>) -> Result<Settings, ApiError> {
-    let agent = agent.map(str::trim);
-    if agent == Some("") {
-        return Err(refused("The agent is empty."));
-    }
-    change_table(dir, "runs", |runs| {
-        match agent {
-            Some(agent) => set(runs, "default_agent", Value::from(agent)),
-            None => {
-                runs.remove("default_agent");
-            }
-        }
-        Ok(())
-    })
-}
-
 /// The file's text and layout, `None` when there is none, and its settings; or the `unreadable`
 /// problem.
 fn checked(dir: &Path) -> Result<(Option<(String, file::Layout)>, Settings), ApiError> {
@@ -251,23 +112,6 @@ fn checked(dir: &Path) -> Result<(Option<(String, file::Layout)>, Settings), Api
         .map_or_else(|| Ok(Settings::default()), |(text, _)| file::parse(text))
         .map_err(|problem| unreadable(dir, &problem))?;
     Ok((read, settings))
-}
-
-/// Applies `edit` to the `[server]` table of the file as it is now, as `change_table` does.
-fn change(
-    dir: &Path,
-    edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
-) -> Result<Settings, ApiError> {
-    change_table(dir, "server", edit)
-}
-
-/// Applies `edit` to the table `name` of the file as it is now, as `change_path` does.
-fn change_table(
-    dir: &Path,
-    name: &str,
-    edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
-) -> Result<Settings, ApiError> {
-    change_path(dir, &[name], edit)
 }
 
 /// Applies `edit` to the table at `path`, like `["extensions", "wiki"]` for `[extensions.wiki]`,
@@ -298,7 +142,7 @@ pub(crate) fn change_document(
     seed: &str,
     edit: impl FnOnce(&mut DocumentMut) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
-    let _lock = crate::cache::folder_lock(dir);
+    let _lock = crate::lock::folder_lock(dir);
     let (read, _) = checked(dir)?;
     let (text, layout) = read.unwrap_or_else(|| (seed.to_owned(), file::Layout::default()));
     // `checked` parsed the same text, so this failure is unreachable; it still answers.
@@ -335,33 +179,6 @@ fn nested<'a>(
     nested(dir, inner, rest)
 }
 
-/// `allowed_hosts`, created empty when absent.
-fn hosts(server: &mut dyn TableLike) -> Result<&mut Array, ApiError> {
-    if server.get("allowed_hosts").is_none() {
-        server.insert("allowed_hosts", Item::Value(Value::Array(Array::new())));
-    }
-    // A file read without a problem lists its host names, so the refusal is unreachable.
-    server
-        .get_mut("allowed_hosts")
-        .and_then(Item::as_array_mut)
-        .ok_or_else(|| refused("The allowed host names are not a list."))
-}
-
-/// Every place where `name`, trimmed and in any case, is in the list.
-fn positions(hosts: &Array, name: &str) -> Vec<usize> {
-    let name = name.trim();
-    hosts
-        .iter()
-        .enumerate()
-        .filter(|(_, value)| {
-            value
-                .as_str()
-                .is_some_and(|listed| listed.eq_ignore_ascii_case(name))
-        })
-        .map(|(place, _)| place)
-        .collect()
-}
-
 /// Sets `key` to `value`, keeping the comment and spaces around the value it replaces.
 pub(crate) fn set(table: &mut dyn TableLike, key: &str, mut value: Value) {
     match table.get_mut(key) {
@@ -389,14 +206,6 @@ pub(crate) fn unreadable(dir: &Path, problem: &str) -> ApiError {
         message: format!("Cannot read {}: {problem}", shown_file(dir)),
         output: None,
     }
-}
-
-fn already(name: &str) -> ApiError {
-    refused(format!("{name} is already allowed."))
-}
-
-fn not_listed(name: &str) -> ApiError {
-    refused(format!("{} is not an allowed host name.", name.trim()))
 }
 
 /// `path` as messages show it, the home folder `home` written `~`; unchanged outside it, or when

@@ -8,10 +8,10 @@ use std::time::{Duration, SystemTime};
 
 use serde::Serialize;
 
+use crate::behind;
 use crate::git::{Git, process};
 use crate::steps::{CatchUp, PullRequest, Step, StepName};
 use crate::workspace::Feature;
-use crate::{behind, cache};
 
 /// An open pull request's state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -251,11 +251,7 @@ pub fn remember(root: &Path, snapshot: PullRequests) -> bool {
 /// step. Says whether the latest changed: when it did, the workspace reads kept in memory, which
 /// applied the one before, are read again.
 pub fn settle(root: &Path, fetched: PullRequests, now: SystemTime) -> bool {
-    let changed = keep(root, fetched, now);
-    if changed {
-        cache::invalidate(root);
-    }
-    changed
+    keep(root, fetched, now)
 }
 
 /// Keeps a fetched snapshot as the latest, as `settle` says.

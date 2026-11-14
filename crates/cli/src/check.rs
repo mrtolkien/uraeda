@@ -85,7 +85,7 @@ fn exit(problems: &[Problem]) -> ExitCode {
     }
 }
 
-/// The path `ura check` reads: `target` under `cwd`, a feature's or a proposal's by name, or the
+/// The path `ura check` reads: `target` under `cwd`, a feature's by name, or the
 /// repository's `specs/`.
 fn target_path(cwd: &Path, root: &Path, target: Option<&str>) -> Result<PathBuf, String> {
     Ok(match target {
@@ -94,7 +94,6 @@ fn target_path(cwd: &Path, root: &Path, target: Option<&str>) -> Result<PathBuf,
             match output::target(&workspace, Some(name), Purpose::Inspect)? {
                 Target::Feature(index) => root.join(workspace.features[index].checked_path()),
                 Target::File(index, file) => root.join(&workspace.features[index].path).join(file),
-                Target::Proposal(proposal) => root.join(proposal),
             }
         }
         Some(target) => cwd.join(target),

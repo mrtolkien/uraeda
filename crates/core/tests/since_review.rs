@@ -8,6 +8,7 @@ use common::repo::TestRepo;
 use uraeda_core::api;
 use uraeda_core::decisions::Run;
 use uraeda_core::files::document::LineRange;
+use uraeda_core::git::Git;
 use uraeda_core::view::{SinceChange, SinceReview};
 
 const FOLDER: &str = "2026-10-10-recurring-tasks";
@@ -107,10 +108,19 @@ fn short_tip(repo: &TestRepo) -> String {
         .to_string()
 }
 
+/// The spec's change on its branch's tip since the commit its first review names.
 fn since(repo: &TestRepo) -> Option<SinceReview> {
-    api::read_file(repo.path(), FOLDER, "spec.md")
-        .unwrap()
-        .since_review
+    let git = Git::open(repo.path()).unwrap();
+    let tip = git.tip(FOLDER)?;
+    let read = |commit, path: &str| String::from_utf8(git.read_file(commit, path).ok()??).ok();
+    let log = repo.git(&["log", "--format=%H", "--reverse", FOLDER, "--", REVIEW]);
+    let first = git.resolve(log.lines().next()?)?;
+    let review = read(first, REVIEW)?;
+    let commit = review
+        .lines()
+        .find_map(|line| line.strip_prefix("commit: "))?
+        .to_string();
+    Some(api::since_commit(&git, SPEC, &commit, &read(tip, SPEC)?))
 }
 
 /// The 1-based lines of `text` from the line holding `first` to the one holding `last`.
@@ -215,21 +225,6 @@ fn revision_two_changes() {
     );
 }
 
-/// US5 more 1: a first revision has no review to compare with.
-#[test]
-fn first_revision_has_none() {
-    let repo = TestRepo::new();
-    repo.write("specs/README.md", "# Specs\n");
-    repo.commit("chore: specs");
-    repo.switch_new(FOLDER);
-    repo.write(SPEC, REVISION_1);
-    repo.write(REVIEW, &review("changes-requested", "a1b2c3d"));
-    repo.commit("docs(recurring-tasks): spec and review");
-    repo.switch("main");
-
-    assert_eq!(since(&repo), None);
-}
-
 /// US5 more 2: a paragraph gone is removed, at its lines in the reviewed version, under its
 /// heading there.
 #[test]
@@ -294,16 +289,6 @@ fn frontmatter_alone() {
             parts: Vec::new(),
         })
     );
-}
-
-/// Review focus 1: an approval with comments requested no revision, so the revision answers no
-/// review and marks nothing.
-#[test]
-fn approved_with_comments_has_none() {
-    let text = revision_2(&[("so for 3 seconds", "so for 5 seconds")]);
-    let repo = reviewed("approved", None, &text);
-
-    assert_eq!(since(&repo), None);
 }
 
 /// The opening callout is rewritten at every revision: it is not a part, on either side.
@@ -398,18 +383,6 @@ fn section_renamed() {
     );
 }
 
-/// R11: an approved spec is not under review anymore, so it marks nothing.
-#[test]
-fn approved_revision_has_none() {
-    let text = revision_2(&[
-        ("status: awaiting-human", "status: approved"),
-        ("so for 3 seconds", "so for 5 seconds"),
-    ]);
-    let repo = reviewed("changes-requested", None, &text);
-
-    assert_eq!(since(&repo), None);
-}
-
 /// The revision reviewed is the one the reviewed spec reads, not the one before the current.
 #[test]
 fn revision_read_from_reviewed_spec() {
@@ -417,51 +390,6 @@ fn revision_read_from_reviewed_spec() {
     let repo = reviewed("changes-requested", None, &text);
 
     assert_eq!(since(&repo).map(|since| since.revision), Some(1));
-}
-
-/// While it waits, a working tree whose spec differs from the committed one: the page shows the
-/// committed spec, so the parts and their lines are the committed version's.
-#[test]
-fn working_tree_differs_while_waiting() {
-    let text = revision_2(&[("so for 3 seconds", "so for 5 seconds")]);
-    let repo = reviewed("changes-requested", None, &text);
-    repo.switch(FOLDER);
-    let working = text
-        .replace("so for 5 seconds", "so for 7 seconds")
-        .replace(
-            "A repeating task shows",
-            "Not committed yet.\n\nA repeating task shows",
-        );
-    repo.write(SPEC, &working);
-
-    let journey = SinceChange {
-        kind: "changed".to_string(),
-        heading: US2.to_string(),
-        before: Some(lines(
-            REVISION_1,
-            "Completing a repeating",
-            "so for 3 seconds",
-        )),
-        after: Some(lines(&text, "Completing a repeating", "so for 5 seconds")),
-        runs: vec![
-            run("kept", JOURNEY),
-            run("removed", "3"),
-            run("added", "5"),
-            run("kept", "seconds, with an undo button."),
-        ],
-    };
-    assert_ne!(
-        lines(&text, "Completing a repeating", "so for 5 seconds"),
-        lines(&working, "Completing a repeating", "so for 7 seconds"),
-    );
-    assert_eq!(
-        since(&repo),
-        Some(SinceReview {
-            revision: 1,
-            found: true,
-            parts: vec![journey],
-        })
-    );
 }
 
 /// The edge case: the review's commit resolves, but holds no spec.

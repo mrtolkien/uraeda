@@ -4,8 +4,6 @@ use std::path::Path;
 
 use common::*;
 
-const PRIORITIES: &str = "# Priorities\n\n## Now\n\n## Next\n";
-
 /// What `ura` answers when fish asks to complete `words`, the last one being completed: the
 /// values, without their help.
 fn complete_in(dir: &Path, words: &[&str], env: &[(&str, &str)]) -> Vec<String> {
@@ -85,7 +83,7 @@ fn completes_commands_and_flags() {
 #[test]
 fn targets_complete_started_features_and_changes_by_slug() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(&repo, "2026-10-10-cli-core", &[("proposal.md", proposal())]);
     feature(
         &repo,
@@ -108,7 +106,7 @@ fn targets_complete_started_features_and_changes_by_slug() {
 #[test]
 fn answer_completes_the_waiting_round_and_its_open_questions() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-waiting",
@@ -134,7 +132,7 @@ fn answer_completes_the_waiting_round_and_its_open_questions() {
 #[test]
 fn answer_completes_the_questions_of_the_round_typed() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     for folder in ["2026-10-10-first", "2026-10-11-second"] {
         feature(
             &repo,
@@ -178,7 +176,7 @@ fn answer_completes_the_questions_of_the_round_typed() {
 #[test]
 fn answers_zsh_with_the_cursor_s_index() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-waiting",
@@ -225,7 +223,7 @@ fn answers_zsh_with_the_cursor_s_index() {
 #[test]
 fn answer_offers_nothing_for_an_answered_round() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-done-asking",
@@ -248,7 +246,7 @@ fn answer_offers_nothing_for_an_answered_round() {
 #[test]
 fn completion_never_asks_github() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(&repo, "2026-10-10-cli-core", &[("proposal.md", proposal())]);
     let bin = repo.parent().join("bin");
     std::fs::create_dir(&bin).unwrap();

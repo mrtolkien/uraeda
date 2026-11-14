@@ -15,14 +15,6 @@ pub enum RowChangeKind {
 }
 
 impl RowChangeKind {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            RowChangeKind::New => "new",
-            RowChangeKind::Changed => "changed",
-            RowChangeKind::Removed => "removed",
-        }
-    }
-
     /// The change a cell's text names, trimmed.
     fn of(text: &str) -> Option<RowChangeKind> {
         match text.trim() {

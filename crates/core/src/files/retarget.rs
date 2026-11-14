@@ -1,89 +1,10 @@
-//! Link destinations rewritten in place: the links of `PRIORITIES.md` and `INBOX.md` to a file
-//! that moved, as it becomes a folder or as a note file becomes a proposal file, a note's
-//! relative links, as it moves into a file, and any file's links to files that moved or were
-//! deleted.
+//! Link destinations rewritten in place: any file's links to files that moved or were deleted.
 
 use std::ops::Range;
 
 use pulldown_cmark::{Event, LinkType, Parser, Tag, TagEnd};
 
 use crate::moves::{Move, Went};
-
-/// Points every link of `PRIORITIES.md` or `INBOX.md` to the file `from` at `to` instead, both
-/// paths from the top level, `to` under the folder holding `from`: inline links and reference
-/// definitions, anywhere in the file. Only each destination's path changes: its `<…>`, its anchor,
-/// its title, and the rest of the text stay as written.
-pub fn retarget(text: &str, from: &str, to: &str) -> String {
-    let Some((folder, file)) = from.rsplit_once('/') else {
-        return text.to_string();
-    };
-    let Some(moved) = to.strip_prefix(folder).and_then(|to| to.strip_prefix('/')) else {
-        return text.to_string();
-    };
-    rewrite(text, |raw| {
-        if !links_to(raw, from) {
-            return None;
-        }
-        let (target, anchor) = match raw.split_once('#') {
-            Some((target, anchor)) => (target, format!("#{anchor}")),
-            None => (raw, String::new()),
-        };
-        let prefix = target.strip_suffix(file)?;
-        Some(format!("{prefix}{moved}{anchor}"))
-    })
-}
-
-/// Points every link of `PRIORITIES.md` or `INBOX.md` to the file `from` at `to` instead, both
-/// paths from the top level, wherever `to` is: a note file moved to the proposals. A rooted
-/// destination stays rooted, and its anchor stays.
-pub fn moved(text: &str, from: &str, to: &str) -> String {
-    rewrite(text, |raw| {
-        if !links_to(raw, from) {
-            return None;
-        }
-        let anchor = raw.find('#').map_or("", |at| &raw[at..]);
-        if raw.starts_with('/') {
-            return Some(format!("/{to}{anchor}"));
-        }
-        Some(format!("{}{anchor}", rebased(to, "", "specs")?))
-    })
-}
-
-/// The text written in the folder `from`, from the top level, with its relative links and images
-/// pointing at the same files from the folder `to`: inline ones and reference definitions. Rooted
-/// paths (`/…`), URLs, and anchors stay, and so does a link climbing out of the top level.
-pub fn rebase(text: &str, from: &str, to: &str) -> String {
-    if from == to {
-        return text.to_string();
-    }
-    rewrite(text, |raw| {
-        let is_file = !raw.starts_with('/') && crate::workspace::resolve(from, raw).is_some();
-        is_file.then(|| rebased(raw, from, to)).flatten()
-    })
-}
-
-/// The text written in the folder `from`, from the top level, as written in the folder `to`, the
-/// files or folders of `moved` gone from each first path to its second: a link to one of them
-/// points where it went, rooted when it was, a link to a folder still ending in `/`, and every
-/// other relative link is rebased, as [`rebase`] does. A note file's text, its images moved, merged
-/// into a proposal file, or a postponed proposal's files, its folder moved.
-pub fn relocated(text: &str, from: &str, to: &str, moved: &[(String, String)]) -> String {
-    rewrite(text, |raw| {
-        let path = crate::workspace::resolve(from, raw)?;
-        let Some((_, new)) = moved.iter().find(|(old, _)| *old == path) else {
-            return (!raw.starts_with('/') && from != to)
-                .then(|| rebased(raw, from, to))
-                .flatten();
-        };
-        let (target, rest) = raw.split_at(raw.find(['?', '#']).unwrap_or(raw.len()));
-        // A link to a moved folder stays a link to a folder.
-        let slash = if target.ends_with('/') { "/" } else { "" };
-        if raw.starts_with('/') {
-            return Some(format!("/{new}{slash}{rest}"));
-        }
-        rebased(&format!("{new}{slash}{rest}"), "", to)
-    })
-}
 
 /// A relative destination written in the folder `from`, as written in the folder `to`: its path
 /// through their common folder, its `?query` and `#anchor` kept. `None` when it climbs out of the
@@ -174,78 +95,6 @@ pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
     })
 }
 
-/// Whether `now` differs from `then` only by link destinations, or by links turned into their
-/// words; true when they are equal. Every inline link and image of `now` has one in `then`, in
-/// order, at the same place, of the same kind, with the same words and title: a link added where
-/// `then` had plain words is a change, and so is one moved to other words.
-pub fn only_links_changed(then: &str, now: &str) -> bool {
-    if then == now {
-        return true;
-    }
-    let (then, then_links) = reduced(then);
-    let (now, now_links) = reduced(now);
-    let mut then_links = then_links.iter();
-    then == now
-        && now_links
-            .iter()
-            .all(|link| then_links.any(|each| each == link))
-}
-
-/// An inline link or image as [`only_links_changed`] compares them: where its words start and end
-/// in the reduced text, whether it is an image, and what follows its destination, its title. Its
-/// words are compared in the reduced text, so an image inside a link is compared by its alt alone.
-#[derive(PartialEq)]
-struct Kept<'a> {
-    words: Range<usize>,
-    image: bool,
-    title: &'a str,
-}
-
-/// The text with each inline link and image reduced to its words and each reference definition's
-/// destination emptied, and its inline links and images, in the order of their destinations.
-fn reduced(text: &str) -> (String, Vec<Kept<'_>>) {
-    let places = places(text);
-    // The parts of the text the reduced text drops, none overlapping another.
-    let mut removed: Vec<Range<usize>> = Vec::new();
-    for place in &places {
-        match &place.link {
-            Some((whole, words)) => {
-                removed.push(whole.start..words.start);
-                removed.push(words.end..whole.end);
-            }
-            None => removed.push(place.destination.clone()),
-        }
-    }
-    let reduced_at = |offset: usize| {
-        let before: usize = removed
-            .iter()
-            .map(|range| range.end.min(offset).saturating_sub(range.start))
-            .sum();
-        offset - before
-    };
-    let links = places
-        .iter()
-        .filter_map(|place| {
-            let (whole, words) = place.link.as_ref()?;
-            let tail = &text[place.destination.end..whole.end.saturating_sub(1)];
-            Some(Kept {
-                words: reduced_at(words.start)..reduced_at(words.end),
-                image: text[whole.start..].starts_with('!'),
-                title: tail.trim_start_matches('>').trim(),
-            })
-        })
-        .collect();
-    removed.sort_by_key(|range| range.start);
-    let mut reduced = String::with_capacity(text.len());
-    let mut kept_from = 0;
-    for range in &removed {
-        reduced.push_str(&text[kept_from..range.start]);
-        kept_from = range.end;
-    }
-    reduced.push_str(&text[kept_from..]);
-    (reduced, links)
-}
-
 /// The destination `raw`, written in `folder`, pointing at `path` from the top level instead, with
 /// `query` and `anchor`: rooted when `raw` was, else relative to `folder`. `None` when it would
 /// climb out of the top level. The path's spaces and `%` are percent-encoded, unless `raw` holds a
@@ -315,12 +164,6 @@ enum Edit {
 struct Place {
     destination: Range<usize>,
     link: Option<(Range<usize>, Range<usize>)>,
-}
-
-/// The text with each link destination `edit` gives a new one for, as written without its `<…>`:
-/// inline links' and images', and reference definitions'.
-fn rewrite(text: &str, edit: impl Fn(&str) -> Option<String>) -> String {
-    edit_links(text, |found| edit(found.destination).map(Edit::Destination)).0
 }
 
 /// The text with each link edited as `edit` says, and the number of links it changed. A link
@@ -404,11 +247,6 @@ fn inline(text: &str, whole: Range<usize>, text_end: usize) -> Option<Place> {
     })
 }
 
-/// Whether a link's destination, written in a file of `specs/`, is the file `path`.
-fn links_to(destination: &str, path: &str) -> bool {
-    crate::workspace::resolve("specs", destination).as_deref() == Some(path)
-}
-
 /// The place of the `]` closing a reference definition's label, which starts at `start`.
 fn label_end(text: &str, start: usize) -> Option<usize> {
     let mut escaped = false;
@@ -471,7 +309,7 @@ fn destination(text: &str, start: usize) -> Option<Range<usize>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{only_links_changed, rebase, relink, relocated};
+    use super::relink;
     use crate::moves::{Move, Went};
 
     #[test]
@@ -568,97 +406,5 @@ mod tests {
                 2
             )
         );
-    }
-
-    #[test]
-    fn only_links_changed_reads_link_edits_alone() {
-        let then = "See [the spec](../a/spec.md) and [old](../gone.md).";
-        let cases = [
-            ("See [the spec](../b/spec.md) and [old](../gone.md).", true),
-            ("See [the spec](../a/spec.md) and old.", true),
-            (then, true),
-            ("See [the spec](../a/spec.md) and [old](../gone.md)!", false),
-            ("See [a spec](../a/spec.md) and [old](../gone.md).", false),
-        ];
-        for (now, expected) in cases {
-            assert_eq!(only_links_changed(then, now), expected, "{now}");
-        }
-        let changed = [
-            ("[a](x.md \"t\")", "[a](y.md \"u\")"),
-            ("[a](x.md)", "![a](x.md)"),
-            ("x and [x](a.md)", "[x](b.md) and x"),
-        ];
-        for (then, now) in changed {
-            assert!(!only_links_changed(then, now), "{then} -> {now}");
-        }
-        assert!(only_links_changed("[a](<x.md> \"t\")", "[a](<y.md> \"t\")"));
-        // An image inside a link: only its destination changed.
-        assert!(only_links_changed(
-            "[![shot](old.png)](target.md)",
-            "[![shot](new.png)](target.md)"
-        ));
-        assert!(!only_links_changed(
-            "[![shot](old.png)](target.md)",
-            "[![other](old.png)](target.md)"
-        ));
-        assert!(!only_links_changed(
-            "See the spec and old.",
-            "See [the spec](../a/spec.md) and old."
-        ));
-    }
-
-    #[test]
-    fn moved_files_are_linked_where_they_went_and_the_others_rebased() {
-        let moved = [(
-            "specs/notes/dark/images/a.webp".to_string(),
-            "specs/proposals/look/images/a-2.webp".to_string(),
-        )];
-        let cases = [
-            ("![a](images/a.webp)", "![a](images/a-2.webp)"),
-            ("![a](./images/a.webp#x)", "![a](images/a-2.webp#x)"),
-            (
-                "![a](/specs/notes/dark/images/a.webp)",
-                "![a](/specs/proposals/look/images/a-2.webp)",
-            ),
-            ("[b](../other.md)", "[b](../../notes/other.md)"),
-            ("[c](../../README.md)", "[c](../../README.md)"),
-            ("[d](images/b.webp)", "[d](../../notes/dark/images/b.webp)"),
-            ("[e](https://x.y) [f](#f)", "[e](https://x.y) [f](#f)"),
-        ];
-        for (text, expected) in cases {
-            assert_eq!(
-                relocated(text, "specs/notes/dark", "specs/proposals/look", &moved),
-                expected,
-                "{text}"
-            );
-        }
-        assert_eq!(
-            relocated("![a](images/a.webp)", "specs/notes", "specs/notes", &[]),
-            "![a](images/a.webp)"
-        );
-    }
-
-    #[test]
-    fn relative_links_are_rebased_and_the_others_kept() {
-        let cases = [
-            ("[a](../README.md)", "[a](../../README.md)"),
-            ("[a](done/x.md#why)", "[a](../done/x.md#why)"),
-            ("[a](<my file.md>)", "[a](<../my file.md>)"),
-            (
-                "[![i](images/a.png)](../x.md)",
-                "[![i](../images/a.png)](../../x.md)",
-            ),
-            ("[a]\n\n[a]: ../x.md", "[a]\n\n[a]: ../../x.md"),
-            ("[a](proposals/b.md)", "[a](b.md)"),
-            (
-                "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
-                "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
-            ),
-            ("[a](../../out.md)", "[a](../../out.md)"),
-            ("`[a](../x.md)`", "`[a](../x.md)`"),
-        ];
-        for (text, rebased) in cases {
-            assert_eq!(rebase(text, "specs", "specs/proposals"), rebased, "{text}");
-        }
     }
 }

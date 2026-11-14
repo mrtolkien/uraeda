@@ -33,22 +33,6 @@ fn heading_text(line: &str) -> &str {
     }
 }
 
-/// How many checkboxes of a file are checked, out of all of them, outside code blocks.
-pub fn checkboxes(text: &str) -> (usize, usize) {
-    let mut done = 0;
-    let mut total = 0;
-    for (_, line) in super::lines_outside_code(text) {
-        let item = line.trim_start();
-        if item.starts_with("- [ ]") {
-            total += 1;
-        } else if item.starts_with("- [x]") || item.starts_with("- [X]") {
-            total += 1;
-            done += 1;
-        }
-    }
-    (done, total)
-}
-
 /// A plan's lead paragraphs, in order: the top-level paragraphs before its first `##` whose first
 /// span is bold text ending in ":", labelled by that text without the colon.
 pub(crate) fn lead(doc: &Document) -> Vec<PlanLead> {

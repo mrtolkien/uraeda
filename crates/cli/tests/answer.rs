@@ -8,10 +8,7 @@ const FILE: &str = "specs/2026-10-10-cli-core/clarifications-01.md";
 /// with the given answers.
 fn waiting(answers: &[&str]) -> TestRepo {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli-core/proposal.md)\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -248,10 +245,7 @@ fn no_commit_names_the_images_to_commit() {
 #[test]
 fn writing_notes_keeps_the_comments_on_settled_points() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli-core/proposal.md)\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     let round = std::fs::read_to_string(fixture("settled-comments/clarifications-01.md")).unwrap();
     feature(
         &repo,

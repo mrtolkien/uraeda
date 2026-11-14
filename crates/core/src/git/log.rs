@@ -1,36 +1,9 @@
 //! Reads of the history: ancestry through gix, and through `git log` what gix does not give, its
 //! output parsed only in its `--format` forms, as the git decision says.
 
-use super::{CommitInfo, Git, GitError, ObjectId};
+use super::{Git, GitError, ObjectId};
 
 impl Git {
-    /// How many commits of `branch` are on none of `bases`, a commit counting as there when a base
-    /// has it or a patch-equivalent one.
-    pub fn unmerged_commits(&self, branch: &str, bases: &[&str]) -> Result<usize, GitError> {
-        let mut lists: Vec<std::collections::BTreeSet<String>> = Vec::new();
-        for base in bases {
-            let range = format!("{base}...{branch}");
-            let output = self.output(
-                "log",
-                &[
-                    "log",
-                    "--cherry-pick",
-                    "--right-only",
-                    "--format=%H",
-                    &range,
-                ],
-            )?;
-            lists.push(output.lines().map(String::from).collect());
-        }
-        let Some(first) = lists.first() else {
-            return Ok(0);
-        };
-        Ok(first
-            .iter()
-            .filter(|commit| lists.iter().all(|list| list.contains(*commit)))
-            .count())
-    }
-
     /// Whether `ancestor` is `of` or one of its ancestors.
     pub fn is_ancestor(&self, ancestor: ObjectId, of: ObjectId) -> bool {
         ancestor == of
@@ -48,107 +21,6 @@ impl Git {
             .all()
             .map(|walk| walk.filter_map(Result::ok).count())
             .unwrap_or(0)
-    }
-
-    /// The date of the last commit of `revision`, a commit or a range, touching each file under
-    /// `dir`, as `YYYY-MM-DD`, by path from the top level, from one `git log`: the latest of its
-    /// commits' dates, each commit read, so that the dates of a range merged over those of its
-    /// start are the dates of its end. A file no commit touched has none.
-    pub fn last_changes(
-        &self,
-        revision: &str,
-        dir: &str,
-    ) -> Result<std::collections::BTreeMap<String, String>, GitError> {
-        let output = self.output(
-            "log",
-            &[
-                "-c",
-                "core.quotepath=false",
-                "log",
-                "--format=%x01%cs",
-                "--name-only",
-                "--full-history",
-                revision,
-                "--",
-                dir,
-            ],
-        )?;
-        let mut dates = std::collections::BTreeMap::new();
-        let mut date = "";
-        for line in output.lines() {
-            if let Some(committed) = line.strip_prefix('\u{1}') {
-                date = committed;
-            } else if !line.is_empty() {
-                let latest = dates.entry(line.to_string()).or_insert_with(String::new);
-                if date > latest.as_str() {
-                    *latest = date.to_string();
-                }
-            }
-        }
-        Ok(dates)
-    }
-
-    /// The commits of the history from `tip` that touch `path`, a path from the top level, the
-    /// newest first, a child before its parents. The history of a merged branch is in it, and the
-    /// merge commit itself only when it changes `path` against every parent.
-    pub fn path_changes(&self, tip: ObjectId, path: &str) -> Result<Vec<ObjectId>, GitError> {
-        let tip = tip.to_string();
-        let output = self.output(
-            "log",
-            &["log", "--topo-order", "--format=%H", &tip, "--", path],
-        )?;
-        Ok(output
-            .lines()
-            .filter_map(|line| ObjectId::from_hex(line.trim().as_bytes()).ok())
-            .collect())
-    }
-
-    /// The first-parent line from `tip`, newest first, of the commits committed from `since` to
-    /// `until`, in Unix seconds: git stops at the first commit committed before `since`, and walks
-    /// past those committed after `until`, which gix's walk cannot bound by both.
-    pub fn first_parent_line(
-        &self,
-        tip: ObjectId,
-        since: i64,
-        until: i64,
-    ) -> Result<Vec<CommitInfo>, GitError> {
-        let (tip, since, until) = (
-            tip.to_string(),
-            format!("--since=@{since}"),
-            format!("--until=@{until}"),
-        );
-        let args = [
-            "log",
-            "--first-parent",
-            "--format=%H%x00%P%x00%at%x00%ct%x00%s",
-            &since,
-            &until,
-            &tip,
-        ];
-        let output = self.output("log", &args)?;
-        Ok(output.lines().filter_map(commit_info).collect())
-    }
-
-    /// The newest first-parent commit from `tip` that added `path`, a path from the top level: git
-    /// stops there, so the commits older than it cost nothing.
-    pub fn first_parent_addition(
-        &self,
-        tip: ObjectId,
-        path: &str,
-    ) -> Result<Option<ObjectId>, GitError> {
-        let tip = tip.to_string();
-        let args = [
-            "log",
-            "--first-parent",
-            "--diff-filter=A",
-            "-1",
-            "--format=%H",
-            &tip,
-            "--",
-            path,
-        ];
-        let output = self.output("log", &args)?;
-        Ok(ObjectId::from_hex(output.trim().as_bytes()).ok())
     }
 
     /// The commit that approved revision `revision` of the spec at `spec`, a path from the top
@@ -209,25 +81,4 @@ impl Git {
             front.text("status") == Some("approved") && front.integer("revision") == revision
         }))
     }
-}
-
-/// A commit of `first_parent_line`'s format: its id, its parents, its author and committer times,
-/// and its subject, separated by NULs.
-fn commit_info(line: &str) -> Option<CommitInfo> {
-    let mut fields = line.splitn(5, '\0');
-    let id = ObjectId::from_hex(fields.next()?.as_bytes()).ok()?;
-    let parents = fields
-        .next()?
-        .split_whitespace()
-        .filter_map(|parent| ObjectId::from_hex(parent.as_bytes()).ok())
-        .collect();
-    let authored = fields.next()?.parse().ok()?;
-    let committed = fields.next()?.parse().ok()?;
-    Some(CommitInfo {
-        id,
-        parents,
-        subject: fields.next()?.trim().to_string(),
-        authored,
-        committed,
-    })
 }

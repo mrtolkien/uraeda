@@ -6,7 +6,6 @@ mod decision;
 mod finder;
 mod links;
 mod names;
-mod priorities;
 mod record;
 mod reviews;
 mod sections;
@@ -15,18 +14,15 @@ mod unapproved;
 mod values;
 mod writing;
 
-pub use decision::*;
+pub use decision::{DECISION_ALTERNATIVES, DECISION_RULES};
 pub use finder::{Fixed, fix};
-pub(crate) use names::change_holds;
 pub use spec::{SPEC_WORDS, reviewed_words};
 pub use values::{Action, Choice, Field, FieldKind, allowed_values};
-pub use writing::{BLOCK_ITEMS, SENTENCE_WORDS};
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::actions::triage;
 use crate::files::{frontmatter, markdown};
 use crate::git::{Git, ObjectId};
 use crate::workspace::{FileKind, Problem, Severity};
@@ -48,11 +44,6 @@ pub(crate) enum Checked {
     Decision,
     /// `decisions/preview.md`: a decision, with the preview fields.
     PreviewDecision,
-    Priorities,
-    /// `INBOX.md`: its title and categories.
-    Inbox,
-    /// `INBOX-TRIAGE.md`: the round of questions on the default branch.
-    Triage,
     /// The record of a finished feature or change, in `specs/done/`.
     Record,
     /// A guide, a markdown file at any depth of `specs/ui/` or `specs/guides/`: free form, only its
@@ -110,12 +101,6 @@ pub fn check(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
     check_with(root, target, true)
 }
 
-/// `check` without the rules that read the branch's history: the files on disk alone. For callers
-/// that keep only errors, on every read.
-pub fn check_files(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
-    check_with(root, target, false)
-}
-
 fn check_with(root: &Path, target: &Path, history: bool) -> Result<Vec<Problem>, CheckError> {
     let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let finder = Finder::new(&root, None);
@@ -160,30 +145,6 @@ fn decisions_parent(file: &Path) -> Option<PathBuf> {
         .flatten()
 }
 
-/// The problems `check(root, path)` would report if the file at `path` held `text`: the rest of its
-/// folder is read from disk.
-pub fn check_text(root: &Path, path: &Path, text: &str) -> Vec<Problem> {
-    let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
-    let path = canonical_file(path);
-    let dir = path.parent().unwrap_or(&root);
-    let name = path.file_name().unwrap_or_default().to_string_lossy();
-    let mut problems = Vec::new();
-    let finder = Finder::new(&root, None);
-    let mut found = check_folder_files_with(
-        &root,
-        dir,
-        true,
-        Some((&name, text)),
-        &finder,
-        &mut problems,
-    );
-    problems.extend(found.remove(name.as_ref()).unwrap_or_default());
-    names::check_change_file(&root, &path, &mut problems);
-    problems.retain(|p| p.file == relative(&root, &path));
-    problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
-    problems
-}
-
 /// The frontmatter fields of the file at `path`, under `root`, if it held `text`: its kind's
 /// fields, required then optional, with their lines and values in `text`. Empty for a file without
 /// frontmatter fields.
@@ -195,15 +156,6 @@ pub fn fields(root: &Path, path: &Path, text: &str) -> Vec<Field> {
     match kind_of(dir, &name, true) {
         Some(kind) => values::field_list(kind, text),
         None => Vec::new(),
-    }
-}
-
-/// The frontmatter fields of the file at `path`, under `root`, as it is on disk: empty when it
-/// cannot be read.
-pub fn fields_on_disk(root: &Path, path: &Path) -> Vec<Field> {
-    match fs::read_to_string(path) {
-        Ok(text) => fields(root, path, &text),
-        Err(_) => Vec::new(),
     }
 }
 
@@ -262,8 +214,7 @@ fn in_guides(dir: &Path) -> bool {
 }
 
 /// What kind of file a name is, in a folder: decisions in `decisions/`, records in `specs/done/`,
-/// priorities anywhere, the inbox and its triage in `specs/`, and guides in `specs/ui/` and
-/// `specs/guides/`.
+/// and guides in `specs/ui/` and `specs/guides/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     if name.ends_with(".md") && in_guides(dir) {
         return Some(Checked::Guide);
@@ -281,18 +232,6 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
         && name.ends_with(".md")
     {
         return Some(Checked::Record);
-    }
-    if name == "PRIORITIES.md" {
-        return Some(Checked::Priorities);
-    }
-    // The inbox and its triage are files of `specs/` itself: one elsewhere is the human's.
-    if parent.as_deref() == Some("specs") {
-        if name == "INBOX.md" {
-            return Some(Checked::Inbox);
-        }
-        if name == triage::FILE_NAME {
-            return Some(Checked::Triage);
-        }
     }
     if !any_folder && !names::is_workflow_folder(dir) {
         return None;
@@ -368,22 +307,6 @@ fn check_folder_files_with(
     found
 }
 
-/// The problems of the files of the folder `dir` under `root`, holding `texts` by name, wherever
-/// they were read from, like a commit: for each file, the problems its rules find, by name. Links
-/// resolve against the tree of `tip` when it is given, else against the files under `root`, and a
-/// missing file is looked for in the history of `tip`, else of `HEAD`.
-pub fn check_folder_texts(
-    root: &Path,
-    dir: &Path,
-    texts: &BTreeMap<String, String>,
-    tip: Option<(&Git, ObjectId)>,
-) -> BTreeMap<String, Vec<Problem>> {
-    let mut found = BTreeMap::new();
-    let finder = Finder::new(root, tip);
-    check_texts(root, dir, true, texts, &finder, &mut found);
-    found
-}
-
 fn check_texts(
     root: &Path,
     dir: &Path,
@@ -435,8 +358,6 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     let front = values::check_frontmatter(file, &mut problems);
     let document = markdown::Document::parse(file.text);
     match file.kind {
-        Checked::Priorities => priorities::check_priorities(file, &document, &mut problems),
-        Checked::Inbox => sections::check_inbox(file, &document, &mut problems),
         Checked::Workflow(FileKind::Review) => reviews::check_review(file, &mut problems),
         _ => sections::check_sections(file, &document, &mut problems),
     }
@@ -456,19 +377,13 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     if file.kind == Checked::Record {
         record::check_record(file, &document, &mut problems);
     }
-    if let Checked::Workflow(FileKind::Clarifications) | Checked::Triage = file.kind {
+    if let Checked::Workflow(FileKind::Clarifications) = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
     // A round's document tree, parsed once for the checks that read it.
-    let tree = matches!(
-        file.kind,
-        Checked::Workflow(FileKind::Clarifications) | Checked::Triage
-    )
-    .then(|| crate::files::document::parse(file.text, ""));
-    if let Some(tree) = tree
-        .as_ref()
-        .filter(|_| file.kind == Checked::Workflow(FileKind::Clarifications))
-    {
+    let tree = (file.kind == Checked::Workflow(FileKind::Clarifications))
+        .then(|| crate::files::document::parse(file.text, ""));
+    if let Some(tree) = tree.as_ref() {
         sections::check_settled_subjects(file, tree, &mut problems);
     }
     if let Some(front) = &front {

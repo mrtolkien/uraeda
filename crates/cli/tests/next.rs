@@ -2,8 +2,6 @@ mod common;
 
 use common::*;
 
-const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- [Waiting](/specs/2026-10-10-waiting/proposal.md)\n- [Building](/specs/2026-10-06-recurring-tasks/proposal.md)\n\n## Next\n";
-
 fn answered() -> String {
     clarifications("answered", "Answered on 2026-10-08.", &["A"])
 }
@@ -11,7 +9,7 @@ fn answered() -> String {
 #[test]
 fn step_of_one_feature() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -31,9 +29,9 @@ fn step_of_one_feature() {
 }
 
 #[test]
-fn first_feature_of_now_with_work_for_an_agent() {
+fn first_feature_with_work_for_an_agent() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-waiting",
@@ -74,7 +72,7 @@ fn first_feature_of_now_with_work_for_an_agent() {
 #[test]
 fn pull_request_state_unknown_without_gh() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -103,7 +101,7 @@ fn pull_request_state_unknown_without_gh() {
 #[test]
 fn gh_runs_in_the_repository() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -138,7 +136,7 @@ fn gh_runs_in_the_repository() {
 #[test]
 fn push_when_the_pull_request_lacks_the_latest_commit() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -191,7 +189,7 @@ fn fake_gh(repo: &TestRepo, script: &str) -> String {
 #[test]
 fn nothing_for_an_agent() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-waiting",
@@ -216,20 +214,20 @@ fn nothing_for_an_agent() {
 #[test]
 fn nothing_for_an_agent_in_words() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
 
     let output = ura(&repo, &["next"]);
 
     assert_eq!(
         output.stdout,
-        "Nothing for an agent: every feature in Now waits on you. Run ura status.\n"
+        "Nothing for an agent: every feature waits on you. Run ura status.\n"
     );
 }
 
 #[test]
 fn a_gate_says_who_it_waits_on() {
     let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-waiting",
@@ -247,49 +245,5 @@ fn a_gate_says_who_it_waits_on() {
     assert_eq!(
         output.stdout,
         "2026-10-10-waiting: clarifications-01.md: 1 question, about 3 minutes.\n  branch     2026-10-10-waiting\n  waits on   you\n"
-    );
-}
-
-/// US2.3
-#[test]
-fn leftovers_are_reminded_on_stderr() {
-    let repo = TestRepo::new();
-    specs(&repo, PRIORITIES);
-    feature(&repo, "2026-10-11-web-ui", &[("proposal.md", proposal())]);
-    finish_and_merge(&repo, "2026-10-11-web-ui");
-    repo.git(&[
-        "worktree",
-        "add",
-        "--quiet",
-        ".worktrees/2026-10-11-web-ui",
-        "2026-10-11-web-ui",
-    ]);
-
-    let output = ura(&repo, &["next"]);
-
-    assert_eq!(
-        output.stderr,
-        "ura: 2026-10-11-web-ui is merged, with its worktree and branch left: run ura clean\n"
-    );
-    assert_eq!(output.code, 0);
-}
-
-/// US1.3: a merged feature with only its line left in the priorities is reminded on stderr too.
-#[test]
-fn a_line_left_is_reminded_on_stderr() {
-    let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n- [Web UI](2026-10-11-web-ui/proposal.md)\n\n## Next\n",
-    );
-    feature(&repo, "2026-10-11-web-ui", &[("proposal.md", proposal())]);
-    finish_and_merge(&repo, "2026-10-11-web-ui");
-    repo.delete_branch("2026-10-11-web-ui");
-
-    let output = ura(&repo, &["next"]);
-
-    assert_eq!(
-        output.stderr,
-        "ura: 2026-10-11-web-ui is merged, with its line in the priorities left: run ura clean\n"
     );
 }

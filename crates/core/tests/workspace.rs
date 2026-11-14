@@ -3,11 +3,9 @@ mod common;
 use common::repo::{TestRepo, run_git};
 use common::texts::{clarifications, plan, proposal, record, spec};
 use uraeda_core::actions::place;
-use uraeda_core::api;
 use uraeda_core::git::Git;
 use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
 use uraeda_core::steps::{StepName, WaitsOn};
-use uraeda_core::view::FeatureView;
 use uraeda_core::workspace::{Feature, Kind, Source, Workspace, path_folder};
 
 const FOLDER: &str = "2026-10-11-web-ui";
@@ -77,54 +75,6 @@ fn the_current_branchs_feature_is_in_this_checkout() {
     );
 }
 
-/// A proposal's proposal file is a proposal file or a postponed feature the default branch has, as
-/// the priorities' page shows it: a link to a proposal file that does not exist names none.
-#[test]
-fn proposal_proposals_name_their_proposal_file() {
-    let repo = repo();
-    repo.write(
-        "specs/PRIORITIES.md",
-        &repo.read("specs/PRIORITIES.md").replace(
-            "- Git listener process\n",
-            "- Git listener process\n- [Gone](proposals/gone.md)\n- [Later](proposals/later/proposal.md)\n",
-        ),
-    );
-    repo.write("specs/proposals/note.md", "# Note\n");
-    repo.write("specs/proposals/later/proposal.md", "# Later\n");
-    repo.commit("chore: drafts");
-
-    let workspace = workspace(&repo);
-
-    let proposal_files: Vec<Option<&str>> = workspace
-        .priorities
-        .iter()
-        .map(|entry| entry.file.as_deref())
-        .collect();
-    assert_eq!(
-        proposal_files,
-        [
-            None,
-            Some("specs/proposals/note.md"),
-            None,
-            None,
-            Some("specs/proposals/later/proposal.md")
-        ]
-    );
-}
-
-/// A feature's page reads whether it is in Now from the proposal lines alone: the lines it reads
-/// are the workspace's, without every feature's view built to find them.
-#[test]
-fn the_proposal_lines_are_the_workspaces_priorities() {
-    let repo = repo();
-
-    let lines = api::read_proposal_lines(repo.path()).unwrap();
-
-    assert_eq!(lines, api::read_workspace(repo.path()).unwrap().priorities);
-    let now = lines.iter().find(|line| line.section == "now").unwrap();
-    assert_eq!(now.feature.as_deref(), Some(FOLDER));
-}
-
 /// The edge case of the spec: a merged feature whose branch still exists is done, once.
 #[test]
 fn a_merged_feature_with_its_branch_is_done() {
@@ -142,21 +92,6 @@ fn a_merged_feature_with_its_branch_is_done() {
     assert_eq!(matching[0].step.waits_on, WaitsOn::Nobody);
     assert_eq!(matching[0].source, Source::DefaultBranch);
     assert_eq!(matching[0].branch, None);
-}
-
-/// A line jotted down from a feature branch's checkout shows before it is committed.
-#[test]
-fn priorities_are_read_from_the_default_branchs_worktree() {
-    let repo = repo();
-    repo.switch(FOLDER);
-    let place = place::reach(&Git::discover(repo.path()).unwrap(), "main").unwrap();
-    let path = place.root.join("specs/PRIORITIES.md");
-    let text = std::fs::read_to_string(&path).unwrap();
-    std::fs::write(&path, format!("{text}- An idea\n")).unwrap();
-
-    let workspace = workspace(&repo);
-
-    assert_eq!(workspace.priorities.last().unwrap().text, "An idea");
 }
 
 const CHANGE: &str = "2026-10-14-tasks-reappear";
@@ -319,39 +254,6 @@ fn new_commits_after_the_merge_leave_the_feature_done() {
     assert_eq!(feature.left_branch.as_deref(), Some(FOLDER));
 }
 
-/// Review focus 3
-#[test]
-fn a_merged_changes_worktree_is_one_folder_deeper() {
-    let repo = repo();
-    repo.switch_new(CHANGE_BRANCH);
-    repo.write(
-        &format!("specs/changes/{CHANGE}/proposal.md"),
-        "# Completed tasks reappear\n",
-    );
-    repo.commit("chore: proposal");
-    repo.switch("main");
-    finish(
-        &repo,
-        CHANGE_BRANCH,
-        &format!("specs/changes/{CHANGE}"),
-        CHANGE,
-        "change",
-    );
-    merge(&repo, CHANGE_BRANCH);
-    place::reach(&Git::discover(repo.path()).unwrap(), CHANGE_BRANCH).unwrap();
-
-    let change = feature(&repo, CHANGE);
-
-    assert_eq!(change.kind, Kind::Change);
-    let path = FeatureView::new(&change, &[]).path;
-    assert_eq!(path, format!("specs/changes/{CHANGE}"));
-    assert_eq!(change.left_branch.as_deref(), Some(CHANGE_BRANCH));
-    assert_eq!(
-        change.left_worktree.as_deref(),
-        Some(".worktrees/change/2026-10-14-tasks-reappear")
-    );
-}
-
 /// A change on its branch is read from `specs/changes/<folder>`, its proposal first.
 #[test]
 fn a_change_is_read_from_its_folder_on_its_branch() {
@@ -509,72 +411,6 @@ fn a_path_under_specs_names_its_folder() {
     }
 }
 
-/// US4.3: a finished item's view carries its record's pull request; an unfinished one has none.
-#[test]
-fn a_finished_items_view_carries_its_pull_request() {
-    let repo = repo();
-    let view = |repo: &TestRepo| FeatureView::new(&feature(repo, FOLDER), &[]).pull_request;
-    assert_eq!(view(&repo), None);
-
-    repo.switch(FOLDER);
-    repo.git(&["rm", "-r", "--quiet", "specs/2026-10-11-web-ui"]);
-    let text = record("feature", "Web UI").replace("owner/repo/pull/1", "o/r/pull/31");
-    repo.write(&format!("specs/done/{FOLDER}.md"), &text);
-    repo.commit("finish: web ui");
-    assert_eq!(
-        view(&repo),
-        Some(PullRequestView {
-            number: 31,
-            url: "https://github.com/o/r/pull/31".to_string(),
-            state: PullRequestState::Open,
-            head: String::new(),
-        })
-    );
-
-    let without = text.replace("pull-request: https://github.com/o/r/pull/31\n", "");
-    repo.write(&format!("specs/done/{FOLDER}.md"), &without);
-    repo.commit("record: no pull request");
-    assert_eq!(view(&repo), None);
-}
-
-/// US1.2: the workspace reads the repository's latest snapshot of pull requests, by branch.
-#[test]
-fn the_workspace_reads_the_latest_pull_requests() {
-    let repo = repo();
-    repo.switch(FOLDER);
-    repo.git(&["rm", "-r", "--quiet", "specs/2026-10-11-web-ui"]);
-    repo.write(
-        &format!("specs/done/{FOLDER}.md"),
-        &record("feature", "Web UI"),
-    );
-    repo.commit("finish: web ui");
-    repo.switch("main");
-    assert_eq!(
-        feature(&repo, FOLDER).step.name,
-        StepName::PullRequestUnknown
-    );
-    let proposal_file = PullRequestView {
-        number: 31,
-        url: "https://github.com/o/r/pull/31".to_string(),
-        state: PullRequestState::Draft,
-        head: repo.git(&["rev-parse", FOLDER]).trim().to_string(),
-    };
-    let root = Git::discover(repo.path()).unwrap().main_root();
-
-    let changed = pulls::remember(
-        &root,
-        PullRequests::open([(FOLDER.to_string(), proposal_file.clone())]),
-    );
-
-    assert!(changed);
-    let read = feature(&repo, FOLDER);
-    assert_eq!(read.step.name, StepName::Finish);
-    assert_eq!(
-        FeatureView::new(&read, &[]).pull_request,
-        Some(proposal_file)
-    );
-}
-
 /// US1.6: a branch checked out in a worktree, without its folder in its latest commit, is no item.
 #[test]
 fn a_checked_out_branch_without_its_folder_is_no_item() {
@@ -659,18 +495,6 @@ fn an_uncommitted_gate_does_not_move_the_step() {
     let feature = feature(&repo, FOLDER);
     assert_eq!(feature.step.waits_on, WaitsOn::Human);
     assert_eq!(feature.step.file.as_deref(), Some("clarifications-02.md"));
-}
-
-/// Review focus 1: the file page of a checked-out branch still shows its uncommitted text.
-#[test]
-fn a_file_page_keeps_its_uncommitted_text() {
-    let repo = repo();
-    let round = uncommitted_round(&repo);
-
-    let view = api::read_file(repo.path(), FOLDER, "clarifications-02.md").unwrap();
-
-    assert_eq!(view.current.text, std::fs::read_to_string(round).unwrap());
-    assert_eq!(view.status.as_deref(), Some("awaiting-human"));
 }
 
 /// A pull request applied to a checked-out branch past its last task takes the step from the

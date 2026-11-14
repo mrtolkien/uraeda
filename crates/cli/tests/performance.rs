@@ -12,15 +12,11 @@ use std::time::{Duration, Instant};
 use common::*;
 
 const BOUND: Duration = Duration::from_secs(5);
-const NOTE_BOUND: Duration = Duration::from_secs(1);
 
 /// A repository with 20 feature branches, half waiting on the human, half on an agent.
 fn twenty_features() -> TestRepo {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     for index in 1..=20 {
         let round = if index % 2 == 0 {
             clarifications("awaiting-human", "One question, about 2 minutes.", &[""])
@@ -80,33 +76,4 @@ fn bench_status_and_next_stay_fast_with_twenty_feature_branches() {
     timed(&repo, &["next"]);
 
     assert_twenty_listed(&status);
-}
-
-#[test]
-#[ignore = "benchmark"]
-fn bench_note_writes_and_commits_within_its_bound() {
-    let repo = twenty_features();
-    repo.write(
-        "specs/INBOX.md",
-        &std::fs::read_to_string(fixture("repo/main/specs/INBOX.md")).unwrap(),
-    );
-    repo.commit("chore: the inbox");
-
-    let start = Instant::now();
-    run(
-        &repo,
-        &[
-            "note",
-            "Status hangs on a broken worktree",
-            "--category",
-            "CLI",
-        ],
-    );
-    let elapsed = start.elapsed();
-
-    assert!(elapsed < NOTE_BOUND, "ura note took {elapsed:?}");
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore: add \"Status hangs on a broken worktree\" to the inbox"
-    );
 }

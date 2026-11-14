@@ -1,5 +1,5 @@
-//! The whole `specs/` folder across branches: the priorities from the default branch, each feature
-//! and change from its own branch, and the current branch from the working tree.
+//! The whole `specs/` folder across branches: each feature and change from its own branch, and the
+//! current branch from the working tree.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -7,8 +7,7 @@ use std::time::SystemTime;
 
 use serde::Serialize;
 
-use crate::actions::triage;
-use crate::files::{frontmatter, markdown, priorities};
+use crate::files::{frontmatter, markdown};
 use crate::git::{Git, GitError, ObjectId};
 use crate::steps::{self, PullRequest, Step};
 use crate::today;
@@ -28,9 +27,7 @@ use read::read_feature;
 use reader::Reader;
 use record::record_kind;
 
-pub use links::{Linked, LinkedFile, MergedFeature, RunningFeature, links_folder, resolve};
-
-use links::linked_proposals;
+pub use links::resolve;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
 pub use problem::{Problem, Severity};
@@ -226,21 +223,6 @@ impl Feature {
     }
 }
 
-/// A proposal of `PRIORITIES.md`, and the feature it matches.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct LinkedProposal {
-    pub section: priorities::Section,
-    pub position: usize,
-    /// Its address, from [`priorities::keys`].
-    pub key: String,
-    pub text: String,
-    pub link: Option<String>,
-    pub feature: Option<String>,
-    /// The proposal file it links, from the top level, when the default branch has it.
-    pub file: Option<String>,
-}
-
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Workspace {
@@ -249,17 +231,7 @@ pub struct Workspace {
     pub current_branch: Option<String>,
     /// When `origin` was last fetched, in RFC 3339.
     pub fetched_at: Option<String>,
-    pub priorities: Vec<LinkedProposal>,
     pub features: Vec<Feature>,
-    /// Proposal files and postponed features, from the default branch: `specs/proposals/x.md`,
-    /// `specs/proposals/y` for a folder that holds its `proposal.md`.
-    pub proposals: Vec<String>,
-    /// The text of `INBOX.md`, from the default branch, as the priorities are read.
-    #[serde(skip)]
-    pub inbox: Option<String>,
-    /// The text of `INBOX-TRIAGE.md`, from the default branch, as the priorities are read.
-    #[serde(skip)]
-    pub triage: Option<String>,
     pub problems: Vec<Problem>,
     /// When `origin` was last fetched: see `fetched_ago`.
     #[serde(skip)]
@@ -315,13 +287,11 @@ impl Workspace {
     }
 
     fn read_only(git: &Git, only: Option<&str>) -> Result<Workspace, WorkspaceError> {
-        // The writes still landing, taken before any tip: see `deferred::pending`.
-        let pending = &crate::actions::deferred::pending(&git.main_root());
         let root = git.root();
         let default_branch = git.default_branch();
         let current_branch = git.current_branch();
         let default_tip = default_branch.as_deref().and_then(|b| git.tip(b));
-        let on_default = current_branch.is_some() && current_branch == default_branch;
+        let _on_default = current_branch.is_some() && current_branch == default_branch;
 
         let has_specs = root.join("specs").is_dir()
             || default_tip
@@ -337,25 +307,7 @@ impl Workspace {
             .filter(|worktree| worktree.path != root && worktree.path.exists())
             .filter_map(|worktree| Some((worktree.branch?, worktree.path)))
             .collect();
-        // The priorities and proposal files: from this checkout on the default branch, else from
-        // the worktree that has it, uncommitted edits included, else from its tip.
-        let default_worktree = default_branch
-            .as_ref()
-            .filter(|_| !on_default)
-            .and_then(|branch| checked_out.get(branch))
-            .and_then(|path| Git::open(path).ok());
-        let default_reader = default_worktree
-            .as_ref()
-            .map_or(Reader { git, pending }, |git| Reader { git, pending });
-        let priorities_from = match default_tip {
-            Some(tip) if !on_default && default_worktree.is_none() => ReadFrom::Commit(tip),
-            _ => ReadFrom::Disk,
-        };
-        let priorities_text = default_reader
-            .read(priorities_from, "specs/PRIORITIES.md")
-            .unwrap_or_default();
-
-        let reader = Reader { git, pending };
+        let reader = Reader { git };
         let remote_default_tip = default_branch.as_deref().and_then(|b| git.remote_tip(b));
         let tips: Vec<ObjectId> = [default_tip, remote_default_tip]
             .into_iter()
@@ -382,21 +334,15 @@ impl Workspace {
             .for_each(|feature| pull_requests.apply(feature, git));
 
         let fetched = git.fetched_at();
-        let mut workspace = Workspace {
+        Ok(Workspace {
             root: root.to_path_buf(),
             default_branch,
             current_branch,
             fetched_at: fetched.map(today::rfc3339),
             fetched,
-            priorities: Vec::new(),
             features,
-            proposals: default_reader.proposals(priorities_from),
-            inbox: default_reader.read(priorities_from, "specs/INBOX.md"),
-            triage: default_reader.read(priorities_from, triage::PATH),
             problems: Vec::new(),
-        };
-        workspace.priorities = linked_proposals(&priorities_text, &workspace);
-        Ok(workspace)
+        })
     }
 
     /// The feature or change in a folder.

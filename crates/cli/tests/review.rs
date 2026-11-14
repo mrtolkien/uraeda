@@ -22,10 +22,7 @@ fn long_spec() -> String {
 
 fn waiting() -> TestRepo {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     feature(
         &repo,
         "2026-10-10-cli-core",
@@ -292,10 +289,7 @@ fn approve_with_a_comment_and_a_new_risk_tier() {
 #[test]
 fn an_assessment_is_not_reviewed() {
     let repo = TestRepo::new();
-    specs(
-        &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
-    );
+    specs(&repo);
     feature(
         &repo,
         "change/2026-10-14-tasks-reappear",

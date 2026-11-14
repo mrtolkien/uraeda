@@ -15,7 +15,6 @@ mod decision;
 mod verdict;
 
 pub use decision::DecisionTarget;
-pub(crate) use decision::comments_current;
 pub use verdict::{Tier, approve, approve_and_commit, request_changes, request_changes_and_commit};
 
 /// The file of a feature waiting for a review: the one named, or the one at its gate.
@@ -303,12 +302,5 @@ pub fn remove(
         Some(edited) => fs::write(path, edited)?,
         None => fs::remove_file(path)?,
     }
-    Ok(())
-}
-
-/// Deletes the pending review of a file, to review its new version from scratch.
-pub fn start_over(place: &Place, feature: &Feature, file: &str) -> Result<(), ActionError> {
-    pending_text(place, feature, file)?;
-    fs::remove_file(place.root.join(&feature.path).join(review_name(file)))?;
     Ok(())
 }

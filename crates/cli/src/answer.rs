@@ -59,7 +59,6 @@ pub fn run(
     let (git, workspace) = output::workspace()?;
     let index = match output::target(&workspace, target.map(String::as_str), Purpose::Answers)? {
         Target::Feature(index) | Target::File(index, _) => index,
-        Target::Proposal(proposal) => return Err(format!("{proposal} is not started")),
     };
     let feature = &workspace.features[index];
     let branch = feature

@@ -6,15 +6,9 @@ pub use uraeda_text::{document, markdown, stories};
 
 pub mod clarifications;
 pub mod frontmatter;
-pub mod image_links;
-pub mod inbox;
 pub mod items;
-pub(crate) mod lines;
-pub mod nested;
-pub mod outline;
 pub mod plan;
 pub mod preview;
-pub mod priorities;
 pub mod proposal;
 pub mod record;
 pub mod retarget;

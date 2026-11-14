@@ -1,13 +1,11 @@
-//! `ura status`: where every feature and change stands, by `PRIORITIES.md` section.
+//! `ura status`: where every feature and change stands, and who it waits on.
 
 use std::process::ExitCode;
 
 use serde::Serialize;
-use uraeda_core::actions::clean::merged_line;
 use uraeda_core::api::{SetupItem, read_setup};
-use uraeda_core::files::priorities::Section;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
-use uraeda_core::workspace::{Feature, LinkedProposal, Workspace, first_file, folder_branch};
+use uraeda_core::workspace::{Feature, Workspace, first_file, folder_branch};
 
 use crate::output::{self, Style};
 
@@ -73,14 +71,11 @@ pub fn name(feature: &Feature) -> String {
     folder_branch(feature.kind, &feature.folder)
 }
 
-/// What a merged feature left behind for `ura clean`, in words: its worktree, its branch, and its
-/// line in the default branch's priorities, as `worktree, branch, and line in the priorities`.
-pub fn leftovers(workspace: &Workspace, feature: &Feature) -> Option<String> {
-    let line = feature.step.name == StepName::Done && merged_line(workspace, feature).is_some();
+/// What a merged feature left behind, in words: its worktree and its branch.
+pub fn leftovers(feature: &Feature) -> Option<String> {
     let left: Vec<&str> = [
         (feature.left_worktree.is_some(), "worktree"),
         (feature.left_branch.is_some(), "branch"),
-        (line, "line in the priorities"),
     ]
     .into_iter()
     .filter_map(|(left, what)| left.then_some(what))
@@ -89,13 +84,13 @@ pub fn leftovers(workspace: &Workspace, feature: &Feature) -> Option<String> {
         [] => None,
         [one] => Some((*one).to_string()),
         [first, second] => Some(format!("{first} and {second}")),
-        [rest @ .., last] => Some(format!("{}, and {last}", rest.join(", "))),
+        _ => None,
     }
 }
 
-/// What a feature of `workspace` waits for, in words.
-pub fn describe(workspace: &Workspace, feature: &Feature) -> String {
-    described(feature, leftovers(workspace, feature).as_deref())
+/// What a feature waits for, in words.
+pub fn describe(feature: &Feature) -> String {
+    described(feature, leftovers(feature).as_deref())
 }
 
 /// What a feature waits for, in words, `left` what it left once merged (see [`leftovers`]).
@@ -128,7 +123,7 @@ fn described(feature: &Feature, left: Option<&str>) -> String {
         }
         .to_string(),
         (StepName::Done, _) => match left {
-            Some(left) => format!("merged: {left} left, run ura clean"),
+            Some(left) => format!("merged: its {left} left"),
             None => "merged".to_string(),
         },
         (name, _) => match &step.task {
@@ -145,7 +140,7 @@ fn described(feature: &Feature, left: Option<&str>) -> String {
     text
 }
 
-fn feature_row(workspace: &Workspace, feature: &Feature) -> Row {
+fn feature_row(feature: &Feature) -> Row {
     let waits = match (
         feature.problems.is_empty(),
         feature.step.name,
@@ -159,98 +154,30 @@ fn feature_row(workspace: &Workspace, feature: &Feature) -> Row {
     Row {
         name: name(feature),
         waits,
-        step: describe(workspace, feature),
+        step: describe(feature),
     }
-}
-
-fn proposal_row(proposal: &LinkedProposal) -> Row {
-    let name = proposal
-        .link
-        .as_deref()
-        .and_then(|link| {
-            let path = link.split('#').next()?;
-            let mut parts = path.rsplit('/');
-            let file = parts.next()?;
-            let stem = file.strip_suffix(".md").unwrap_or(file);
-            Some(if stem == "proposal" {
-                parts.next()?.to_string()
-            } else {
-                stem.to_string()
-            })
-        })
-        .unwrap_or_else(|| shorten(&proposal.text));
-    let step = match &proposal.link {
-        Some(link) => format!("not started ({link})"),
-        None => "not started".to_string(),
-    };
-    Row {
-        name,
-        waits: "-",
-        step,
-    }
-}
-
-/// A proposal's text, cut to 40 characters on a word, for the name column.
-fn shorten(text: &str) -> String {
-    const LIMIT: usize = 40;
-    if text.chars().count() <= LIMIT {
-        return text.to_string();
-    }
-    let cut: String = text.chars().take(LIMIT).collect();
-    let cut = cut.rsplit_once(' ').map_or(cut.as_str(), |(head, _)| head);
-    format!("{}…", cut.trim_end_matches([',', ':', ';', ' ']))
 }
 
 fn render(workspace: &Workspace) -> String {
-    let mut groups: Vec<(String, Vec<Row>)> = Vec::new();
-    for section in [
-        Section::Now,
-        Section::Next,
-        Section::Later,
-        Section::Blocked,
-    ] {
-        let rows: Vec<Row> = workspace
-            .priorities
-            .iter()
-            .filter(|proposal| proposal.section == section)
-            .map(|proposal| {
-                match proposal
-                    .feature
-                    .as_deref()
-                    .and_then(|f| workspace.feature(f))
-                {
-                    Some(feature) => feature_row(workspace, feature),
-                    None => proposal_row(proposal),
-                }
-            })
-            .collect();
-        if !rows.is_empty() {
-            groups.push((section.title().to_string(), rows));
-        }
-    }
-    let listed: Vec<&str> = workspace
-        .priorities
-        .iter()
-        .filter_map(|proposal| proposal.feature.as_deref())
-        .collect();
     let done = |feature: &&Feature| feature.step.name == StepName::Done;
-    let others: Vec<Row> = workspace
+    let mut groups: Vec<(&str, Vec<Row>)> = Vec::new();
+    let working: Vec<Row> = workspace
         .features
         .iter()
-        .filter(|feature| !listed.contains(&feature.folder.as_str()) && !done(feature))
-        .map(|feature| feature_row(workspace, feature))
+        .filter(|feature| !done(feature))
+        .map(feature_row)
         .collect();
-    if !others.is_empty() {
-        groups.push(("Not in priorities".to_string(), others));
+    if !working.is_empty() {
+        groups.push(("In progress", working));
     }
     let merged: Vec<Row> = workspace
         .features
         .iter()
-        .filter(|feature| !listed.contains(&feature.folder.as_str()) && done(feature))
-        .map(|feature| feature_row(workspace, feature))
+        .filter(|feature| done(feature) && leftovers(feature).is_some())
+        .map(feature_row)
         .collect();
     if !merged.is_empty() {
-        groups.push(("Done".to_string(), merged));
+        groups.push(("Merged, with a worktree or a branch left", merged));
     }
 
     let width = groups
@@ -284,7 +211,7 @@ fn render(workspace: &Workspace) -> String {
         }
     }
     if groups.is_empty() {
-        text.push_str("Nothing in PRIORITIES.md, and no feature started.\n");
+        text.push_str("No feature or change in progress.\n");
     }
     text
 }

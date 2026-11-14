@@ -51,18 +51,6 @@ pub fn port_number(number: i64) -> Result<u16, String> {
         .ok_or_else(|| PORT_PROBLEM.into())
 }
 
-/// `typed`, trimmed, when it is a whole number from 1 to 10, written in digits only.
-pub fn automatic_continues(typed: &str) -> Result<i64, String> {
-    let digits = typed.trim();
-    if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
-        return Err(CONTINUES_PROBLEM.into());
-    }
-    digits
-        .parse::<i64>()
-        .map_err(|_| CONTINUES_PROBLEM.to_owned())
-        .and_then(automatic_continues_number)
-}
-
 /// `number`, from the file, when it is from 1 to 10.
 pub fn automatic_continues_number(number: i64) -> Result<i64, String> {
     if (1..=MOST_CONTINUES).contains(&number) {

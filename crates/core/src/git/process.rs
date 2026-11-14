@@ -13,14 +13,6 @@ use super::GitError;
 /// The variables every process started here gets besides this process's own environment.
 static ADDED: RwLock<Vec<(String, String)>> = RwLock::new(Vec::new());
 
-/// Sets the variables every `git` and `gh` the core starts from now on gets besides this
-/// process's own environment, and with them the hooks git runs: the ones given before are
-/// replaced. A server gives the secrets of its config folder, which it never writes into its
-/// own environment. `ura` never calls it: its commands run in the environment it was started in.
-pub fn set_environment(variables: Vec<(String, String)>) {
-    *ADDED.write().unwrap_or_else(PoisonError::into_inner) = variables;
-}
-
 /// Why a process gave no output.
 #[derive(Debug)]
 pub(crate) enum Failure {
@@ -87,28 +79,6 @@ pub(crate) fn git_write_within(
     deadline: Duration,
 ) -> Result<Vec<u8>, Failure> {
     stream_command(write_command(args, dir), on_line, Some(deadline))
-}
-
-/// Runs `git` with `args` in `dir` as [`git_write`] does, on a clone of code no one trusted yet:
-/// no hook runs (`core.hooksPath=/dev/null`), not even the user's own, no submodule is fetched or
-/// checked out (`submodule.recurse=false`), and Git LFS downloads no file
-/// (`GIT_LFS_SKIP_SMUDGE=1`). Stopped past `deadline`, when one is given, as
-/// [`git_write_within`] does.
-pub(crate) fn git_untrusted(
-    args: &[&str],
-    dir: &Path,
-    deadline: Option<Duration>,
-) -> Result<Vec<u8>, Failure> {
-    let mut all = vec![
-        "-c",
-        "core.hooksPath=/dev/null",
-        "-c",
-        "submodule.recurse=false",
-    ];
-    all.extend_from_slice(args);
-    let mut git = write_command(&all, dir);
-    git.env("GIT_LFS_SKIP_SMUDGE", "1");
-    stream_command(git, &|_| {}, deadline)
 }
 
 /// `git` with `args`, to run in `dir` for a write: see [`git_write`].

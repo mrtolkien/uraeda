@@ -17,18 +17,6 @@ pub fn images_folder(folder: &str) -> String {
     format!("{folder}/images")
 }
 
-/// The folder whose main file `path` is, from the top level: `specs/proposals/<slug>` for a
-/// proposal file's `specs/proposals/<slug>/proposal.md`, `specs/notes/<slug>` for a note file's
-/// `specs/notes/<slug>/note.md`. `None` for a single file, and for any other path.
-pub fn folder_of(path: &str) -> Option<&str> {
-    let folder = match path.strip_prefix(crate::target::NOTES) {
-        Some(_) => path.strip_suffix("/note.md")?,
-        None if crate::target::is_proposal_file(path) => path.strip_suffix("/proposal.md")?,
-        None => return None,
-    };
-    (folder.matches('/').count() == 2).then_some(folder)
-}
-
 /// Every markdown file of `dir` and of its subfolders, never through a symbolic link.
 fn markdown_files(root: &Path, dir: &str, files: &mut Vec<String>) {
     let Ok(entries) = fs::read_dir(root.join(dir)) else {
@@ -158,38 +146,6 @@ pub fn unlinked_images(root: &Path, folder: &str) -> Vec<String> {
     found
 }
 
-/// The unlinked images of every folder of the proposal files and of the note files:
-/// `specs/notes/<slug>/` and `specs/proposals/<slug>/`.
-pub fn unlinked_in_proposals_and_notes(root: &Path) -> Vec<String> {
-    let mut found = Vec::new();
-    for parent in ["specs/notes", "specs/proposals"] {
-        let Ok(entries) = fs::read_dir(root.join(parent)) else {
-            continue;
-        };
-        let mut folders: Vec<String> = entries
-            .flatten()
-            .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
-            .map(|entry| format!("{parent}/{}", entry.file_name().to_string_lossy()))
-            .collect();
-        folders.sort();
-        for folder in folders {
-            found.extend(unlinked_images(root, &folder));
-        }
-    }
-    found
-}
-
-/// Deletes the images [`unlinked_in_proposals_and_notes`] finds, and the `images/` folders they
-/// leave empty. Returns them.
-pub fn delete_unlinked_in_proposals_and_notes(root: &Path) -> Result<Vec<String>, ActionError> {
-    let found = unlinked_in_proposals_and_notes(root);
-    for path in &found {
-        let folder = path.split("/images/").next().unwrap_or_default();
-        remove(root, &images_folder(folder), std::slice::from_ref(path))?;
-    }
-    Ok(found)
-}
-
 /// Whether `<folder>/images` is that folder itself, not reached through a symbolic link: files are
 /// never deleted elsewhere.
 pub(crate) fn in_place(root: &Path, images: &str) -> bool {
@@ -222,10 +178,4 @@ pub fn linked_images(place: &Place, folder: &str) -> Result<Vec<String>, ActionE
     } else {
         Ok(Vec::new())
     }
-}
-
-/// Whether the files under `<folder>/images/` differ from those `HEAD` tracks there, as the
-/// commit would stage them: ignored files left out, and symbolic links compared as links.
-pub fn images_changed(place: &Place, folder: &str) -> Result<bool, ActionError> {
-    Ok(Git::open(&place.root)?.differs_from_head(&images_folder(folder))?)
 }

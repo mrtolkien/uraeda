@@ -1,30 +1,14 @@
 //! The human actions on workflow files: each checks every condition before writing anything, and
 //! returns the files it changed and the commit to make.
 
-pub mod amend;
 pub mod answer;
-pub mod attach;
-pub mod change;
-pub mod changes;
-pub mod clean;
 pub mod commit;
-pub mod deferred;
-pub mod drop;
-pub mod edited;
-pub mod expand;
-pub mod findings;
 pub mod images;
-pub mod inbox;
 pub mod init;
 pub mod install;
 pub mod place;
-pub mod priorities;
-pub mod promote;
 pub mod relink;
 pub mod review;
-pub mod start;
-pub mod text;
-pub mod triage;
 
 use crate::files::clarifications::AnswerError;
 use crate::git::GitError;
