@@ -1,5 +1,5 @@
-//! The marks a pick shows: Claude Code's and Codex's, the drawings the app carries
-//! (`app/ui/controls/icons/marks.ts`: Codicons', CC BY 4.0, see `LICENSES.md`), filled on their
+//! The marks a pick shows: Claude Code's and Codex's, Codicons' drawings (CC BY 4.0, see
+//! CONTRIBUTING.md's licenses), filled on their
 //! 16-unit grid, and Lucide's drawings for a command, an agent unknown, and the default, stroked
 //! on their 24-unit grid. Each takes the text's colour.
 

@@ -38,7 +38,7 @@ enum Command {
     },
     /// Install or update the skill, for your user or this repository
     Install(install::Flags),
-    /// Show where every feature and change stands, across branches
+    /// Show where every feature and change stands, across worktrees
     Status {
         /// Print JSON
         #[arg(long)]
@@ -97,7 +97,8 @@ enum Command {
         #[arg(long)]
         fix: bool,
     },
-    /// Tell an agent the next step: of a feature or change, or of the first one in Now with work
+    /// Tell an agent the next step, its pick, and its session: of a feature or change, or of the first
+    /// one waiting on an agent
     Next {
         /// A feature or change: a path under specs/, a folder name, or a slug
         #[arg(add = complete::started())]
