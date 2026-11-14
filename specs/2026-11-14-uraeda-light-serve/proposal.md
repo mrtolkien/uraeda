@@ -33,3 +33,12 @@ JavaScript and CSS embedded in it, fast on a phone.
 - Not decided: whether Submit wakes the agent's session itself or I say "continue"; one service for
   every repository or one per worktree; whether the pages follow `specs/ui/` and embed its fonts.
 - Runs beside today's server until step 3.
+
+### Added on 2026-11-14
+
+> I want to add a small feature as part of this rework:
+>
+> - We already have implementer agents defined for the build step
+> - I also want roleplay agents for personas
+>
+> Btw the web serve should have a small settings view, where those workflow settings can be edited.
