@@ -10,6 +10,11 @@ use crate::workspace::{Feature, FileKind, Kind, first_file};
 #[serde(rename_all = "kebab-case")]
 pub enum StepName {
     HumanGate,
+    /// The proposal is not committed: commit it alone, first on its branch.
+    Proposal,
+    /// A round asked in a session and lost: its discovery file, and neither its questions' file
+    /// nor a spec of it. Ask it again, or write it as a file.
+    LostRound,
     Discovery,
     Spec,
     SpecRevision,
@@ -38,6 +43,8 @@ impl StepName {
     pub fn as_str(&self) -> &'static str {
         match self {
             StepName::HumanGate => "human-gate",
+            StepName::Proposal => "proposal",
+            StepName::LostRound => "lost-round",
             StepName::Discovery => "discovery",
             StepName::Spec => "spec",
             StepName::SpecRevision => "spec-revision",
@@ -63,8 +70,10 @@ impl StepName {
     }
 
     /// Every step, in the enum's order.
-    const ALL: [StepName; 17] = [
+    const ALL: [StepName; 19] = [
         StepName::HumanGate,
+        StepName::Proposal,
+        StepName::LostRound,
         StepName::Discovery,
         StepName::Spec,
         StepName::SpecRevision,
@@ -136,6 +145,9 @@ pub struct Step {
     pub plan_review: Option<bool>,
     /// The default branch's commit to catch up with, at `catch-up` only.
     pub catch_up: Option<CatchUp>,
+    /// Whether the human's answers or review are on disk, uncommitted: the step commits them
+    /// alone first, as the skill's "the human's work is committed first" says.
+    pub commit_first: bool,
 }
 
 /// What a branch behind the default branch catches up with.
@@ -175,6 +187,7 @@ impl Step {
             pull_request: None,
             plan_review: None,
             catch_up: None,
+            commit_first: false,
         }
     }
 
@@ -189,6 +202,17 @@ impl Step {
         Step {
             reference: Some(format!("skills/uraeda/references/{reference}.md")),
             ..Step::new(name, WaitsOn::Agent)
+        }
+    }
+
+    /// Commit the proposal alone, as starting a feature does; a gate while there is none.
+    fn proposal(feature: &Feature) -> Step {
+        if feature.file(FileKind::Proposal).is_none() {
+            return Step::gate(first_file(feature.kind));
+        }
+        Step {
+            reference: Some("skills/uraeda/references/projects.md#starting-a-feature".to_string()),
+            ..Step::new(StepName::Proposal, WaitsOn::Agent)
         }
     }
 
@@ -219,7 +243,8 @@ impl Step {
                 Some((FileKind::Clarifications, _)) => 2,
                 _ => 0,
             },
-            StepName::Discovery => 1,
+            StepName::Proposal => 0,
+            StepName::Discovery | StepName::LostRound => 1,
             StepName::Spec | StepName::SpecRevision => 3,
             StepName::Plan | StepName::PlanRevision => 5,
             StepName::Implementation | StepName::Change => 7,
@@ -274,10 +299,13 @@ fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
 
 fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
-        return Step::gate(first_file(feature.kind));
+        return Step::proposal(feature);
     }
     if let Some(gate) = waiting_gate(feature) {
         return gate;
+    }
+    if lost_round(feature) {
+        return Step::agent(StepName::LostRound, "discovery");
     }
     let files = &feature.files;
     let latest = files
@@ -390,6 +418,33 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
     }
 }
 
+/// Whether the latest discovery round has neither its questions' file nor a spec written from it:
+/// a round asked in a session, and lost with it.
+fn lost_round(feature: &Feature) -> bool {
+    let latest = |kind| {
+        feature
+            .files
+            .iter()
+            .filter(|file| file.kind == kind)
+            .filter_map(|file| file.round)
+            .max()
+            .unwrap_or(0)
+    };
+    let discovery = latest(FileKind::Discovery);
+    if discovery == 0 || latest(FileKind::Clarifications) >= discovery {
+        return false;
+    }
+    let spec_round = feature
+        .text("spec.md")
+        .and_then(|text| {
+            crate::files::frontmatter::parse(text)
+                .ok()?
+                .integer("clarifications")
+        })
+        .unwrap_or(0);
+    spec_round < i64::from(discovery)
+}
+
 /// The gate on the last file waiting for the human, if any.
 fn waiting_gate(feature: &Feature) -> Option<Step> {
     feature
@@ -406,7 +461,7 @@ fn waiting_gate(feature: &Feature) -> Option<Step> {
 /// itself.
 fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
-        return Step::gate(first_file(feature.kind));
+        return Step::proposal(feature);
     }
     if let Some(gate) = waiting_gate(feature) {
         return gate;

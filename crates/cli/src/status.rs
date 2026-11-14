@@ -116,6 +116,10 @@ fn described(feature: &Feature, left: Option<&str>) -> String {
             format!("{file}: {what}")
         }
         (StepName::None, _) => "nothing to do".to_string(),
+        (StepName::Proposal, _) => "proposal: commit it".to_string(),
+        (StepName::LostRound, _) => {
+            "a round asked in a session and lost: ask it again, or write it as a file".to_string()
+        }
         (StepName::Finish, _) => match (feature.is_finished(), step.pull_request) {
             (true, Some(PullRequest::Draft)) => "finish: mark the pull request ready",
             (true, _) => "finish: open the pull request",
@@ -131,6 +135,9 @@ fn described(feature: &Feature, left: Option<&str>) -> String {
             None => name.as_str().to_string(),
         },
     };
+    if step.commit_first {
+        text.push_str(", after committing the human's work");
+    }
     if let Some(behind) = feature.behind.filter(|behind| *behind > 0) {
         text.push_str(&format!(" (behind origin by {behind})"));
     }

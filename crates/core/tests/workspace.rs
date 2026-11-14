@@ -712,3 +712,84 @@ fn progress_counts_the_tasks_done_on_their_task_branches() {
     let counted = step.progress.unwrap();
     assert_eq!((counted.done, counted.total), (15, 20));
 }
+
+/// The human answered the round without committing: the next step is the spec, committing their
+/// answers first.
+#[test]
+fn the_humans_uncommitted_answers_are_committed_first() {
+    let repo = repo();
+    let answered = clarifications("answered", "1 question, about 3 minutes.", &["A"]);
+    repo.write_in(
+        FOLDER,
+        "specs/2026-10-11-web-ui/clarifications-01.md",
+        &answered,
+    );
+
+    let feature = feature(&repo, FOLDER);
+
+    assert_eq!(feature.step.name, StepName::Spec);
+    assert!(feature.step.commit_first);
+}
+
+/// A half-answered round, its status still waiting, is the human's work in progress: the gate holds.
+#[test]
+fn a_half_answered_round_keeps_its_gate() {
+    let repo = repo();
+    let half = clarifications("awaiting-human", "1 question, about 3 minutes.", &["A"]);
+    repo.write_in(
+        FOLDER,
+        "specs/2026-10-11-web-ui/clarifications-01.md",
+        &half,
+    );
+
+    let feature = feature(&repo, FOLDER);
+
+    assert_eq!(feature.step.name, StepName::HumanGate);
+    assert!(!feature.step.commit_first);
+}
+
+/// A discovery file with neither its round's questions nor a spec of it: a round asked in a
+/// session, and lost.
+#[test]
+fn a_discovery_without_its_round_is_a_lost_round() {
+    let repo = repo();
+    let answered = clarifications("answered", "1 question, about 3 minutes.", &["A"]);
+    repo.write_in(
+        FOLDER,
+        "specs/2026-10-11-web-ui/clarifications-01.md",
+        &answered,
+    );
+    repo.write_in(
+        FOLDER,
+        "specs/2026-10-11-web-ui/spec.md",
+        &spec("approved", 1, 1),
+    );
+    repo.write_in(
+        FOLDER,
+        "specs/2026-10-11-web-ui/discovery-02.md",
+        "# Discovery, round 02: Web UI\n",
+    );
+    repo.commit_in(FOLDER, "discovery(web-ui): round 02, asked in the session");
+
+    let feature = feature(&repo, FOLDER);
+
+    assert_eq!(feature.step.name, StepName::LostRound);
+    assert_eq!(feature.step.waits_on, WaitsOn::Agent);
+}
+
+/// A proposal written in a new worktree and not committed: committing it is the first step.
+#[test]
+fn an_uncommitted_proposal_is_committed_first() {
+    let repo = repo();
+    repo.branch("2026-10-18-tags");
+    repo.write_in(
+        "2026-10-18-tags",
+        "specs/2026-10-18-tags/proposal.md",
+        &proposal(),
+    );
+
+    let feature = feature(&repo, "2026-10-18-tags");
+
+    assert_eq!(feature.step.name, StepName::Proposal);
+    assert_eq!(feature.step.waits_on, WaitsOn::Agent);
+}

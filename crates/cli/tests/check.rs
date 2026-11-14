@@ -194,16 +194,16 @@ fn fix_rewrites_and_reports_each_file() {
     let repo = TestRepo::new();
     specs(&repo);
     let path = "specs/done/2026-10-10-cli-core.md";
-    repo.write("specs/proposals/thing.md", &proposal());
+    repo.write("specs/guides/thing.md", &proposal());
     repo.write(
         path,
         &format!(
-            "{}\nSee [Thing](/specs/proposals/thing.md).\n",
+            "{}\nSee [Thing](/specs/guides/thing.md).\n",
             record("feature", "CLI core")
         ),
     );
     repo.commit("finish(cli-core): CLI core");
-    repo.git(&["mv", "specs/proposals/thing.md", "specs/proposals/other.md"]);
+    repo.git(&["mv", "specs/guides/thing.md", "specs/guides/other.md"]);
     repo.commit("chore: rename Thing");
 
     let output = ura(&repo, &["check", "specs", "--fix"]);
@@ -213,10 +213,7 @@ fn fix_rewrites_and_reports_each_file() {
         format!("fixed {path}: 1 link\nspecs/: no problems\n")
     );
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert!(
-        repo.read(path)
-            .contains("[Thing](/specs/proposals/other.md)")
-    );
+    assert!(repo.read(path).contains("[Thing](/specs/guides/other.md)"));
 
     repo.git(&["checkout", "--", "."]);
     let output = ura(&repo, &["check", "specs", "--fix", "--json"]);

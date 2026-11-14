@@ -78,7 +78,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
 }
 
 /// Whether a change's folder, `specs/changes/<folder>/`, holds an entry of this name: its proposal,
-/// its rounds, its rulings, its reviews' findings, and its `images/`, `mockups/`, and
+/// its rounds, its rulings, and its `images/`, `mockups/`, and
 /// `screenshots/` folders. The one home
 /// of the rule, for `ura check` and for `ura start --change`.
 pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
@@ -88,7 +88,6 @@ pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
         entry == "proposal.md"
             || entry == "rulings.md"
             || (entry.starts_with("clarifications-") && entry.ends_with(".md"))
-            || (entry.starts_with("findings-") && entry.ends_with(".md"))
     }
 }
 
@@ -108,8 +107,7 @@ fn change_file_problem(root: &Path, dir: &Path, entry: &str) -> Problem {
         rule: "names.change-file".into(),
         message: format!(
             "\"{entry}\" has no place in a change: its folder holds proposal.md, \
-             clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/, and \
-             screenshots/."
+             clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
         ),
         severity: Severity::Error,
         fixable: false,
@@ -176,5 +174,64 @@ pub(super) fn check_rounds(root: &Path, dir: &Path, names: &[String], problems: 
                 fixable: false,
             });
         }
+    }
+}
+
+/// What the workflow no longer keeps in git, and where it went: the human's notes hold the
+/// priorities, the inbox, the proposals, and their notes, and a review's findings are fixed in
+/// commits, never written.
+const REMOVED: [(&str, &str); 5] = [
+    (
+        "PRIORITIES.md",
+        "the priorities are the proposals' fields, in the human's notes",
+    ),
+    ("INBOX.md", "the inbox is the human's notes' inbox/"),
+    (
+        "INBOX-TRIAGE.md",
+        "the inbox is the human's notes' inbox/, never triaged in git",
+    ),
+    (
+        "proposals",
+        "a proposal waits in the human's notes until its feature starts",
+    ),
+    ("notes", "notes live in the human's notes"),
+];
+
+/// `layout.removed`: a file or folder the workflow no longer keeps in git, at the top of `specs/`,
+/// and a review's findings file in a feature's or a change's folder.
+pub(super) fn check_removed(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
+    let removed = |entry: &str, went: &str, then: &str| Problem {
+        file: super::relative(root, &dir.join(entry)),
+        line: None,
+        rule: "layout.removed".into(),
+        message: format!("\"{entry}\" is no longer part of the workflow: {went}. {then}"),
+        severity: Severity::Error,
+        fixable: false,
+    };
+    if name(dir) == "specs" {
+        for (entry, went) in REMOVED {
+            if dir.join(entry).exists() {
+                problems.push(removed(entry, went, "Move it there, then delete it"));
+            }
+        }
+        return;
+    }
+    if !is_workflow_folder(dir) {
+        return;
+    }
+    let mut entries: Vec<String> = fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| name(&entry.path()))
+        .filter(|entry| entry.starts_with("findings-") && entry.ends_with(".md"))
+        .collect();
+    entries.sort();
+    for entry in entries {
+        problems.push(removed(
+            &entry,
+            "a review's findings are graded and fixed in commits, never written",
+            "Fix what it holds, then delete it",
+        ));
     }
 }

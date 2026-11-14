@@ -109,6 +109,8 @@ fn configured(mut command: Command, dir: &Path, args: &[&str]) -> Command {
         .current_dir(dir)
         .env("URA_TODAY", "2026-10-11")
         .env("NO_COLOR", "1")
+        // Never the person's settings: a folder that does not exist, unless a test names one.
+        .env("URAEDA_CONFIG_DIR", "/nonexistent/uraeda-test-config")
         .stdin(Stdio::null());
     command
 }
