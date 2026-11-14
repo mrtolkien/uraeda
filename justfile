@@ -96,5 +96,5 @@ bench:
 # The lines the Rust tests run, as `coverage/rust/html/index.html`: a report, never a check.
 coverage:
     mkdir -p coverage
-    {{ isolated }} cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov
+    {{ isolated }} cargo llvm-cov nextest --lcov --output-path coverage/rust.lcov
     cargo llvm-cov report --html --output-dir coverage/rust
