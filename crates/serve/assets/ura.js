@@ -217,57 +217,20 @@
     }
 
     const saveRuns = () => write("settings/runs", { options: collect() });
-
-    // T3 Code's providers: picking another agent offers its models, another model its efforts.
-    const providers = JSON.parse(($("#providers", main) || { textContent: "[]" }).textContent);
-    const fill = (select, items, first) => {
-      select.innerHTML = "";
-      for (const [value, label] of [["", first], ...items]) {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        select.append(option);
-      }
-    };
-    function refill(pick, agentChanged) {
-      const provider = providers.find((p) => p.id === $(".agent", pick).value);
-      const models = provider ? provider.models : [];
-      if (agentChanged)
-        fill(
-          $(".model", pick),
-          models.map((m) => [m.slug, m.name]),
-          "Default",
-        );
-      const model =
-        models.find((m) => m.slug === $(".model", pick).value) ||
-        models.find((m) => m.default) ||
-        models[0];
-      const efforts = model ? model.efforts : [];
-      const usual = efforts.find((e) => e.default);
-      fill(
-        $(".effort", pick),
-        efforts.map((e) => [e.id, e.label]),
-        usual ? `Default (${usual.label})` : "Default",
-      );
-    }
     const typed = debounce(saveRuns, 600);
 
     main.addEventListener("change", (event) => {
       if (event.target.classList.contains("wake")) {
         write("settings/serve", { wake: event.target.checked });
       } else if (event.target.matches("select, input[type=radio]")) {
-        const pick = event.target.closest(".pick");
-        if (pick && event.target.matches(".agent, .model")) {
-          refill(pick, event.target.matches(".agent"));
-        }
         saveRuns();
       }
     });
     main.addEventListener("input", (event) => {
-      if (event.target.matches(".instructions, .command")) typed();
+      if (event.target.matches(".model, .instructions, .command")) typed();
     });
     main.addEventListener("focusout", (event) => {
-      if (event.target.matches(".instructions, .command")) typed.now();
+      if (event.target.matches(".model, .instructions, .command")) typed.now();
     });
     main.addEventListener("click", (event) => {
       const cut = event.target.closest("button.cut");
