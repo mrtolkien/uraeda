@@ -1,3 +1,8 @@
+---
+status: next
+rank: 2
+---
+
 # Keyboard shortcuts
 
 I use the app all day on my laptop, and reaching for the mouse is slow. `n` for a new task, `x` to

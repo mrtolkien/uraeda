@@ -38,20 +38,20 @@ A task has a title, an optional due date, and a done flag, stored in IndexedDB b
 ### Scope
 
 Repeating a task, its next due date, and how the list shows it. Reminders are left out: they are
-next in the [priorities](../PRIORITIES.md).
+next in the priorities.
 
 ### Sources
 
 - The task store and the edit panel, linked above.
 - The help pages of Microsoft To Do, Todoist, and Google Calendar, linked in the discovery.
 - date-fns' `addMonths`, and MDN on Temporal.
-- The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
+- What the questions rely on is in [discovery](discovery-01.md). Each question links to its finding.
 
 ## Check these
 
 - **Skipping one occurrence** gets no dedicated action: users move its due date, or complete it, as
   in Todoist. A skip action can come later without changing stored tasks. See
-  [Todoist](discovery-01.md#todoist).
+  [Todoist](discovery-01.md#editing-occurrences).
 
 ## Q1: How should users pick when a task repeats?
 
@@ -167,10 +167,10 @@ stays a Monday task.
 Due dates are timestamps at local midnight. A local day lasts 23 or 25 hours when daylight saving
 time changes, so adding 7 × 24 hours can land on the day before. The native `Date` also turns
 January 31 plus a month into March. date-fns, already a dependency, fixes the month overflow with
-`addMonths`. More in [discovery](discovery-01.md#date-handling).
+`addMonths`. More in [discovery](discovery-01.md#dates-in-javascript).
 
-Why it matters: reminders, next in the [priorities](../PRIORITIES.md), and every later feature with
-dates will follow this choice.
+Why it matters: reminders, next in the priorities, and every later feature with dates will follow
+this choice.
 
 - **A (recommended). Store due dates as calendar days (`2026-10-12`), without a time, computed with
   date-fns.**

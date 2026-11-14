@@ -1,3 +1,8 @@
+---
+status: later
+rank: 1
+---
+
 # Mobile layout
 
 The list works on phones, but the buttons are small and the edit panel covers the whole screen. A
