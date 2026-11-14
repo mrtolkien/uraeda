@@ -66,6 +66,107 @@
   const round = $("main.round");
   if (round && round.dataset.waiting === "true") roundPage(round);
 
+  // --- Mockups -------------------------------------------------------------------------------
+
+  /**
+   * Gives each link to an HTML mockup of the feature a "See it" button that draws it in place,
+   * with "Pick an element" and "Comment on it". `comment(block, prefix)` opens the comment of the
+   * block the link is in, its text starting with `prefix`: `Mockup mockups/menu.html, button
+   * “Weekly”: `.
+   */
+  function mockups(main, comment) {
+    const links = $$('a[href*="raw/"]', main).filter((a) =>
+      /\.html?(#.*)?$/.test(a.getAttribute("href")),
+    );
+    for (const link of links) {
+      const block = link.closest("[data-lines], .choice, p, li") || link.parentElement;
+      if (block.querySelector(":scope > .see-it")) continue;
+      const href = link.getAttribute("href");
+      const match = /raw\/specs\/[^/]+\/(.+?)(#.*)?$/.exec(href);
+      const file = decodeURIComponent(match ? match[1] : href.split("/").pop());
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "see-it";
+      button.textContent = "See it";
+      button.setAttribute("aria-expanded", "false");
+      block.append(button);
+      let box = null;
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (box) {
+          box.remove();
+          box = null;
+          button.textContent = "See it";
+          button.setAttribute("aria-expanded", "false");
+          return;
+        }
+        box = frame(href, file, (picked) =>
+          comment(block, picked ? `Mockup ${file}, ${picked}: ` : `Mockup ${file}: `),
+        );
+        button.after(box);
+        button.textContent = "Hide it";
+        button.setAttribute("aria-expanded", "true");
+      });
+    }
+  }
+
+  /** A mockup drawn in a frame, with its controls. `comment(picked)` starts a comment. */
+  function frame(href, file, comment) {
+    const box = document.createElement("div");
+    box.className = "frame";
+    box.innerHTML =
+      '<iframe sandbox="allow-scripts allow-forms allow-popups allow-modals" loading="lazy"></iframe>' +
+      '<div class="row"><button type="button" class="pick">Pick an element</button>' +
+      '<button type="button" class="about">Comment on it</button>' +
+      '<a class="button" target="_blank" rel="noopener">Open alone</a></div>' +
+      '<p class="picking small muted" hidden>Tap the element to comment on.</p>';
+    const iframe = $("iframe", box);
+    iframe.src = href;
+    iframe.title = `Mockup ${file}`;
+    $("a", box).href = href;
+    const pick = $(".pick", box);
+    const hint = $(".picking", box);
+    let picking = false;
+    const setPicking = (on) => {
+      picking = on;
+      pick.textContent = on ? "Stop picking" : "Pick an element";
+      hint.hidden = !on;
+      if (iframe.contentWindow) iframe.contentWindow.postMessage({ uraeda: "pick", on }, "*");
+    };
+    pick.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setPicking(!picking);
+    });
+    $(".about", box).addEventListener("click", (event) => {
+      event.stopPropagation();
+      comment(null);
+    });
+    box.addEventListener("click", (event) => event.stopPropagation());
+    addEventListener("message", (event) => {
+      if (event.source !== iframe.contentWindow || !event.data || !event.data.uraeda) return;
+      const data = event.data;
+      if (data.uraeda === "size") {
+        iframe.style.height = `${Math.min(Math.max(data.height, 160), innerHeight * 0.8)}px`;
+      } else if (data.uraeda === "picked") {
+        setPicking(false);
+        const name = (data.name || data.text || "").trim().slice(0, 60);
+        comment(name ? `${data.role || "element"} “${name}”` : data.role || "an element");
+      } else if (data.uraeda === "pick-stopped") {
+        setPicking(false);
+      }
+    });
+    return box;
+  }
+
+  /** Puts `prefix` on a new line at the end of `field`, and the caret after it. */
+  function startWith(field, prefix) {
+    const before = field.value.trimEnd();
+    field.value = before ? `${before}\n${prefix}` : prefix;
+    field.focus();
+    field.setSelectionRange(field.value.length, field.value.length);
+    field.dispatchEvent(new Event("input"));
+  }
+
   // --- The review ------------------------------------------------------------------------------
 
   const review = $("main.review");
@@ -301,6 +402,15 @@
       $(".request", verdict).addEventListener("click", () => finish("request-changes"));
     }
 
+    if (waiting) {
+      mockups(doc, (block, prefix) => {
+        const el = block.closest("[data-lines]") || block;
+        const [start, end] = range(el);
+        form(el, "", (text) => send({ lines: [start, end], text }));
+        const field = $(".comment-form textarea", main);
+        if (field) startWith(field, prefix);
+      });
+    }
     draw();
   }
 
@@ -454,6 +564,11 @@
       field.addEventListener("blur", () => save.now());
     }
 
+    mockups(main, (block, prefix) => {
+      const q = block.closest("section.q");
+      const field = q ? $(".words textarea", q) : $("section.notes textarea", main);
+      if (field) startWith(field, prefix);
+    });
     progress();
   }
 })();
