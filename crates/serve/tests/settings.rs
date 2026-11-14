@@ -12,9 +12,37 @@ use uraeda_serve::review::routes::version_of;
 
 const FILE: &str = "# Mine: keep this comment.\n[keyboard]\nvim_mode = true\n\n[runs]\nscheduled_jobs = false\n\n[runs.steps.spec]\nagent = \"claude\"\nmodel = \"fable\"\neffort = \"high\"\n\n[serve]\nrepositories = [\"/x\"]\n";
 
+/// A snapshot of a T3 Code provider, as `caches/<instance>.json` holds it.
+fn snapshot(id: &str, name: &str) -> String {
+    format!(
+        r#"{{"instanceId":"{id}","driver":"claudeAgent","displayName":"{name}","enabled":true,
+        "installed":true,"models":[
+        {{"slug":"claude-opus-5-5","name":"Claude Opus 5.5","aliases":["opus"],"isDefault":true,
+          "capabilities":{{"optionDescriptors":[{{"id":"effort","options":[
+            {{"id":"medium","label":"Medium","isDefault":true}},{{"id":"max","label":"Max"}}]}}]}}}},
+        {{"slug":"claude-fable-5-2","name":"Claude Fable 5.2","aliases":["fable"]}}]}}"#
+    )
+}
+
 fn server(dir: &TempDir) -> Server {
     fs::write(dir.path().join("config.toml"), FILE).unwrap();
-    Server::configured(Settings::default(), dir.path().to_path_buf())
+    let caches = dir.path().join("t3/caches");
+    fs::create_dir_all(&caches).unwrap();
+    fs::write(
+        caches.join("claudeAgent.json"),
+        snapshot("claudeAgent", "Claude"),
+    )
+    .unwrap();
+    fs::write(
+        caches.join("claudeAgent_claude2.json"),
+        snapshot("claudeAgent_claude2", "Claude2"),
+    )
+    .unwrap();
+    let settings = Settings {
+        t3_home: Some(dir.path().join("t3")),
+        ..Settings::default()
+    };
+    Server::configured(settings, dir.path().to_path_buf())
 }
 
 fn read(dir: &TempDir) -> String {
@@ -25,7 +53,7 @@ fn read(dir: &TempDir) -> String {
 fn options() -> &'static str {
     r#"{"steps":[
         {"step":"discovery","agent":"","model":"","effort":"","new_session":false},
-        {"step":"spec","agent":"claude","model":"opus","effort":"max","new_session":false},
+        {"step":"spec","agent":"claudeAgent_claude2","model":"claude-opus-5-5","effort":"max","new_session":false},
         {"step":"plan","agent":"","model":"","effort":"","new_session":true},
         {"step":"build","agent":"","model":"","effort":"","new_session":true},
         {"step":"review","agent":"","model":"","effort":"","new_session":false},
@@ -51,7 +79,16 @@ fn the_page_draws_each_step_its_sessions_and_the_reviewers() {
     ] {
         assert!(page.contains(word), "{word}");
     }
-    assert!(page.contains("value=\"fable\""), "the spec's model as set");
+    // The spec's `claude` and `fable`, written before, read as T3 Code's provider and model.
+    assert!(
+        page.contains("<option value=\"claudeAgent\" selected>Claude</option>"),
+        "{page}"
+    );
+    assert!(page.contains("<option value=\"claudeAgent_claude2\">Claude2</option>"));
+    assert!(page.contains("<option value=\"claude-fable-5-2\" selected>Claude Fable 5.2</option>"));
+    // The spec's efforts are its model's: an effort the model does not offer stays, marked.
+    assert!(page.contains("high (not offered)"), "{page}");
+    assert!(page.contains("id=\"providers\""));
     // Plan starts a new session by default; the other joints join.
     assert!(
         page.contains("aria-pressed=\"true\" data-step=\"plan\""),
@@ -82,7 +119,8 @@ fn a_save_writes_the_runs_and_keeps_the_rest_of_the_file() {
     assert!(text.starts_with("# Mine: keep this comment."), "{text}");
     assert!(text.contains("scheduled_jobs = false"));
     assert!(text.contains("repositories = [\"/x\"]"));
-    assert!(text.contains("model = \"opus\""), "{text}");
+    assert!(text.contains("agent = \"claudeAgent_claude2\""), "{text}");
+    assert!(text.contains("model = \"claude-opus-5-5\""), "{text}");
     assert!(text.contains("effort = \"max\""));
     assert!(!text.contains("fable"));
     assert!(
