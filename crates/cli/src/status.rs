@@ -4,31 +4,135 @@ use std::process::ExitCode;
 
 use serde::Serialize;
 use uraeda_core::api::{SetupItem, read_setup};
+use uraeda_core::files::frontmatter;
+use uraeda_core::git::{Git, ObjectId};
+use uraeda_core::repositories::default_data_dir;
+use uraeda_core::settings::default_config_dir;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
 use uraeda_core::workspace::{Feature, Workspace, first_file, folder_branch};
+use uraeda_vault::{Vault, notes};
 
 use crate::output::{self, Style};
 
-/// The JSON of `ura status`: the workspace, with the setup's items beside its fields.
+/// The JSON of `ura status`: the workspace, with the setup's items, and the proposal notes to
+/// mark done, beside its fields.
 #[derive(Serialize)]
+#[serde(rename_all = "kebab-case")]
 struct Status<'a> {
     #[serde(flatten)]
     workspace: &'a Workspace,
     setup: Vec<SetupItem>,
+    notes_done: Vec<String>,
 }
 
 pub fn run(json: bool) -> Result<ExitCode, String> {
     let (git, workspace) = output::workspace_with_pull_requests()?;
     let setup = read_setup(git.root()).map_err(|error| error.to_string())?;
+    let notes_done = notes_done(&git);
     if json {
         output::print_json(&Status {
             workspace: &workspace,
             setup,
+            notes_done,
         });
     } else {
-        print!("{}{}", render(&workspace), render_setup(&setup));
+        print!(
+            "{}{}{}",
+            render(&workspace),
+            render_setup(&setup),
+            render_notes_done(&notes_done)
+        );
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The proposal notes of this repository, in the human's notes, that say `started` while their
+/// branch's record is on the default branch: an agent sets them `done`. None without a vault.
+fn notes_done(git: &Git) -> Vec<String> {
+    let Ok(vault) = Vault::locate(&default_config_dir(), &default_data_dir()) else {
+        return Vec::new();
+    };
+    let main = git.main_root();
+    let Some(repository) = main
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+    else {
+        return Vec::new();
+    };
+    let folder = format!("projects/{repository}/proposals");
+    let Some(default_tip) = git.default_branch().and_then(|branch| git.tip(&branch)) else {
+        return Vec::new();
+    };
+    // A branch still in progress in a worktree, even with no commit of its own yet, is not merged.
+    let working: Vec<String> = uraeda_core::workspace::in_progress(git)
+        .into_iter()
+        .map(|item| item.branch)
+        .collect();
+    let mut notes = Vec::new();
+    let mut stack = vec![folder];
+    while let Some(folder) = stack.pop() {
+        for entry in notes::ls(&vault, &folder).unwrap_or_default() {
+            let path = entry.path;
+            if let Some(folder) = path.strip_suffix('/') {
+                stack.push(folder.to_string());
+                continue;
+            }
+            if !path.ends_with(".md") {
+                continue;
+            }
+            let Ok(text) = notes::read(&vault, &path) else {
+                continue;
+            };
+            let Ok(front) = frontmatter::parse(&text) else {
+                continue;
+            };
+            if front.text("status") != Some("started") {
+                continue;
+            }
+            let merged = front
+                .text("branch")
+                .filter(|branch| !working.iter().any(|working| working == branch))
+                .and_then(|branch| git.tip(branch))
+                .is_some_and(|tip| own_record_merged(git, tip, default_tip));
+            if merged {
+                notes.push(path);
+            }
+        }
+    }
+    notes.sort();
+    notes
+}
+
+/// Whether a branch is merged: the default branch holds its tip, or, after a squash or a rebase,
+/// the record the branch wrote, one its merge base with the default branch lacks.
+fn own_record_merged(git: &Git, tip: ObjectId, default_tip: ObjectId) -> bool {
+    let base = git.merge_base(tip, default_tip).ok().flatten();
+    if base == Some(tip) {
+        return true;
+    }
+    git.list_files(tip, "specs/done")
+        .unwrap_or_default()
+        .iter()
+        .filter(|record| base.is_none_or(|base| git.entry_id(base, record).is_none()))
+        .any(|record| git.entry_id(default_tip, record).is_some())
+}
+
+/// The proposal notes to mark done, after a blank line, or nothing.
+fn render_notes_done(notes: &[String]) -> String {
+    if notes.is_empty() {
+        return String::new();
+    }
+    let mut text = format!(
+        "\n{}\n",
+        output::style(
+            Style::Bold,
+            "Proposal notes merged, still started: set them done"
+        )
+    );
+    for note in notes {
+        text.push_str(&format!("  ura vault write {note} --set status=done\n"));
+    }
+    text
 }
 
 /// The required setup files not written yet, after a blank line, or nothing once the project is
