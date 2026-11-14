@@ -33,7 +33,7 @@ async function sha256(buffer) {
 module.exports = class Uraeda extends Plugin {
   async onload() {
     this.data = Object.assign(
-      { url: "", sync: false, base: {}, hashes: {}, last: "" },
+      { url: "", sync: false, base: {}, hashes: {}, last: "", vault: "" },
       await this.loadData(),
     );
     this.running = null;
@@ -187,12 +187,18 @@ module.exports = class Uraeda extends Plugin {
     const answer = await this.call(
       "POST",
       "vault/plan",
-      JSON.stringify({ files: local, base: this.data.base, stamp: stamp() }),
+      JSON.stringify({
+        files: local,
+        base: this.data.base,
+        stamp: stamp(),
+        vault: this.data.vault || "",
+      }),
       "application/json",
     );
     if (answer.status !== 200)
       throw new Error(`ura serve answered ${answer.status}: ${answer.text}`);
     const actions = answer.json.actions;
+    this.data.vault = answer.json.vault;
     for (const folder of answer.json.folders || []) {
       if (!(await adapter.exists(folder))) await adapter.mkdir(folder);
     }

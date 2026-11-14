@@ -124,3 +124,42 @@ fn a_write_without_the_bearer_or_the_pages_origin_is_refused() {
     let (status, _) = server.plugin("POST", &format!("/{}/settings/serve", server.token), b"");
     assert_eq!(status, 403);
 }
+
+#[test]
+fn a_phone_of_another_vault_merges_instead_of_deleting() {
+    let dir = tempfile::tempdir().unwrap();
+    let vault = Vault::new(dir.path().join("Uraeda"));
+    std::fs::create_dir_all(vault.root().join("inbox")).unwrap();
+    std::fs::write(vault.root().join("inbox/a.md"), "a").unwrap();
+    let server = Server::syncing(Default::default(), vault.clone());
+    let base = json!({ "inbox/a.md": hash_bytes(b"a") });
+    let body =
+        |id: &str| json!({ "files": {}, "base": base, "stamp": "s", "vault": id }).to_string();
+    let path = format!("/{}/vault/plan", server.token);
+    let (_, bytes) = server.plugin("POST", &path, body("another").as_bytes());
+    let answer: Value = serde_json::from_slice(&bytes).unwrap();
+    let id = answer["vault"].as_str().unwrap().to_string();
+    let actions = answer["actions"].as_array().unwrap();
+    assert!(
+        actions
+            .iter()
+            .any(|a| a["do"] == "pull" && a["path"] == "inbox/a.md")
+    );
+    // The same vault: the base holds, and the phone deleted the note.
+    let (_, bytes) = server.plugin("POST", &path, body(&id).as_bytes());
+    let answer: Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(
+        answer["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["do"] == "trash-remote")
+    );
+    assert!(
+        answer["folders"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|f| f == "inbox")
+    );
+}

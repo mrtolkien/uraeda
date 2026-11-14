@@ -41,6 +41,9 @@ pub struct PlanRequest {
     base: Manifest,
     #[serde(default)]
     stamp: String,
+    /// The vault the phone last synced with: its base holds only for that one.
+    #[serde(default)]
+    vault: String,
 }
 
 #[derive(Serialize)]
@@ -49,6 +52,8 @@ pub struct PlanResponse {
     /// The vault's folders, which the phone makes when missing: an empty `inbox/` is there to
     /// write in.
     folders: Vec<String>,
+    /// The vault's identity, which the phone sends back next time.
+    vault: String,
 }
 
 #[derive(Deserialize)]
@@ -92,10 +97,21 @@ pub async fn plan(State(shared): State<Arc<Shared>>, body: Bytes) -> Response {
     let held = Arc::clone(&shared);
     let answer = tokio::task::spawn_blocking(move || {
         refresh_now(&held, Duration::from_secs(5));
+        let id = plugin::vault_id(&vault).unwrap_or_default();
+        // Another vault, or this one emptied: its base would read every missing file as deleted.
+        let base = if request.vault == id {
+            request.base
+        } else {
+            Manifest::new()
+        };
         let desktop = held.hashes.manifest(&vault);
-        let actions = decide(&desktop, &request.files, &request.base, &request.stamp);
+        let actions = decide(&desktop, &request.files, &base, &request.stamp);
         let folders = layout::folders(&vault);
-        PlanResponse { actions, folders }
+        PlanResponse {
+            actions,
+            folders,
+            vault: id,
+        }
     })
     .await;
     match answer {
