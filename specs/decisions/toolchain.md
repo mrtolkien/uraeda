@@ -17,9 +17,9 @@ recipe runs when.
   shell. _So:_ a feature that adds a tool adds its check to `ready` in the same branch. The linter
   of the GitHub workflows joined `just lint` that way.
 - Every check and build is a recipe of the [`justfile`](/justfile), run in the Nix dev shell, where
-  every tool is pinned. None needs Node, pnpm, or Vite+. _So:_ a lint configuration that exists only
-  as an npm package is not installed. Its rules are rewritten for a tool of the dev shell, or
-  dropped.
+  every tool is pinned. None needs Node, pnpm, or Vite+. _So:_ the pages' JavaScript and the
+  Obsidian plugin are plain files with no build step, and a lint configuration that exists only as
+  an npm package is not installed.
 - The full check runs once for a feature or a change, at its end, before the push. It leaves out the
   checks of replaced code that the approved plan leaves out. While building, an agent runs only the
   checks of what it touched. _So:_ after a group of tasks merges, a build check runs in the
@@ -29,9 +29,9 @@ recipe runs when.
 
 Agents check their own work, and one command they cannot forget a part of keeps them honest. The
 full check is slow: after every task, it adds hours to a feature and proves little. A task's own
-checks answer in time to be useful, and the full one guards the push. The product is Rust and TSX on
-Native Shell, not a JavaScript program. So `just` over Cargo and `nsh` is enough, and a new worktree
-needs no install. History: [Fix testing](../done/2026-10-19-fix-testing.md).
+checks answer in time to be useful, and the full one guards the push. The product is Rust, not a
+JavaScript program. So `just` over Cargo is enough, and a new worktree needs no install. History:
+[Fix testing](../done/2026-10-19-fix-testing.md).
 
 ## Alternatives considered
 
