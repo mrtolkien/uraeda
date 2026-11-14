@@ -17,6 +17,7 @@ pub mod render;
 pub mod review;
 pub mod round;
 pub mod settings;
+pub mod sync;
 pub mod token;
 pub mod waiting;
 pub mod wake;
@@ -26,6 +27,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::extract::State;
 use axum::response::Html;
 use axum::routing::{get, post};
@@ -59,6 +61,12 @@ pub struct Shared {
     /// The agents' models, as last listed, and when: kept 10 minutes, as listing them takes a
     /// few seconds. `None` once, before the first listing; a list given by a test never expires.
     agents: std::sync::Mutex<Option<(Option<std::time::Instant>, Vec<providers::Provider>)>>,
+    /// The vault synced with the phone: none until one is given.
+    vault: std::sync::RwLock<Option<uraeda_vault::Vault>>,
+    /// The vault's hashes, kept between two syncs.
+    pub hashes: uraeda_vault::manifest::Hashes,
+    /// When the vault's folders and links were last made again.
+    pub refreshed: std::sync::Mutex<Option<std::time::Instant>>,
 }
 
 impl Shared {
@@ -69,7 +77,37 @@ impl Shared {
             config_dir,
             writes: std::sync::Mutex::new(()),
             agents: std::sync::Mutex::new(None),
+            vault: std::sync::RwLock::new(None),
+            hashes: uraeda_vault::manifest::Hashes::default(),
+            refreshed: std::sync::Mutex::new(None),
         }
+    }
+
+    /// The same, syncing `vault`.
+    #[must_use]
+    pub fn with_vault(self, vault: uraeda_vault::Vault) -> Shared {
+        self.set_vault(vault);
+        self
+    }
+
+    /// The vault synced with the phone.
+    pub fn vault(&self) -> Option<uraeda_vault::Vault> {
+        self.vault
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Syncs another vault from now on: its folders and links are made at the next sync.
+    pub fn set_vault(&self, vault: uraeda_vault::Vault) {
+        *self
+            .vault
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(vault);
+        *self
+            .refreshed
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     }
 
     /// The same, its agents and models given, never listed: for tests.
@@ -125,6 +163,8 @@ impl Shared {
 pub enum ServeError {
     #[error("{0}")]
     Config(#[from] config::ConfigError),
+    #[error("{0}")]
+    Vault(#[from] uraeda_vault::config::ConfigError),
     #[error("the token could not be kept in {0}: {1}")]
     Token(PathBuf, std::io::Error),
     #[error("port {0} could not be opened: {1}")]
@@ -166,6 +206,14 @@ pub fn router(shared: Arc<Shared>) -> Router {
             "/{token}/{repo}/{folder}/review/{file}/verdict",
             post(review::routes::verdict),
         )
+        .route("/{token}/vault/plan", post(sync::plan))
+        .route(
+            "/{token}/vault/file",
+            get(sync::get_file)
+                .put(sync::put_file)
+                .delete(sync::delete_file)
+                .layer(DefaultBodyLimit::max(sync::MAX_FILE)),
+        )
         .fallback(not_found)
         .layer(axum::middleware::from_fn_with_state(
             shared.clone(),
@@ -205,7 +253,9 @@ pub fn run(options: Options) -> Result<(), ServeError> {
     let token = token::keep(&options.data_dir)
         .map_err(|error| ServeError::Token(options.data_dir.clone(), error))?;
     let port = options.port.or(settings.port).unwrap_or(DEFAULT_PORT);
-    let shared = Arc::new(Shared::new(token, settings, options.config_dir));
+    let vault = uraeda_vault::Vault::locate(&options.config_dir, &options.data_dir)?;
+    let shared = Arc::new(Shared::new(token, settings, options.config_dir).with_vault(vault));
+    sync::refresh_now(&shared, std::time::Duration::ZERO);
     // The agents' models, listed as the server starts: the settings page finds them ready.
     let listing = Arc::clone(&shared);
     std::thread::spawn(move || listing.agents());
@@ -219,6 +269,9 @@ pub fn run(options: Options) -> Result<(), ServeError> {
             .map_err(|error| ServeError::Listen(port, error))?;
         let port = listener.local_addr()?.port();
         println!("http://127.0.0.1:{port}/{}/", shared.token);
+        if let Some(vault) = shared.vault() {
+            println!("vault: {}", vault.root().display());
+        }
         axum::serve(listener, router(shared))
             .with_graceful_shutdown(async {
                 let _ = tokio::signal::ctrl_c().await;
