@@ -2104,20 +2104,14 @@ fn the_ledger_reads_alone() {
     }
 }
 
-/// A record is history: a link to code removed since is no problem, and a link into `specs/`
-/// still is.
+/// A record is history: a link to a file removed since is no problem.
 #[test]
-fn a_records_link_to_removed_code_is_no_problem() {
+fn a_records_link_to_a_removed_file_is_no_problem() {
     let example = Example::new();
     let record = example.read(RECORD);
     let linked =
         format!("{record}\nThe [old guide](/docs/removed.md) and [a spec](/specs/gone.md).\n");
     example.write(RECORD, &linked);
 
-    let problems = summary(&example.problems());
-    assert_eq!(problems.len(), 1, "{problems:?}");
-    assert!(
-        problems[0].contains("no file /specs/gone.md"),
-        "{problems:?}"
-    );
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }

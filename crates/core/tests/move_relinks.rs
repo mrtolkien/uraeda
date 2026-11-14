@@ -114,12 +114,8 @@ fn the_six_incidents_are_fixed() {
     ] {
         assert!(text.contains(written), "{written}: {text}");
     }
-    assert_eq!(
-        broken(&repo),
-        vec![format!(
-            "{record_path}:96: no file /specs/proposals/gone.md"
-        )]
-    );
+    // A record's link to a file removed since is history, not a problem.
+    assert_eq!(broken(&repo), Vec::<String>::new());
     assert_eq!(repo.porcelain(), format!(" M {record_path}\n"));
 
     repo.git(&["checkout", "--", "."]);

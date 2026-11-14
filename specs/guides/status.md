@@ -51,8 +51,8 @@ reads in progress.
   ready", ..."
 - **A wait says when it ends**, "Waiting until 8:41": the time the run goes on.
 
-Where each shows is the UI's: see [the sidebar](../ui/surfaces.md#the-sidebar), which repeats what
-needs the human on every page, on purpose.
+Where each shows is the page's: `ura serve`'s home lists what waits on the human, across
+repositories.
 
 ## Checks: problems and notes
 

@@ -125,10 +125,10 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
             continue;
         }
         let found = exists(file, &resolved);
-        // A record is history: the code it names may be gone since, and stays in git.
-        let past = matches!(file.kind, super::Checked::Record)
-            && !in_specs
-            && file.finder.went(&resolved).is_none();
+        // A record is history: what it names may be gone since, and stays in git. A file git saw
+        // move is still relinked.
+        let past =
+            matches!(file.kind, super::Checked::Record) && file.finder.went(&resolved).is_none();
         if !found && past {
             continue;
         }
