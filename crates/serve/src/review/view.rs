@@ -159,7 +159,7 @@ fn since_list(out: &mut String, since: &SinceReview, changed: &mut Vec<(u32, u32
                 let _ = write!(
                     out,
                     "<li class=\"{kind}\"><a href=\"#L{start}\" data-goto=\"{start}\">\
-                     <span class=\"kind\">{label}</span> {heading}</a><p class=\"words\">{words}\
+                     <span class=\"kind\">{label}</span> {heading}</a><p class=\"since-words\">{words}\
                      </p></li>",
                     kind = escape(&part.kind),
                     start = lines.start,
@@ -170,7 +170,7 @@ fn since_list(out: &mut String, since: &SinceReview, changed: &mut Vec<(u32, u32
                 let _ = write!(
                     out,
                     "<li class=\"removed\"><span class=\"kind\">{label}</span> {heading}\
-                     <p class=\"words\">{words}</p></li>",
+                     <p class=\"since-words\">{words}</p></li>",
                     heading = escape(&part.heading),
                 );
             }

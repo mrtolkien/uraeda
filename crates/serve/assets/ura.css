@@ -50,6 +50,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -343,8 +347,8 @@ pre.html {
 }
 .diagram svg {
   display: block;
-  /* Shrunk to three quarters at most, its labels at 12 px, then scrolled. */
-  min-width: calc(var(--width, 0px) * 0.75);
+  /* Shrunk to the page's width: a pinch zooms it. */
+  width: 100%;
   margin: 0 auto;
 }
 @media (prefers-color-scheme: dark) {
@@ -445,8 +449,8 @@ section.q h2 {
   margin-top: 6px;
 }
 .choice ul ul li {
-  padding-left: 1.4em;
-  text-indent: -1.4em;
+  position: relative;
+  padding-left: 1.5em;
 }
 .choice > ul > li > p:first-child {
   margin-top: 0;
@@ -486,25 +490,24 @@ section.q h2 {
   color: var(--warn);
   margin-bottom: 2px;
 }
+.pro,
+.con,
+.star {
+  position: absolute;
+  left: 0;
+  width: 1.4em;
+  text-align: center;
+  font-weight: 700;
+}
 .pro {
   color: var(--good);
-  font-weight: 700;
-  display: inline-block;
-  width: 1.4em;
-  text-indent: 0;
 }
 .con {
   color: var(--bad);
-  font-weight: 700;
-  display: inline-block;
-  width: 1.4em;
-  text-indent: 0;
 }
 .star {
   color: var(--warn);
-  display: inline-block;
-  width: 1.4em;
-  text-indent: 0;
+  font-weight: 400;
 }
 
 .words {
@@ -576,13 +579,14 @@ details.since li a {
   font-weight: 600;
 }
 details.since .kind {
+  white-space: nowrap;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-details.since .words {
+details.since .since-words {
   margin: 0;
   font-size: 0.92rem;
   color: var(--muted);
