@@ -29,7 +29,8 @@ Templates are strict where tools and agents need to find things, and free elsewh
 
 - **Frontmatter**: exactly the fields this skill defines.
 - **Headings**: the template's text, level, and order. Leave out an optional section entirely, never
-  rename it. In the templates, an optional section's placeholder starts with `[Optional`.
+  rename it. In the templates, an optional section's placeholder starts with `[Optional`, and says
+  so when that holds in some rounds only, `[Optional from round 02 on`.
 - **Structured items** follow fixed patterns:
   - questions `## Q1: ...`, each with its `**Answer:**` line, and follow-ups `### Q1.B: ...`;
   - options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets;

@@ -1250,6 +1250,69 @@ fn a_later_round_says_what_happened_since_the_last() {
     }
 }
 
+/// The text without the section of `heading`, down to the next heading of its level or above.
+fn without_section(text: &str, heading: &str) -> String {
+    let level = heading.chars().take_while(|c| *c == '#').count();
+    let mut inside = false;
+    let mut kept = Vec::new();
+    for line in text.lines() {
+        let hashes = line.chars().take_while(|c| *c == '#').count();
+        if line == heading {
+            inside = true;
+        } else if inside && (1..=level).contains(&hashes) && line[hashes..].starts_with(' ') {
+            inside = false;
+        }
+        if !inside {
+            kept.push(line);
+        }
+    }
+    kept.join("\n") + "\n"
+}
+
+/// A narrow later round leaves out what round 01 said: the sections a first round must have.
+#[test]
+fn a_later_round_may_leave_out_what_the_first_said() {
+    let rows = [
+        ("clarifications", "### Today"),
+        ("clarifications", "### Scope"),
+        ("discovery", "## The proposal"),
+        ("discovery", "### The proposal's path and existing actions"),
+    ];
+    for (kind, heading) in rows {
+        let example = Example::new();
+        let first = format!("{FEATURE}/{kind}-01.md");
+        let later = format!("{FEATURE}/{kind}-02.md");
+        let whole = example.read(&first);
+        let mut text = without_section(&whole, heading);
+        assert_ne!(text, whole, "{heading}: the example has it");
+        if kind == "clarifications" {
+            text = text.replacen(
+                "### Goal\n",
+                "### Since the last round\n\nRound 01 was answered.\n\n### Goal\n",
+                1,
+            );
+        }
+        let missing = |file: &str| -> Vec<String> {
+            example
+                .problems()
+                .into_iter()
+                .filter(|p| p.file == file && p.rule == "sections.missing")
+                .map(|p| p.message)
+                .collect()
+        };
+
+        example.write(&later, &text);
+        assert_eq!(missing(&later), Vec::<String>::new(), "{heading}, later");
+
+        example.write(&first, &text);
+        assert_eq!(
+            missing(&first),
+            [format!("missing section \"{heading}\"")],
+            "{heading}, first"
+        );
+    }
+}
+
 /// R4: a round recorded at finish keeps its parts as `#####` headings, under `#### Context` and
 /// `#### Settled without the human`.
 #[test]

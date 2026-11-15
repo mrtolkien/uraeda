@@ -27,11 +27,12 @@ whom, and what success looks like. The product it names as its model, if any.]
 
 ### Today
 
-[What exists today, with links to the code. A table when products or approaches compare.]
+[Optional from round 02 on: what exists today, with links to the code. A table when products or
+approaches compare.]
 
 ### Scope
 
-[What this feature covers, and what it leaves out.]
+[Optional from round 02 on: what this feature covers, and what it leaves out.]
 
 ### Sources
 

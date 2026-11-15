@@ -1,8 +1,8 @@
 //! `sections.*`: a file has its template's title, every required section at its level, in the
 //! template's order, and no level-2 section the template does not have, nor, in a round, a level-3
 //! heading under a section whose template has only fixed ones. A template section whose
-//! placeholder starts with `[Optional` may be left out, and one starting `[Optional, required from
-//! round 02` only in a first round. `settled.subject`: a round's settled points each start with
+//! placeholder starts with `[Optional` may be left out, one starting `[Optional, required from
+//! round 02` only in a first round, and one starting `[Optional from round 02` only in a later one. `settled.subject`: a round's settled points each start with
 //! their bold subject.
 
 use crate::embedded;
@@ -50,6 +50,8 @@ struct TemplateHeading {
     optional: bool,
     /// Optional in a first round, required from round 02 on, like `### Since the last round`.
     later_rounds: bool,
+    /// Required in a first round, optional from round 02 on, like a round's `### Today`.
+    first_round: bool,
 }
 
 fn item_prefix(text: &str) -> Option<String> {
@@ -81,6 +83,10 @@ fn template(kind: Checked) -> Option<Vec<TemplateHeading>> {
             l.trim_start()
                 .starts_with("[Optional, required from round 02")
         });
+        let first_round = body.is_some_and(|l| {
+            let l = l.trim_start();
+            l.starts_with("[Optional from round 02") || l.starts_with("- [Optional from round 02")
+        });
         // The template's raw heading text keeps its placeholders, which the parser turns into
         // links or text: read it from the line itself.
         let raw = lines[heading.line - 1]
@@ -104,6 +110,7 @@ fn template(kind: Checked) -> Option<Vec<TemplateHeading>> {
             slot,
             optional,
             later_rounds,
+            first_round,
         });
     }
     Some(headings)
@@ -177,7 +184,8 @@ fn round_of(file: &File<'_>) -> u32 {
 }
 
 /// Required sections and items. A heading under an optional level-2 section is required only when
-/// that section is there, and one required from round 02 on only in a later round.
+/// that section is there, one required from round 02 on only in a later round, and one optional
+/// from round 02 on only in a first round.
 fn check_required(
     file: &File<'_>,
     document: &Document,
@@ -201,7 +209,9 @@ fn check_required(
         }
     }
     let later_round = round_of(file) > 1;
-    let required = |slot: &TemplateHeading| !slot.optional || (slot.later_rounds && later_round);
+    let required = |slot: &TemplateHeading| {
+        !slot.optional || (slot.later_rounds && later_round) || (slot.first_round && !later_round)
+    };
     for (_, slot) in slots
         .iter()
         .enumerate()

@@ -166,6 +166,7 @@ is left out.
 - **The code**: the important reads, the proposal's path and the existing actions it meets, the
   rules and their owners, and the likely changes with the tests that guard them.
 - **The proposal**: one section per constraint that cannot be met as written, ambiguity, or gap.
+  From round 02, it and the proposal's path are optional: leave out what the round does not touch.
 - **Worth it and feasibility**: left out when the feature is small and relies on nothing new.
 - **Not checked**.
 

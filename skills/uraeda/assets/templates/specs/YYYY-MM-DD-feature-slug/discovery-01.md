@@ -26,8 +26,9 @@ name in the human's notes, `projects/<repository>/research/<folder>-research.md`
 
 ### The proposal's path and existing actions
 
-- [Each step of the proposal's user path, and each existing action that meets the feature (undo,
-  delete, uncheck, edit, empty fields): what happens today, and what changes with the feature]
+- [Optional from round 02 on: each step of the proposal's user path, and each existing action that
+  meets the feature (undo, delete, uncheck, edit, empty fields): what happens today, and what
+  changes with the feature]
 
 ### Rules and their owners
 
@@ -41,6 +42,8 @@ name in the human's notes, `projects/<repository>/research/<folder>-research.md`
 - [Optional: each test that guards behaviour the feature changes, by file and name]
 
 ## The proposal
+
+[Optional from round 02 on: what in the proposal cannot be met as written, one section each.]
 
 ### [Constraint, ambiguity, or gap]
 

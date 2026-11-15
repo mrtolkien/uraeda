@@ -104,7 +104,9 @@ Four parts, under fixed sub-headings, in this order: a missing one fails `ura ch
   file. A change has no discovery file: its Sources link the code and documentation directly.
 
 From round 02, `### Since the last round` comes first: what happened since, and why new questions
-came up. The human returns after days away, and needs the thread before the goal.
+came up. The human returns after days away, and needs the thread before the goal. `### Today` and
+`### Scope` are then optional: a narrow round, one question asked during the build, leaves out what
+round 01 already said rather than repeating it.
 
 ### Questions
 
