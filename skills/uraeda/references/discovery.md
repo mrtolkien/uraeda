@@ -7,7 +7,7 @@ settle, and asks the human, in one file, what only they can answer.
   step needs the human to decide something new (the next round, see
   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions))
 - **Writes**: `discovery-NN.md` and `clarifications-NN.md`, with the round's number; in the human's
-  notes, the round's research report and the wiki's notes it adds or corrects
+  notes, through a sub-agent, the wiki's notes the round earned and the feature's research recap
 - **Ends at**: a human gate, `clarifications-NN.md` with `status: awaiting-human`
 
 Three things come out of this step, for three readers:
@@ -18,11 +18,10 @@ Three things come out of this step, for three readers:
   and settled points rest on, each with its source, and the map of the code. The spec builds on it,
   the plan and every implementer reuse its map, and any agent can resume from it. The human opens it
   only through a question's link.
-- **The research report is the long version, in the human's notes**: how established products and
-  standards handle this kind of feature, the libraries involved, and the approaches to each topic
-  compared, every fact with its source. What outlasts the feature also goes into the wiki. See
-  [Notes](notes.md#research-reports). Without notes, the report's content that a question or a later
-  step needs goes into `discovery-NN.md`, and the rest is not written.
+- **The notes are what outlasts the round, outside git**: the wiki keeps what the next agent, in any
+  repository, would search again, and the feature's research recap tells the human, in one page,
+  what was looked at and learned. A sub-agent writes both while you write the questions. See
+  [the notes](#the-notes-the-wiki-and-the-recap). Without notes, neither is written.
 
 Nobody waits on you, and nobody will notice what you skipped until it is expensive: a shallow
 discovery turns into wrong questions, a spec sent back, and fixes after the merge. Spend the time on
@@ -90,7 +89,9 @@ views built side by side, each on its own, drift apart.
   users already have, and how the feature is turned off.
 
 If your harness can run agents in parallel, give each topic or product its own, and merge their
-findings.
+findings. Each returns its findings to you, with their sources, as its reply or as a file in a
+temporary folder outside the repository and the notes. None writes in the wiki or the recap:
+[one agent writes them](#the-notes-the-wiki-and-the-recap), once, from the merged findings.
 
 **The code**
 
@@ -148,33 +149,17 @@ for work skipped.
 **Later rounds** start from what triggered them, research only what is new, and link to earlier
 rounds rather than repeating them.
 
-## The research report
-
-Write the long report first, in the human's notes, from
-[the template](../assets/templates/notes/research.md), as
-[research reports](notes.md#research-reports) says, with its sections in the template's order:
-knowledge first, approaches last.
-
-- **How other products do it**: one section per product, then **What they have in common**: what
-  users may expect, whether or not the proposal mentions it.
-- **Standards and libraries**: what matters for this feature, and the pitfalls, with versions.
-- **Approaches**: one section per topic the feature has to settle, comparing its options against the
-  same criteria. Every capability of **What they have in common** gets a topic, or a line in **Needs
-  no choice**, which also holds the code-only choices.
-
-Then put what outlasts the feature into the wiki: a product's behaviour into its `apps/` note, a
-library's surprise into a gotcha, how a kind of feature works across products into its `topics/`
-note. Link them from the report.
-
 ## The discovery file
 
-Then write the round's file in git, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md). It is short: what
-a later agent, without the notes, needs to check the round and build on it.
+Write the round's file in git first, from
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md). It is the round's
+whole record: nothing longer is kept elsewhere. It holds what a later agent, without the notes,
+needs to check the round and build on it, and no more: a fact no question or settled point rests on
+is left out.
 
 - **Why this round**: later rounds only.
-- **Summary**: the feature in a few sentences, for an agent who reads nothing else, and a link to
-  the research report.
+- **Summary**: the feature in a few sentences, for an agent who reads nothing else, and the name of
+  the feature's research recap in the human's notes.
 - **Findings**: one section per finding a question or a settled point rests on, its heading what a
   question links to: what was found, in a few lines, with its source, never the wiki. A comparison
   of products a question needs is a table here.
@@ -186,6 +171,31 @@ a later agent, without the notes, needs to check the round and build on it.
 
 Every fact links to its source, and your own judgements are marked as such. Do not recommend or
 choose here: recommendations go with the questions, and what you settle goes in the round.
+
+## The notes: the wiki and the recap
+
+When the discovery file is written, the research is done, and two jobs are left: the questions,
+which need everything you understood, and the notes, which need care and no new thought. Hand the
+notes to a sub-agent, and write the questions yourself while it works.
+
+1. **Fill [the brief](../assets/templates/notes/wiki-writer-brief.md)**: the feature and the round,
+   the discovery file's path, where the research agents' findings are, and what the project builds
+   with after this round. That last line decides which notes are written: name what the recommended
+   options use, not everything that was read.
+2. **Start one sub-agent with it**, through the session host when it can run one, or as your own. It
+   moves facts that already have their sources, so it needs no strong model. It writes the wiki's
+   notes the round earned, as [what earns a note](notes.md#what-earns-a-note) says, then the
+   feature's [research recap](notes.md#the-research-recap), and replies with their paths.
+3. **Write the questions file** meanwhile: it does not wait for the notes, and cites none of them.
+4. **Before you commit, wait for its reply, and read the recap**: it is one page, and the human
+   reads it as yours. Correct what it got wrong about the round. Open a note only where the reply
+   says a finding contradicted the wiki.
+
+**Without sub-agents**, follow the brief yourself, after the questions file is written and before
+the commit. **Without notes**, skip this section.
+
+**A later round** hands over the same brief: the sub-agent extends the notes that exist, and adds
+the round's section to the same recap.
 
 ## What to ask, and what to settle
 
@@ -337,23 +347,25 @@ Before committing, read both files again, and fix what you find:
    your recommendation. Otherwise it is a settled point. A look is shown.
 3. **Each settled point**: it adds no limit or refusal nobody asked for, and one the human may
    object to is under **Check these**, said as what happens to them.
-4. **Coverage**: every topic of the report's **Approaches**, or of your research without notes, and
-   of the discovery's **The proposal** ends up in one question or one settled point, or stays in
-   **Needs no choice**. Every finding a question links is in the discovery file, with its source.
+4. **Coverage**: every topic your research listed, and every section of the discovery's **The
+   proposal**, ends up in one question or one settled point. Every finding a question links is in
+   the discovery file, with its source.
 5. **Evidence**: every claim rests on a source you read. Outside behaviour the feature relies on is
    checked, or says why no experiment in reach could check it.
 6. **The writing**: the [writing self-review](writing.md#self-review).
+7. **The notes**: the sub-agent has replied, the recap is one page that you read, and
+   `ura vault check` passes.
 
 With `ura`, run `ura check` on the folder last.
 
 ## Commit
 
 Commit both files: `discovery(<slug>): <feature name>`, or what the new round is about, with the
-block's first line as the body. The report and the wiki's notes are in the human's notes, never
+block's first line as the body. The recap and the wiki's notes are in the human's notes, never
 committed. Then stop at the gate.
 
 **A round asked in the session**, when the human asks for it, writes the discovery file and the
-report the same way, then asks the questions in the session, as
+notes the same way, then asks the questions in the session, as
 [In a session](conventions.md#in-a-session-with-the-human) says. Commit the discovery file alone,
 then write the spec in the same session, whatever the human's settings cut: until the spec is
 committed, the answers exist only in the session. Its `clarifications` field is the round's number.

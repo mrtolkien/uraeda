@@ -1,7 +1,7 @@
 # Notes
 
 What the human keeps outside git, and what agents write there: ideas, the inbox, priorities,
-proposals not started yet, the wiki, and the research behind each round.
+proposals not started yet, the wiki, and each feature's research recap.
 
 These change daily, from a phone, and would fill the repository's history with commits nobody
 reviews. So they live in the human's notes, as plain text, and nothing in git depends on them: the
@@ -22,21 +22,21 @@ vault/
     sort-completed-tasks.md
   wiki/                          # agents: what was learned, shared by every repository
     libraries/                   # code dependencies: date-fns.md
-    apps/                        # products and tools, as models or as tools: todoist.md
-    standards/                   # specs, protocols, formats: rfc-5545-recurrence.md
-    topics/                      # how a kind of feature works across products: recurring-dates.md
+    apps/                        # a tool the project uses, or a feature's model: todoist.md
+    standards/                   # specs, protocols, formats the project implements: indexeddb.md
+    topics/                      # a kind of feature, with the products compared: recurring-dates.md
     gotchas/                     # one surprise each, named after its subject first
   projects/<repository>/
     proposals/                   # human: one note per proposal, a folder when it has images
       keyboard-shortcuts.md
-    research/                    # agents: each discovery's long report
-      2026-10-06-recurring-tasks-01.md
+    research/                    # agents: one short recap per feature
+      2026-10-06-recurring-tasks-research.md
     specs/                       # with ura's sync: the repository's workflow files, to read
   inspiration/   docs/           # the human's own folders: read them, never write there
 ```
 
 The [example's notes](../assets/example/notes/) are a filled-in vault: the proposals and inbox of a
-todo app, the research of its recurring tasks, and the wiki notes it wrote.
+todo app, the research recap of its recurring tasks, and the wiki notes that round wrote.
 
 `projects/<repository>/specs/` exists only where a sync shows the repository's workflow files in the
 notes: the constitution, the decisions, and the folders of features in progress, from their
@@ -115,19 +115,57 @@ what you found and where, with links to the code as paths. Its frontmatter says 
 ## The wiki
 
 The wiki is what agents learned, kept for the next agent, in any repository: how a library behaves,
-how a product does a feature, what a standard says, what surprised someone. It saves the next
-search, not the next check.
+how a kind of feature works across products, what a standard says, what surprised someone. It saves
+the next search, not the next check.
+
+It is the only long form of a discovery's research: the [recap](#the-research-recap) is one page,
+and the round's file in git keeps only what its questions rely on. So a note is written to be found
+and trusted by an agent who never saw the round.
+
+### What earns a note
+
+A note costs every later agent a line to read in each listing, and a wiki of notes nobody needs
+hides the ones that matter. A round that compares thirteen products writes one topic, not thirteen
+notes. Write a note only for one of these:
+
+- **Something the project builds with, or will after this round**: a dependency, a tool, a standard
+  it implements, the product the feature is modelled on.
+- **A surprise in one of those**, read at its source or shown by a run: a gotcha.
+- **How a kind of feature works across products**, when a question of the round relied on the
+  comparison: a topic.
+
+Everything else is a line of a note that earned its place, or nothing:
+
+- **A product that was only compared** is a row of the topic's table, with its source. It gets no
+  `apps/` note: a note named `google-calendar` that covers only how it repeats events misleads the
+  agent who opens it for anything else.
+- **A library or a standard that was read and not chosen** is one line of the topic: its name, its
+  state on that day, why not, and the source.
+- **A fact about how another product is designed** is not a gotcha, however striking. A gotcha is
+  what the project's own code would hit.
+- **What only this feature needs** stays in the round's discovery file.
+
+### One home per fact
+
+A fact is written in one note, with its source. Every other note that needs it links there, and does
+not say it again: a fact copied in four notes is corrected in one and wrong in three.
+
+- A surprise lives in its gotcha. The library's note lists the gotcha under **Gotchas**, by link.
+- A product's behaviour lives in the topic's table. A library's note says "see [[recurring-dates]]".
+- A library's version and state live in the library's note.
 
 ### Where a note goes
 
 Each note has one home folder, by its kind, and links carry everything else:
 
 - `libraries/`: a dependency the code uses: what it does, its versions, its behaviours that matter.
-- `apps/`: a product or a tool, studied as a model or used as a tool.
-- `standards/`: a specification, a protocol, or a file format.
-- `topics/`: how a kind of feature works across products: what users expect, where products differ.
-- `gotchas/`: one surprising behaviour, the kind a record lists, linking the library, app, or
-  standard it is about, which links it back.
+- `apps/`: a tool the project uses, or the product a feature is modelled on, studied whole enough to
+  be read for another feature.
+- `standards/`: a specification, a protocol, or a file format the project implements or reads.
+- `topics/`: how a kind of feature works across products: what users expect, where products differ,
+  with the products compared as rows of a table, and the options read and not chosen.
+- `gotchas/`: one surprising behaviour of something the project builds with, linking the library,
+  app, or standard it is about, which links it back.
 
 Keep these five folders. A folder grows a level only when it is crowded, by family:
 `libraries/rust/`. Never deeper: a note is found by its folder and its name.
@@ -141,10 +179,24 @@ Written from [the template](../assets/templates/notes/wiki-note.md):
   for a library or an app, what its facts hold for.
 - **The body** is free: what it is in a sentence or two, then the facts, each with its source, and
   wikilinks to the notes it relates to. A gotcha says what happens, when, and what to do instead.
+- **No empty section, and no filler**: a note with no gotcha has no **Gotchas** heading, never "none
+  recorded". A note does not link the recap or the round that wrote it: the recap links the note,
+  and the notes app shows that link from both ends.
 
 Before writing a note, list its folder: extend a note that exists rather than adding a second one on
 the same subject. Change a fact in place, with its new source and date, rather than adding a
 contradicting line below it. A note no other note links is fine: its folder and name find it.
+
+### Who writes it
+
+In a discovery round, the wiki and the recap are written by a sub-agent, from
+[its brief](../assets/templates/notes/wiki-writer-brief.md), while the agent that did the research
+writes the questions: see [the notes](discovery.md#the-notes-the-wiki-and-the-recap). Agents that
+research a topic for a round return their findings to the agent that asked, and write nothing in the
+notes: a note written by each of them is the same fact written six times.
+
+In any other step, an agent that learns something that earns a note writes it itself, by the same
+rules.
 
 ### Reading it
 
@@ -157,14 +209,20 @@ No index of the wiki is written by hand: it would drift. A listing is made when 
 the notes' `description`: `ura vault ls wiki/libraries`, or the notes app's own view.
 `ura vault check` reports broken wikilinks and notes without a `description`.
 
-## Research reports
+## The research recap
 
-Each discovery round writes its long report in `projects/<repository>/research/`, named after the
-feature's folder and the round, `2026-10-06-recurring-tasks-01.md`, from
-[the template](../assets/templates/notes/research.md): how other products do it, the standards and
-libraries, and the approaches compared, each fact with its source, linking the wiki's notes it used
-or wrote. The round's `discovery-NN.md`, in git, keeps what its questions rely on: see
-[the discovery file](discovery.md#the-discovery-file).
+Each feature has one recap, in `projects/<repository>/research/`, named after the feature's folder,
+`2026-10-06-recurring-tasks-research.md`, from
+[the template](../assets/templates/notes/research.md). It is for the human: one page that says what
+the research looked at and what it learned, in plain sentences, each linking the wiki note that
+holds the detail.
 
-A report is written once, for its round. What lasts beyond the feature also goes into the wiki, in
-the same step: a product's behaviour into its `apps/` note, a library's surprise into a gotcha.
+- **One file for the whole feature.** A later round adds its own short section and corrects **What
+  we learned** in place. It never starts a second file.
+- **Short.** A page: a few sentences, then at most seven things learned, then a few lines per round.
+  No table, no list of sources, no approaches compared: the sources are in the wiki's notes, the
+  findings in the round's `discovery-NN.md` in git, and the options in the questions.
+- **Every note the round wrote or changed is linked**, as a wikilink, where the recap says what was
+  learned from it. A note that fits no sentence is listed in its round's section.
+- **Readable alone**, by someone who has not read the proposal that day: no term the wiki's notes
+  coined, no file path beyond the discovery file's.

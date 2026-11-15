@@ -12,8 +12,8 @@ The [proposal](proposal.md) asks for the simplest end of that range: weekly in t
 non-technical users. It leaves out editing occurrences and ending the repetition, and its two-click
 path needs a third click with the app's current menus. The app has no recurrence yet. Its due dates
 are timestamps at local midnight, which break as soon as the app adds days or months to them. The
-full research, with the approaches compared, is in the human's notes:
-`projects/todo/research/2026-10-06-recurring-tasks-01.md`.
+research recap is in the human's notes:
+`projects/todo/research/2026-10-06-recurring-tasks-research.md`.
 
 ## Findings
 

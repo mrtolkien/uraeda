@@ -13,11 +13,15 @@ sources:
 ## Facts
 
 - [A fact that matters to building with it, with its source.](https://...)
+- [In a topic: the products compared, as rows of one table, and each option read and not chosen, as
+  one line: its name, its state on that day, why not, and its source.]
 
 ## Gotchas
 
-- [Optional: each surprising behaviour, linking its note in gotchas/: [[subject-what-happens]]]
+- [Optional: each surprising behaviour, linking its note in gotchas/: [[subject-what-happens]].
+  Remove this section when there is none.]
 
 ## Related
 
-- [Optional: [[other-note]], and the research reports that used this note]
+- [Optional: [[other-note]]. Never the recap or the round that wrote this note. Remove this section
+  when there is none.]

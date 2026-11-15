@@ -1,52 +1,27 @@
 ---
-description: [One line: the feature and the round]
+description: [One line: the feature, and what its research found]
 feature: [YYYY-MM-DD-feature-slug]
-round: [NN]
-checked: [YYYY-MM-DD]
+checked: [YYYY-MM-DD: the day of the last round]
 ---
 
-# Research, round [NN]: [Feature name]
+# Research: [Feature name]
 
-[One sentence: what this report covers. The round's questions and the findings they rely on are in
-the repository, in `specs/YYYY-MM-DD-feature-slug/discovery-NN.md`.]
+[Two to four sentences, for the human: what this kind of feature looks like elsewhere, and the one
+thing the research changed about how to build it.]
 
-## How other products do it
+The findings behind each question, with their sources, are in git:
+`specs/YYYY-MM-DD-feature-slug/discovery-NN.md`.
 
-### [Product]
+## What we learned
 
-- [How the feature works there, with its source, official help first](https://...) See
-  [[product-note]].
+- **[One thing learned, as a plain sentence.]** [One more sentence if it needs one, and the note
+  that holds the detail: [[wiki-note]].]
+- [At most seven. A later round corrects these in place.]
 
-### What they have in common
+## Round [NN], [YYYY-MM-DD]
 
-[The capabilities users may expect, whether or not the proposal mentions them.]
-
-## Standards and libraries
-
-### [Standard, library, or documentation]
-
-- [What is relevant to this feature, with its source](https://...) See [[library-note]].
-
-## Approaches
-
-Criteria come from [the proposal, the constitution, and the decisions: list them].
-
-### [Topic]
-
-[What this topic is about, in one sentence.]
-
-[Optional: "Only with option A of [topic]", when this topic depends on another one.]
-
-| Option | [Criterion] | [Criterion] | [Criterion] |
-| ------ | ----------- | ----------- | ----------- |
-| A. ... |             |             |             |
-| B. ... |             |             |             |
-
-### Needs no choice
-
-- [Optional: each capability from "What they have in common" that gets no topic above, and why it
-  needs no choice here]
-
-## Not checked
-
-- [What was searched for and could not be found or reached]
+- **Looked at**: [the products, standards, and libraries read, by name, in one or two lines]
+- **Checked by a run**: [Optional: each experiment, and what it showed, in one line]
+- **Also in the wiki**: [Optional: each note this round wrote or changed that no line above links:
+  [[wiki-note]]]
+- **Could not check**: [Optional: what was searched for and could not be found or reached]

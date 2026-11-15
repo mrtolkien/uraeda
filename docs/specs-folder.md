@@ -153,8 +153,8 @@ specs/
     images/                    # your screenshots, linked from your files
 ```
 
-Ideas, the inbox of things you notice, priorities, proposals not started yet, and the long research
-behind each round live in your notes, outside git: see [Notes](#notes) below.
+Ideas, the inbox of things you notice, priorities, proposals not started yet, and the research recap
+of each feature live in your notes, outside git: see [Notes](#notes) below.
 
 ## Setting it up
 
@@ -189,10 +189,11 @@ too big is offered to you as a feature, and becomes one in place, its code kept.
 ## Notes
 
 What changes daily stays out of git, in your notes: an inbox of things you notice, ideas, proposals
-not started yet with their priority, and the research agents write. Any notes app that keeps plain
-Markdown files works. The skill's [Notes](../skills/uraeda/references/notes.md) lays out an Obsidian
-vault: `inbox/`, a `wiki/` the agents write, and `projects/<repository>/` with its `proposals/` and
-`research/`. A proposal's frontmatter, `status` and `rank`, makes a board of them.
+not started yet with their priority, and what agents write: a wiki, and a one-page research recap
+per feature. Any notes app that keeps plain Markdown files works. The skill's
+[Notes](../skills/uraeda/references/notes.md) lays out an Obsidian vault: `inbox/`, a `wiki/` the
+agents write, and `projects/<repository>/` with its `proposals/` and `research/`. A proposal's
+frontmatter, `status` and `rank`, makes a board of them.
 
 A feature enters git when it starts: the agent copies its proposal, unchanged, as the first commit
 of its branch, and sets the note `started`. With `ura`, the vault is one folder for every

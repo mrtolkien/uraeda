@@ -1,5 +1,5 @@
 ---
-description: Todoist, a to-do app: how it repeats tasks, as a model for recurring tasks
+description: Todoist, a to-do app, the model of our recurring tasks: how it repeats a task
 checked: 2026-10-07
 sources:
   - https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV
@@ -25,4 +25,3 @@ A to-do app whose repeats are typed in the due date field, in plain words.
 ## Related
 
 - [[recurring-dates]], how other products compare.
-- Used by [[2026-10-06-recurring-tasks-01]].

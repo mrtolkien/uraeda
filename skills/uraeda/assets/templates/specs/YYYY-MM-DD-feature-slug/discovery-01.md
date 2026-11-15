@@ -8,8 +8,8 @@ round 01.]
 ## Summary
 
 [What this kind of feature usually looks like, in a few sentences, and what the proposal asks for
-within that range. What the code has today, and what is in the way. The full research: [Optional:
-the research report's name in the human's notes, `projects/<repository>/research/<folder>-NN.md`].]
+within that range. What the code has today, and what is in the way. [Optional: the research recap's
+name in the human's notes, `projects/<repository>/research/<folder>-research.md`.]]
 
 ## Findings
 

@@ -21,7 +21,3 @@ Functions over JavaScript's `Date`, one per import: formatting, parsing, and ari
 ## Gotchas
 
 - [[javascript-date-24-hours-is-not-a-day]]
-
-## Related
-
-- Used by [[2026-10-06-recurring-tasks-01]].

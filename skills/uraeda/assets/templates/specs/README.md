@@ -9,11 +9,11 @@ Without it, the file names and their `status` fields still tell where each featu
 
 ## Outside git
 
-Ideas, the inbox of things noticed, priorities, proposals not started yet, and the long research
-behind each round of questions live in the human's notes, outside this repository. Nothing here
-depends on them: a file may link a note as further reading, never as something it needs. A feature
-enters git when it starts, as a branch whose first commit is its proposal, and reaches the default
-branch as a record, with its pull request.
+Ideas, the inbox of things noticed, priorities, proposals not started yet, and the research recap of
+each feature live in the human's notes, outside this repository. Nothing here depends on them: a
+file may link a note as further reading, never as something it needs. A feature enters git when it
+starts, as a branch whose first commit is its proposal, and reaches the default branch as a record,
+with its pull request.
 
 ## Layout
 

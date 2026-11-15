@@ -5,6 +5,9 @@ sources:
   - https://support.microsoft.com/en-us/todo/add-due-dates-and-reminders-in-microsoft-to-do
   - https://support.google.com/calendar/answer/37115
   - https://support.google.com/calendar/answer/37113
+  - https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.10
+  - https://icalendar.org/iCalendar-RFC-5545/3-8-4-4-recurrence-id.html
+  - https://github.com/jkbrzt/rrule
 ---
 
 # Recurring dates
@@ -32,8 +35,16 @@ Sources:
 [Microsoft support](https://support.microsoft.com/en-us/todo/add-due-dates-and-reminders-in-microsoft-to-do),
 [Google Calendar help](https://support.google.com/calendar/answer/37115), and
 [on editing one](https://support.google.com/calendar/answer/37113). Calendars store one occurrence
-that differs as an exception to the rule: see [[rfc-5545-recurrence]].
+that differs as an exception to the rule, as below.
 
-## Related
+## Read and not chosen
 
-- Used by [[2026-10-06-recurring-tasks-01]].
+- **iCalendar's recurrence rules (RFC 5545)**, on 2026-10-07: a repetition is an `RRULE`, an edited
+  occurrence an override pointing to its original date, `RECURRENCE-ID`, and a removed one a line of
+  `EXDATE`. It is the model behind "this one, this and following, or all". Not chosen: its options
+  need a settings screen of their own
+  ([RFC 5545, 3.3.10](https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.10),
+  [3.8.4.4](https://icalendar.org/iCalendar-RFC-5545/3-8-4-4-recurrence-id.html)).
+- **The `rrule` library**, on 2026-10-07: it implements `RRULE` in JavaScript, with sets of rules
+  and excluded dates. Not chosen, for the same reason
+  ([repository](https://github.com/jkbrzt/rrule)).

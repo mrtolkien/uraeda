@@ -130,10 +130,10 @@ shows every file of a feature. Templates and an example of the human's notes are
 ## The human's notes
 
 **Notes** are what the human keeps outside git: ideas, an inbox of things noticed, priorities,
-proposals not started yet, and the research behind each round. Nothing in git depends on them: a
-spec may link a note, as further reading, and never needs it. [Notes](references/notes.md) gives
-their layout, with an Obsidian vault as the example: an `inbox/` of the human's captures, a `wiki/`
-the agents write, and `projects/<repository>/` with its `proposals/` and `research/`.
+proposals not started yet, and each feature's research recap. Nothing in git depends on them: a spec
+may link a note, as further reading, and never needs it. [Notes](references/notes.md) gives their
+layout, with an Obsidian vault as the example: an `inbox/` of the human's captures, a `wiki/` the
+agents write, and `projects/<repository>/` with its `proposals/` and `research/`.
 
 Read the wiki when it helps, in any step: it saves searches already made. Its facts are leads, with
 their sources: a fact a question or the spec relies on is read again at its source.
@@ -276,7 +276,7 @@ place, and set a human status only when they say so. See
   round.
 - [Conventions](references/conventions.md): markdown, status fields, review files, branches, and
   commits. Read it before writing or committing a workflow file.
-- [Notes](references/notes.md): the human's notes, the wiki, research reports, agents' notes.
+- [Notes](references/notes.md): the human's notes, the wiki, the research recap, agents' notes.
 - [Projects](references/projects.md): setting a project up, and starting, postponing, or dropping a
   feature.
 - [The `ura` CLI](references/cli.md): the commands. Without `ura`, every mechanical step is in
