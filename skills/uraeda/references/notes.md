@@ -172,8 +172,15 @@ Keep these four folders. There is no folder of gotchas: a surprise is found wher
 
 ### Small notes, in the subject's folder
 
-A note stays small enough to read whole on a phone: one subject, or one surprise. So a subject grows
-by notes, not by length.
+A note holds one subject, or one surprise, and a subject grows by notes, not by length. The wiki's
+first readers are agents, and small notes serve them twice:
+
+- **A listing is the index.** `ura vault ls` shows each note with its `description`, so an agent
+  reads a line per note and opens only the one it needs. Write a gotcha's `description` as the
+  surprise itself, not as its title: "postcard accepts redundant bytes, so decode then re-encode may
+  change the bytes a signature covers".
+- **Two agents never write the same note.** A write replaces the whole file: two sessions adding a
+  surprise to one long note would lose one of them, and two new files cannot collide.
 
 - **A subject with one note is a file**: `libraries/postcard.md`.
 - **A subject with more is a folder**, named after it, holding its own note under the same name and
