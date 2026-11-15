@@ -4,12 +4,10 @@
 //! [serve]
 //! port = 4310
 //! repositories = ["~/code/todo", "~/code/uraeda"]
-//! wake = "t3"
 //! ```
 //!
 //! `repositories` lists the main checkouts whose worktrees are served; without it, the repository
-//! of the folder `ura serve` starts in. `wake` names who is told when the human submits a round or
-//! a verdict: `t3` for T3 Code; nobody without it.
+//! of the folder `ura serve` starts in.
 
 use std::path::{Path, PathBuf};
 
@@ -19,30 +17,12 @@ use uraeda_core::git::Git;
 /// The settings' file, in the config folder.
 pub const FILE: &str = "config.toml";
 
-/// Who is told when the human hands work back.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Wake {
-    /// T3 Code, through its `t3` command: `program` is the command, `t3` found on the `PATH`
-    /// unless a test names another.
-    T3 { program: PathBuf },
-}
-
-impl Wake {
-    /// T3 Code through the `t3` found on the `PATH`.
-    pub fn t3() -> Wake {
-        Wake::T3 {
-            program: PathBuf::from("t3"),
-        }
-    }
-}
-
 /// `ura serve`'s settings.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Settings {
     pub port: Option<u16>,
     /// The main checkouts, absolute.
     pub repositories: Vec<PathBuf>,
-    pub wake: Option<Wake>,
     /// The host names the pages answer at besides this machine's own, lower case: the name
     /// `tailscale serve` gives, like `laptop.tail1234.ts.net`. Any other `Host` is refused.
     pub hosts: Vec<String>,
@@ -128,44 +108,7 @@ pub fn parse(text: &str, home: &Path) -> Result<Settings, Problem> {
             settings.hosts.push(host.trim().to_ascii_lowercase());
         }
     }
-    if let Some(wake) = section.get("wake") {
-        settings.wake = match wake.as_str() {
-            Some("t3") => Some(Wake::t3()),
-            Some("") | Some("none") => None,
-            _ => return Err(Problem::Value("wake is \"t3\" or \"none\"".into())),
-        };
-    }
     Ok(settings)
-}
-
-/// Sets `[serve] wake` in `config_dir`'s file, `None` removing it, and keeps the rest of the file
-/// as it was: its other values, its comments, and its order.
-pub fn set_wake(config_dir: &Path, wake: Option<&Wake>) -> Result<(), ConfigError> {
-    let path = config_dir.join(FILE);
-    let text = match std::fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(error) => return Err(ConfigError::Read(path, error)),
-    };
-    let mut document: DocumentMut = text.parse().map_err(|e: toml_edit::TomlError| {
-        ConfigError::Parse(path.clone(), e.message().to_string())
-    })?;
-    if !document.contains_key("serve") {
-        document["serve"] = toml_edit::table();
-    }
-    let section = document["serve"]
-        .as_table_like_mut()
-        .ok_or_else(|| ConfigError::Value(path.clone(), "is not a table".into()))?;
-    match wake {
-        Some(Wake::T3 { .. }) => {
-            section.insert("wake", toml_edit::value("t3"));
-        }
-        None => {
-            section.remove("wake");
-        }
-    }
-    std::fs::create_dir_all(config_dir).map_err(|e| ConfigError::Read(path.clone(), e))?;
-    std::fs::write(&path, document.to_string()).map_err(|e| ConfigError::Read(path, e))
 }
 
 /// A folder as written, `~/` read as `home`.
@@ -191,13 +134,12 @@ mod tests {
 
     #[test]
     fn reads_every_value() {
-        let text = "[serve]\nport = 4400\nrepositories = [\"~/a\", \"/b\"]\nwake = \"t3\"\n";
+        let text = "[serve]\nport = 4400\nrepositories = [\"~/a\", \"/b\"]\n";
         assert_eq!(
             parse(text, Path::new("/h")),
             Ok(Settings {
                 port: Some(4400),
                 repositories: vec![PathBuf::from("/h/a"), PathBuf::from("/b")],
-                wake: Some(Wake::t3()),
                 hosts: Vec::new(),
             })
         );
@@ -207,10 +149,6 @@ mod tests {
     fn refuses_a_wrong_value() {
         assert!(matches!(
             parse("[serve]\nport = 0\n", Path::new("/h")),
-            Err(Problem::Value(_))
-        ));
-        assert!(matches!(
-            parse("[serve]\nwake = \"slack\"\n", Path::new("/h")),
             Err(Problem::Value(_))
         ));
         assert!(matches!(

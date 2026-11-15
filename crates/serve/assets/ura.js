@@ -431,11 +431,6 @@
     });
     dialog.addEventListener("close", () => typed.now());
 
-    main.addEventListener("change", (event) => {
-      if (event.target.classList.contains("wake")) {
-        write("settings/serve", { wake: event.target.checked });
-      }
-    });
     main.addEventListener("click", (event) => {
       const cut = event.target.closest("button.cut");
       if (cut) {

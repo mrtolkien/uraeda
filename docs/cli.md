@@ -119,13 +119,11 @@ host name is refused. `--data-dir` names the folder it keeps its token in. Its s
 [serve]
 port = 4310
 repositories = ["~/code/todo", "~/code/uraeda"] # without it, the repository it starts in
-wake = "t3" # tell the feature's T3 Code session to continue when you send answers or a verdict
 hosts = ["laptop.tail1234.ts.net"] # the names it answers at besides 127.0.0.1 and localhost
 ```
 
-Without `wake`, a page ends with "Tell your session to continue". With `wake = "t3"`, it finds the
-open T3 Code thread working in the feature's worktree, with the `t3` command, and sends it a message
-to continue.
+When you send answers or a verdict, the page ends with "Tell your session to continue": the pages
+write files, and start or tell no session.
 
 The settings page writes `[runs]`, which you can also edit by hand:
 

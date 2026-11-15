@@ -7,7 +7,7 @@ icon: settings
 > "Store the config in a simple format that can be backed up/added to dotfiles simply"
 
 A setting is a choice that follows the human to every device: the picks of each step, `ura serve`'s
-port, host names, repositories, and wake, and the vault's place.
+port, host names, and repositories, and the vault's place.
 
 ## Rules
 

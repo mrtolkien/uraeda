@@ -1,5 +1,5 @@
 //! The settings page: each step's pick and sessions written in `config.toml` with the rest of the
-//! file kept, a stale page refused, and the wake switch.
+//! file kept, and a stale page refused.
 
 mod support;
 
@@ -170,24 +170,4 @@ fn a_page_that_read_another_version_is_refused() {
     let answer = server.write("/settings/runs", &body);
     assert_eq!(answer.status(), 409);
     assert_eq!(read(&dir), FILE);
-}
-
-#[test]
-fn the_wake_switch_writes_the_serve_section() {
-    let dir = TempDir::new().unwrap();
-    let server = server(&dir);
-    let on = server.write(
-        "/settings/serve",
-        &format!(r#"{{"version":"{}","wake":true}}"#, version_of(FILE)),
-    );
-    assert_eq!(on.status(), 200);
-    let text = read(&dir);
-    assert!(text.contains("wake = \"t3\""), "{text}");
-    assert!(text.contains("repositories = [\"/x\"]"));
-    let off = server.write(
-        "/settings/serve",
-        &format!(r#"{{"version":"{}","wake":false}}"#, version_of(&text)),
-    );
-    assert_eq!(off.status(), 200);
-    assert!(!read(&dir).contains("wake"));
 }

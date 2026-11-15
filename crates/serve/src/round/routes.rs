@@ -11,7 +11,6 @@
 //! - `POST .../submit`: `{}` sets the round answered, tells the session when the settings say so,
 //!   and gives `{ next }`, what the human does next.
 
-use std::path::Path;
 use std::sync::Arc;
 
 use axum::Json;
@@ -28,7 +27,7 @@ use uraeda_core::gates;
 
 use super::{parts, view};
 use crate::waiting::{self, LocateError, Located};
-use crate::{Shared, html, wake};
+use crate::{Shared, html};
 
 /// The address of a feature's page: the repository, and the feature's folder.
 pub type Feature = Address<(String, String)>;
@@ -295,42 +294,19 @@ pub async fn submit(
     State(shared): State<Arc<Shared>>,
     Address((repo, folder)): Feature,
 ) -> Result<Json<Value>, Failure> {
-    let (main, root, what) = write(&shared, repo, folder, |located| {
-        let (file, _) = round_text(&located)?;
+    write(&shared, repo, folder, |located| {
+        round_text(&located)?;
         answer::submit(
             &place(&located),
             &located.feature,
             uraeda_core::today::today(),
             false,
         )?;
-        let what = format!(
-            "The human answered {} of {}",
-            answer::name_of(&file)
-                .trim_end_matches(".md")
-                .replace('-', " "),
-            located.feature.slug
-        );
-        Ok((located.main, located.root, what))
+        Ok(())
     })
     .await?;
-    Ok(Json(
-        json!({ "next": told(&shared, &main, &root, &what).await }),
-    ))
+    Ok(Json(json!({ "next": NEXT })))
 }
 
-/// Tells the feature's session to continue when the settings say so, and says what the human
-/// does next.
-pub async fn told(shared: &Shared, main: &Path, root: &Path, what: &str) -> String {
-    let Some(how) = shared.settings().wake else {
-        return "Tell your session to continue.".into();
-    };
-    match wake::wake(&how, main, root, &wake::message(what)).await {
-        wake::Woken::Told { .. } => "Your session was told to continue.".into(),
-        wake::Woken::NoSession => {
-            "No open session works on this feature: start one, or tell yours to continue.".into()
-        }
-        wake::Woken::Failed(_) => {
-            "Your session could not be told: tell it to continue yourself.".into()
-        }
-    }
-}
+/// What the human does once their answers or their verdict are sent: the pages tell no session.
+pub const NEXT: &str = "Tell your session to continue.";

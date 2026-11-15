@@ -23,7 +23,6 @@ pub mod token;
 pub mod usage;
 pub mod vault_page;
 pub mod waiting;
-pub mod wake;
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
@@ -166,16 +165,6 @@ impl Shared {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
-
-    /// Changes the settings in memory, once their file holds the change.
-    pub fn update(&self, change: impl FnOnce(&mut Settings)) {
-        change(
-            &mut self
-                .settings
-                .write()
-                .unwrap_or_else(std::sync::PoisonError::into_inner),
-        );
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -200,7 +189,6 @@ pub fn router(shared: Arc<Shared>) -> Router {
         .route("/a/{version}/{name}", get(assets::serve))
         .route("/settings", get(settings::page))
         .route("/settings/runs", post(settings::save_runs))
-        .route("/settings/serve", post(settings::save_serve))
         .route("/{repo}/{folder}/round", get(round::routes::page))
         .route("/{repo}/{folder}/file/{*path}", get(files::page))
         .route("/{repo}/{folder}/raw/{key}/{*path}", get(files::raw))

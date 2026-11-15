@@ -1,11 +1,10 @@
 //! The settings page: how each step of the workflow runs, its agent, model, and effort, and which
-//! steps share a session; the build's implementers; the reviewers and their depth; and whether the
-//! pages tell the agent's session to continue. Each change is saved at once in `config.toml`,
+//! steps share a session; the build's implementers; and the reviewers and their depth. Each change
+//! is saved at once in `config.toml`,
 //! through the core's writer of `[runs]`, which keeps the rest of the file as it was.
 //!
 //! - `GET  /settings`: the page.
 //! - `POST /settings/runs`: `{ version, options }` gives `{ version }`.
-//! - `POST /settings/serve`: `{ version, wake }` gives `{ version }`.
 //!
 //! `version` is a hash of the file's text as the page read it: a file changed since, by hand or
 //! by another page, is refused, never written over.
@@ -22,7 +21,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use uraeda_core::settings::{self, ReviewerOptions, RunOptions, STEPS};
 
-use crate::config::{self, Wake};
+use crate::config;
 use crate::html::escape;
 use crate::providers::{self, Provider};
 use crate::review::routes::version_of;
@@ -121,35 +120,6 @@ pub async fn save_runs(
     .map_err(|e| Failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
 }
 
-#[derive(Deserialize)]
-pub struct SavedServe {
-    version: String,
-    wake: bool,
-}
-
-/// `POST /settings/serve`.
-pub async fn save_serve(
-    State(shared): State<Arc<Shared>>,
-    Json(body): Json<SavedServe>,
-) -> Result<Json<Value>, Failure> {
-    let held = Arc::clone(&shared);
-    tokio::task::spawn_blocking(move || {
-        let _lock = held
-            .writes
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let dir = &held.config_dir;
-        same_version(dir, &body.version)?;
-        let wake = body.wake.then(Wake::t3);
-        config::set_wake(dir, wake.as_ref())
-            .map_err(|e| Failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        held.update(|settings| settings.wake = wake);
-        Ok(Json(json!({ "version": version_of(&file_text(dir)) })))
-    })
-    .await
-    .map_err(|e| Failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-}
-
 /// The page's `<main>`: the workflow as a track of steps, each a row that opens the picker.
 fn main(
     options: &RunOptions,
@@ -220,12 +190,9 @@ fn main(
     let _ = write!(
         out,
         "<section class=\"pages\" id=\"pages\"><h2>These pages</h2>\
-         <label class=\"switch\"><input type=\"checkbox\" class=\"wake\"{checked}> \
-         <span>Tell the feature's T3 Code session to continue when you send answers or a verdict\
-         </span></label><p class=\"muted small\">Repositories: {repositories}. They and the port \
+         <p class=\"muted small\">Repositories: {repositories}. They and the port \
          are set in the file, and take effect when <code>ura serve</code> starts again.</p>\
          </section>",
-        checked = if serve.wake.is_some() { " checked" } else { "" },
         repositories = serve
             .repositories
             .iter()

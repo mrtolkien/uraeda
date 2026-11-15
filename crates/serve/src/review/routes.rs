@@ -21,7 +21,7 @@ use uraeda_core::gates;
 use uraeda_core::git::Git;
 
 use super::view;
-use crate::round::routes::{Failure, on, place, told, write};
+use crate::round::routes::{Failure, NEXT, on, place, write};
 use crate::waiting::{self, Located};
 use crate::{Shared, html};
 
@@ -206,14 +206,13 @@ pub async fn verdict(
     Address((repo, folder, name)): Reviewed,
     Json(body): Json<Verdict>,
 ) -> Result<Json<Value>, Failure> {
-    let (main, root, what) = write(&shared, repo, folder, move |located| {
+    write(&shared, repo, folder, move |located| {
         let name = reviewed(&name)?;
         same_version(&located, name, &body.version)?;
         let place = place(&located);
         let summary = Some(body.summary.trim()).filter(|s| !s.is_empty());
         let today = uraeda_core::today::today();
-        let what = if name == "spec.md" { "spec" } else { "plan" };
-        let done = match body.verdict.as_str() {
+        match body.verdict.as_str() {
             "approve" => {
                 review::approve(
                     &place,
@@ -223,7 +222,6 @@ pub async fn verdict(
                     &Tier::default(),
                     today,
                 )?;
-                "approved"
             }
             "request-changes" => {
                 if pending(&located, name).is_empty() {
@@ -235,7 +233,6 @@ pub async fn verdict(
                     ));
                 }
                 review::request_changes(&place, &located.feature, name, summary, today)?;
-                "requested changes to"
             }
             _ => {
                 return Err(Failure(
@@ -244,11 +241,8 @@ pub async fn verdict(
                 ));
             }
         };
-        let what = format!("The human {done} the {what} of {}", located.feature.slug);
-        Ok((located.main, located.root, what))
+        Ok(())
     })
     .await?;
-    Ok(Json(
-        json!({ "next": told(&shared, &main, &root, &what).await }),
-    ))
+    Ok(Json(json!({ "next": NEXT })))
 }
