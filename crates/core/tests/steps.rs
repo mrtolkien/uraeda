@@ -905,9 +905,38 @@ fn a_later_round_without_the_key_goes_back_to_the_spec() {
 }
 
 #[test]
-fn the_key_counts_only_while_the_implementation_is_under_way() {
-    // Every step checked: the answers are not applied by skipping the spec step.
-    let done = round_during_implementation("\nresumes: implementation", &[("One", 1, 1)]);
+fn the_key_still_counts_once_the_resumed_build_checked_its_last_step() {
+    // The answers were carried out in the tasks: the spec stays as approved, and the review is next.
+    let mut built = round_during_implementation("\nresumes: implementation", &[("One", 1, 1)]);
+    let revised = round_during_implementation("", &[("One", 1, 1)]);
 
-    assert_eq!(done.step.name, StepName::Spec);
+    built.with_pull_request(PullRequest::NoPullRequest);
+
+    assert_eq!(built.step.name, StepName::FinalReview);
+    assert!(built.step.implemented);
+    assert_eq!(revised.step.name, StepName::Spec);
+}
+
+#[test]
+fn the_key_counts_only_once_the_spec_and_the_plan_are_approved() {
+    let round = answered().replacen(
+        "status: answered",
+        "status: answered\nresumes: implementation",
+        1,
+    );
+    let with_plan = |plan_status: &str| {
+        feature(
+            Kind::Feature,
+            &[
+                ("proposal.md", proposal()),
+                ("clarifications-01.md", answered()),
+                ("clarifications-02.md", round.clone()),
+                ("spec.md", spec("approved", 1, 1)),
+                ("plan.md", plan(plan_status, 1, &[("One", 0, 1)])),
+            ],
+        )
+    };
+
+    assert_eq!(with_plan("changes-requested").step.name, StepName::Spec);
+    assert_eq!(with_plan("approved").step.name, StepName::Implementation);
 }
