@@ -31,7 +31,8 @@ one: its folder name or slug. Without it, the command takes the feature of the w
 
 `ura next` prints the target, its step, the reference to follow, the step's pick (agent, model, and
 effort), and `session`: `join` when the step runs on in the session that ran the previous one, `new`
-when it starts a new one, as [Sessions and picks](../SKILL.md#sessions-and-picks) says. For the
+when it starts a new one, as [Sessions and picks](../SKILL.md#sessions-and-picks) says. It reads the
+files alone, and prints `new` to the session started for the step too: that session runs it. For the
 implementation, it adds the implementers' pick, the reviewers' picks, and whether reviewers review
 each wave or the branch only. When the human's answers or review are on disk, uncommitted, it says
 to [commit them first](../SKILL.md#the-humans-work-is-committed-first), then names the step that

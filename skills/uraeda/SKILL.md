@@ -215,7 +215,7 @@ prints the step's pick and whether it joins the session that ran the previous st
   stopping.
 - **A step cut from the previous one** starts in a new session. End your turn there, with one
   message naming the next step and its pick. A session host that can start a session for it does;
-  otherwise the human does. A new session reads the files: nothing it needs is in the earlier one.
+  otherwise the human does. A session started for the step runs it: all it needs is in the files.
 - **Implementers and reviewers** run on their own picks, as sub-agents. Start them through the
   session host when it can run an agent on a pick; otherwise use your own sub-agents, and say so in
   the pull request.

@@ -289,7 +289,9 @@ fn the_pick_and_session_come_from_the_settings() {
         output.stdout
     );
     assert!(
-        output.stdout.contains("  session    new:"),
+        output.stdout.contains(
+            "  session    new: a session started for this step runs it; one that ran the previous step ends, naming the step and its pick\n"
+        ),
         "{}",
         output.stdout
     );

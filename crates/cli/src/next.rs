@@ -179,7 +179,9 @@ fn render(feature: Option<&Feature>, run: Option<&Run>) -> String {
     if let Some(run) = run {
         text.push_str(&format!("  pick       {}\n", shown(&run.pick)));
         let session = match run.session {
-            "new" => "new: end this session, naming the step and its pick",
+            "new" => {
+                "new: a session started for this step runs it; one that ran the previous step ends, naming the step and its pick"
+            }
             _ => "join: run it in this session",
         };
         text.push_str(&format!("  session    {session}\n"));
