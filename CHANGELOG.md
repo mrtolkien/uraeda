@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0 - Better wiki
+
+Released on 2026-11-15.
+
+### Changes
+
+- **[Vault read accepts a path](https://github.com/mrtolkien/uraeda/blob/v3.1.0/specs/done/2026-11-15-vault-path.md)**
+  ([#126](https://github.com/mrtolkien/uraeda/pull/126)): The human starts a proposal by pasting the
+  path Obsidian's "Copy path" gives for a note, like `projects/moyo/Moyo plan up to chat`. Obsidian
+  leaves out the `.md`, and `ura vault read` failed on it with `no note`. `ura vault` now takes an
+  existing note's path with or without its `.md`.
+
 ## 3.0.0 - Uraeda Light
 
 Released on 2026-11-14.
