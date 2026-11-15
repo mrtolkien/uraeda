@@ -21,11 +21,13 @@ vault/
   inbox/                         # human: one note per capture, any project
     sort-completed-tasks.md
   wiki/                          # agents: what was learned, shared by every repository
-    libraries/                   # code dependencies: date-fns.md
+    libraries/                   # code dependencies
+      date-fns/                  # a subject with several notes is a folder
+        date-fns.md              # its own note, named after the folder
+        javascript-date-24-hours-is-not-a-day.md   # one surprise per note
     apps/                        # a tool the project uses, or a feature's model: todoist.md
     standards/                   # specs, protocols, formats the project implements: indexeddb.md
     topics/                      # a kind of feature, with the products compared: recurring-dates.md
-    gotchas/                     # one surprise each, named after its subject first
   projects/<repository>/
     proposals/                   # human: one note per proposal, a folder when it has images
       keyboard-shortcuts.md
@@ -50,8 +52,8 @@ the wiki and the research, and the human may edit them: read a note again before
 **Links in the notes are wikilinks**, `[[todoist]]`,
 `[[javascript-date-24-hours-is-not-a-day|a day is not 24 hours]]`: the human edits these files, and
 Obsidian keeps wikilinks right when a note moves. So a note's name is unique in the whole vault, and
-a gotcha's name starts with its subject. Files in git keep markdown links, and link a note only as
-further reading.
+a gotcha's name starts with what it is about. Files in git keep markdown links, and link a note only
+as further reading.
 
 ## Proposals and priorities
 
@@ -150,13 +152,14 @@ Everything else is a line of a note that earned its place, or nothing:
 A fact is written in one note, with its source. Every other note that needs it links there, and does
 not say it again: a fact copied in four notes is corrected in one and wrong in three.
 
-- A surprise lives in its gotcha. The library's note lists the gotcha under **Gotchas**, by link.
+- A surprise lives in its gotcha, a note of its own in its subject's folder. The subject's note
+  lists it under **Gotchas**, by link.
 - A product's behaviour lives in the topic's table. A library's note says "see [[recurring-dates]]".
 - A library's version and state live in the library's note.
 
 ### Where a note goes
 
-Each note has one home folder, by its kind, and links carry everything else:
+Each subject has one home folder, by its kind, and links carry everything else:
 
 - `libraries/`: a dependency the code uses: what it does, its versions, its behaviours that matter.
 - `apps/`: a tool the project uses, or the product a feature is modelled on, studied whole enough to
@@ -164,11 +167,38 @@ Each note has one home folder, by its kind, and links carry everything else:
 - `standards/`: a specification, a protocol, or a file format the project implements or reads.
 - `topics/`: how a kind of feature works across products: what users expect, where products differ,
   with the products compared as rows of a table, and the options read and not chosen.
-- `gotchas/`: one surprising behaviour of something the project builds with, linking the library,
-  app, or standard it is about, which links it back.
 
-Keep these five folders. A folder grows a level only when it is crowded, by family:
-`libraries/rust/`. Never deeper: a note is found by its folder and its name.
+Keep these four folders. There is no folder of gotchas: a surprise is found where its subject is.
+
+### Small notes, in the subject's folder
+
+A note stays small enough to read whole on a phone: one subject, or one surprise. So a subject grows
+by notes, not by length.
+
+- **A subject with one note is a file**: `libraries/postcard.md`.
+- **A subject with more is a folder**, named after it, holding its own note under the same name and
+  the others beside it:
+
+  ```sh
+  libraries/date-fns/
+    date-fns.md                                  # what it is, its version, links to the rest
+    javascript-date-24-hours-is-not-a-day.md     # a gotcha: one surprise
+  ```
+
+  Whoever writes a subject's second note makes the folder: write the subject's note at its new path,
+  then remove the old one. Its name does not change, so every wikilink still resolves.
+
+- **A gotcha is one note**: what happens, when, and what to do instead. Its name starts with what it
+  is about and says what happens. It goes in the folder of the subject whose code would hit it,
+  which lists it under **Gotchas**. One that touches two subjects lives with the one the project's
+  code calls, and the other links it. One with no library, app, or standard of its own goes in its
+  topic's folder.
+- **A subject's note that grows long is split the same way**: each part becomes a note of the
+  folder, `iroh-relays.md`, and the subject's note keeps a few lines and the links.
+
+Never deeper than a subject's folder: a note is found by its subject and its name.
+`ura vault ls wiki/libraries` shows each subject, file or folder, with its description, and
+`ura vault ls wiki/libraries/date-fns` its notes.
 
 ### A note
 

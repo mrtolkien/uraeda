@@ -111,9 +111,9 @@ session and the request's origin. `ura serve` also syncs the human's notes with 
 
 Reads and writes the human's notes for an agent: one vault for every repository, at the path the
 configuration file names, with paths relative to it, as [Notes](notes.md#the-layout) lays it out.
-`ls` lists a folder's notes, each with its `description`. `read` prints a note. `write` writes a
-note from standard input, or sets one frontmatter field with `--set <field>=<value>`, leaving the
-rest of the note byte for byte. `rm` moves a note to the vault's `.trash/`, as Obsidian does.
-`check` reports wikilinks that resolve to no note, and wiki notes without a `description`. None of
-them touches git. An existing note's path may leave out its `.md`, as Obsidian's "Copy path" gives
-it; a new note's path names its `.md`.
+`ls` lists a folder's folders and notes, each with its `description`: a folder's is the one of the
+note named after it. `read` prints a note. `write` writes a note from standard input, or sets one
+frontmatter field with `--set <field>=<value>`, leaving the rest of the note byte for byte. `rm`
+moves a note to the vault's `.trash/`, as Obsidian does. `check` reports wikilinks that resolve to
+no note, and wiki notes without a `description`. None of them touches git. An existing note's path
+may leave out its `.md`, as Obsidian's "Copy path" gives it; a new note's path names its `.md`.

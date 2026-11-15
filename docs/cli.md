@@ -188,7 +188,7 @@ touches git. An existing note's path may leave out its `.md`, as Obsidian's "Cop
 there. A new note is written at the path as given, so name it with its `.md`.
 
 ```sh
-ura vault ls wiki/apps                     # the folders, then the notes with their description
+ura vault ls wiki/apps                     # the folders, then the notes, with their descriptions
 ura vault read wiki/apps/todoist.md        # a note
 ura vault write inbox/flaky-sync.md < note.md   # a note from standard input, its folders made
 ura vault write projects/todo/proposals/tags.md --set status=started   # one field, the rest kept

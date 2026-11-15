@@ -4,8 +4,9 @@ use std::io;
 
 use crate::Vault;
 
-/// The wiki's five folders, one per kind of note.
-pub const WIKI_FOLDERS: [&str; 5] = ["libraries", "apps", "standards", "topics", "gotchas"];
+/// The wiki's four folders, one per kind of subject. A subject with more than one note is a folder
+/// of them, made by whoever writes its second note.
+pub const WIKI_FOLDERS: [&str; 4] = ["libraries", "apps", "standards", "topics"];
 
 /// A project's folders, beside the `specs/` the links make.
 pub const PROJECT_FOLDERS: [&str; 2] = ["proposals", "research"];
@@ -85,7 +86,7 @@ mod tests {
             "{board}"
         );
         for folder in [
-            "wiki/gotchas",
+            "wiki/topics",
             "projects/todo/proposals",
             "projects/todo/research",
         ] {

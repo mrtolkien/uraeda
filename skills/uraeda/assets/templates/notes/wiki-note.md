@@ -18,8 +18,8 @@ sources:
 
 ## Gotchas
 
-- [Optional: each surprising behaviour, linking its note in gotchas/: [[subject-what-happens]].
-  Remove this section when there is none.]
+- [Optional: each surprising behaviour, linking its note in this subject's folder:
+  [[subject-what-happens]]. Remove this section when there is none.]
 
 ## Related
 

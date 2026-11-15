@@ -31,7 +31,8 @@ pub enum NoteError {
 pub struct Entry {
     /// From the vault's folder: `wiki/apps/todoist.md`, `wiki/apps/` for a folder.
     pub path: String,
-    /// The note's `description`, when it has one.
+    /// The note's `description`, when it has one. A folder's is its own note's, the one named
+    /// after it: `wiki/libraries/iroh/iroh.md` for `wiki/libraries/iroh/`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
@@ -58,7 +59,9 @@ pub fn ls(vault: &Vault, folder: &str) -> Result<Vec<Entry>, NoteError> {
         if path.is_dir() {
             folders.push(Entry {
                 path: format!("{prefix}{name}/"),
-                description: None,
+                description: std::fs::read_to_string(path.join(format!("{name}.md")))
+                    .ok()
+                    .and_then(|t| description(&t)),
             });
         } else if name.ends_with(".md") {
             notes.push(Entry {
@@ -326,6 +329,10 @@ mod tests {
             ["wiki/apps/old/", "wiki/apps/a.md", "wiki/apps/todoist.md"]
         );
         assert_eq!(listed[2].description.as_deref(), Some("A todo app"));
+        assert_eq!(listed[0].description, None);
+        write(&vault, "wiki/apps/old/old.md", note.as_bytes()).unwrap();
+        let listed = ls(&vault, "wiki/apps").unwrap();
+        assert_eq!(listed[0].description.as_deref(), Some("A todo app"));
         assert!(matches!(
             write(&vault, "projects/x/specs/spec.md", b""),
             Err(NoteError::ReadOnly(_))

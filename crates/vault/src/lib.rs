@@ -4,7 +4,7 @@
 //! ```text
 //! Uraeda/
 //!   inbox/                      the human's: one note per capture
-//!   wiki/<five folders>/        the agents': what was learned
+//!   wiki/<four folders>/        the agents': what was learned
 //!   projects/<repository>/
 //!     proposals/   research/
 //!     specs/                    links to the repository's workflow files, to read

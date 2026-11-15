@@ -42,7 +42,7 @@ fn a_first_sync_pulls_the_notes_and_the_repositorys_files() {
         ]
     );
     assert!(actions.iter().all(|a| a["do"] == "pull"));
-    assert!(vault.root().join("wiki/gotchas").is_dir());
+    assert!(vault.root().join("wiki/topics").is_dir());
     assert!(vault.root().join("projects/todo/proposals").is_dir());
 
     let (status, bytes) = server.plugin("GET", &format!("/vault/file?path={}", proposal), b"");

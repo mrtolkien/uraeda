@@ -37,7 +37,7 @@ Sort each item of your list, by **What earns a note**:
 | The item is                                                | It becomes                          |
 | ---------------------------------------------------------- | ----------------------------------- |
 | something the project builds with after this round         | a note in its folder                |
-| a surprise in one of those, read at its source or run      | a gotcha                            |
+| a surprise in one of those, read at its source or run      | a gotcha, in that subject's folder  |
 | how a kind of feature works across products, in a question | a topic                             |
 | a product that was only compared                           | a row of the topic's table          |
 | a library or a standard read and not chosen                | one line of the topic, with why not |
@@ -58,8 +58,17 @@ For each note, in this order: topics, then libraries, apps, and standards, then 
 3. Give each fact one home, with its source beside it. Where another note needs it, link there.
 4. Leave out every empty section, and every link to the recap or to the round.
 
+Keep each note small: one subject, or one surprise. A gotcha is a note of its own, in its subject's
+folder, as **Small notes, in the subject's folder** says:
+
+- **The subject is a folder already**: `ura vault write wiki/libraries/<subject>/<gotcha>.md`.
+- **The subject is one file**, `wiki/libraries/<subject>.md`: write its note again at
+  `wiki/libraries/<subject>/<subject>.md`, remove the old file with `ura vault rm`, then write the
+  gotcha beside it.
+- Then list the gotcha under **Gotchas** in the subject's note.
+
 A note's name is unique in the whole vault, in lowercase with hyphens. A gotcha's name starts with
-its subject and says what happens: `date-fns-add-months-clamps-to-the-last-day`.
+what it is about and says what happens: `date-fns-add-months-clamps-to-the-last-day`.
 
 ## 4. Write the recap
 
