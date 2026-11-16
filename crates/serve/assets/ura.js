@@ -855,6 +855,17 @@
       const field = $("textarea", point);
       if (!field) continue;
       const line = $(".saved", point);
+      const box = $(".comment", point);
+      if (!field.disabled)
+        point.addEventListener("click", (event) => {
+          if (
+            event.target.closest("a, button, textarea, iframe, .frame") ||
+            String(getSelection()).trim()
+          )
+            return;
+          box.hidden = false;
+          field.focus();
+        });
       const save = debounce(
         () =>
           queue(async () => {

@@ -99,7 +99,7 @@ fn settled(
 ) {
     out.push_str(
         "<section class=\"settled\" id=\"settled\"><h2>Settled without you</h2>\
-         <p class=\"muted small\">Nothing to answer here. Comment on a point to change it.</p>",
+         <p class=\"muted small\">Nothing to answer here. Click a point to comment on it.</p>",
     );
     for point in &round.settled {
         let comment = notes.and_then(|notes| {
@@ -121,15 +121,10 @@ fn settled(
         if waiting || !text.is_empty() {
             let _ = write!(
                 out,
-                "<details class=\"comment\"{open}><summary>{label}</summary>\
+                "<div class=\"comment\"{hidden}>\
                  <textarea rows=\"2\" aria-label=\"Your comment on {subject}\"{disabled}>{text}\
-                 </textarea><p class=\"saved small muted\" aria-live=\"polite\"></p></details>",
-                open = if text.is_empty() { "" } else { " open" },
-                label = if text.is_empty() {
-                    "Comment"
-                } else {
-                    "Your comment"
-                },
+                 </textarea><p class=\"saved small muted\" aria-live=\"polite\"></p></div>",
+                hidden = if text.is_empty() { " hidden" } else { "" },
                 subject = escape(&point.subject),
                 disabled = if waiting { "" } else { " disabled" },
                 text = escape(text),

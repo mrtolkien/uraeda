@@ -394,17 +394,12 @@ section.notes {
 details.context {
   padding-top: 0;
 }
-details.context > summary,
-details.comment > summary {
+details.context > summary {
   min-height: 44px;
   display: flex;
   align-items: center;
   cursor: pointer;
   font-weight: 600;
-}
-details.comment > summary {
-  font-weight: 500;
-  color: var(--accent);
 }
 
 section.q {
@@ -529,6 +524,9 @@ section.q h2 {
 .point {
   border-top: 1px solid var(--line);
   padding-top: 4px;
+}
+.point:not(:has(textarea:disabled)) {
+  cursor: pointer;
 }
 .point:first-of-type {
   border-top: 0;
