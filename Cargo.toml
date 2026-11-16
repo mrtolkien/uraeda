@@ -73,6 +73,13 @@ lto = true
 opt-level = "z"
 strip = true
 
+# For installing `ura` on this machine, `cargo install --path crates/cli --locked --profile fast`:
+# the release's size, without the single-threaded link-time optimization that takes minutes.
+[profile.fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+
 # The profile that dist builds releases with.
 [profile.dist]
 inherits = "release"

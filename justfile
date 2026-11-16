@@ -71,6 +71,16 @@ specs:
 sandbox *args:
     {{ isolated }} scripts/sandbox.sh "$@"
 
+# Takes your own projects and settings, with a dev build of this checkout that rebuilds in seconds.
+# Flags go to `ura serve`: `just serve --port 4311`. Ctrl+C stops it.
+# Serves your projects with a fast dev build of this checkout.
+serve *args:
+    cargo run -p uraeda-cli -- serve "$@"
+
+# Installs `ura` from this checkout, with the `fast` profile: no link-time optimization.
+install:
+    cargo install --path crates/cli --locked --profile fast
+
 # cargo-dist, which builds and releases `ura`: `just dist plan`, or `just dist generate` after a
 # change of `dist-workspace.toml`, which writes `.github/workflows/release.yml` again.
 dist *args:
