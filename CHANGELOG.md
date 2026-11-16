@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.1 - UI improvements, faster builds
+
+Released on 2026-11-16.
+
+No feature or change recorded in `specs/done/`.
+
 ## 3.1.0 - Better wiki
 
 Released on 2026-11-15.
