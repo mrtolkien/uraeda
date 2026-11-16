@@ -382,7 +382,6 @@ pre.html {
 }
 
 details.context,
-.settled,
 section.q,
 section.notes {
   background: var(--surface);
@@ -440,19 +439,23 @@ section.q h2 {
   min-height: 44px;
   -webkit-tap-highlight-color: transparent;
 }
-.choice ul {
+.choice ul,
+.point ul {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.choice ul ul {
+.choice ul ul,
+.point ul ul {
   margin-top: 6px;
 }
-.choice ul ul li {
+.choice ul ul li,
+.point ul ul li {
   position: relative;
   padding-left: 1.5em;
 }
-.choice > ul > li > p:first-child {
+.choice > ul > li > p:first-child,
+.point > ul > li > p:first-child {
   margin-top: 0;
 }
 .choice .letter {
@@ -521,15 +524,17 @@ section.q h2 {
 .saved.error {
   color: var(--bad);
 }
+.settled {
+  margin: var(--gap) 0;
+}
 .point {
-  border-top: 1px solid var(--line);
-  padding-top: 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 12px 10px;
+  margin: 10px 0;
 }
 .point:not(:has(textarea:disabled)) {
   cursor: pointer;
-}
-.point:first-of-type {
-  border-top: 0;
 }
 
 .bar .progress {
