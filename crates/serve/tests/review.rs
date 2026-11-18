@@ -222,3 +222,16 @@ fn a_write_from_a_page_drawn_on_another_version_is_refused() {
         "the comment changed in another tab"
     );
 }
+
+#[test]
+fn the_review_page_lists_the_files_headings_beside() {
+    let f = fixture(&[("spec.md", waiting_spec())]);
+    let server = Server::with(settings(&f));
+    let page = server.get(&base()).into_body().read_to_string().unwrap();
+    let outline = &page[page.find("<aside class=\"outline\"").unwrap()..];
+    assert!(
+        outline.contains("<li class=\"level-2\"><a href=\"#user-stories\">User stories</a></li>"),
+        "{outline}"
+    );
+    assert!(outline.contains("href=\"#verdict\""), "{outline}");
+}

@@ -55,7 +55,13 @@ pub fn main(page: &Page<'_>) -> String {
         out,
         "<main class=\"review\" data-waiting=\"{waiting}\" data-what=\"{what}\">\
          <nav class=\"crumbs\"><a href=\"../../../\">‹ What waits on you</a></nav>\
-         <h1>{name}</h1><p class=\"muted subtitle\">{title} to review</p>",
+         <p class=\"badge{quiet}\">{title} {state}</p><h1>{name}</h1>",
+        quiet = if page.waiting { "" } else { " quiet" },
+        state = if page.waiting {
+            "to review"
+        } else {
+            "reviewed"
+        },
         waiting = page.waiting,
         name = escape(page.name),
         title = if what == "spec" { "Spec" } else { "Plan" },
@@ -70,11 +76,8 @@ pub fn main(page: &Page<'_>) -> String {
     if let Some(since) = page.since {
         since_list(&mut out, since, &mut changed);
     }
-    let _ = write!(
-        out,
-        "<article class=\"doc\">{}</article>",
-        (page.draw)(page.text)
-    );
+    let drawn = (page.draw)(page.text);
+    let _ = write!(out, "<article class=\"doc\">{drawn}</article>");
     let _ = write!(
         out,
         "<section class=\"comments\" id=\"comments\"><h2>Your comments</h2>\
@@ -112,12 +115,74 @@ pub fn main(page: &Page<'_>) -> String {
         "<script type=\"application/json\" id=\"review-data\">{}</script></main>",
         data.to_string().replace("</", "<\\/")
     );
+    outline(&mut out, &drawn, page.waiting);
     if page.waiting {
         out.push_str(
             "<div class=\"bar\" role=\"region\" aria-label=\"Review\"><span class=\"progress\">\
              <b class=\"count\">0</b> comments</span><a class=\"button primary finish\" \
              href=\"#verdict\">Finish the review</a></div>",
         );
+    }
+    out
+}
+
+/// The outline beside the page at a desk: the file's `##` and `###` headings, then the comments
+/// and the verdict.
+fn outline(out: &mut String, drawn: &str, waiting: bool) {
+    out.push_str("<aside class=\"outline\" aria-label=\"Contents\"><p class=\"outline-title\">Contents</p><ul>");
+    for (level, id, text) in headings(drawn) {
+        let _ = write!(
+            out,
+            "<li class=\"level-{level}\"><a href=\"#{id}\">{text}</a></li>"
+        );
+    }
+    out.push_str("</ul><ul><li><a href=\"#comments\">Your comments</a></li>");
+    if waiting {
+        out.push_str("<li><a href=\"#verdict\">Your verdict</a></li>");
+    }
+    out.push_str("</ul></aside>");
+}
+
+/// The `<h2>` and `<h3>` of drawn HTML: their level, their `id`, and their text without its tags,
+/// still escaped.
+fn headings(drawn: &str) -> Vec<(u8, &str, String)> {
+    let mut found = Vec::new();
+    let mut rest = drawn;
+    while let Some(at) = rest.find("<h") {
+        rest = &rest[at + 2..];
+        let level = match rest.as_bytes().first() {
+            Some(b'2') => 2,
+            Some(b'3') => 3,
+            _ => continue,
+        };
+        let Some(close) = rest.find('>') else { break };
+        let tag = &rest[..close];
+        let Some(end) = rest.find("</h") else { break };
+        let id = tag
+            .split_once("id=\"")
+            .and_then(|(_, after)| after.split_once('"'))
+            .map(|(id, _)| id);
+        if let Some(id) = id
+            && close < end
+        {
+            found.push((level, id, without_tags(&rest[close + 1..end])));
+        }
+        rest = &rest[end..];
+    }
+    found
+}
+
+/// HTML without its tags.
+fn without_tags(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut inside = false;
+    for c in html.chars() {
+        match c {
+            '<' => inside = true,
+            '>' => inside = false,
+            c if !inside => out.push(c),
+            _ => {}
+        }
     }
     out
 }
