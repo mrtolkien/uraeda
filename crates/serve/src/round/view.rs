@@ -101,8 +101,9 @@ fn outline(out: &mut String, round: &Round, all: &[clarifications::Question], no
         out,
         "<aside class=\"outline\" aria-label=\"Outline\"><p class=\"outline-progress\">\
          <b class=\"count\">{done}</b> of <b class=\"total\">{total}</b> answered</p>\
-         <div class=\"meter-bar\" style=\"--done:{done};--total:{total}\"><i></i></div><ul>",
-        total = asked.len().max(1),
+         <div class=\"meter-bar\" style=\"--done:{done};--total:{parts}\"><i></i></div><ul>",
+        total = asked.len(),
+        parts = asked.len().max(1),
     );
     if round.context.is_some() {
         out.push_str("<li><a href=\"#context\">Context</a></li>");
@@ -140,20 +141,13 @@ fn outline(out: &mut String, round: &Round, all: &[clarifications::Question], no
 }
 
 /// A framed box with its label cut into the frame: a question's "Why it matters" or "Example",
-/// whose paragraph loses the same words at its start.
+/// whose paragraph loses the same words at its start, and keeps the rest as written.
 fn boxed(out: &mut String, class: &str, label: &str, html: &str) {
-    let lead = format!("{label}: ");
+    let lead = format!("{label}:");
     let body = match html.find(&lead) {
         Some(at) => {
             let rest = &html[at + lead.len()..];
-            let mut chars = rest.chars();
-            let first = chars.next().map(|c| c.to_uppercase().to_string());
-            format!(
-                "{}{}{}",
-                &html[..at],
-                first.unwrap_or_default(),
-                chars.as_str()
-            )
+            format!("{}{}", &html[..at], rest.strip_prefix(' ').unwrap_or(rest))
         }
         None => html.to_string(),
     };
