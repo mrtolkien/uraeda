@@ -119,6 +119,13 @@ h4 {
 a {
   color: var(--accent);
 }
+ul,
+ol {
+  padding-left: 1.4em;
+}
+li {
+  margin: 0.3em 0;
+}
 code,
 pre {
   font-family: var(--mono);
@@ -636,6 +643,10 @@ section.q h2 {
   border: 1px solid var(--frame);
   padding: 8px 14px 2px;
   margin: 26px 0 20px;
+}
+/* The label took the sentence's first words: what is left opens with a capital, on the page only. */
+.box > .legend + p::first-letter {
+  text-transform: uppercase;
 }
 .why {
   border-color: var(--orange);
