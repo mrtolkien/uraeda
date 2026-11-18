@@ -1,7 +1,6 @@
 //! The settings page: how each step of the workflow runs, its agent, model, and effort, and which
-//! steps share a session; the build's implementers; and the reviewers and their depth. Each change
-//! is saved at once in `config.toml`,
-//! through the core's writer of `[runs]`, which keeps the rest of the file as it was.
+//! steps share a session; the build's implementers; and the reviewers. Each change is saved at
+//! once in `config.toml`, through the core's writer of `[runs]`, which keeps the rest of the file as it was.
 //!
 //! - `GET  /settings`: the page.
 //! - `POST /settings/runs`: `{ version, options }` gives `{ version }`.
@@ -229,22 +228,16 @@ fn shown(path: &Path) -> String {
     }
 }
 
-/// The reviewers under the review step, each a row, then when they review.
+/// The reviewers under the review step, each a row.
 fn reviewers(out: &mut String, options: &RunOptions, choices: &Choices) {
     out.push_str("<ul class=\"under reviewers\">");
     for reviewer in options.reviewers.iter().flatten() {
         out.push_str(&reviewer_item(reviewer, choices));
     }
-    let branch = options.review_depth.as_deref() == Some("branch");
     let _ = write!(
         out,
         "</ul><div class=\"review-more\"><button type=\"button\" class=\"add-reviewer small\">+ \
-         Reviewer</button><div class=\"segmented depth\" role=\"radiogroup\" aria-label=\"When \
-         the reviewers review\"><button type=\"button\" role=\"radio\" data-depth=\"waves\" \
-         aria-checked=\"{waves}\">Each wave</button><button type=\"button\" role=\"radio\" \
-         data-depth=\"branch\" aria-checked=\"{branch}\">Branch only</button></div></div>\
-         <template class=\"reviewer-template\">{template}</template>",
-        waves = !branch,
+         Reviewer</button></div><template class=\"reviewer-template\">{template}</template>",
         template = reviewer_item(&ReviewerOptions::default(), choices),
     );
 }

@@ -76,14 +76,16 @@ or "none" and why.
 
 1. Task 1: [why it comes alone, such as a data change every later task builds on]
 2. Tasks [2] and [3]: [the different parts of the code each touches, and any shared file each adds
-   its own part to]
+   its own part to]. [Optional: "Review: why", for a wave whose tasks are hard or error-prone, such
+   as one with a **Risky** task. The branch is reviewed once, at the end, whatever the waves say.]
 
 ---
 
 ## Task 1: [Component or deliverable]
 
 **Risky:** [Optional: for a task that changes security, the format of stored data or its migration,
-concurrency, or a rule several callers share, what makes it risky. It is reviewed on its own.]
+concurrency, or a rule several callers share, what makes it risky. Its wave's line in **Waves** asks
+for a review.]
 
 **Files:**
 

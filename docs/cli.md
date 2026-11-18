@@ -105,8 +105,8 @@ makes a new one at the next start, and signs every browser and phone out.
   on the element you tap.
 - **Settings**: how each step of the workflow runs, its agent, model, and effort, chosen among the
   models Claude Code and Codex list, and which steps share a session; the build's implementers; the
-  reviewers, and whether they review each wave or the branch only. Each change is saved at once in
-  the `[runs]` of the settings file, the rest of the file kept as it was.
+  reviewers. Each change is saved at once in the `[runs]` of the settings file, the rest of the file
+  kept as it was.
 - **Notes**: where your vault is, and the starter vault for your phone, under "Obsidian setup".
 
 The pages write the workflow's files and never commit: the next agent step commits your work. It
@@ -128,9 +128,6 @@ write files, and start or tell no session.
 The settings page writes `[runs]`, which you can also edit by hand:
 
 ```toml
-[runs]
-review_depth = "branch" # or "waves": the reviewers review each wave too
-
 [runs.steps.discovery]
 agent = "claude"
 model = "opus"

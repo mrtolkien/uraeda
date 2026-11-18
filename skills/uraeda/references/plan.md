@@ -86,8 +86,7 @@ A task is the smallest unit that carries its own tests and is worth reviewing.
 - When the feature touches what the constitution says to benchmark, the first task records a
   baseline before any change, and each task that touches it runs the benchmark in its last run step.
 - Mark the risky tasks with a **Risky** line saying why: those that change security, the format of
-  stored data or its migration, concurrency, or a rule several callers share. Each gets a reviewer
-  of its own.
+  stored data or its migration, concurrency, or a rule several callers share.
 
 **The first task proves what the rest relies on.** Three cases:
 
@@ -138,7 +137,10 @@ say.
 - **Test map**: each scenario, edge case, and success criterion of the spec, with the task and the
   test that own it, or "none" and why: [how many](code-quality.md#how-many) decides. It opens with
   how the tests run.
-- **Waves**: one line per wave: its tasks, and the shared files they each add to.
+- **Waves**: one line per wave: its tasks, and the shared files they each add to. The branch is
+  reviewed once, at the end. Add "Review" and why to the line of a wave whose tasks are hard or
+  error-prone, such as one with a **Risky** task: it is reviewed when merged, as
+  [implementation](implementation.md#review-the-waves) says. Never add it by default.
 
 Add `contracts/` when the feature exposes an interface to users or other systems, in the format the
 project already uses.

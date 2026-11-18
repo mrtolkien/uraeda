@@ -5,6 +5,9 @@ icon: workflow
 # Run options
 
 > "I want to be able to select models per step for the workflow still"
+>
+> "Make it only one review at the end by default, except if the user asks for more", and "2 review
+> rounds max"
 
 Said of what any tool that runs the workflow must keep. A step is one stage of the workflow that an
 agent runs, as the spec or the build. Its pick is what it runs on: an agent, a model, and an effort,
@@ -20,6 +23,9 @@ session, and `ura next` tells it the pick.
 - The build's implementers and its reviewers run on their own picks, as sub-agents, which the
   session host starts when it can run an agent on a pick. _So:_ an agent whose session host cannot
   start a session on the reviewers' pick uses its own sub-agents, and says so in the pull request.
+- The branch is reviewed once, at the end, in two rounds at most: the review, then one over its
+  fixes. A wave is reviewed before that only when the human asks for more reviews, or when the plan
+  marks it for hard or error-prone tasks. _So:_ there is no setting for when reviews happen.
 
 ## Why
 

@@ -92,14 +92,13 @@ fn writes_the_implementers_and_reviewers_and_reads_them_back() {
             },
             command_reviewer("cargo clippy"),
         ]),
-        review_depth: Some("branch".into()),
     };
 
     settings::set_run_options(dir.path(), &options).unwrap();
 
     assert_eq!(
         text(dir.path()),
-        "[runs]\nkept = 3\nreview_depth = \"branch\"\n\n[runs.implementers]\nagent = \"codex\"\n\n[[runs.reviewers]]\nagent = \"claude\"\ninstructions = \"Check the tests.\"\n\n[[runs.reviewers]]\ncommand = \"cargo clippy\"\n"
+        "[runs]\nkept = 3\n\n[runs.implementers]\nagent = \"codex\"\n\n[[runs.reviewers]]\nagent = \"claude\"\ninstructions = \"Check the tests.\"\n\n[[runs.reviewers]]\ncommand = \"cargo clippy\"\n"
     );
     assert_eq!(settings::read(dir.path()).unwrap().runs, options);
     let cleared = settings::set_run_options(dir.path(), &RunOptions::default()).unwrap();
@@ -110,7 +109,7 @@ fn writes_the_implementers_and_reviewers_and_reads_them_back() {
 #[test]
 fn reports_where_a_run_option_is_wrong() {
     let dir = tempdir();
-    let rows: [(&str, &str); 8] = [
+    let rows: [(&str, &str); 7] = [
         (
             "# mine\n\n[runs.steps.spec]\neffort = 3\n",
             "line 4, runs.steps.spec.effort: The effort is a name.",
@@ -126,10 +125,6 @@ fn reports_where_a_run_option_is_wrong() {
         (
             "[runs]\nsteps = 1\n",
             "line 2, runs.steps: [runs.steps] is a table of steps.",
-        ),
-        (
-            "[runs]\nreview_depth = \"deep\"\n",
-            "line 2, runs.review_depth: deep is not a review depth: waves or branch.",
         ),
         (
             "[runs.implementers]\nmodel = true\n",
@@ -169,7 +164,7 @@ fn checks_a_set_of_run_options() {
         ..RunOptions::default()
     };
     let empty_agent = || Some(" ".to_owned());
-    let rows: [(RunOptions, Result<(), ApiError>); 11] = [
+    let rows: [(RunOptions, Result<(), ApiError>); 10] = [
         (
             with_steps(&["discovery", "spec", "plan", "build", "review", "comments"]),
             Ok(()),
@@ -184,13 +179,6 @@ fn checks_a_set_of_run_options() {
         (
             with_steps(&["spec", "plan", "spec"]),
             Err(refused("The spec's options are set twice.")),
-        ),
-        (
-            RunOptions {
-                review_depth: Some("deep".into()),
-                ..RunOptions::default()
-            },
-            Err(refused("deep is not a review depth: waves or branch.")),
         ),
         (
             with_reviewer(ReviewerOptions {
@@ -249,14 +237,16 @@ fn refuses_to_write_options_that_do_not_pass_the_check() {
     let written = settings::set_run_options(
         dir.path(),
         &RunOptions {
-            review_depth: Some("deep".into()),
+            steps: vec![step("tests")],
             ..RunOptions::default()
         },
     );
 
     assert_eq!(
         written,
-        Err(refused("deep is not a review depth: waves or branch."))
+        Err(refused(
+            "tests is not a step: discovery, spec, plan, build, review, or comments."
+        ))
     );
     assert_eq!(text(dir.path()), "# mine\n");
 }

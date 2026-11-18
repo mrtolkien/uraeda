@@ -65,7 +65,6 @@ pub struct Runs {
     steps: Vec<Step>,
     implementers: Pick,
     reviewers: Vec<Reviewer>,
-    depth: String,
 }
 
 impl Runs {
@@ -124,7 +123,6 @@ impl Runs {
             steps,
             implementers,
             reviewers: (!reviewers.is_empty()).then_some(reviewers),
-            review_depth: (self.depth == "branch").then(|| "branch".to_string()),
         }
     }
 }

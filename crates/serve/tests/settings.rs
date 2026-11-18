@@ -73,8 +73,7 @@ fn options() -> &'static str {
         {"step":"review","agent":"","model":"","effort":"","new_session":false},
         {"step":"comments","agent":"","model":"","effort":"","new_session":false}],
       "implementers":{"agent":"codex","model":"","effort":"medium"},
-      "reviewers":[{"agent":"","model":"","effort":"","instructions":"","command":"just review"}],
-      "depth":"branch"}"#
+      "reviewers":[{"agent":"","model":"","effort":"","instructions":"","command":"just review"}]}"#
 }
 
 #[test]
@@ -84,13 +83,7 @@ fn the_page_draws_each_step_its_sessions_and_the_reviewers() {
     let answer = server.get("/settings");
     assert_eq!(answer.status(), 200);
     let page = answer.into_body().read_to_string().unwrap();
-    for word in [
-        "Discovery",
-        "Comments",
-        "Implementers",
-        "+ Reviewer",
-        "Branch only",
-    ] {
+    for word in ["Discovery", "Comments", "Implementers", "+ Reviewer"] {
         assert!(page.contains(word), "{word}");
     }
     // The spec's row: Claude Code's mark, its model's name, and its effort on the meter.
@@ -159,7 +152,6 @@ fn a_save_writes_the_runs_and_keeps_the_rest_of_the_file() {
         "{text}"
     );
     assert!(text.contains("command = \"just review\""));
-    assert!(text.contains("review_depth = \"branch\""));
 }
 
 #[test]

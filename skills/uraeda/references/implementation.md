@@ -35,7 +35,7 @@ boxes is merged as if just finished. Any other task branch, and uncommitted chan
 `plan.md`'s boxes, are not trusted: read them, delete them, and redo that task. The human's
 uncommitted files are theirs: see
 [the human's work is committed first](../SKILL.md#the-humans-work-is-committed-first). A wave merged
-without its review is reviewed now.
+without the review it [asks for](#review-the-waves) is reviewed now.
 
 ## Implementers and reviewers
 
@@ -44,9 +44,9 @@ fresh agent: a review by the author is weaker.
 
 - **Implementers and reviewers run on their own picks**, the ones the human set for their roles, as
   [Sessions and picks](../SKILL.md#sessions-and-picks) says: with `ura`, `ura next` prints them,
-  with the reviewers the human set and whether they review each wave or the branch only. Start each
-  as a sub-agent through the session host when it can run an agent on a pick, or else as your own
-  sub-agent, on the model closest to its pick, and say so in the pull request.
+  with the reviewers the human set. Start each as a sub-agent through the session host when it can
+  run an agent on a pick, or else as your own sub-agent, on the model closest to its pick, and say
+  so in the pull request.
 - **Without sub-agents**, build the tasks yourself, in the plan's order, and review the branch as a
   separate pass, saying so in the pull request.
 
@@ -66,8 +66,8 @@ run again.
    boxes. For a real one: give the later task to a fresh implementer, to rebuild on the merged code.
 3. **Check the merged wave**, in the background: that the project builds, and the tests of the code
    the wave touched. This is not the complete validation.
-4. **Start the wave's review** in the background, and **start the next wave** without waiting for
-   the check or the review.
+4. **Start the wave's review** in the background when it [asks for one](#review-the-waves), and
+   **start the next wave** without waiting for the check or the review.
 
 A failed check or a finding does not stop the next wave: it is fixed beside it, on a branch made
 from the feature branch, and merged like a task between two waves. Only what the next wave cannot be
@@ -140,12 +140,14 @@ otherwise, unless it passes the two tests of [agents' notes](notes.md#agents-not
 
 ### Review the waves
 
-Each merged wave is reviewed once, by the reviewers the human set, while the next wave is built. The
+The branch is reviewed once, at the end. A wave is reviewed before that only when the human asked
+for more reviews, in the proposal, an answer, or a review comment, or when the plan's **Waves** line
+for it says "Review", with why: its tasks are hard or error-prone, like a **Risky** one. A wave
+reviewed is reviewed once, by the reviewers the human set, while the next wave is built. The
 reviewer gets the tasks' text, the spec's sections they implement with its approval comments, the
-global constraints, and the diff. A risky task gets a reviewer of its own. It works out the expected
-behaviour from the approved requirements before reading the code, and gives two verdicts: does it do
-what the spec says, and is it well built. It grades each finding, and says "none" when there is
-none.
+global constraints, and the diff. It works out the expected behaviour from the approved requirements
+before reading the code, and gives two verdicts: does it do what the spec says, and is it well
+built. It grades each finding, and says "none" when there is none.
 
 Its findings are [graded](#grade-the-findings) and fixed beside the next wave, each behaviour fix
 with a test that fails first. A wave's fixes are not reviewed again as a wave: the review of the
@@ -260,7 +262,7 @@ report as reviewed a feature nobody used.
 
 ### Review the branch
 
-Then review the whole branch, even when each wave was reviewed, on the commits since the branch
+Then review the whole branch, even when a wave was reviewed, on the commits since the branch
 started: each reviewer the human set, or else a fresh reviewer on the most capable model available,
 given the diff, the spec and its approval comments, the plan with its **Review focus**, and
 `rulings.md`. A second reviewer from another model family finds different things on a large branch:
@@ -298,10 +300,11 @@ A maintenance defect can be important before any user sees it: a unit grown past
 of a rule. A preference for other names is minor.
 
 **The review ends.** A finding is a claim until you confirm it: reproduce it, or read the code it
-names, before spending work on it, and decline a wrong one with its reason. After the fixes, one
-further review covers the fix commits only. Its confirmed critical and important findings are fixed
-and checked with focused tests, and the review is over. Never ask a reviewer for a number of
-findings: ask for evidence, and allow none.
+names, before spending work on it, and decline a wrong one with its reason. A review has two rounds
+at most: after the fixes, one further review covers the fix commits only. Its confirmed critical and
+important findings are fixed and checked with focused tests, and the review is over. A third round
+happens only when the human asks for it. Never ask a reviewer for a number of findings: ask for
+evidence, and allow none.
 
 Then run the complete validation, push the branch, open its pull request as a draft, and run the
 [finish](finish.md) step.

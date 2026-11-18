@@ -15,7 +15,6 @@ use crate::api::ApiError;
 pub fn set_run_options(dir: &Path, options: &RunOptions) -> Result<Settings, ApiError> {
     check_run_options(options)?;
     change_path(dir, &["runs"], |runs| {
-        put(runs, "review_depth", options.review_depth.as_deref());
         write_steps(dir, runs, &options.steps)?;
         write_implementers(dir, runs, options.implementers.as_ref())?;
         write_reviewers(runs, options.reviewers.as_deref());

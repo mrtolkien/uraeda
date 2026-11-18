@@ -1,5 +1,5 @@
 //! The run options of `[runs]`: each step's agent, model, effort, and session, the build's
-//! implementers, the reviewers, and the review's depth. Read, checked, and merged here, the only
+//! implementers, and the reviewers. Read, checked, and merged here, the only
 //! home of their rules, and written by `runs_write` (see `specs/decisions/run-options.md`).
 
 use toml_edit::{Item, Key, TableLike};
@@ -10,9 +10,6 @@ use crate::api::ApiError;
 
 /// The workflow's steps, in their order, each with its table under `[runs.steps]`.
 pub const STEPS: [&str; 6] = ["discovery", "spec", "plan", "build", "review", "comments"];
-
-/// The depths of the review: each wave and the branch, or the branch only.
-const DEPTHS: [&str; 2] = ["waves", "branch"];
 
 /// The run options a settings file or a feature holds, every value optional: what was picked,
 /// nothing resolved.
@@ -25,8 +22,6 @@ pub struct RunOptions {
     /// The reviewers, in the order they run: one agent reviewer on the review step's agent, on
     /// its defaults, when unset or empty.
     pub reviewers: Option<Vec<ReviewerOptions>>,
-    /// `waves`, each wave and the branch, or `branch`: `waves` when unset.
-    pub review_depth: Option<String>,
 }
 
 /// One step's options, a table `[runs.steps.<step>]`.
@@ -66,8 +61,8 @@ pub struct ReviewerOptions {
     pub command: Option<String>,
 }
 
-/// Refuses a step not of the workflow's, a step listed twice, a depth not `waves` or `branch`, an
-/// empty agent, and a reviewer without exactly one of an agent and a command, or with an empty
+/// Refuses a step not of the workflow's, a step listed twice, an empty
+/// agent, and a reviewer without exactly one of an agent and a command, or with an empty
 /// command.
 pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
     for (index, step) in options.steps.iter().enumerate() {
@@ -85,9 +80,6 @@ pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
     }
     if let Some(implementers) = &options.implementers {
         agent_rule(implementers.agent.as_deref()).map_err(refused)?;
-    }
-    if let Some(depth) = &options.review_depth {
-        depth_rule(depth).map_err(refused)?;
     }
     for reviewer in options.reviewers.iter().flatten() {
         agent_rule(reviewer.agent.as_deref()).map_err(refused)?;
@@ -115,13 +107,6 @@ fn step_rule(step: &str) -> Result<(), String> {
     ))
 }
 
-fn depth_rule(depth: &str) -> Result<(), String> {
-    if DEPTHS.contains(&depth) {
-        return Ok(());
-    }
-    Err(format!("{depth} is not a review depth: waves or branch."))
-}
-
 fn agent_rule(agent: Option<&str>) -> Result<(), String> {
     match agent {
         Some(agent) if agent.trim().is_empty() => Err("The agent is empty.".into()),
@@ -144,14 +129,6 @@ fn reviewer_rule(reviewer: &ReviewerOptions) -> Result<(), String> {
 /// `runs.steps.spec.effort`.
 pub(super) fn parse(runs: &dyn TableLike) -> Result<RunOptions, Problem> {
     let mut options = RunOptions::default();
-    if let Some((key, item)) = runs.get_key_value("review_depth") {
-        let at = |problem: String| (offset(key, item), "runs.review_depth".to_owned(), problem);
-        let depth = item
-            .as_str()
-            .ok_or_else(|| at("The review depth is waves or branch.".into()))?;
-        depth_rule(depth).map_err(at)?;
-        options.review_depth = Some(depth.to_owned());
-    }
     if let Some((key, item)) = runs.get_key_value("steps") {
         options.steps = parse_steps(key, item)?;
     }

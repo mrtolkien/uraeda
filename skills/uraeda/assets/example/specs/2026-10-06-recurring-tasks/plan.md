@@ -98,7 +98,8 @@ test. None uses a real browser: the app has no browser runner.
 
 ## Waves
 
-1. Task 1: calendar-day due dates and their upgrade, which every later task is built on.
+1. Task 1: calendar-day due dates and their upgrade, which every later task is built on. Review: the
+   upgrade rewrites every stored date.
 2. Task 2: completing a repeating task, which defines `RepeatPattern` and `RepeatRule`.
 3. Task 3: the repeat menu, whose `setRepeat` and `pickRepeat` tasks 4 and 5 use.
 4. Tasks 4 and 5: the custom screen changes the components, and the title parser the repeat module

@@ -279,8 +279,7 @@
           command: command ? item.dataset.command : "",
         };
       });
-      const chosen = $('.depth [aria-checked="true"]', main);
-      return { steps, implementers, reviewers, depth: chosen ? chosen.dataset.depth : "waves" };
+      return { steps, implementers, reviewers };
     }
 
     const saveRuns = () => write("settings/runs", { options: collect() });
@@ -458,14 +457,6 @@
         const on = cut.getAttribute("aria-pressed") !== "true";
         cut.setAttribute("aria-pressed", String(on));
         $(".label", cut).textContent = on ? "✂ New session" : "Same session";
-        saveRuns();
-        return;
-      }
-      const depth = event.target.closest(".depth [data-depth]");
-      if (depth) {
-        for (const b of $$(".depth [data-depth]", main)) {
-          b.setAttribute("aria-checked", String(b === depth));
-        }
         saveRuns();
         return;
       }

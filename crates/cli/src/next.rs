@@ -62,8 +62,6 @@ struct Run {
     /// For the build: the implementers', and the reviewers' in their order.
     implementers: Option<Pick>,
     reviewers: Option<Vec<Pick>>,
-    /// For the build: `waves`, each wave and the branch, or `branch` only.
-    review_depth: Option<String>,
 }
 
 pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
@@ -134,12 +132,6 @@ fn run_of(step: &Step, options: &RunOptions) -> Option<Run> {
                 .unwrap_or_default()
         }),
         reviewers: build.then(|| options.reviewers.iter().flatten().map(Pick::from).collect()),
-        review_depth: build.then(|| {
-            options
-                .review_depth
-                .clone()
-                .unwrap_or_else(|| "waves".to_string())
-        }),
     })
 }
 
@@ -194,8 +186,7 @@ fn render(feature: Option<&Feature>, run: Option<&Run>) -> String {
             } else {
                 reviewers.iter().map(shown).collect::<Vec<_>>().join("; ")
             };
-            let depth = run.review_depth.as_deref().unwrap_or("waves");
-            text.push_str(&format!("  reviewers  {listed} (depth: {depth})\n"));
+            text.push_str(&format!("  reviewers  {listed}\n"));
         }
     }
     text
