@@ -35,7 +35,8 @@ pub fn main(text: &str, round: &Round, page: &Page<'_>, draw: &dyn Fn(&str) -> S
         out,
         "<main class=\"round\" data-waiting=\"{waiting}\">\
          <nav class=\"crumbs\"><a href=\"../../\">‹ What waits on you</a></nav>\
-         <h1>{name}</h1><p class=\"muted subtitle\">Questions, round {number}</p>",
+         <p class=\"badge{sent}\">Questions, round {number}</p><h1>{name}</h1>",
+        sent = if page.waiting { "" } else { " quiet" },
         waiting = page.waiting,
         name = escape(page.name),
         number = page.number,
@@ -46,7 +47,7 @@ pub fn main(text: &str, round: &Round, page: &Page<'_>, draw: &dyn Fn(&str) -> S
     if let Some(context) = round.context {
         let _ = write!(
             out,
-            "<details class=\"context\"><summary>Context: the goal, what exists, and the \
+            "<details class=\"context\" id=\"context\"><summary>Context: the goal, what exists, and the \
              sources</summary>{}</details>",
             part(context)
         );
@@ -70,9 +71,11 @@ pub fn main(text: &str, round: &Round, page: &Page<'_>, draw: &dyn Fn(&str) -> S
             disabled = if page.waiting { "" } else { " disabled" },
         );
     }
+    out.push_str("</main>");
+    outline(&mut out, round, &questions, notes.is_some());
     let _ = write!(
         out,
-        "</main><div class=\"bar\" role=\"region\" aria-label=\"Progress\">\
+        "<div class=\"bar\" role=\"region\" aria-label=\"Progress\">\
          <span class=\"progress\"><b class=\"count\">{answered}</b> of <b class=\"total\">{total}\
          </b> answered</span>",
         total = asked.len(),
@@ -87,6 +90,77 @@ pub fn main(text: &str, round: &Round, page: &Page<'_>, draw: &dyn Fn(&str) -> S
     }
     out.push_str("</div>");
     out
+}
+
+/// The outline beside the page at a desk: how far the answers are, and a link to each part, an
+/// answered question marked and a follow-up not asked left out.
+fn outline(out: &mut String, round: &Round, all: &[clarifications::Question], notes: bool) {
+    let asked: Vec<_> = all.iter().filter(|q| q.asked(all)).collect();
+    let done = asked.iter().filter(|q| !q.answer.trim().is_empty()).count();
+    let _ = write!(
+        out,
+        "<aside class=\"outline\" aria-label=\"Outline\"><p class=\"outline-progress\">\
+         <b class=\"count\">{done}</b> of <b class=\"total\">{total}</b> answered</p>\
+         <div class=\"meter-bar\" style=\"--done:{done};--total:{total}\"><i></i></div><ul>",
+        total = asked.len().max(1),
+    );
+    if round.context.is_some() {
+        out.push_str("<li><a href=\"#context\">Context</a></li>");
+    }
+    if !round.settled.is_empty() {
+        let _ = write!(
+            out,
+            "<li><a href=\"#settled\">Settled without you · {}</a></li>",
+            round.settled.len()
+        );
+    }
+    out.push_str("</ul><ul class=\"outline-questions\">");
+    for item in &round.questions {
+        let question = &item.question;
+        let answered = !question.answer.trim().is_empty();
+        let _ = write!(
+            out,
+            "<li{hidden}><a href=\"#{id}\" data-for=\"{id}\"{class}><span class=\"qid\">{id}\
+             </span> {title}</a></li>",
+            hidden = if question.asked(all) || answered {
+                ""
+            } else {
+                " hidden"
+            },
+            id = escape(&question.id),
+            class = if answered { " class=\"answered\"" } else { "" },
+            title = escape(&question.title),
+        );
+    }
+    out.push_str("</ul>");
+    if notes {
+        out.push_str("<ul><li><a href=\"#notes\">Anything else?</a></li></ul>");
+    }
+    out.push_str("</aside>");
+}
+
+/// A framed box with its label cut into the frame: a question's "Why it matters" or "Example",
+/// whose paragraph loses the same words at its start.
+fn boxed(out: &mut String, class: &str, label: &str, html: &str) {
+    let lead = format!("{label}: ");
+    let body = match html.find(&lead) {
+        Some(at) => {
+            let rest = &html[at + lead.len()..];
+            let mut chars = rest.chars();
+            let first = chars.next().map(|c| c.to_uppercase().to_string());
+            format!(
+                "{}{}{}",
+                &html[..at],
+                first.unwrap_or_default(),
+                chars.as_str()
+            )
+        }
+        None => html.to_string(),
+    };
+    let _ = write!(
+        out,
+        "<div class=\"{class} box\"><span class=\"legend\">{label}</span>{body}</div>"
+    );
 }
 
 /// The settled points, each with the human's comment, when there is one, and a field for it.
@@ -174,12 +248,8 @@ fn card(
     for item in &asked.parts {
         match item {
             Part::Text(range) => out.push_str(&part(*range)),
-            Part::Why(range) => {
-                let _ = write!(out, "<div class=\"why\">{}</div>", part(*range));
-            }
-            Part::Example(range) => {
-                let _ = write!(out, "<div class=\"example\">{}</div>", part(*range));
-            }
+            Part::Why(range) => boxed(out, "why", "Why it matters", &part(*range)),
+            Part::Example(range) => boxed(out, "example", "Example", &part(*range)),
         }
     }
     let role = if asked.combine { "checkbox" } else { "radio" };
@@ -198,8 +268,7 @@ fn card(
             out,
             "<div class=\"choice{recommended}\" role=\"{role}\" tabindex=\"{tab}\" \
              aria-checked=\"{picked}\" aria-disabled=\"{disabled}\" data-letter=\"{letter}\">\
-             <span class=\"tick\" aria-hidden=\"true\"></span><span class=\"letter\">{letter}</span>\
-             {tag}{body}</div>",
+             <span class=\"legend\"><span class=\"letter\">{letter}</span>{tag}</span>{body}</div>",
             recommended = if choice.recommended {
                 " recommended"
             } else {
@@ -209,7 +278,7 @@ fn card(
             disabled = !waiting,
             letter = choice.letter,
             tag = if choice.recommended {
-                "<span class=\"tag\">★ Recommended</span>"
+                " ★ Recommended"
             } else {
                 ""
             },

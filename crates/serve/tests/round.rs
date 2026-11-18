@@ -155,3 +155,38 @@ fn a_comment_on_a_settled_point_goes_in_the_notes() {
         on_disk(&f)
     );
 }
+
+#[test]
+fn the_round_page_frames_its_boxes_and_lists_its_questions_beside() {
+    let f = fixture(&[("clarifications-01.md", waiting_round())]);
+    let server = Server::with(settings(&f));
+    let page = server
+        .get(&format!("{}/round", base()))
+        .into_body()
+        .read_to_string()
+        .unwrap();
+    // A "Why it matters" box says so in its frame's label, once.
+    assert!(
+        page.contains("<span class=\"legend\">Why it matters</span>"),
+        "{page}"
+    );
+    assert!(!page.contains("Why it matters:"), "{page}");
+    assert!(page.contains("This sets how complex the edit panel gets"));
+    // The recommended option's label holds its letter.
+    assert!(
+        page.contains("<span class=\"letter\">A</span> ★ Recommended</span>"),
+        "{page}"
+    );
+    // The outline: the progress, and a link per part, an answered question marked.
+    let outline = &page[page.find("<aside class=\"outline\"").unwrap()..];
+    assert!(outline.contains("href=\"#settled\""), "{outline}");
+    assert!(
+        outline.contains("<a href=\"#Q1\" data-for=\"Q1\" class=\"answered\">"),
+        "{outline}"
+    );
+    assert!(
+        outline.contains("<li hidden><a href=\"#Q2.B\""),
+        "{outline}"
+    );
+    assert!(outline.contains("href=\"#notes\""));
+}

@@ -61,6 +61,27 @@
     return call;
   }
 
+  // --- The outline -----------------------------------------------------------------------------
+
+  /** Marks, in the outline beside the page, the link of the part being read. */
+  function follow(outline) {
+    const links = $$('a[href^="#"]', outline);
+    const part = (a) => document.getElementById(decodeURIComponent(a.hash.slice(1)));
+    const mark = () => {
+      let current = null;
+      for (const a of links) {
+        const el = part(a);
+        if (el && !el.hidden && el.getBoundingClientRect().top < 140) current = a;
+      }
+      for (const a of links) a.removeAttribute("aria-current");
+      if (current) current.setAttribute("aria-current", "true");
+    };
+    addEventListener("scroll", mark, { passive: true });
+    mark();
+  }
+  const outline = $("aside.outline");
+  if (outline) follow(outline);
+
   // --- The round -------------------------------------------------------------------------------
 
   const round = $("main.round");
@@ -687,6 +708,7 @@
           main.append(done);
           const bar = $(".bar");
           if (bar) bar.remove();
+          if (outline) outline.remove();
           pick.remove();
           window.scrollTo(0, 0);
         } catch (error) {
@@ -730,6 +752,18 @@
       const complete = done === shown.length;
       next.hidden = complete;
       send.hidden = !complete;
+      if (!outline) return;
+      $(".count", outline).textContent = done;
+      $(".total", outline).textContent = shown.length;
+      const meter = $(".meter-bar", outline);
+      meter.style.setProperty("--done", done);
+      meter.style.setProperty("--total", Math.max(shown.length, 1));
+      for (const q of $$("section.q", main)) {
+        const link = $(`a[data-for="${q.dataset.id}"]`, outline);
+        if (!link) continue;
+        link.classList.toggle("answered", answered(q));
+        link.parentElement.hidden = q.hidden;
+      }
     }
 
     function followUps(q) {
@@ -818,6 +852,7 @@
         $("p", done).textContent = data.next;
         main.append(done);
         bar.remove();
+        if (outline) outline.remove();
         window.scrollTo(0, 0);
       } catch (error) {
         send.disabled = false;
