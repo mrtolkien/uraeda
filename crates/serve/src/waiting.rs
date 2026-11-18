@@ -275,7 +275,13 @@ fn encode(text: &str) -> String {
 /// The home page's body. With the vault's name, each card links its file in Obsidian, and each
 /// repository its board of proposals.
 pub fn render(waiting: &Waiting, vault: Option<&str>) -> String {
-    let mut out = String::from("<main><h1>What waits on you</h1>");
+    let mut out = String::from(
+        "<main class=\"home\"><header class=\"home-head\"><h1>What waits on you</h1>\
+         <a class=\"button refresh\" href=\"./\"><svg viewBox=\"0 0 24 24\" width=\"18\" \
+         height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" \
+         stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\
+         <path d=\"M21 12a9 9 0 1 1-2.64-6.36\"/><path d=\"M21 3v6h-6\"/></svg>Refresh</a></header>",
+    );
     if waiting.is_empty() && waiting.repositories.iter().all(|r| r.problem.is_none()) {
         out.push_str(
             "<p class=\"waiting-empty\">Nothing waits on you.</p>\

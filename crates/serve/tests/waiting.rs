@@ -160,3 +160,13 @@ fn with_a_vault_each_card_opens_its_file_in_obsidian() {
     assert!(page.contains("projects%2Ftodo%2FBoard.base"), "{page}");
     assert!(!uraeda_serve::waiting::render(&waiting, None).contains("obsidian://"));
 }
+
+#[test]
+fn the_home_page_has_a_refresh_button() {
+    let f = fixture(&[("clarifications-01.md", round("awaiting-human"))]);
+    let page = home(&Server::with(settings(&f)));
+    assert!(
+        page.contains("<a class=\"button refresh\" href=\"./\""),
+        "{page}"
+    );
+}
