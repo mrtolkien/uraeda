@@ -171,7 +171,7 @@ fn the_round_page_frames_its_boxes_and_lists_its_questions_beside() {
         "{page}"
     );
     assert!(!page.contains("Why it matters:"), "{page}");
-    assert!(page.contains("This sets how complex the edit panel gets"));
+    assert!(page.contains("this sets how complex the edit panel gets"));
     // The recommended option's label holds its letter.
     assert!(
         page.contains("<span class=\"letter\">A</span> ★ Recommended</span>"),
