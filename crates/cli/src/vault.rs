@@ -33,8 +33,8 @@ enum Command {
     },
     /// Write a note from standard input, or set one frontmatter field and leave the rest as it was
     Write {
-        /// The note, from the vault's folder: `inbox/sort-completed-tasks.md`, its `.md` optional
-        /// when the note exists
+        /// The note, from the vault's folder: `inbox/sort-completed-tasks.md`; `.md` is added
+        /// when the path has none
         path: String,
         /// Set this field instead, as `name=value`: `--set status=started`
         #[arg(long, value_name = "FIELD=VALUE")]

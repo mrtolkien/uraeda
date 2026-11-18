@@ -111,9 +111,23 @@ pub fn read(vault: &Vault, path: &str) -> Result<String, NoteError> {
     })
 }
 
-/// Writes a note, its folders made: refused for a path neither `ura vault` nor the phone writes.
+/// The note a write of `path` makes: the path with `.md` added when it has none, so a note is
+/// never saved where the notes app would not list it. A path the vault refuses stays as given.
+fn written_as(vault: &Vault, path: &str) -> String {
+    if vault.file(path).is_some() && !path.ends_with(".md") {
+        format!("{path}.md")
+    } else {
+        path.to_string()
+    }
+}
+
+/// Writes a note, its folders made, `.md` added to a path without it: refused for a path neither
+/// `ura vault` nor the phone writes.
 pub fn write(vault: &Vault, path: &str, bytes: &[u8]) -> Result<(), NoteError> {
-    let path = &named(vault, path);
+    write_as(vault, &written_as(vault, path), bytes)
+}
+
+fn write_as(vault: &Vault, path: &str, bytes: &[u8]) -> Result<(), NoteError> {
     let file = writable(vault, path)?;
     write_atomic(&file, bytes).map_err(|e| NoteError::Io(path.into(), e))
 }
@@ -124,8 +138,9 @@ pub fn set(vault: &Vault, path: &str, assignment: &str) -> Result<(), NoteError>
         .split_once('=')
         .filter(|(n, v)| valid_name(n) && !v.contains(['\n', '\r']))
         .ok_or(NoteError::Field)?;
+    let path = &named(vault, path);
     let text = read(vault, path)?;
-    write(vault, path, set_field(&text, name, value).as_bytes())
+    write_as(vault, path, set_field(&text, name, value).as_bytes())
 }
 
 /// Moves a note to `.trash/`, at the same path, numbered when one is there already.
@@ -288,6 +303,16 @@ mod tests {
         write(&vault, "wiki/a.md", b"note").unwrap();
         std::fs::write(dir.path().join("wiki/a"), "file").unwrap();
         write(&vault, "wiki/b.md", b"b").unwrap();
+        write(&vault, "wiki/d", b"d").unwrap();
+        assert!(dir.path().join("wiki/d.md").is_file());
+        assert!(!dir.path().join("wiki/d").exists());
+        set(&vault, "wiki/d", "status=started").unwrap();
+        assert!(
+            read(&vault, "wiki/d.md")
+                .unwrap()
+                .contains("status: started")
+        );
+        assert!(!dir.path().join("wiki/d").exists());
         std::fs::write(dir.path().join("wiki/...md"), "dots").unwrap();
         assert_eq!(named(&vault, "wiki/a"), "wiki/a");
         assert_eq!(named(&vault, "wiki/b"), "wiki/b.md");
