@@ -75,11 +75,13 @@ tasks feature through the whole workflow:
    **Answer:** C, we want a simple feature.
    ```
 
-4. **It writes the [spec](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/spec.md)**,
+4. **It draws the [views](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/views.md)**
+   of a feature with UI work, and you comment on them live until they are right.
+5. **It writes the [spec](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/spec.md)**,
    with two new [decisions](skills/uraeda/assets/example/specs/decisions/), and you approve it.
-5. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
+6. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
    tasks with their failing tests written out, implements it, and opens a pull request.
-6. **It finishes the feature**: one
+7. **It finishes the feature**: one
    [record](skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with each question and its answer.
 

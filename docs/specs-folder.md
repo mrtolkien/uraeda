@@ -87,22 +87,30 @@ tasks feature went through the whole workflow:
    organization than history (we're a todo app, not a calendar)
    ```
 
-4. **It writes the
+4. **It draws the views, when the feature has UI work.** Its questions asked only what the feature
+   does, never how it looks. The agent draws a first draft of the screens in the project's own look,
+   pushes it, and writes
+   [views.md](../skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/views.md): each view
+   as a link, what to look at first, and what its own walk through them fixed. You look when you
+   have time, away from the session, then come back with all your comments at once. The agent
+   changes the views while you watch, with no commit for each comment, until you say they are right.
+   A feature that is only a look has no questions at all, and starts here.
+5. **It writes the
    [spec](../skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/spec.md)**: what you
    approve first, then two new decisions,
    [due dates](../skills/uraeda/assets/example/specs/decisions/due-dates.md) and
    [repeating tasks](../skills/uraeda/assets/example/specs/decisions/repeating-tasks.md), the user
    stories with their key scenarios, and the architecture. The build details go to the plan. You
    approve it, and its decisions with it: the merge brings them in.
-5. **It writes the
+6. **It writes the
    [plan](../skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**, in the style
    of superpowers: tasks with the files they touch, their interfaces, and their failing tests
    written out. The spec's risk tier is high, since every saved due date is upgraded. So it proposed
    that you review the plan too, and you kept that when approving it.
-6. **It implements the plan, building independent tasks at the same time, and opens a pull
+7. **It implements the plan, building independent tasks at the same time, and opens a pull
    request**, where you review the code. When you want, one message sends it to your comments: it
    fixes each in a commit, and the pull request waits for you again.
-7. **It finishes the feature** in the pull request's last commit. One
+8. **It finishes the feature** in the pull request's last commit. One
    [record](../skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with what the feature does, each question and its answer, and what changed after you
    approved. Once you merge, the next agent that finds the record sets the proposal's note `done`.
@@ -146,6 +154,7 @@ specs/
     proposal.md                # you: what and why; the branch's first commit
     discovery-01.md            # agent: what the round's questions rely on, and the map of the code
     clarifications-01.md       # agent: questions; you: answers
+    views.md                   # agent: the views of a feature with UI work; you: your "ok"
     spec.md                    # agent: decisions, stories, architecture; you: approval
     spec-review.md             # you: comments on the spec, with your verdict
     plan.md                    # agent: implementation tasks and tests

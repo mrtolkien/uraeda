@@ -51,8 +51,10 @@ the `ura vault write` that sets it `done`.
 
 `ura next` prints what an agent runs next: the target, its step, the skill's file to follow, its
 pick (agent, model, and effort), and whether it runs on in the session of the previous step or
-starts a new one. When your answers or review are on disk, uncommitted, it says to commit them
-first. The picks are yours, in the settings file, which `ura serve`'s settings page edits.
+starts a new one. A feature with UI work is at the step `ui-iteration` once its round is answered,
+until the agent has written its views. When your answers or review are on disk, uncommitted, it says
+to commit them first. The picks are yours, in the settings file, which `ura serve`'s settings page
+edits.
 
 Both read your pull requests with `gh`. An open pull request, not a draft and with no changes
 requested, waits on you only once it holds its branch's latest commit. Until then, the step is
@@ -89,16 +91,19 @@ version of the file that has changed since, and a review file that does not pars
 
 ## `ura serve`
 
-`ura serve` serves small pages to answer a round and review a spec or a plan on, from your phone
-too. It prints their address, then a token. A browser opens the pages once you have signed in with
-the token, which it then remembers for a year: keep the token in your password manager, and to
-yourself, as anyone with it can answer for you. Removing `serve-token` from `ura`'s data folder
-makes a new one at the next start, and signs every browser and phone out.
+`ura serve` serves small pages to answer a round, look at views, and review a spec or a plan on,
+from your phone too. It prints their address, then a token. A browser opens the pages once you have
+signed in with the token, which it then remembers for a year: keep the token in your password
+manager, and to yourself, as anyone with it can answer for you. Removing `serve-token` from `ura`'s
+data folder makes a new one at the next start, and signs every browser and phone out.
 
-- **What waits on you**: every round, spec, and plan waiting for you, across the repositories it
-  serves and their worktrees, each with what is asked and how long it takes.
+- **What waits on you**: every round, set of views, spec, and plan waiting for you, across the
+  repositories it serves and their worktrees, each with what is asked and how long it takes.
 - **A round**: one card per question, the recommended option marked. An answer is saved as soon as
   you pick it or type it. "Send answers" records the round answered.
+- **Views**: the agent's first draft of a feature's screens, with its story links drawn live. The
+  page takes no comment: you comment in your project's own preview, or tell the agent in its
+  session, and it changes the views at once.
 - **A review**: the spec or plan, what changed since your last review, and a comment on any passage
   you tap, or on words you select. Then approve, or request changes.
 - **Mockups**: "See it" draws a mockup of the feature in place. "Pick an element" starts a comment
