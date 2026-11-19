@@ -6,6 +6,8 @@ settle, and asks the human, in one file, what only they can answer.
 - **Runs when**: a folder has a `proposal.md` and no `clarifications-01.md` (round 01), or another
   step needs the human to decide something new (the next round, see
   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions))
+- **Asks**: what the feature does. How it looks is settled after the round, on the views, in the
+  [UI iteration](ui.md)
 - **Writes**: `discovery-NN.md` and `clarifications-NN.md`, with the round's number; in the human's
   notes, through a sub-agent, the wiki's notes the round earned and the feature's research recap
 - **Ends at**: a human gate, `clarifications-NN.md` with `status: awaiting-human`
@@ -157,6 +159,11 @@ whole record: nothing longer is kept elsewhere. It holds what a later agent, wit
 needs to check the round and build on it, and no more: a fact no question or settled point rests on
 is left out.
 
+- **Frontmatter**: two optional fields, which tools read. `ui: true` says the feature has UI work: a
+  new screen, a new control, or a visible change to one. Its views are then settled in the
+  [UI iteration](ui.md), before the spec. `round: none` says the feature is only a look, and the
+  round asks nothing. Leave a field out when it does not apply: a file without them is a round about
+  a feature with no UI work.
 - **Why this round**: later rounds only.
 - **Summary**: the feature in a few sentences, for an agent who reads nothing else, and the name of
   the feature's research recap in the human's notes.
@@ -211,12 +218,16 @@ line, and only if they object. So settle, and ask little.
 - a limit, a refusal, or a gate the proposal does not ask for;
 - dropping or shrinking the feature, or cutting part of what the proposal asks.
 
+**A round asks what the feature does, never how it looks.** A layout, a control, a motion, or a
+colour is not a question: the human settles it on the views, live, in the [UI iteration](ui.md),
+after the round. A question about a look costs them a card to read about something they then answer
+on the view anyway.
+
 **Within what they asked for, ask only when the answer changes what the human will see or live with,
 and their goals do not choose between the options.** That is usually:
 
 - what the feature is for, and where its scope ends, when the proposal leaves it open;
 - a tradeoff between two things the human wants;
-- a look, shown as variants: see [visual questions](#visual-questions);
 - a default the user meets every day, where both ways are reasonable: what is on unless turned off,
   what happens when something was missed.
 
@@ -240,6 +251,11 @@ Four limits on settling:
 
 If nothing needs an answer, the round has a single question confirming your reading: "A
 (recommended). Go ahead with the scope above".
+
+**A feature that is only a look has no round at all**: when every open point is how something looks
+or moves, write no questions file. The discovery file says `round: none` and `ui: true` in its
+frontmatter, and its **Summary** says what you settled. Commit it alone, and start the
+[UI iteration](ui.md): the human confirms your reading on the first draft of the views.
 
 A project without a code-quality, a testing, or, for UI work, a preview decision is asked once
 whether to adopt one: see [setting up a project](projects.md#setting-up-a-project).
@@ -297,46 +313,15 @@ be narrowed, or given a case where it does not apply. A conflict with the consti
 principle and recommends changing the proposal. An exception holds only if the human accepts it in
 their answer: it is then spelled out in the plan, which waits for their review.
 
-## Visual questions
+## A look is not a question
 
-**A question whose options differ in how something looks or moves shows each option.** The human
-cannot pick a layout, a control, or a motion from words, and will ask to see it. When the project's
-preview cannot show it, use a [prototype](#prototypes). A small visual detail you cannot show is
-settled, and the spec's mockup carries it; a direction for a whole view is never settled unseen. A
-label's wording stays in words.
+A question whose options differ only in how something looks or moves is not asked: it is drawn, as
+variants, in the [UI iteration](ui.md), where the human picks on the view. Words about a look are
+answered twice, once in the round and once when the human sees it.
 
-- **A few variants**, distinct: if two could swap their text unnoticed, drop one.
-- **Drawn in the project's own look**, with its components, after reading its guides. A variant in
-  another style is judged on its style.
-- **For a view that exists, the variant is the real view, changed**, not a drawing of it: what the
-  human picks is then what gets built.
-- **Each option links its variant** in a paragraph of its own, under the option's sentence, then
-  gives its `[pro]` and `[con]`.
-
-```markdown
-- **A (recommended). A thin line, which thickens under the pointer.**
-
-  [Thin line](/src/SidebarHandle.stories.tsx#ThinLine)
-
-  - [pro] nothing new to see until the pointer is there.
-  - [con] harder to find.
-  - Why recommended: it keeps the sidebar quiet.
-```
-
-With an active preview decision, variants are stories, written where the decision puts them. Before
-linking one, set the worktree up as the project asks, start the preview with the decision's
-`preview-command`, and look at each variant, at the narrowest and the widest width the project
-serves: a story that renders can still read badly. The human may answer with a mix, "A, with B's
-grip". Commit the variants with the round. The spec keeps the picked one, as
-[mockups](spec.md#mockups) describes.
-
-### Prototypes
-
-A round may also compare looks as throwaway prototypes, in any format: HTML pages, SVGs, generated
-images. Use them when building each look with the real components costs too much, like a whole
-layout or a colour scheme. They go in the feature's `mockups/` folder, each option linking its own.
-They are not the spec's mockups: the [plan step](plan.md#delete-the-prototypes) deletes them, and
-git keeps them.
+A question about function may still need a picture to be understood: what a list shows after an
+answer, where a new act lives. Then link the view that exists today, or one story, as the question's
+context, and keep the options about what happens.
 
 ## Self-review
 
@@ -345,7 +330,7 @@ Before committing, read both files again, and fix what you find:
 1. **Your reading**: `### Goal` says what the human asked, in their words, with the product they
    named. Nothing in the round goes against the proposal.
 2. **Each question**: the answer changes what the human sees or lives with, and you would not bet on
-   your recommendation. Otherwise it is a settled point. A look is shown.
+   your recommendation. Otherwise it is a settled point. None asks about a look.
 3. **Each settled point**: it adds no limit or refusal nobody asked for, and one the human may
    object to is under **Check these**, said as what happens to them.
 4. **Coverage**: every topic your research listed, and every section of the discovery's **The
@@ -364,6 +349,9 @@ With `ura`, run `ura check` on the folder last.
 Commit both files: `discovery(<slug>): <feature name>`, or what the new round is about, with the
 block's first line as the body. The recap and the wiki's notes are in the human's notes, never
 committed. Then stop at the gate.
+
+**A feature that is only a look** commits its discovery file alone, with the same message, and goes
+on to the [UI iteration](ui.md) without stopping: its first draft is where the human comes in.
 
 **A round asked in the session**, when the human asks for it, writes the discovery file and the
 notes the same way, then asks the questions in the session, as

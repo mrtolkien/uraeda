@@ -54,7 +54,8 @@ at 250 a minute, for a spec everything but the "More scenarios" lists and `## Hi
 per question, follow-up, mockup, or changed decision, and round up to the next 5 minutes. A round of
 2,400 words with 7 questions and 1 follow-up is 9.6 plus 8, about 20 minutes. On a revision, count
 only what changed, and `## Your review`. A round without follow-ups leaves them out of its first
-line.
+line. The views of a [UI iteration](ui.md) take a minute each, and one more for each open variant:
+"Views to look at, about 5 minutes."
 
 **Once the human has answered or reviewed, the block becomes a note**: `> [!NOTE]`, its first line
 the outcome and its date, "Answered on 2026-10-08", "Approved on 2026-10-09", "Changes requested on
@@ -120,8 +121,8 @@ round 01 already said rather than repeating it.
   concrete case with real names and values: "'Water the plants' repeats every Monday. You complete
   it on Monday 5 October." Each option then says what happens in that case. A question whose options
   are already concrete, a library or a name, needs none.
-- **A choice about a look is shown**, each option with its variant or prototype: see
-  [visual questions](discovery.md#visual-questions).
+- **A choice about a look is never a question**: it is drawn, and picked on the view, in the
+  [UI iteration](ui.md).
 - **"Why it matters" says what the choice decides, and what it costs later**, in a sentence or two.
   It tells the human how much thought the question deserves.
 - **Questions that depend on each other say so**, in both: "Where the choice appears is Q6".

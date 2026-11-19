@@ -68,6 +68,7 @@ Five habits follow, and every step applies them:
 - **Round**: one set of questions for the human, in `clarifications-NN.md`. A feature's round comes
   with the findings it relies on, `discovery-NN.md`. An answered round keeps the human's words as
   they wrote them.
+- **UI iteration**: settles a feature's views, in `views.md`, before its spec.
 - **Spec**: `spec.md`, what the feature does and how it is built. The human approves it.
 - **Plan**: `plan.md`, the tasks that build the spec, checked off as they are built.
 - **Decision**: a boundary the human set for the whole project, in their own words, in
@@ -83,7 +84,7 @@ Five habits follow, and every step applies them:
 - **Block**: the `> [!IMPORTANT]` callout that opens a file waiting for the human. It says what is
   asked, how long it takes, and what needs their attention.
 - **Human gate**: a point where only the human can move the work on: a proposal to write, a round to
-  answer, a spec or a plan to review, a pull request to merge.
+  answer, views to look at, a spec or a plan to review, a pull request to merge.
 - **Session host**: what runs the agents' sessions, each in a feature's worktree: T3 Code, Orca, or
   a terminal. See [Sessions](#sessions-and-picks).
 - **Pick**: what a step runs on: an agent, a model, and an effort.
@@ -101,8 +102,9 @@ specs/
   changes/YYYY-MM-DD-<slug>/ # one folder per change, as a feature's, without spec or plan
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why; the branch's first commit
-    discovery-01.md         # agent: what a round's questions rely on, and the map of the code
+    discovery-01.md         # agent: what a round's questions rely on
     clarifications-01.md    # agent: questions; human: answers and notes
+    views.md                # agent: the views to look at
     spec.md                 # agent: what the human approves; amended in place
     spec-review.md          # human: comments on the spec, with the verdict
     data-model.md           # agent, with the spec: stored data and file formats it changes
@@ -110,13 +112,13 @@ specs/
     plan-review.md          # human: comments on the plan, when it is reviewed
     rulings.md              # agent: what users will notice that the spec did not state
     contracts/              # agent, when the feature exposes an interface
-    mockups/                # agent: mockups, and a round's prototypes until the spec's approval
+    mockups/                # agent: mockups, and the views' prototypes
     images/                 # images the human attached
 ```
 
 A started feature lives only on its branch: the default branch gets its folder, as a record, with
 the merge. Later rounds are new files, `discovery-02.md` and `clarifications-02.md`. The spec and
-the plan are single files, amended in place: they are the source of truth for the build.
+the plan are single files, amended in place, the source of truth for the build.
 
 Before any step, read `specs/CONSTITUTION.md`, the decisions whose **Applies to** covers your work,
 and the project's guides for the area you touch. The constitution wins over decisions, and decisions
@@ -124,8 +126,7 @@ win over specs and plans. A decision on the default branch is in force. A branch
 changes one edits it in place: the difference is its proposal, which the human approves with the
 spec, and the merge brings in. Templates for every file are in `assets/templates/specs/`, at the
 same paths, and `assets/example/specs/` holds a filled-in project: `2026-10-06-recurring-tasks/`
-shows every file of a feature. Templates and an example of the human's notes are beside them, in
-`assets/templates/notes/` and `assets/example/notes/`.
+shows every file of a feature. The human's notes have both too, in `assets/*/notes/`.
 
 ## The human's notes
 
@@ -135,8 +136,7 @@ may link a note, as further reading, and never needs it. [Notes](references/note
 layout, with an Obsidian vault as the example: an `inbox/` of the human's captures, a `wiki/` the
 agents write, and `projects/<repository>/` with its `proposals/` and `research/`.
 
-Read the wiki when it helps, in any step: it saves searches already made. Its facts are leads, with
-their sources: a fact a question or the spec relies on is read again at its source.
+Read the wiki when it helps, in any step: its facts are leads, read again at their source.
 
 ## Finding the next step
 
@@ -163,9 +163,10 @@ runs in this session or a new one, and `ura status` lists every worktree with it
 | The record, and the open pull request lacks the branch's latest commits              | [Push](references/implementation.md#push)                                |
 | The record, and the pull request is ready                                            | **Human gate**: the review happens on the pull request                   |
 | A file has `status: awaiting-human`                                                  | **Human gate**: stop                                                     |
-| `discovery-NN.md` without its `clarifications-NN.md`, and no `spec.md` of that round | A round asked in a session and lost: ask it again, or write it as a file |
-| No `clarifications-01.md`, and no `spec.md`                                          | [Discovery](references/discovery.md), round 01                           |
-| Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec](references/spec.md)                                               |
+| `discovery-NN.md` alone, no `spec.md` of that round, no `round: none`                | A round asked in a session and lost: ask it again, or write it as a file |
+| No `clarifications-01.md`, no `round: none`, and no `spec.md`                        | [Discovery](references/discovery.md), round 01                           |
+| Discovery NN has `ui: true`, round NN is `answered` or none, no `views.md`           | [UI iteration](references/ui.md)                                         |
+| Round NN is `answered` or none, not resuming, no `spec.md` or `clarifications` < NN  | [Spec](references/spec.md)                                               |
 | `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md#revising), revision                            |
 | `spec.md` is `approved`, and there is no `plan.md`, or its `spec-revision` is behind | [Plan](references/plan.md)                                               |
 | `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md#revising), revision                            |
@@ -256,14 +257,13 @@ block. Never explain how the workflow works in a file for the human: tools and t
 
 ## In a session
 
-When the human talks with you, the same habits hold, in a smaller form: answer short, offer a code
-change as a change, ask a round in the session when they ask for it, edit a file reviewed live in
-place, and set a human status only when they say so. See
+When the human talks with you, the same habits hold, in a smaller form: see
 [In a session with the human](references/conventions.md#in-a-session-with-the-human).
 
 ## References
 
 - [Discovery](references/discovery.md): the research, and a round of questions.
+- [UI iteration](references/ui.md): the views, before the spec.
 - [Spec](references/spec.md): the spec and its decisions, and revising them after a review.
 - [Plan](references/plan.md): the tasks of an approved spec.
 - [Implementation](references/implementation.md): the build, its reviews, the final review, and the

@@ -35,8 +35,12 @@ with its pull request.
 - `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
   same name until it is finished into its record, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human, the branch's first commit
-  - `discovery-NN.md`: what the round's questions rely on, with sources, and the map of the code
+  - `discovery-NN.md`: what the round's questions rely on, with sources, and the map of the code.
+    Its frontmatter may say `ui: true`, for a feature with UI work, and `round: none`, for a feature
+    that is only a look
   - `clarifications-NN.md`: the questions only a human can decide, with their answers
+  - `views.md`: for a feature with UI work, the views the human looks at before the spec, with what
+    to look at first, and approved when they say the views are right
   - `spec.md`: what the human approves, amended in place: what you approve, your last review
     answered, the decisions, the user stories, then how it is built and its limits
   - `spec-review.md`, `plan-review.md`: a human's review comments, when the latest review has any
@@ -44,8 +48,8 @@ with its pull request.
   - `rulings.md`: what the build settled that users will notice, or a test it removed
   - `data-model.md`: the stored data and file formats the spec adds or changes, written with it
   - `contracts/`: the interfaces the plan builds on, when needed
-  - `mockups/`: what users will see, for any UI work. A round's throwaway prototypes also sit there,
-    until the plan deletes them.
+  - `mockups/`: what users will see, for any UI work. The UI iteration's throwaway prototypes also
+    sit there, until the plan deletes them.
 
 Discovery and clarifications come in numbered rounds, `01`, `02`, ...: a later round is a new pair
 of files, and earlier rounds stay as they were.

@@ -177,7 +177,7 @@ colours themselves.
   [`claude-events.ts`](/packages/server/src/runner/claude-events.ts) and
   [`processes.ts`](/packages/server/src/runner/processes.ts), and a session row's agent kind in
   [`fate/views.ts`](/packages/server/src/fate/views.ts).
-- **The skill's prototypes**: [discovery](/skills/uraeda/references/discovery.md#prototypes) allows
+- **The skill's prototypes**: [the UI iteration](/skills/uraeda/references/ui.md#prototypes) allows
   them, and [approval](/skills/uraeda/references/plan.md#delete-the-prototypes) deletes them and
   rewrites their links.
 - **Dev builds** key StyleX's styles as the build does, `debug: false` in

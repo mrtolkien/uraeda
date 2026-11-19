@@ -29,6 +29,13 @@ one: its folder name or slug. Without it, the command takes the feature of the w
 
 ## `ura next` and the picks
 
+A feature with UI work is at the step `ui-iteration`, whose reference is [UI iteration](ui.md), from
+the answered round, or the discovery that asks none, until `views.md` is written. Then `views.md`
+waiting is a human gate like a round, and once it is `approved`, the step is the spec. The two
+fields that say so are the discovery file's: `ui: true` for a feature with UI work, and
+`round: none` for a feature that is only a look. `ura next` never asks to commit `views.md` first:
+it goes in the step's own commit.
+
 `ura next` prints the target, its step, the reference to follow, the step's pick (agent, model, and
 effort), and `session`: `join` when the step runs on in the session that ran the previous one, `new`
 when it starts a new one, as [Sessions and picks](../SKILL.md#sessions-and-picks) says. It reads the
@@ -45,10 +52,10 @@ its own finish wrote. A branch without a worktree is postponed.
 The picks are the human's, in `ura`'s configuration file, outside every repository, which
 `ura serve`'s settings page edits: a pick per step (`discovery`, `spec`, `plan`, `build`, `review`,
 `comments`), with a `new_session` switch for each, on for `plan` by default, a pick for
-implementers, a list of reviewers, and their depth. `review` covers the final review and the finish;
-`comments` covers the comments, the catch-up, and the push; a change runs on `build`'s. Committing
-the human's work or the proposal is part of the step that follows it. A step with no pick runs on
-the session's own.
+implementers, a list of reviewers, and their depth. `spec` covers the [UI iteration](ui.md) too.
+`review` covers the final review and the finish; `comments` covers the comments, the catch-up, and
+the push; a change runs on `build`'s. Committing the human's work or the proposal is part of the
+step that follows it. A step with no pick runs on the session's own.
 
 `ura next` and `ura status` read the open pull requests with `gh`. An open, ready pull request whose
 branch is behind the default branch names the step `catch-up`, whose reference is
@@ -65,13 +72,15 @@ each with the command that sets it `done`, as [Notes](notes.md#proposals-and-pri
 ## `ura check`
 
 It prints each problem as `<file>:<line>: <message>`, then each warning as
-`warning: <file>:<line>: <message>`. Warnings measure the limits of
-[Writing for the human](writing.md): `block.count`, `block.items`, `writing.sentence`, and
-`spec.length` on files waiting for the human, and [a decision](writing.md#a-decision)'s shape:
-`decision.rules`, `decision.why`, and `decision.alternatives` when it grows long, and
-`decision.example` on a rule with no case after "_So:_". It exits with an error when it found a
-problem, and with success when it found only warnings. A link to a missing file says where git saw
-it go, when it can: `no file <path>: it moved to /<new path>`, or
+`warning: <file>:<line>: <message>`. It reads the two optional fields of `discovery-NN.md`, `ui`,
+which is `true` or `false`, and `round`, which is `none`, and a `views.md`'s sections, as its
+template has them. Warnings measure the limits of [Writing for the human](writing.md):
+`block.count`, `block.items`, `writing.sentence`, and `spec.length` on files waiting for the human,
+and [a decision](writing.md#a-decision)'s shape: `decision.rules`, `decision.why`, and
+`decision.alternatives` when it grows long, and `decision.example` on a rule with no case after
+"_So:_". It exits with an error when it found a problem, and with success when it found only
+warnings. A link to a missing file says where git saw it go, when it can:
+`no file <path>: it moved to /<new path>`, or
 `no file <path>: it became the record /specs/done/<folder>.md`.
 
 ## `ura answer` and `ura review`
@@ -102,6 +111,8 @@ their own network, like Tailscale:
   condition is met, a note, each answer written into the round's file as soon as it is chosen.
 - **A review**: the rendered spec or plan, what changed since the human's last review, a comment on
   a passage, then approve or request changes.
+- **The views**: the rendered `views.md`, its story links drawn live. It takes no comment: the human
+  comments in the project's own preview or in the session.
 - **Mockups** in both, an HTML file of the feature, drawn in place, with a comment about one or
   about an element picked in it.
 

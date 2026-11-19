@@ -3,8 +3,11 @@
 Turns the human's answers into a spec: what the feature does, and the big picture of how it is
 built. The human approves it, with the decisions it changes.
 
-- **Runs when**: the latest round is `answered`, and there is no `spec.md` or its `clarifications`
-  field is lower than the round; or `spec.md` is `changes-requested`
+- **Runs when**: the latest round is `answered`, or its discovery says `round: none`, and there is
+  no `spec.md` or its `clarifications` field is lower than the round; or `spec.md` is
+  `changes-requested`
+- **Starts with**: for a feature with UI work, `ui: true` in its discovery, an approved `views.md`:
+  the [UI iteration](ui.md) comes first, with the human, before a line of the spec is written
 - **Writes**: `spec.md`; `data-model.md` when the feature changes stored data or a file format; and
   decisions in `specs/decisions/`, new or edited in place on the branch
 - **Ends at**: a human gate, `spec.md` with `status: awaiting-human`, or a new
@@ -29,7 +32,8 @@ The spec is built on everything the human wrote for this feature, not on the ans
 - **Review comments** on this feature, from this review and the earlier ones.
 - **What they wrote in the session**, when there was one. A round asked in the session has no file:
   its answers are the human's words in the session, and the spec keeps them, quoted where it relies
-  on them, under **Assumptions**, so the record and the next agent find them.
+  on them, under **Assumptions**, so the record and the next agent find them. So are their comments
+  on the views, in the [UI iteration](ui.md): the spec quotes each one that decides something.
 
 When an answer can be read more than one way and the readings differ a lot, start a new round, with
 your reading as the recommended option. When they differ little, pick one, and give the block an
@@ -37,7 +41,8 @@ item the human flips in a word: "Read as X. The other reading, Y, would [cost]."
 
 Turn the answered round's block into a note, as [the block](writing.md#the-block) says, in the
 spec's commit, after the human's answers were
-[committed first](../SKILL.md#the-humans-work-is-committed-first).
+[committed first](../SKILL.md#the-humans-work-is-committed-first). A feature that is only a look has
+no round and no block to turn: its `clarifications` is the number of its discovery, `round: none`.
 
 ## Is the scope clear?
 
@@ -213,6 +218,11 @@ shows up in a scenario.
 Any UI work requires mockups: a new screen, a new control, or a visible change to one. The human
 approves what users will see, and looks at mockups before anything else in the spec.
 
+**The mockups are settled before the spec is written**, with the human, live, in the
+[UI iteration](ui.md): run it first. The spec then links the views they agreed to, says so under
+each story's mockup ("Agreed in the session on 2026-10-09"), and asks nothing more about them. The
+rules below are the ones that step draws by, and what you check again before linking a view.
+
 - **Read first**: the project's guides and look decisions, when it has them, and what the human said
   about earlier mockups, in the records of `specs/done/`. Without a guide, the views that exist are
   the reference. A taste they already stated is not taught twice.
@@ -237,9 +247,9 @@ where the decision says, one export per state, each embedded by a
 ```
 
 Set the worktree up as the project asks, and start the preview with the decision's
-`preview-command`, to look at them. After a [visual question](discovery.md#visual-questions), the
-spec's commit keeps the picked variant's export and deletes the others. A discovery's
-[prototypes](discovery.md#prototypes) are not mockups: rebuild a picked one as stories.
+`preview-command`, to look at them. The [UI iteration](ui.md) kept the picked variant's export and
+deleted the others. Its [prototypes](ui.md#prototypes) are not mockups: a picked one was rebuilt as
+stories.
 
 **Without one**, put the mockups in `mockups/`, next to the spec, in the format that shows the
 change best: an HTML page, an SVG, an image, or a small component in the project's own stack. The
@@ -298,7 +308,8 @@ from the project, and says which: made-up data hides the real case.
 
 - **Assumptions**: a sentence linking the points settled in the round, which hold as written there,
   naming only those an answer or a note changed. Then "Settled while writing this spec:", and what
-  you settled yourself. One that changes what users get is also an item of the block.
+  you settled yourself. One that changes what users get is also an item of the block. A feature that
+  is only a look has no round to link: it links its [views](ui.md), and says what you settled.
 - **Constitution check**: a one-row table, one column per principle, each ✅ or ⚠️, then one line
   per tension. A conflict goes back to the human as a new round.
 - **Risk tier**: `low` with no data format change and no new interface, `medium` for small data

@@ -57,6 +57,23 @@ A path no commit ever removed, or one back at the tip, is left as it is. So are 
 code, and links outside `specs/`, in `README.md`, `docs/`, or code comments. `ura check` reports the
 ones in `specs/`, with where each file went when git shows it.
 
+## Whether a feature has views to settle
+
+Read the discovery file of the highest round, `discovery-NN.md`, and its frontmatter, which may be
+absent:
+
+- **`ui: true`**: the feature has UI work. Its first spec waits for its views.
+- **`round: none`**: the feature is only a look, and asked no round. There is no
+  `clarifications-NN.md` for this round, and that is not a lost round. The spec that follows counts
+  this round in its `clarifications`.
+
+The step is the [UI iteration](ui.md) when the first spec is due, a round `answered` with no
+`spec.md`, or `round: none`, the discovery says `ui: true`, and there is no `views.md`. A `views.md`
+with `status: awaiting-human` is a human gate, and with `status: approved` the step is the spec. A
+later round, a spec revision, and every step after never go back to the views, and a discovery
+without the fields is a feature with no UI work. `views.md` set `approved` and not committed is not
+the human's work to commit first: it goes in the step's own commit, with the views.
+
 ## Whether a pull request is behind, or lacks commits
 
 Read the pull request's head with `gh pr view <branch> --json headRefOid`. The branch lacks nothing

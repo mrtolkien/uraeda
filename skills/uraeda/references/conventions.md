@@ -57,8 +57,11 @@ Workflow files track their state in frontmatter fields.
 | File                   | Field             | Set by the agent                      | Set by the human                                  |
 | ---------------------- | ----------------- | ------------------------------------- | ------------------------------------------------- |
 | `proposal.md`          | `discovery`       |                                       | `low`, `medium`, or `high`                        |
+| `discovery-NN.md`      | `ui`              | `true` for a feature with UI work     |                                                   |
+| `discovery-NN.md`      | `round`           | `none` for a feature only a look      |                                                   |
 | `clarifications-NN.md` | `status`          | `awaiting-human`                      | `answered`                                        |
 | `clarifications-NN.md` | `resumes`         |                                       | `implementation`, on a round asked while building |
+| `views.md`             | `status`          | `awaiting-human`                      | `approved`, in the session, at their "ok"         |
 | `spec.md`              | `status`          | `awaiting-human`                      | `approved` or `changes-requested`                 |
 | `spec.md`              | `revision`        | `1`, then `+1` at every change        | `+1` when editing it                              |
 | `spec.md`              | `clarifications`  | the last round it includes: `2`       |                                                   |
@@ -69,6 +72,10 @@ Workflow files track their state in frontmatter fields.
 | `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                                     |
 | `decisions/preview.md` | `preview-folder`  | where the preview runs: `.`, `web`    |                                                   |
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                                   |
+
+Both fields of `discovery-NN.md` are optional, and a discovery without them is a round of questions
+about a feature with no UI work. `round: none` says that the discovery has no `clarifications-NN.md`
+on purpose: see [UI iteration](ui.md).
 
 A decision has no status: the one on the default branch is in force. A branch that creates or
 changes a decision edits it in place, and the default branch keeps its text until the branch merges.
@@ -82,6 +89,10 @@ it for them: nothing is committed until the next agent step
 approved". Commit it as their work, `spec(recurring-tasks): approve`, and say so in its body:
 "Approved by the human in the session." A gate the human waived is recorded the same way, in their
 words. With `ura`, `ura answer` and `ura review` write the same files a page does.
+
+The views are the one status you set at the human's word that is not committed alone: `views.md`
+goes in the [UI iteration](ui.md#when-the-human-says-it-is-right)'s last commit, with the views, and
+its body quotes their "ok".
 
 ## A file in an old format
 
@@ -135,14 +146,16 @@ in a new worktree, as [starting a feature](projects.md#starting-a-feature) makes
 ## Commits
 
 One commit per step, holding only its files, and one per task during the implementation, plus one
-for a task's structural step. The description is the feature's name for a first version, and what
-changed after. Messages follow [Conventional Commits](https://www.conventionalcommits.org/), with
-one extra type per workflow step. The scope is the feature's or the change's slug, its folder's name
-without the date.
+for a task's structural step. A [UI iteration](ui.md) has two: its first draft, and the views the
+human agreed to. The description is the feature's name for a first version, and what changed after.
+Messages follow [Conventional Commits](https://www.conventionalcommits.org/), with one extra type
+per workflow step. The scope is the feature's or the change's slug, its folder's name without the
+date.
 
 | Type         | Step                                     | Example                                            |
 | ------------ | ---------------------------------------- | -------------------------------------------------- |
 | `discovery:` | A round of questions, and its research   | `discovery(recurring-tasks): recurring tasks`      |
+| `ui:`        | The views of a UI iteration              | `ui(recurring-tasks): first draft of the views`    |
 | `spec:`      | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
 | `plan:`      | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
 | `finish:`    | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
@@ -175,6 +188,9 @@ When the human talks with you, the same habits hold, in a smaller form:
   session instead of a file: the same questions, each with its recommended answer, in small batches.
   There is no `clarifications-NN.md`: the spec carries what they decided, quoting their words, as
   [Spec](spec.md#read-the-humans-words) says.
+- **Views are changed as the human comments.** In a [UI iteration](ui.md), change the view at once,
+  commit nothing per comment, and when they say it is right, set `views.md` approved and commit
+  once.
 - **A file reviewed live is one revision.** When the human works through a round, a spec, or a plan
   with you in the session, edit it in place as they speak, and commit once, when they say it is
   done.

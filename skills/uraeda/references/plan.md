@@ -43,7 +43,7 @@ human left it when approving.
 
 ### Delete the prototypes
 
-A round's [prototypes](discovery.md#prototypes) were throwaway: delete them in the plan's commit,
+The [UI iteration](ui.md#prototypes)'s prototypes were throwaway: delete them in the plan's commit,
 and git keeps them. Keep the spec's mockups: each file a link of `spec.md` names, and the files it
 loads. Delete every other file of `mockups/`, and the folder when it ends up empty. Then turn each
 link to a deleted file, in any file of the feature, into its text and the file's path in code:
