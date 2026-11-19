@@ -1,3 +1,7 @@
+---
+ui: true
+---
+
 # Discovery, round 01: Recurring tasks
 
 ## Summary

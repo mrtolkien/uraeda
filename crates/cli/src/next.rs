@@ -94,7 +94,7 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
 fn setting_of(step: StepName) -> Option<&'static str> {
     Some(match step {
         StepName::Proposal | StepName::Discovery | StepName::LostRound => "discovery",
-        StepName::Spec | StepName::SpecRevision => "spec",
+        StepName::UiIteration | StepName::Spec | StepName::SpecRevision => "spec",
         StepName::Plan | StepName::PlanRevision => "plan",
         StepName::Implementation | StepName::Change => "build",
         StepName::FinalReview | StepName::Finish | StepName::PullRequestUnknown => "review",

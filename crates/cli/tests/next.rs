@@ -250,6 +250,59 @@ fn a_gate_says_who_it_waits_on() {
     );
 }
 
+/// A feature with UI work draws its views before its spec, runs on the spec's pick, and then waits
+/// on the human at `views.md`, a look-only feature starting at the same step with no round.
+#[test]
+fn the_views_come_between_the_round_and_the_spec() {
+    let repo = TestRepo::new();
+    specs(&repo);
+    let ui = discovery(&["ui: true"]);
+    feature(
+        &repo,
+        "2026-10-10-menu",
+        &[
+            ("proposal.md", proposal()),
+            ("discovery-01.md", ui.clone()),
+            ("clarifications-01.md", answered()),
+        ],
+    );
+    feature(
+        &repo,
+        "2026-10-11-colours",
+        &[
+            ("proposal.md", proposal()),
+            ("discovery-01.md", discovery(&["ui: true", "round: none"])),
+        ],
+    );
+    feature(
+        &repo,
+        "2026-10-12-waiting",
+        &[
+            ("proposal.md", proposal()),
+            ("discovery-01.md", ui),
+            ("clarifications-01.md", answered()),
+            ("views.md", views("awaiting-human")),
+        ],
+    );
+
+    let menu = ura(&repo, &["next", "menu"]);
+    let colours = ura(&repo, &["next", "colours", "--json"]);
+    let waiting = ura(&repo, &["next", "waiting"]);
+
+    assert_eq!(
+        menu.stdout,
+        "2026-10-10-menu: ui-iteration\n  branch     2026-10-10-menu\n  follow     skills/uraeda/references/ui.md\n  pick       the session's own\n  session    join: run it in this session\n"
+    );
+    let json: serde_json::Value = serde_json::from_str(&colours.stdout).unwrap();
+    assert_eq!(json["step"]["name"], "ui-iteration");
+    assert_eq!(json["step"]["waits-on"], "agent");
+    assert_eq!(json["run"]["setting"], "spec");
+    assert_eq!(
+        waiting.stdout,
+        "2026-10-12-waiting: views.md: Views to look at, about 5 minutes.\n  branch     2026-10-12-waiting\n  waits on   you\n"
+    );
+}
+
 /// The step's pick and session come from the human's settings: the plan starts a new session by
 /// default, and the build names its implementers and reviewers.
 #[test]

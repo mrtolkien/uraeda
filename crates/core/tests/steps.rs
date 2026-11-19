@@ -146,6 +146,225 @@ fn feature_table() {
     }
 }
 
+/// The UI iteration sits between the answered round and the spec: a feature with UI work, or one
+/// that is only a look, draws its views first, and a feature without UI work is unchanged.
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "a table of rows: each row is one state of the step"
+)]
+fn ui_iteration_table() {
+    let ui = || discovery(&["ui: true"]);
+    let look = || discovery(&["ui: true", "round: none"]);
+    let rows: Vec<(&str, Files, StepName, WaitsOn)> = vec![
+        (
+            "answered, with UI work, no views",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", answered()),
+            ],
+            StepName::UiIteration,
+            WaitsOn::Agent,
+        ),
+        (
+            "views waiting",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", answered()),
+                ("views.md", views("awaiting-human")),
+            ],
+            StepName::HumanGate,
+            WaitsOn::Human,
+        ),
+        (
+            "views approved, no spec",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", answered()),
+                ("views.md", views("approved")),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "views approved, spec waiting",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", answered()),
+                ("views.md", views("approved")),
+                ("spec.md", spec("awaiting-human", 1, 1)),
+            ],
+            StepName::HumanGate,
+            WaitsOn::Human,
+        ),
+        (
+            "answered, ui false",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", discovery(&["ui: false"])),
+                ("clarifications-01.md", answered()),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "answered, a discovery without frontmatter",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", discovery(&[])),
+                ("clarifications-01.md", answered()),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "questions waiting, with UI work",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", waiting()),
+            ],
+            StepName::HumanGate,
+            WaitsOn::Human,
+        ),
+        (
+            "only a look, no round, no views",
+            vec![("proposal.md", proposal()), ("discovery-01.md", look())],
+            StepName::UiIteration,
+            WaitsOn::Agent,
+        ),
+        (
+            "only a look, views waiting",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", look()),
+                ("views.md", views("awaiting-human")),
+            ],
+            StepName::HumanGate,
+            WaitsOn::Human,
+        ),
+        (
+            "only a look, views approved",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", look()),
+                ("views.md", views("approved")),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "only a look, without UI work declared",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", discovery(&["round: none"])),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "only a look, spec approved",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", look()),
+                ("views.md", views("approved")),
+                ("spec.md", spec("approved", 1, 1)),
+            ],
+            StepName::Plan,
+            WaitsOn::Agent,
+        ),
+        (
+            "a later round after the views, spec approved",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", answered()),
+                ("views.md", views("approved")),
+                ("spec.md", spec("approved", 1, 1)),
+                ("discovery-02.md", ui()),
+                ("clarifications-02.md", answered()),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "a later round with UI work, spec written without views",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", discovery(&[])),
+                ("clarifications-01.md", answered()),
+                ("spec.md", spec("approved", 1, 1)),
+                ("discovery-02.md", ui()),
+                ("clarifications-02.md", answered()),
+            ],
+            StepName::Spec,
+            WaitsOn::Agent,
+        ),
+        (
+            "a spec to revise keeps its step",
+            vec![
+                ("proposal.md", proposal()),
+                ("discovery-01.md", ui()),
+                ("clarifications-01.md", answered()),
+                ("views.md", views("approved")),
+                ("spec.md", spec("changes-requested", 1, 1)),
+            ],
+            StepName::SpecRevision,
+            WaitsOn::Agent,
+        ),
+    ];
+    for (name, files, expected, waits_on) in rows {
+        let feature = feature(Kind::Feature, &files);
+
+        assert_eq!(feature.step.name, expected, "{name}");
+        assert_eq!(feature.step.waits_on, waits_on, "{name}");
+    }
+}
+
+#[test]
+fn the_views_gate_comes_between_the_round_and_the_spec() {
+    let at = |files: Files| feature(Kind::Feature, &files).step;
+    let base = || {
+        vec![
+            ("proposal.md", proposal()),
+            ("discovery-01.md", discovery(&["ui: true"])),
+        ]
+    };
+    let mut files = base();
+    files.push(("clarifications-01.md", waiting()));
+    let round_gate = at(files);
+    let mut files = base();
+    files.push(("clarifications-01.md", answered()));
+    let ui_step = at(files);
+    let mut files = base();
+    files.extend([
+        ("clarifications-01.md", answered()),
+        ("views.md", views("awaiting-human")),
+    ]);
+    let views_gate = at(files);
+    let mut files = base();
+    files.extend([
+        ("clarifications-01.md", answered()),
+        ("views.md", views("approved")),
+    ]);
+    let spec_step = at(files);
+
+    assert_eq!(views_gate.file.as_deref(), Some("views.md"));
+    assert_eq!(
+        ui_step.reference.as_deref(),
+        Some("skills/uraeda/references/ui.md")
+    );
+    let order: Vec<u32> = [&round_gate, &ui_step, &views_gate, &spec_step]
+        .iter()
+        .map(|step| step.order())
+        .collect();
+    assert!(order.windows(2).all(|pair| pair[0] < pair[1]), "{order:?}");
+}
+
 fn finished() -> Files {
     vec![
         ("proposal.md", proposal()),

@@ -68,6 +68,30 @@ fn the_review_page_draws_the_spec_with_its_lines_and_the_verdict() {
     );
 }
 
+/// The views are only shown: the page draws them with no comment box and no verdict, and the
+/// writes of a review are refused on them.
+#[test]
+fn the_views_page_shows_the_file_and_takes_no_write() {
+    let views = "---\nstatus: awaiting-human\n---\n\n# Views: Recurring tasks\n\n> [!IMPORTANT]\n>\n> Views to look at, about 5 minutes.\n\n## Views\n\nThe views.\n";
+    let f = fixture(&[("views.md", views.to_string())]);
+    let server = Server::with(settings(&f));
+    let path = format!("/todo/{FOLDER}/review/views.md");
+
+    let page = server.get(&path).into_body().read_to_string().unwrap();
+
+    assert!(page.contains("Views to look at"), "{page}");
+    assert!(!page.contains("Approve the"), "{page}");
+    assert!(!page.contains("id=\"review-data\""), "{page}");
+    for write in ["comment", "verdict"] {
+        let refused = server.write(
+            &format!("{path}/{write}"),
+            r#"{"version":"x","verdict":"approve","text":"hi"}"#,
+        );
+        assert_eq!(refused.status(), 404, "{write}");
+    }
+    assert_eq!(file(&f, "views.md").as_deref(), Some(views));
+}
+
 #[test]
 fn a_comment_then_a_request_for_changes_without_a_commit() {
     let f = fixture(&[("spec.md", waiting_spec())]);

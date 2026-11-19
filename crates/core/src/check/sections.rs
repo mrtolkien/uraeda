@@ -19,6 +19,7 @@ fn template_path(kind: Checked) -> Option<&'static str> {
         Checked::Workflow(FileKind::Clarifications) => {
             "YYYY-MM-DD-feature-slug/clarifications-01.md"
         }
+        Checked::Workflow(FileKind::Views) => "YYYY-MM-DD-feature-slug/views.md",
         Checked::Workflow(FileKind::Spec) => "YYYY-MM-DD-feature-slug/spec.md",
         Checked::Workflow(FileKind::Plan) => "YYYY-MM-DD-feature-slug/plan.md",
         Checked::Workflow(FileKind::Rulings) => "YYYY-MM-DD-feature-slug/rulings.md",

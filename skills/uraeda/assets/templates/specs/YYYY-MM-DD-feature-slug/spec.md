@@ -92,7 +92,8 @@ Tradeoffs:
 
 The points settled in the clarifications, [to check](clarifications-01.md#check-these) and
 [without the human](clarifications-01.md#settled-without-the-human), hold as written there. [Link
-each section the round has.] Settled while writing this spec:
+each section the round has. A feature that is only a look has no round: link its views instead,
+[views](views.md).] Settled while writing this spec:
 
 - [Each point you settled yourself, in a sentence, with a link to its source]
 

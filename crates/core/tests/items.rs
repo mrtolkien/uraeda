@@ -196,7 +196,7 @@ fn a_spec_has_its_stories_and_criteria() {
             (s.number, block.start_line, block.end_line)
         })
         .collect();
-    assert_eq!(scenarios, [(1, 82, 83), (2, 84, 85)]);
+    assert_eq!(scenarios, [(1, 86, 87), (2, 88, 89)]);
     assert_eq!(spec.criteria[0].id, "SC-001");
 }
 
@@ -236,9 +236,9 @@ fn a_story_has_its_key_and_more_scenarios() {
     let us2 = &spec.stories[1];
     assert_eq!((us2.key.len(), us2.more.len()), (2, 2));
     let line = |block: u32| doc.blocks[block as usize].start_line;
-    assert_eq!(line(us2.more[0].block), 89);
+    assert_eq!(line(us2.more[0].block), 93);
     assert_eq!(us2.more[1].number, 2);
-    assert_eq!(line(us2.mockup.unwrap()), 78);
+    assert_eq!(line(us2.mockup.unwrap()), 80);
     assert!(spec.stories[3].mockup.is_none());
 
     let text = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nKey scenarios:\n\n\

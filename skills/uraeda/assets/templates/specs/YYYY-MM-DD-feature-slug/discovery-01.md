@@ -1,3 +1,9 @@
+---
+ui: [true when the feature has UI work, false when it has none]
+round:
+  [Optional: none, when the feature is only a look and asks no round. Remove the line otherwise.]
+---
+
 # Discovery, round [NN]: [Feature name]
 
 ## Why this round

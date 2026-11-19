@@ -38,6 +38,29 @@ pub fn clarifications(status: &str, first_line: &str, answers: &[&str]) -> Strin
     text
 }
 
+/// A round's findings, with the frontmatter fields given, like `ui: true`: none when `fields` is
+/// empty.
+pub fn discovery(fields: &[&str]) -> String {
+    let front = if fields.is_empty() {
+        String::new()
+    } else {
+        format!("---\n{}\n---\n\n", fields.join("\n"))
+    };
+    format!("{front}# Discovery, round 01: Feature\n\n## Summary\n\nA summary.\n")
+}
+
+/// The views of a UI iteration, waiting for the human or approved.
+pub fn views(status: &str) -> String {
+    let kind = if status == "awaiting-human" {
+        "IMPORTANT"
+    } else {
+        "NOTE"
+    };
+    format!(
+        "---\nstatus: {status}\n---\n\n# Views: Feature\n\n> [!{kind}]\n>\n> Views to look at, about 5 minutes.\n>\n> - The menu first.\n\nThe views.\n\n## Views\n\n### A view\n\n[A view](/src/A.stories.tsx#Open)\n\n## Persona walk\n\nWalked as a first-time user.\n"
+    )
+}
+
 pub fn spec(status: &str, revision: u32, clarifications: u32) -> String {
     format!(
         "---\nstatus: {status}\nrevision: {revision}\nclarifications: {clarifications}\nrisk-tier: low\n---\n\n# Spec: Feature\n\n{}\nA feature.\n\n## Decisions\n\nRelied on:\n\n- None.\n",

@@ -1,5 +1,5 @@
-//! What waits on the human: the latest round of questions, the spec, and the plan whose status is
-//! `awaiting-human`, in the checked-out worktrees of every served repository. It reads files with
+//! What waits on the human: the latest round of questions, the views, the spec, and the plan whose
+//! status is `awaiting-human`, in the checked-out worktrees of every served repository. It reads files with
 //! gix and never runs git.
 
 use std::path::{Path, PathBuf};
@@ -16,6 +16,8 @@ use crate::html::escape;
 pub enum Ask {
     /// Questions to answer, round `N`.
     Round(u32),
+    /// The views of a UI iteration, to look at: the page only shows them.
+    Views,
     Spec,
     Plan,
 }
@@ -25,6 +27,7 @@ impl Ask {
     pub fn words(self) -> String {
         match self {
             Ask::Round(n) => format!("Questions, round {n}"),
+            Ask::Views => "Views to look at".into(),
             Ask::Spec => "Spec to review".into(),
             Ask::Plan => "Plan to review".into(),
         }
@@ -47,7 +50,7 @@ pub struct Item {
     /// What is asked, the first line of the file's `> [!IMPORTANT]` block.
     pub waiting_line: Option<String>,
     /// The page's address from the home page: `{repo}/{folder}/round`, or
-    /// `{repo}/{folder}/review/spec.md`.
+    /// `{repo}/{folder}/review/spec.md`, or `.../review/views.md` for the views.
     pub address: String,
 }
 
@@ -171,6 +174,10 @@ fn items_of(repo: &str, main: &Path, feature: &Feature) -> Vec<Item> {
                 }
                 _ => continue,
             },
+            FileKind::Views => (
+                Ask::Views,
+                format!("{repo}/{}/review/{}", feature.folder, file.name),
+            ),
             FileKind::Spec => (
                 Ask::Spec,
                 format!("{repo}/{}/review/{}", feature.folder, file.name),

@@ -1,7 +1,8 @@
 //! The review's routes: its page, then its writes, through the core's review actions, which write
 //! the review file and the reviewed file's status, and commit nothing.
 //!
-//! - `GET  /{repo}/{folder}/review/{file}`: the spec's or the plan's page.
+//! - `GET  /{repo}/{folder}/review/{file}`: the spec's or the plan's page, or the views' page, which
+//!   only shows them: their comments go to the agent in the session.
 //! - `POST .../review/{file}/comment`: `{ lines: [start, end] | null, text }` adds a comment,
 //!   `{ number, text }` replaces one, and an empty text removes it. Gives `{ comments }`.
 //! - `POST .../review/{file}/verdict`: `{ verdict: "approve" | "request-changes", summary }`
@@ -97,7 +98,11 @@ pub async fn page(
 ) -> Response {
     let key = shared.files_key.clone();
     let drawn = on(&shared, repo, folder, move |located| {
-        let name = reviewed(&name)?;
+        let name = if name == "views.md" {
+            "views.md"
+        } else {
+            reviewed(&name)?
+        };
         let path = format!("{}/{name}", located.feature.path);
         let text = std::fs::read_to_string(located.root.join(&path)).map_err(|_| {
             Failure(
@@ -111,6 +116,19 @@ pub async fn page(
         });
         let feature_name = waiting::readable(&located.feature.slug);
         let draw = |markdown: &str| crate::render::draw(markdown, &path, "../", &key);
+        if name == "views.md" {
+            let main = view::views(&view::Views {
+                text: &text,
+                name: &feature_name,
+                waiting: gates::awaits_human(&text),
+                draw: &draw,
+            });
+            return Ok(html::page_at(
+                "../../../",
+                &format!("{feature_name}: views"),
+                &main,
+            ));
+        }
         let main = view::main(&view::Page {
             text: &text,
             name: &feature_name,

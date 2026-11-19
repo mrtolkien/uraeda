@@ -57,6 +57,31 @@ fn a_waiting_round_is_listed_and_a_spec_that_does_not_wait_is_not() {
     assert!(!page.contains("Nothing waits on you."));
 }
 
+fn views(status: &str) -> String {
+    format!(
+        "---\nstatus: {status}\n---\n\n# Views: Recurring tasks\n\n> [!IMPORTANT]\n>\n> Views to look at, about 5 minutes.\n"
+    )
+}
+
+#[test]
+fn views_awaiting_a_look_are_listed_and_link_to_their_page() {
+    let f = fixture(&[
+        ("clarifications-01.md", round("answered")),
+        ("views.md", views("awaiting-human")),
+    ]);
+    let waiting = waiting::read(&settings(&f));
+    let item = &waiting.repositories[0].items[0];
+    assert_eq!(item.ask, Ask::Views);
+    assert_eq!(item.address, format!("todo/{FOLDER}/review/views.md"));
+
+    let page = home(&Server::with(settings(&f)));
+    assert!(page.contains("Views to look at"), "{page}");
+    assert!(
+        page.contains("Views to look at, about 5 minutes."),
+        "{page}"
+    );
+}
+
 #[test]
 fn a_spec_awaiting_review_links_to_its_review() {
     let f = fixture(&[("spec.md", spec("awaiting-human"))]);

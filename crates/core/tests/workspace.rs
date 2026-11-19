@@ -1,7 +1,7 @@
 mod common;
 
 use common::repo::{TestRepo, run_git};
-use common::texts::{clarifications, plan, proposal, record, spec};
+use common::texts::{clarifications, discovery, plan, proposal, record, spec, views};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
 use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
@@ -729,6 +729,33 @@ fn the_humans_uncommitted_answers_are_committed_first() {
 
     assert_eq!(feature.step.name, StepName::Spec);
     assert!(feature.step.commit_first);
+}
+
+/// The agent sets the views approved, in the human's word, and `ura next` does not ask to commit
+/// the human's work first: the views go in the step's own commit.
+#[test]
+fn approved_views_are_not_the_humans_uncommitted_work() {
+    let repo = repo();
+    let answered = clarifications("answered", "1 question, about 3 minutes.", &["A"]);
+    for (name, text) in [
+        ("clarifications-01.md", answered),
+        ("discovery-01.md", discovery(&["ui: true"])),
+        ("views.md", views("awaiting-human")),
+    ] {
+        repo.write_in(FOLDER, &format!("specs/2026-10-11-web-ui/{name}"), &text);
+    }
+    repo.commit_in(FOLDER, "ui(web-ui): first draft of the views");
+    assert_eq!(feature(&repo, FOLDER).step.name, StepName::HumanGate);
+    repo.write_in(
+        FOLDER,
+        "specs/2026-10-11-web-ui/views.md",
+        &views("approved"),
+    );
+
+    let feature = feature(&repo, FOLDER);
+
+    assert_eq!(feature.step.name, StepName::Spec);
+    assert!(!feature.step.commit_first);
 }
 
 /// A half-answered round, its status still waiting, is the human's work in progress: the gate holds.

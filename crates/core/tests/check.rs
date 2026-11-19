@@ -103,6 +103,38 @@ fn the_example_has_no_problems() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+/// A feature that is only a look has no questions for its round: its spec counts the discovery's
+/// number, and a spec ahead of every discovery is still reported.
+#[test]
+fn a_spec_counts_the_round_of_a_discovery_that_asks_none() {
+    let example = Example::new();
+    let discovery = example.read(&format!("{FEATURE}/discovery-01.md"));
+    example.write(
+        &format!("{FEATURE}/discovery-02.md"),
+        &discovery.replace("ui: true", "ui: true\nround: none"),
+    );
+    example.edit(
+        &format!("{FEATURE}/spec.md"),
+        "clarifications: 1",
+        "clarifications: 2",
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+
+    example.edit(
+        &format!("{FEATURE}/spec.md"),
+        "clarifications: 2",
+        "clarifications: 3",
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        [format!(
+            "{FEATURE}/spec.md:4: clarifications is 3, but the last round is 02"
+        )]
+    );
+}
+
 /// US1 1: a spec whose `## Decisions` comes after its stories, as the old format had it, reports
 /// the order.
 #[test]
@@ -297,6 +329,31 @@ fn each_rule() {
             "plan review not a boolean",
             |e| e.edit(&format!("{FEATURE}/spec.md"), "plan-review: true", "plan-review: often"),
             format!("{spec}:6: plan-review \"often\" is not true or false"),
+        ),
+        (
+            "ui not a boolean",
+            |e| e.edit(&format!("{FEATURE}/discovery-01.md"), "ui: true", "ui: sometimes"),
+            format!("{FEATURE}/discovery-01.md:2: ui \"sometimes\" is not true or false"),
+        ),
+        (
+            "unknown discovery round",
+            |e| e.edit(&format!("{FEATURE}/discovery-01.md"), "ui: true", "ui: true\nround: skip"),
+            format!("{FEATURE}/discovery-01.md:3: round \"skip\" is not one of none"),
+        ),
+        (
+            "unknown views status",
+            |e| e.edit(&format!("{FEATURE}/views.md"), "status: approved", "status: done"),
+            format!("{FEATURE}/views.md:2: status \"done\" is not one of awaiting-human, approved"),
+        ),
+        (
+            "views waiting without a block",
+            |e| e.edit(&format!("{FEATURE}/views.md"), "status: approved", "status: awaiting-human"),
+            format!("{FEATURE}/views.md: a file waiting for the human opens with a \"> [!IMPORTANT]\" block"),
+        ),
+        (
+            "views without their walk",
+            |e| e.edit(&format!("{FEATURE}/views.md"), "## Persona walk", "Persona walk"),
+            format!("{FEATURE}/views.md: missing section \"## Persona walk\""),
         ),
         (
             "spec ahead of its rounds",

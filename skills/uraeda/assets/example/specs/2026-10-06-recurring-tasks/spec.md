@@ -58,6 +58,8 @@ yearly, and custom. Repeating tasks show a repeat icon in the list.
 
 [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
 
+Agreed in the session on 2026-10-08, in the [views](views.md).
+
 Key scenarios:
 
 1. **Given** an open task due Monday the 5th, **When** the user opens the repeat menu and picks
@@ -76,6 +78,8 @@ Completing a repeating task moves it to its next due date instead of marking it 
 so for 5 seconds, with an undo button.
 
 [Repeating task, completed](/src/tasks/RepeatMenu.stories.tsx#Completed)
+
+Agreed in the session on 2026-10-08, in the [views](views.md).
 
 Key scenarios:
 
@@ -97,6 +101,8 @@ The repeat menu's "custom" entry opens a screen to repeat every N days, weeks, m
 and, for weeks, on chosen days.
 
 [Custom repeat screen](/src/tasks/RepeatMenu.stories.tsx#Custom)
+
+Agreed in the session on 2026-10-08, in the [views](views.md).
 
 Why this priority: you need weekdays against weekends, and intervals like "every 2 weeks"
 ([how users pick a repeat](clarifications-01.md#q1-how-should-users-pick-when-a-task-repeats)).

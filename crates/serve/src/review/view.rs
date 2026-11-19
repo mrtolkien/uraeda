@@ -27,6 +27,42 @@ pub struct Page<'a> {
     pub draw: &'a dyn Fn(&str) -> String,
 }
 
+/// What the views' page shows.
+pub struct Views<'a> {
+    pub text: &'a str,
+    /// The feature's name, as the human reads it.
+    pub name: &'a str,
+    pub waiting: bool,
+    pub draw: &'a dyn Fn(&str) -> String,
+}
+
+/// The `<main>` of the views' page: the file drawn, its story links live, and nothing to write.
+/// The human comments in the project's own preview or in the session, so the page holds no comment
+/// box and no verdict.
+pub fn views(page: &Views<'_>) -> String {
+    let drawn = (page.draw)(page.text);
+    let mut out = String::with_capacity(page.text.len() * 3);
+    let _ = write!(
+        out,
+        "<main class=\"views\" data-waiting=\"{waiting}\">\
+         <nav class=\"crumbs\"><a href=\"../../../\">‹ What waits on you</a></nav>\
+         <p class=\"badge{quiet}\">Views {state}</p><h1>{name}</h1>",
+        quiet = if page.waiting { "" } else { " quiet" },
+        state = if page.waiting { "to look at" } else { "agreed" },
+        waiting = page.waiting,
+        name = escape(page.name),
+    );
+    if page.waiting {
+        out.push_str(
+            "<p class=\"hint small\">Look at each view, then tell your agent your comments in \
+             its session, all in one pass.</p>",
+        );
+    }
+    let _ = write!(out, "<article class=\"doc\">{drawn}</article></main>");
+    outline(&mut out, &drawn, None);
+    out
+}
+
 /// The comments as the script reads them.
 pub fn comments_json(comments: &[Comment]) -> Value {
     Value::Array(
@@ -115,7 +151,7 @@ pub fn main(page: &Page<'_>) -> String {
         "<script type=\"application/json\" id=\"review-data\">{}</script></main>",
         data.to_string().replace("</", "<\\/")
     );
-    outline(&mut out, &drawn, page.waiting);
+    outline(&mut out, &drawn, Some(page.waiting));
     if page.waiting {
         out.push_str(
             "<div class=\"bar\" role=\"region\" aria-label=\"Review\"><span class=\"progress\">\
@@ -126,9 +162,10 @@ pub fn main(page: &Page<'_>) -> String {
     out
 }
 
-/// The outline beside the page at a desk: the file's `##` and `###` headings, then the comments
-/// and the verdict.
-fn outline(out: &mut String, drawn: &str, waiting: bool) {
+/// The outline beside the page at a desk: the file's `##` and `###` headings, then, for a review,
+/// the comments and the verdict. `review` is whether the review still waits, `None` for a page that
+/// takes no comments.
+fn outline(out: &mut String, drawn: &str, review: Option<bool>) {
     out.push_str("<aside class=\"outline\" aria-label=\"Contents\"><p class=\"outline-title\">Contents</p><ul>");
     for (level, id, text) in headings(drawn) {
         let _ = write!(
@@ -136,11 +173,15 @@ fn outline(out: &mut String, drawn: &str, waiting: bool) {
             "<li class=\"level-{level}\"><a href=\"#{id}\">{text}</a></li>"
         );
     }
-    out.push_str("</ul><ul><li><a href=\"#comments\">Your comments</a></li>");
-    if waiting {
-        out.push_str("<li><a href=\"#verdict\">Your verdict</a></li>");
+    out.push_str("</ul>");
+    if let Some(waiting) = review {
+        out.push_str("<ul><li><a href=\"#comments\">Your comments</a></li>");
+        if waiting {
+            out.push_str("<li><a href=\"#verdict\">Your verdict</a></li>");
+        }
+        out.push_str("</ul>");
     }
-    out.push_str("</ul></aside>");
+    out.push_str("</aside>");
 }
 
 /// The `<h2>` and `<h3>` of drawn HTML: their level, their `id`, and their text without its tags,

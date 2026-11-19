@@ -65,6 +65,9 @@ pub enum FileKind {
     Proposal,
     Discovery,
     Clarifications,
+    /// The views of a UI iteration, `views.md`: written with the first draft, approved by the
+    /// human's word in the session.
+    Views,
     Spec,
     Plan,
     Rulings,
@@ -83,6 +86,7 @@ impl FileKind {
     pub fn of(name: &str) -> Option<(FileKind, Option<u32>)> {
         let fixed = match name {
             "proposal.md" => Some(FileKind::Proposal),
+            "views.md" => Some(FileKind::Views),
             "spec.md" => Some(FileKind::Spec),
             "plan.md" => Some(FileKind::Plan),
             "rulings.md" => Some(FileKind::Rulings),
@@ -114,6 +118,7 @@ impl FileKind {
     pub fn statuses(&self) -> &'static [&'static str] {
         match self {
             FileKind::Clarifications => &["awaiting-human", "answered"],
+            FileKind::Views => &["awaiting-human", "approved"],
             FileKind::Spec => &["awaiting-human", "approved", "changes-requested"],
             FileKind::Plan => &[
                 "awaiting-human",
@@ -237,8 +242,11 @@ impl Feature {
         }
         let on_disk = steps::step(self, pull_request);
         if on_disk.waits_on == steps::WaitsOn::Agent && on_disk.name != steps::StepName::None {
+            // The views are approved by the human's word, and the agent sets the status: the
+            // step's own commit holds them with the views, not a commit of the human's first.
+            let views = at_tip.file.as_deref() == Some("views.md");
             return Step {
-                commit_first: true,
+                commit_first: !views,
                 ..on_disk
             };
         }

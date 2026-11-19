@@ -6,6 +6,10 @@ use crate::files::items::TaskItem;
 use crate::files::plan;
 use crate::workspace::{Feature, FileKind, Kind, first_file};
 
+mod discovery;
+
+use discovery::{latest_discovery, lost_round};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum StepName {
@@ -16,6 +20,9 @@ pub enum StepName {
     /// nor a spec of it. Ask it again, or write it as a file.
     LostRound,
     Discovery,
+    /// A feature with UI work, its round answered or none asked, and no `views.md` yet: draw the
+    /// first draft of the views, then stop at the gate it opens.
+    UiIteration,
     Spec,
     SpecRevision,
     Plan,
@@ -46,6 +53,7 @@ impl StepName {
             StepName::Proposal => "proposal",
             StepName::LostRound => "lost-round",
             StepName::Discovery => "discovery",
+            StepName::UiIteration => "ui-iteration",
             StepName::Spec => "spec",
             StepName::SpecRevision => "spec-revision",
             StepName::Plan => "plan",
@@ -70,11 +78,12 @@ impl StepName {
     }
 
     /// Every step, in the enum's order.
-    const ALL: [StepName; 19] = [
+    const ALL: [StepName; 20] = [
         StepName::HumanGate,
         StepName::Proposal,
         StepName::LostRound,
         StepName::Discovery,
+        StepName::UiIteration,
         StepName::Spec,
         StepName::SpecRevision,
         StepName::Plan,
@@ -233,30 +242,32 @@ impl Step {
         self.pull_request.is_some()
     }
 
-    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 13: a gate is placed
+    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 15: a gate is placed
     /// by the file it waits on, and a change's agent step with the implementation.
     pub fn order(&self) -> u32 {
         match self.name {
             StepName::HumanGate => match self.file.as_deref().and_then(FileKind::of) {
-                Some((FileKind::Spec, _)) => 4,
-                Some((FileKind::Plan, _)) => 6,
+                Some((FileKind::Views, _)) => 4,
+                Some((FileKind::Spec, _)) => 6,
+                Some((FileKind::Plan, _)) => 8,
                 Some((FileKind::Clarifications, _)) => 2,
                 _ => 0,
             },
             StepName::Proposal => 0,
             StepName::Discovery | StepName::LostRound => 1,
-            StepName::Spec | StepName::SpecRevision => 3,
-            StepName::Plan | StepName::PlanRevision => 5,
-            StepName::Implementation | StepName::Change => 7,
-            StepName::FinalReview => 8,
-            StepName::Finish => 9,
-            StepName::PullRequestChanges => 10,
+            StepName::UiIteration => 3,
+            StepName::Spec | StepName::SpecRevision => 5,
+            StepName::Plan | StepName::PlanRevision => 7,
+            StepName::Implementation | StepName::Change => 9,
+            StepName::FinalReview => 10,
+            StepName::Finish => 11,
+            StepName::PullRequestChanges => 12,
             StepName::Push
             | StepName::CatchUp
             | StepName::PullRequest
-            | StepName::PullRequestUnknown => 11,
-            StepName::Done => 12,
-            StepName::None => 13,
+            | StepName::PullRequestUnknown => 13,
+            StepName::Done => 14,
+            StepName::None => 15,
         }
     }
 }
@@ -312,10 +323,17 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         .iter()
         .filter(|file| file.kind == FileKind::Clarifications)
         .max_by_key(|file| file.round);
-    let Some(latest) = latest else {
+    let discovery = latest_discovery(feature);
+    let questions_round = latest.and_then(|file| file.round).unwrap_or(0);
+    // A feature that is only a look asks no round: its latest discovery says `round: none`, with no
+    // questions of that round.
+    let look_only = discovery
+        .as_ref()
+        .filter(|found| found.no_round && found.round > questions_round);
+    if latest.is_none() && look_only.is_none() {
         return Step::agent(StepName::Discovery, "discovery");
-    };
-    let round = latest.round.unwrap_or(0);
+    }
+    let round = look_only.map_or(questions_round, |found| found.round);
     let spec = feature.file(FileKind::Spec);
     let spec_status = spec.and_then(|file| file.status.as_deref());
     let spec_text = feature.text("spec.md");
@@ -324,16 +342,24 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
     };
     // A round answered to continue the implementation leaves the approved spec as it is, and still
     // does once the build it resumed checked its last step.
-    let resumes = feature
-        .text(&latest.name)
+    let resumes = latest
+        .and_then(|file| feature.text(&file.name))
         .and_then(|text| crate::files::frontmatter::parse(text).ok())
         .is_some_and(|front| front.text("resumes") == Some("implementation"))
         && planned(feature);
-    if latest.status.as_deref() == Some("answered")
-        && !resumes
-        && (spec.is_none() || spec_number("clarifications").unwrap_or(0) < i64::from(round))
+    let settled = look_only.is_some()
+        || (latest.and_then(|file| file.status.as_deref()) == Some("answered") && !resumes);
+    if settled && (spec.is_none() || spec_number("clarifications").unwrap_or(0) < i64::from(round))
     {
-        return Step::agent(StepName::Spec, "spec");
+        // The first spec of a feature with UI work waits for its views, settled with the human.
+        let views = spec.is_none()
+            && discovery.is_some_and(|found| found.ui)
+            && feature.file(FileKind::Views).is_none();
+        return if views {
+            Step::agent(StepName::UiIteration, "ui")
+        } else {
+            Step::agent(StepName::Spec, "spec")
+        };
     }
     match spec_status {
         Some("changes-requested") => return Step::agent(StepName::SpecRevision, "spec"),
@@ -423,33 +449,6 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         pull_request: Some(pull_request),
         ..step
     }
-}
-
-/// Whether the latest discovery round has neither its questions' file nor a spec written from it:
-/// a round asked in a session, and lost with it.
-fn lost_round(feature: &Feature) -> bool {
-    let latest = |kind| {
-        feature
-            .files
-            .iter()
-            .filter(|file| file.kind == kind)
-            .filter_map(|file| file.round)
-            .max()
-            .unwrap_or(0)
-    };
-    let discovery = latest(FileKind::Discovery);
-    if discovery == 0 || latest(FileKind::Clarifications) >= discovery {
-        return false;
-    }
-    let spec_round = feature
-        .text("spec.md")
-        .and_then(|text| {
-            crate::files::frontmatter::parse(text)
-                .ok()?
-                .integer("clarifications")
-        })
-        .unwrap_or(0);
-    spec_round < i64::from(discovery)
 }
 
 /// The gate on the last file waiting for the human, if any.

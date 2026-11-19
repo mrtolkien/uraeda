@@ -14,7 +14,9 @@ use super::{Checked, File};
 fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static str])> {
     match kind {
         Checked::Workflow(FileKind::Proposal) => Some((&[], &["discovery"])),
+        Checked::Workflow(FileKind::Discovery) => Some((&[], &["ui", "round"])),
         Checked::Workflow(FileKind::Clarifications) => Some((&["status"], &["resumes"])),
+        Checked::Workflow(FileKind::Views) => Some((&["status"], &[])),
         Checked::Workflow(FileKind::Spec) => Some((
             &["status", "revision", "clarifications", "risk-tier"],
             &["plan-review"],
@@ -37,6 +39,7 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
         (Checked::Record, "kind") => Some(&["feature", "change"]),
         (_, "resumes") => Some(&["implementation"]),
+        (_, "round") => Some(&["none"]),
         (_, "risk-tier" | "discovery") => Some(&["low", "medium", "high"]),
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
         _ => None,
@@ -97,7 +100,7 @@ fn field_kind(kind: Checked, key: &str) -> FieldKind {
     }
     match key {
         "revision" | "clarifications" | "spec-revision" => FieldKind::Integer,
-        "plan-review" => FieldKind::Boolean,
+        "plan-review" | "ui" => FieldKind::Boolean,
         "finished" => FieldKind::Date,
         _ => FieldKind::Text,
     }
@@ -209,6 +212,16 @@ pub(super) fn check_frontmatter(
             }
         }
     }
+    if file.kind == Checked::Workflow(FileKind::Discovery)
+        && let Some(value) = front.get("ui")
+        && !matches!(value, Value::Bool(_))
+    {
+        problems.push(file.problem(
+            front.line("ui"),
+            "frontmatter.ui",
+            format!("ui {} is not true or false", shown(value)),
+        ));
+    }
     if file.kind == Checked::Workflow(FileKind::Spec) {
         check_spec_numbers(file, &front, problems);
     }
@@ -249,14 +262,7 @@ fn positive(
 fn check_spec_numbers(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Problem>) {
     positive(file, front, "revision", problems);
     if let Some(included) = positive(file, front, "clarifications", problems) {
-        let last = file
-            .folder
-            .keys()
-            .filter_map(|name| match FileKind::of(name) {
-                Some((FileKind::Clarifications, round)) => round,
-                _ => None,
-            })
-            .max();
+        let last = last_round(file);
         if let Some(last) = last
             && included > i64::from(last)
         {
@@ -276,6 +282,22 @@ fn check_spec_numbers(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<P
             format!("plan-review {} is not true or false", shown(value)),
         ));
     }
+}
+
+/// The last round of a feature's folder: the latest questions' file, or a discovery that says
+/// `round: none`, where a look-only feature's spec counts its round.
+fn last_round(file: &File<'_>) -> Option<u32> {
+    file.folder
+        .iter()
+        .filter_map(|(name, text)| match FileKind::of(name) {
+            Some((FileKind::Clarifications, round)) => round,
+            Some((FileKind::Discovery, round)) => round.filter(|_| {
+                super::parse_frontmatter(text)
+                    .is_some_and(|front| front.text("round") == Some("none"))
+            }),
+            _ => None,
+        })
+        .max()
 }
 
 fn check_plan_revision(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Problem>) {

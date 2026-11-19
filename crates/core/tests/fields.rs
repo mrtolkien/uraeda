@@ -131,6 +131,17 @@ fn every_kind_lists_the_fields_check_requires() {
             vec![("discovery", choice(&["low", "medium", "high"]))],
         ),
         (
+            format!("{FEATURE}/discovery-01.md"),
+            vec![
+                ("ui", (FieldKind::Boolean, "true,false".to_string())),
+                ("round", choice(&["none"])),
+            ],
+        ),
+        (
+            format!("{FEATURE}/views.md"),
+            vec![("status", choice(&["awaiting-human", "approved"]))],
+        ),
+        (
             format!("{FEATURE}/clarifications-02.md"),
             vec![
                 ("status", choice(&["awaiting-human", "answered"])),
