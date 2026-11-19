@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.2.0 - Add UI iteration step
+
+Released on 2026-11-19.
+
+### Changes
+
+- **[Pages look like 1.4 again](https://github.com/mrtolkien/uraeda/blob/v3.2.0/specs/done/2026-11-18-pages-look.md)**
+  ([#127](https://github.com/mrtolkien/uraeda/pull/127)): After Uraeda light, the owner found
+  `ura serve`'s pages "empty and boring and hard to read", and asked for "almost the same look for
+  reading specs and clarifications as uraeda 1.4", with a refresh button on the home page. The
+  binary stays light: the look is one style sheet, with no font and no image added.
+
 ## 3.1.1 - UI improvements, faster builds
 
 Released on 2026-11-16.
