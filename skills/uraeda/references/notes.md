@@ -69,8 +69,9 @@ A proposal is one note of `projects/<repository>/proposals/`, free form, from
 | `rank`      | a number, lowest first within a status | the human                                            |
 | `branch`    | the feature's branch, once started     | the agent that starts it                             |
 
-A notes app shows them as a board: an Obsidian base grouped by `status`, sorted by `rank`. No file
-lists the priorities: the proposals' fields are the list.
+A notes app shows them as a board: an Obsidian base with a column per `status`, its cards in the
+order of `rank`, which the human sets by dragging a card and never reads. No file lists the
+priorities: the proposals' fields are the list.
 
 An agent edits a proposal note in three cases only, and only its frontmatter: it sets
 `status: started` and `branch` when it [starts](projects.md#starting-a-feature) the feature, and

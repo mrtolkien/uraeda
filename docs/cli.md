@@ -167,6 +167,15 @@ in progress in its worktrees, to read: `ura serve` makes those links again as wo
   the plugin's settings, "Address of ura serve" and "Token".
 - **When it syncs**: as Obsidian opens or comes back, a few seconds after an edit, and every minute
   while it is open; ⟳ syncs at once. iOS does not let it run while Obsidian is closed.
+- **The board**: a project's `Board.base` shows its proposals in a column per `status`. Drag a card,
+  with the mouse or by holding a finger on it, to where it belongs in its column or into another:
+  the plugin writes its `rank` and `status` in the note, and never shows the rank. A started card
+  has a **Done** button, and every card a **⋯** menu to open it or move it to a column.
+- **The home**: a new tab opens the home, which lists the projects with a proposal that is started,
+  now, or next, the latest touched first. A project opens its board. The plugin's settings turn it
+  off ("Home in new tabs"), and the command "Uraeda: Open home" opens it anywhere.
+- **The look**: the plugin carries the vault's look, a mossy background with frosted panes, to every
+  device, over any Obsidian theme.
 - **What travels**: every file of the vault, both ways, but hidden ones: each device keeps its own
   `.obsidian/` settings, and the plugin itself comes from the computer. The repositories' files are
   read only: an edit of one on the phone comes back as a note in `inbox/`, and the file as git has

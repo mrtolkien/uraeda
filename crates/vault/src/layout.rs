@@ -23,24 +23,39 @@ pub fn ensure(vault: &Vault, projects: &[&str]) -> io::Result<()> {
             std::fs::create_dir_all(root.join("projects").join(project).join(folder))?;
         }
         let board = root.join("projects").join(project).join("Board.base");
-        if !board.exists() {
-            crate::notes::write_atomic(&board, board_text(project).as_bytes())?;
+        match std::fs::read_to_string(&board) {
+            Err(_) => crate::notes::write_atomic(&board, board_text(project).as_bytes())?,
+            Ok(text) => {
+                if let Some(drawn) = with_uraeda_board(project, &text) {
+                    crate::notes::write_atomic(&board, drawn.as_bytes())?;
+                }
+            }
         }
     }
     Ok(())
 }
 
-/// A project's board, written once and the human's afterwards: an Obsidian base of its proposals
-/// as a kanban, a column per `status`, sorted by `rank`, written as Obsidian writes it back, so
-/// opening it changes nothing.
+/// The view type of a project's board, which the Uraeda plugin draws: a column per `status`, the
+/// cards in the order of their `rank`, dragged into place.
+pub const BOARD_VIEW: &str = "uraeda-board";
+
+/// A project's board, written once and the human's afterwards: an Obsidian base of its proposals,
+/// drawn by the plugin's board view, which holds the columns and the order itself.
 pub fn board_text(project: &str) -> String {
     format!(
         "filters:\n  and:\n    - file.inFolder(\"projects/{project}/proposals\")\nviews:\n  - type: \
-         kanban\n    name: Board\n    groupBy:\n      property: status\n      direction: ASC\n    \
-         groupOrder:\n      - now\n      - next\n      - later\n      - idea\n      - started\n      \
-         - postponed\n      - done\n    order:\n      - file.name\n      - rank\n    sort:\n      - \
-         property: rank\n        direction: ASC\n"
+         {BOARD_VIEW}\n    name: Board\n"
     )
+}
+
+/// An older board of the project, drawn by Obsidian's own kanban, which cannot order the cards of
+/// a column: the same board with the plugin's view, the rest of the human's edits kept. `None` for
+/// a board that is not that one.
+fn with_uraeda_board(project: &str, text: &str) -> Option<String> {
+    let folder = format!("file.inFolder(\"projects/{project}/proposals\")");
+    let kanban = "  - type: kanban\n";
+    (text.contains(&folder) && text.contains(kanban))
+        .then(|| text.replacen(kanban, &format!("  - type: {BOARD_VIEW}\n"), 1))
 }
 
 /// The layout's folders that exist, from the vault's: `inbox`, `wiki/apps`,
@@ -96,5 +111,20 @@ mod tests {
             std::fs::read_to_string(vault.root().join("inbox/a.md")).unwrap(),
             "mine"
         );
+    }
+
+    #[test]
+    fn an_older_kanban_board_gets_the_plugins_view_and_keeps_the_rest() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Vault::new(dir.path().join("Uraeda"));
+        let board = vault.root().join("projects/todo/Board.base");
+        std::fs::create_dir_all(board.parent().unwrap()).unwrap();
+        let older = "filters:\n  and:\n    - file.inFolder(\"projects/todo/proposals\")\n    - status != \"idea\"\nviews:\n  - type: kanban\n    name: Mine\n";
+        std::fs::write(&board, older).unwrap();
+        ensure(&vault, &["todo"]).unwrap();
+        let text = std::fs::read_to_string(&board).unwrap();
+        assert_eq!(text, older.replace("type: kanban", "type: uraeda-board"));
+        ensure(&vault, &["todo"]).unwrap();
+        assert_eq!(std::fs::read_to_string(&board).unwrap(), text);
     }
 }

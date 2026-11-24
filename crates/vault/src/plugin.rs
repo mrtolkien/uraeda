@@ -14,6 +14,9 @@ use crate::{Vault, notes, paths};
 /// The plugin's code: see its own header.
 pub const MAIN: &str = include_str!("../plugin/main.js");
 
+/// The vault's look, which Obsidian loads with the plugin: a mossy background and frosted panes.
+pub const STYLES: &str = include_str!("../plugin/styles.css");
+
 /// The plugin's identity, as Obsidian reads it.
 pub fn manifest() -> String {
     let manifest = json!({
@@ -21,7 +24,7 @@ pub fn manifest() -> String {
         "name": "Uraeda",
         "version": env!("CARGO_PKG_VERSION"),
         "minAppVersion": "1.5.0",
-        "description": "Syncs this vault with ura serve, and links to its pages.",
+        "description": "Syncs this vault with ura serve, draws its board and home, and gives it its look.",
         "author": "Uraeda",
         "isDesktopOnly": false,
     });
@@ -32,8 +35,12 @@ pub fn manifest() -> String {
 }
 
 /// The plugin's files, by name in its folder.
-pub fn files() -> [(&'static str, String); 2] {
-    [("main.js", MAIN.to_string()), ("manifest.json", manifest())]
+pub fn files() -> [(&'static str, String); 3] {
+    [
+        ("main.js", MAIN.to_string()),
+        ("manifest.json", manifest()),
+        ("styles.css", STYLES.to_string()),
+    ]
 }
 
 /// Writes the plugin's files that differ, and turns it on in a vault that has no list of plugins.
