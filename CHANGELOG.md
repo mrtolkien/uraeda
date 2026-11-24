@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.0 - Add Obsidian theme + QoL features
+
+Released on 2026-11-24.
+
+No feature or change recorded in `specs/done/`.
+
 ## 3.2.0 - Add UI iteration step
 
 Released on 2026-11-19.
