@@ -172,12 +172,31 @@ body:not(.is-mobile):is(.theme-dark, .theme-light) .workspace-tab-header:not(.is
   background: transparent !important;
 }
 
+/* The blur sits in a fixed layer behind the ribbon: a filter on the ribbon itself would make it the
+   place the sidebar toggle, which the ribbon holds, is positioned from. */
 body:not(.is-mobile):is(.theme-dark, .theme-light)
   :is(.workspace-ribbon.mod-primary, .workspace-ribbon.mod-left) {
+  border-right: 1px solid var(--u-edge);
+}
+
+body:not(.is-mobile):is(.theme-dark, .theme-light)
+  :is(.workspace-ribbon.mod-primary, .workspace-ribbon.mod-left)::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  width: 44px;
+  height: 100vh;
+  margin-top: calc(-1 * var(--size-4-2, 8px));
   background: var(--u-pane-side);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-right: 1px solid var(--u-edge);
+  pointer-events: none;
+}
+
+body:not(.is-mobile):is(.theme-dark, .theme-light)
+  :is(.workspace-ribbon.mod-primary, .workspace-ribbon.mod-left)
+  > :not(.sidebar-toggle-button) {
+  position: relative;
 }
 
 /* ---- The tree: a bonsai of dots, the logo grown wide, instead of the moss ---- */
