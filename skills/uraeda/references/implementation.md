@@ -49,12 +49,14 @@ fresh agent: a review by the author is weaker.
   so in the pull request.
 - **Without sub-agents**, build the tasks yourself, in the plan's order, and review the branch as a
   separate pass, saying so in the pull request.
-- **A worktree is made only for a task built beside another one.** A wave of one task, a fix, and a
-  catch-up are built in the feature's worktree, on the feature branch. A reviewer changes no file,
-  so it never gets a worktree: it reads the commits it is given, in the feature's worktree.
-- **Whoever starts a worktree removes it**, with its branch, in the step that merges or declines its
-  work, as [No worktree is left](#no-worktree-is-left) says. An implementer deletes what it made
-  outside git's files, like a build folder of its own, before its last message.
+- **Tasks are built in task worktrees, and the feature's worktree is kept for the checks.** A
+  feature has as many task worktrees as its widest wave has tasks. Each is made when a task first
+  needs it, kept until the build ends, and used again by the tasks and the fixes of later waves. A
+  reviewer changes no file, so it never gets a worktree: it reads the commits it is given, in the
+  feature's worktree.
+- **Whoever starts a worktree removes it** at the end of the build, as
+  [No worktree is left](#no-worktree-is-left) says. An implementer deletes what it made outside
+  git's files, like a build folder of its own, before its last message.
 
 A review's findings are not committed: you grade them as they come, and fix them in commits whose
 bodies say what each fixes. A run that stops before its fixes loses the findings, and the review is
@@ -63,30 +65,28 @@ run again.
 ## For each wave
 
 1. **Build its tasks at the same time**, each by a fresh implementer with
-   [its brief](#the-implementers-brief). A wave of one task is built in the feature's worktree, on
-   the feature branch: it has nothing to merge. In a wave of several tasks, each implementer works
-   in its own worktree, on a task branch made from the feature branch as it is now,
-   `<feature-branch>-task-N`. Task branches stay local.
+   [its brief](#the-implementers-brief), in a task worktree, on a task branch made from the feature
+   branch as it is now, `<feature-branch>-task-N`. Take a task worktree that an earlier wave left
+   free, and make a new one only when none is free. A wave of one task is built in a task worktree
+   too: the feature's worktree stays free for the checks. Task branches stay local.
 2. **Merge them, in the plan's order**: rebase each task branch on the feature branch, fast-forward
-   the feature branch to it, then remove its worktree and delete its branch, in this step and before
-   the next wave starts. The history stays linear, one commit per task. A conflict outside the
-   shared files the plan's **Waves** names means the tasks were not independent. A conflict in
-   `plan.md`'s checkboxes is not one: keep both sides' checked boxes. For a real one: give the later
-   task to a fresh implementer, to rebuild on the merged code, in the worktree of that task.
+   the feature branch to it, then delete its branch and keep its worktree, which is free for the
+   next task. The history stays linear, one commit per task. A conflict outside the shared files the
+   plan's **Waves** names means the tasks were not independent. A conflict in `plan.md`'s checkboxes
+   is not one: keep both sides' checked boxes. For a real one: give the later task to a fresh
+   implementer, to rebuild on the merged code, in the worktree of that task.
 3. **Check the merged wave**, in the background: that the project builds, and the tests of the code
    the wave touched. This is not the complete validation.
 4. **Start the wave's review** in the background when it [asks for one](#review-the-waves), and
-   **start the next wave** without waiting for the check or the review. When the next wave is built
-   in the feature's worktree, the check ends first: it cannot build files that an implementer is
-   changing.
+   **start the next wave** without waiting for the check or the review. The check runs in the
+   feature's worktree, where no implementer changes a file.
 
-A failed check or a finding does not stop the next wave: it is fixed beside it and merged between
-two waves. The fixes are made in the feature's worktree when the wave is built in worktrees of its
-own, and in one fix worktree when an implementer works in the feature's. One fix worktree takes
-every fix that is open, one after the other, and is removed with its branch once they are merged: a
-fix never gets a worktree of its own. Only what the next wave cannot be built on is fixed first:
-merged code that does not build, or a wrong name it consumes. What is still open when the last wave
-is merged is fixed in one pass, in the feature's worktree, before the final review.
+A failed check or a finding does not stop the next wave: it is fixed beside it and merged like a
+task between two waves. A fix is made in a task worktree that is free, on a branch made from the
+feature branch, and one fixer takes every fix that is open: a fix never gets a worktree of its own
+while one is free. Only what the next wave cannot be built on is fixed first: merged code that does
+not build, or a wrong name it consumes. What is still open when the last wave is merged is fixed in
+one pass, before the final review.
 
 When an implementer stops or is interrupted, give its task to a fresh one, in the same worktree and
 on the same branch, told to resume from its commits and checked boxes. A second attempt never gets a
@@ -94,13 +94,17 @@ second worktree.
 
 ### No worktree is left
 
-A worktree that an implementer or a fixer was given lasts until its work is merged or declined, and
-no longer. When the pull request is opened, the feature's worktree is the only one this feature has.
+The task worktrees last until the build ends, and no longer. When the pull request is opened, the
+feature's worktree is the only one this feature has.
 
-- **At each merge**, remove the worktree and delete the branch of what was merged:
-  `git worktree remove <path>`, then `git branch -D <branch>`. A session host that made the worktree
-  removes it when it has a command for that, and git does otherwise. The project's own command for
-  removing worktrees is used when it has one.
+- **During the build**, the number of task worktrees never passes the number of tasks of the widest
+  wave, plus one when a fix runs beside a full wave. A merged task's branch is deleted at its merge:
+  `git branch -D <branch>`, once its worktree holds the next task's branch.
+- **At the end of the build**, once the last wave and its fixes are merged and checked, remove every
+  task worktree and delete what is left of their branches: `git worktree remove <path>`, then
+  `git branch -D <branch>`. A session host that made a worktree removes it when it has a command for
+  that, and git does otherwise. The project's own command for removing worktrees is used when it has
+  one. The fixes of the final review are made in the feature's worktree.
 - **Before the pull request is opened**, list the worktrees with `git worktree list`. Remove every
   one that this feature's agents were given, and delete their branches, whatever their age: their
   work is on the feature branch, or was declined.
@@ -120,8 +124,8 @@ what its task needs:
 - the guides that apply to what it builds, and the rulings that touch its files;
 - the discovery's map of the code it touches;
 - what earlier tasks produced that it consumes;
-- where it works: the feature's worktree and branch for a wave of one task, or else its own worktree
-  and task branch, where it commits without touching the feature branch;
+- where it works: its task worktree and task branch, where it commits without touching the feature
+  branch or the feature's worktree;
 - where it builds: the folder the project's builds share, or else a folder of its own that it
   deletes before its last message.
 
