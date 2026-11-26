@@ -101,8 +101,9 @@ any work relies on it.
 
 ## Waves
 
-The implementation builds the tasks of a wave at the same time, each in its own worktree. A wave is
-a set of tasks that can be built without seeing each other's code:
+The implementation builds the tasks of a wave at the same time, each in its own worktree when the
+wave has several. A wave of one task is built in the feature's worktree. A wave is a set of tasks
+that can be built without seeing each other's code:
 
 - no task consumes another task of its wave;
 - they touch different parts of the code: no file in common, but separate additions to a shared

@@ -112,7 +112,8 @@ written so the next start does not begin from nothing.
    proposal. Its previous commit keeps every file. The branch is never merged: its code and its
    edits to the decisions never reach the default branch.
 4. **Remove the worktree**, never forced, and keep the branch. A session host's worktree is removed
-   through the host. The worktree you are in stays: give the human `git worktree remove <path>`.
+   through the host when it has a command for that, and with git otherwise. The worktree you are in
+   stays: give the human `git worktree remove <path>`.
 
 **Drop**: after the human confirms, remove its worktree as above, and keep its branch, so nothing is
 lost: give the human `git branch -D <branch>` to delete it. Tell them the proposal's note is theirs
@@ -120,8 +121,11 @@ to delete. A merged feature is not dropped: it is done.
 
 ## After the merge
 
-A merged feature's worktree and branch stay until the human, or their session host, removes them:
-`git worktree remove <path>`, then `git branch -D <branch>` once every commit of the branch is on
-the default branch, as [clean up after a merge](by-hand.md#clean-up-after-a-merge) checks. The
-proposal's note in the human's notes says `started` until an agent finds the record in `specs/done/`
-and sets it `done`, as [Notes](notes.md#proposals-and-priorities) says.
+A merged feature's worktree and branch are removed by the agent that merges its pull request, in the
+same step, or by the first agent that finds it merged: `git worktree remove <path>`, then
+`git branch -D <branch>` once every commit of the branch is on the default branch, as
+[clean up after a merge](by-hand.md#clean-up-after-a-merge) checks. The project's own command for
+removing worktrees is used when it has one. A worktree with uncommitted or untracked files stays,
+and the agent names it to the human. The proposal's note in the human's notes says `started` until
+an agent finds the record in `specs/done/` and sets it `done`, as
+[Notes](notes.md#proposals-and-priorities) says.

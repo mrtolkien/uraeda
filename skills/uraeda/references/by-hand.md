@@ -120,7 +120,7 @@ page, with `pageInfo { hasNextPage endCursor }` and `after:`.
 
 ## Clean up after a merge
 
-Only when the human asks, from the main checkout, never forced:
+Once the pull request is merged, from the main checkout, never forced:
 
 1. `git worktree remove <path>`: git refuses a worktree with uncommitted or untracked files, and
    they stay until the human deals with them. `git worktree prune` drops the record of a worktree

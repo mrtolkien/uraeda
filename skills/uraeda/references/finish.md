@@ -159,8 +159,8 @@ Once the feature is built again, it is finished again, from this file's first st
 Records are frozen once merged: edit one only to fix a broken link. A later feature that changes the
 behaviour says so in its own record.
 
-The branch and its worktree stay until the human or their session host removes them, as
-[after the merge](projects.md#after-the-merge) says.
+The agent that merges the pull request, or the first one that finds it merged, removes the feature's
+worktree and its branch, as [after the merge](projects.md#after-the-merge) says.
 
 ## Commit
 

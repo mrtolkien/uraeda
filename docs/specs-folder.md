@@ -114,7 +114,7 @@ tasks feature went through the whole workflow:
    [record](../skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with what the feature does, each question and its answer, and what changed after you
    approved. Once you merge, the next agent that finds the record sets the proposal's note `done`.
-   The worktree and the branch stay until you remove them.
+   The agent that finds the feature merged removes its worktree and its branch.
 
 Every file waiting for you opens with a summary of what is asked, how long it takes, and what to
 look at first. Its spec opened like this when it was submitted:
