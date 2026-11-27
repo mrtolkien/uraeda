@@ -783,7 +783,40 @@ class BoardView extends (BasesView ?? class {}) {
           .onClick(() => this.moveTo(card, status, "end")),
       );
     }
+    menu.addSeparator();
+    menu.addItem((i) =>
+      i
+        .setTitle("Copy Obsidian vault URL")
+        .setIcon("link")
+        .onClick(() => this.copy(this.noteUrl(card), "the Obsidian URL")),
+    );
+    menu.addItem((i) =>
+      i
+        .setTitle("Copy agent prompt")
+        .setIcon("bot")
+        .onClick(() =>
+          this.copy(
+            `Start the uraeda development flow for ${this.noteUrl(card)}.`,
+            "the agent prompt",
+          ),
+        ),
+    );
     return menu;
+  }
+
+  /** The `obsidian://` link that opens a card's note in this vault. */
+  noteUrl(card) {
+    const vault = encodeURIComponent(this.app.vault.getName());
+    return `obsidian://open?vault=${vault}&file=${encodeURIComponent(card.path)}`;
+  }
+
+  async copy(text, what) {
+    try {
+      await navigator.clipboard.writeText(text);
+      new Notice("Uraeda: copied " + what + ".");
+    } catch (e) {
+      new Notice("Uraeda: could not copy: " + (e && e.message ? e.message : e), 8000);
+    }
   }
 
   /** A card is done at the top of the done column, the latest first. */
