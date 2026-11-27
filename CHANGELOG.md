@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0 - Less worktrees, better plugin
+
+Released on 2026-11-27.
+
+No feature or change recorded in `specs/done/`.
+
 ## 3.3.0 - Add Obsidian theme + QoL features
 
 Released on 2026-11-24.
